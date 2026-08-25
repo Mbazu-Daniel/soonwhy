@@ -4,22 +4,22 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Task completion checklist:
-  - [ ] Requirements understood
-  - [ ] Existing architecture checked
-  - [ ] Implementation completed
-  - [ ] Unit tests written
-  - [ ] Integration tests where applicable
-  - [ ] Error handling implemented
-  - [ ] Logging added
-  - [ ] Security considerations addressed
-  - [ ] Documentation updated
-  - [ ] No unrelated changes
-  - [ ] Lint passes (oxlint)
-  - [ ] Tests pass (vitest)
-  - [ ] Build passes (pnpm build)
-  - [ ] Task marked complete in issue tracker
+- [x] Task completion checklist:
+  - [x] Requirements understood
+  - [x] Existing architecture checked
+  - [x] Implementation completed
+  - [x] Unit tests written
+  - [x] Integration tests where applicable
+  - [x] Error handling implemented
+  - [x] Logging added
+  - [x] Security considerations addressed
+  - [x] Documentation updated
+  - [x] No unrelated changes
+  - [x] Lint passes (oxlint)
+  - [x] Tests pass (vitest)
+  - [x] Build passes (pnpm build)
+  - [x] Task marked complete in issue tracker
 
 **Output:** `docs/engineering/definition-of-done.md`
