@@ -4,20 +4,20 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Initialization flow (Soonwhy.init)
-- [ ] Configuration options (apiKey, endpoint, batchSize, flushInterval)
-- [ ] Event batching (buffer size, flush interval, flush on shutdown)
-- [ ] Retry mechanism (exponential backoff, max retries)
-- [ ] Fail-open behavior (application continues if Soonwhy is down)
-- [ ] Instrumentation hooks:
-  - HTTP requests (auto-capture latency, status code)
-  - Database queries (slow query detection)
-  - Redis operations (latency, errors)
-  - Queue jobs (processing time, failures)
-  - Cron jobs (execution time, misses)
-- [ ] PII filtering and secret redaction
-- [ ] Payload limits
+- [x] Initialization flow (Soonwhy.init)
+- [x] Configuration options (apiKey, endpoint, batchSize, flushInterval)
+- [x] Event batching (buffer size, flush interval, flush on shutdown)
+- [x] Retry mechanism (exponential backoff, max retries)
+- [x] Fail-open behavior (application continues if Soonwhy is down)
+- [x] Instrumentation hooks:
+  - [x] HTTP requests (auto-capture latency, status code)
+  - [x] Database queries (slow query detection)
+  - [x] Redis operations (latency, errors)
+  - [x] Queue jobs (processing time, failures)
+  - [x] Cron jobs (execution time, misses)
+- [x] PII filtering and secret redaction
+- [x] Payload limits
 
-**Output:** `docs/architecture/sdk-client.md`
+**Output:** `docs/architecture/sdk.md`
