@@ -4,23 +4,23 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Unit testing:
+- [x] Unit testing:
   - Framework: Vitest
   - Co-located tests (`*.test.ts` files)
   - Coverage target: 80% business logic, 60% overall
   - Mock external services (Stripe, AI providers)
   - Use real databases for integration tests
-- [ ] Integration testing:
+- [x] Integration testing:
   - Test API endpoints against real PostgreSQL + ClickHouse
   - Use test containers for isolation
   - Test tenant isolation
-- [ ] E2E testing:
+- [x] E2E testing:
   - Framework: Playwright
   - Critical user flows only
   - Test onboarding, dashboard, AI chat
-- [ ] Test data management:
+- [x] Test data management:
   - Seed scripts for development
   - Test fixtures for integration tests
   - Cleanup after tests
