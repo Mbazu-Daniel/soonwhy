@@ -4,23 +4,23 @@
 
 **Blocked by:** 18 (needs TypeScript conventions)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Module structure:
+- [x] Module structure:
   - One module per feature (auth, projects, telemetry)
   - Shared modules for common functionality
-- [ ] Controller conventions:
+- [x] Controller conventions:
   - One controller per resource
   - Use DTOs for request/response validation
   - Apply tenant resolution middleware
-- [ ] Service conventions:
+- [x] Service conventions:
   - Business logic in services, not controllers
   - Repository pattern for database access
   - Use Drizzle ORM for queries
-- [ ] Dependency injection:
+- [x] Dependency injection:
   - Constructor injection
   - Use @Inject() for custom providers
-- [ ] Middleware and guards:
+- [x] Middleware and guards:
   - Auth guard for protected routes
   - Tenant guard for multi-tenancy
   - Rate limiting guard
