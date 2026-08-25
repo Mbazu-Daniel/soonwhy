@@ -25,52 +25,52 @@ Trial ends automatically. Customer must select a plan or data is retained for 30
 
 ## Plans
 
-### Starter — $49/month
+### Starter — $19/month
 
-**For:** Small teams, side projects, early-stage startups
+**For:** Indie hackers, solo devs, side projects
 
 | Feature | Included |
 |---------|----------|
-| Ingestion | 25 GB/month |
-| Hot storage | 25 GB |
-| Cold storage | 100 GB |
-| AI Analysis | 500/month |
-| Projects | 5 |
+| Ingestion | 15 GB/month |
+| Hot storage | 15 GB |
+| Cold storage | 50 GB |
+| AI Analysis | 200/month |
+| Projects | 3 |
 | Environments | 3 per project |
-| Team Members | 5 |
-| Retention | 14 days hot, 90 days cold |
-| Support | Email |
+| Team Members | 3 |
+| Retention | 7 days hot, 90 days cold |
+| Support | Community (GitHub Discussions) |
 
-### Growth — $149/month
+### Growth — $49/month
 
-**For:** Growing teams, production workloads
+**For:** Small teams, production apps
 
 | Feature | Included |
 |---------|----------|
-| Ingestion | 100 GB/month |
-| Hot storage | 100 GB |
-| Cold storage | 500 GB |
-| AI Analysis | 2,000/month |
-| Projects | 20 |
+| Ingestion | 75 GB/month |
+| Hot storage | 75 GB |
+| Cold storage | 300 GB |
+| AI Analysis | 1,000/month |
+| Projects | 10 |
 | Environments | 5 per project |
-| Team Members | 20 |
-| Retention | 30 days hot, 180 days cold |
-| Support | Email + chat |
+| Team Members | 10 |
+| Retention | 14 days hot, 180 days cold |
+| Support | Email |
 | SSO | Included |
 
-### Scale — $499/month
+### Scale — $149/month
 
-**For:** Scaling companies, multiple services
+**For:** Growing companies, multiple services
 
 | Feature | Included |
 |---------|----------|
-| Ingestion | 500 GB/month |
-| Hot storage | 500 GB |
-| Cold storage | 2 TB |
-| AI Analysis | 10,000/month |
+| Ingestion | 300 GB/month |
+| Hot storage | 300 GB |
+| Cold storage | 1 TB |
+| AI Analysis | 5,000/month |
 | Projects | Unlimited |
 | Environments | 10 per project |
-| Team Members | 50 |
+| Team Members | 30 |
 | Retention | 30 days hot, 365 days cold |
 | Support | Priority email + chat |
 | SSO | Included |
@@ -107,36 +107,36 @@ When usage exceeds plan limits, overages are billed at the rates below. Volume d
 
 | Monthly Overage | Price per GB |
 |----------------|-------------|
-| 0 – 100 GB | $0.30 |
-| 100 – 500 GB | $0.25 (17% off) |
-| 500 GB – 1 TB | $0.20 (33% off) |
-| 1 – 5 TB | $0.15 (50% off) |
+| 0 – 50 GB | $0.30 |
+| 50 – 200 GB | $0.22 (27% off) |
+| 200 GB – 1 TB | $0.15 (50% off) |
+| 1 – 5 TB | $0.10 (67% off) |
 | 5+ TB | Custom |
 
 ### Hot Storage (ClickHouse)
 
 | Monthly Usage | Price per GB/month |
 |--------------|-------------------|
-| 0 – 100 GB | $0.03 |
-| 100 – 500 GB | $0.025 |
-| 500 GB+ | $0.02 |
+| 0 – 50 GB | $0.03 |
+| 50 – 200 GB | $0.025 |
+| 200 GB+ | $0.02 |
 
 ### Cold Storage (R2 + Parquet)
 
 | Monthly Usage | Price per GB/month |
 |--------------|-------------------|
-| 0 – 500 GB | $0.01 |
-| 500 GB – 2 TB | $0.008 |
-| 2 TB+ | $0.005 |
+| 0 – 200 GB | $0.01 |
+| 200 GB – 1 TB | $0.008 |
+| 1 TB+ | $0.005 |
 
 ### AI Analysis
 
 | Monthly Analyses | Price per Analysis |
 |-----------------|-------------------|
-| 0 – 1,000 | $0.15 |
-| 1,000 – 10,000 | $0.12 (20% off) |
-| 10,000 – 100,000 | $0.08 (47% off) |
-| 100,000+ | Custom |
+| 0 – 500 | $0.15 |
+| 500 – 5,000 | $0.10 (33% off) |
+| 5,000 – 50,000 | $0.07 (53% off) |
+| 50,000+ | Custom |
 
 ### API Requests
 
@@ -144,9 +144,9 @@ Included in plan limits. Overage only:
 
 | Monthly Overage | Price per 10K Requests |
 |----------------|----------------------|
-| 0 – 1M | $0.05 |
-| 1 – 10M | $0.04 |
-| 10M+ | Custom |
+| 0 – 500K | $0.05 |
+| 500K – 5M | $0.03 |
+| 5M+ | Custom |
 
 ---
 
@@ -168,124 +168,123 @@ Available on Scale and Enterprise plans:
 
 ## Revenue Projections
 
-### Model Assumptions
+### Cost Basis (per user segment)
 
-| Metric | Value |
-|--------|-------|
-| Trial → Paid conversion | 15% |
-| Monthly churn | 3% |
-| Average plan | Growth ($149) |
-| Average overage | $50/month |
-| Enterprise ACV | $12,000 |
+| Segment | Monthly COGS | Price | Gross Margin |
+|---------|-------------|-------|--------------|
+| Indie (5 GB/mo) | ~$0.15 | $19 | 99% |
+| Small team (40 GB/mo) | ~$1.50 | $49 | 97% |
+| Growing (150 GB/mo) | ~$6.00 | $149 | 96% |
+| Enterprise (1 TB/mo) | ~$25 | Custom | 90%+ |
 
 ### Per-Customer Economics
 
 | Plan | Base MRR | Avg Overage | Total MRR | Gross Margin |
 |------|----------|-------------|-----------|--------------|
-| Starter | $49 | $15 | $64 | 75% |
-| Growth | $149 | $50 | $199 | 78% |
-| Scale | $499 | $150 | $649 | 80% |
-| Enterprise | $1,000 | $300 | $1,300 | 82% |
-
-### Cost Basis (per GB ingested)
-
-| Component | Cost |
-|-----------|------|
-| ClickHouse (hot) | ~$0.008/GB/month |
-| R2 (cold) | ~$0.005/GB/month |
-| NATS processing | ~$0.002/GB |
-| LLM API (per analysis) | ~$0.03-0.08 |
-| **Total COGS per GB** | **~$0.015** |
-| **Ingestion price** | **$0.15-0.30** |
-| **Gross margin** | **90-95%** |
-
----
-
-## Billing Implementation
-
-### Stripe Integration
-
-1. Customer creation on org signup (trial starts automatically)
-2. Subscription creation when plan selected
-3. Usage metering via Stripe Billing Meters
-4. Invoice generation at month end
-5. Automatic payment collection
-6. Dunning: retry at +3, +7, +14 days; suspend at +21
-
-### Metering
-
-| Metric | Unit | Aggregation | Billing |
-|--------|------|-------------|---------|
-| Ingestion | GB | Sum per org | Monthly |
-| Storage | GB | Daily average | Monthly |
-| AI analyses | Count | Sum per org | Monthly |
-| API requests | Count | Sum per org | Monthly |
-
-### Usage Dashboard
-
-Real-time dashboard showing:
-- Current month usage by type
-- Projected month-end cost
-- Cost breakdown by project/environment
-- Usage trends (daily/weekly)
-- Overage warnings at 80% and 100% of plan limits
-
-### Hard Caps
-
-Orgs can set spending caps. When reached:
-- Ingestion: return 429, stop accepting telemetry
-- AI: disable analysis features, return cached results
-- API: rate limit to 10 req/sec
+| Starter | $19 | $5 | $24 | 99% |
+| Growth | $49 | $20 | $69 | 97% |
+| Scale | $149 | $60 | $209 | 96% |
+| Enterprise | $1,000 | $300 | $1,300 | 90%+ |
 
 ---
 
 ## Pricing Calculator Examples
 
-### Startup (5 GB/month ingestion)
+### Indie Hacker (3 GB/month ingestion)
 
 **Starter plan:**
 ```
-Base:                    $49.00
-Ingestion (5 GB):        $0.00  (included)
-Storage (2 GB):          $0.00  (included)
-AI Analysis (50):        $0.00  (included)
-Total:                   $49.00/month
+Base:                    $19.00
+Ingestion (3 GB):        $0.00  (within 15 GB limit)
+Storage (1 GB):          $0.00  (within 15 GB limit)
+AI Analysis (20):        $0.00  (within 200 limit)
+Total:                   $19.00/month
 ```
 
-### Growing App (40 GB/month ingestion)
+### Side Project (12 GB/month ingestion)
+
+**Starter plan:**
+```
+Base:                    $19.00
+Ingestion (12 GB):       $0.00  (within 15 GB limit)
+Storage (5 GB):          $0.00  (within 15 GB limit)
+AI Analysis (80):        $0.00  (within 200 limit)
+Total:                   $19.00/month
+```
+
+### Growing Indie (25 GB/month ingestion)
+
+**Starter plan with overages:**
+```
+Base:                    $19.00
+Ingestion overage (10 GB): $3.00  (10 GB × $0.30)
+Storage (8 GB):          $0.00  (within 15 GB limit)
+AI Analysis (150):       $0.00  (within 200 limit)
+Total:                   $22.00/month
+```
+
+### Small Team (60 GB/month ingestion)
 
 **Growth plan:**
 ```
-Base:                    $149.00
-Ingestion overage (40 GB): $0.00  (within 100 GB limit)
-Storage (30 GB):          $0.00  (within 100 GB limit)
-AI Analysis (800):        $0.00  (within 2,000 limit)
-Total:                   $149.00/month
+Base:                    $49.00
+Ingestion (60 GB):       $0.00  (within 75 GB limit)
+Storage (30 GB):         $0.00  (within 75 GB limit)
+AI Analysis (600):       $0.00  (within 1,000 limit)
+Total:                   $49.00/month
 ```
 
 ### Scaling Company (200 GB/month ingestion)
 
 **Growth plan with overages:**
 ```
-Base:                    $149.00
-Ingestion overage (100 GB): $30.00  (100 GB × $0.30)
-Storage (80 GB):          $0.00
-AI Analysis (3,000):      $120.00  (1,000 × $0.12 + 1,000 × $0.12... wait, 3000-2000 = 1000 overage at $0.15)
-AI overage (1,000):       $15.00
-Total:                   $194.00/month
+Base:                    $49.00
+Ingestion overage (125 GB): $27.50  (125 GB × $0.22)
+Storage (80 GB):         $0.00
+AI Analysis (2,500):     $150.00  (1,500 × $0.10)
+Total:                   $226.50/month
 ```
 
-### High-Volume (1 TB/month ingestion)
+### High-Volume (800 GB/month ingestion)
 
 **Scale plan:**
 ```
-Base:                    $499.00
-Ingestion (included):     $0.00
-Ingestion overage (500 GB): $100.00  (500 GB × $0.20)
-Storage (200 GB):         $0.00
-AI Analysis (15,000):     $400.00  (5,000 included + 5,000 × $0.12 + 5,000 × $0.08)
-Total:                   $999.00/month
+Base:                    $149.00
+Ingestion (300 GB):      $0.00
+Ingestion overage (500 GB): $75.00  (500 GB × $0.15)
+Storage (200 GB):        $0.00
+AI Analysis (8,000):     $210.00  (3,000 × $0.10 + 5,000 × $0.07)
+Total:                   $434.00/month
 ```
+
+---
+
+## Why This Works for Indie Hackers
+
+| Concern | How we address it |
+|---------|-------------------|
+| **"I can't afford $49/mo"** | Starter is $19/mo — less than Netflix + Spotify |
+| **"I'll hit limits fast"** | 15 GB is generous for most side projects |
+| **"Overages will surprise me"** | Hard spending caps + alerts at 80% and 100% |
+| **"I'll outgrow Starter"** | Growth at $49 is a natural step when revenue comes |
+| **"Enterprise features are locked"** | SSO included from Growth ($49), not gatekept |
+| **"I'm just testing"** | 14-day trial, full access, no credit card |
+
+### The Upgrade Path
+
+```
+Trial (14 days, free)
+    ↓
+Starter ($19/mo) — 15 GB included
+    ↓ when you scale
+Growth ($49/mo) — 75 GB included + SSO
+    ↓ when you grow more
+Scale ($149/mo) — 300 GB + RBAC + audit logs
+    ↓ when you need custom
+Enterprise (custom) — dedicated + SLA + data residency
+```
+
+Each step is 2.5-3x the previous, which feels natural as revenue grows.
 
 ---
 
@@ -293,13 +292,12 @@ Total:                   $999.00/month
 
 | Metric | Target | Why |
 |--------|--------|-----|
-| Trial → Paid conversion | >15% | Industry avg 10-20% for dev tools |
-| Monthly logo churn | <3% | Healthy SaaS benchmark |
+| Trial → Starter conversion | >20% | $19 is low friction |
+| Starter → Growth upgrade | >30% within 12 mo | Natural growth trigger |
+| Monthly logo churn | <5% | Healthy for indie-friendly pricing |
 | Net revenue retention | >110% | Overages + upgrades outpace churn |
-| Average revenue per org | >$150 | Growth plan + overages |
-| Gross margin | >75% | Infrastructure + LLM costs |
+| Gross margin | >90% | Infrastructure costs are low |
 | Time to first value (trial) | <10 min | SDK install → first telemetry |
-| Billing accuracy | 99.9% | Disputes / total invoices |
 
 ---
 
