@@ -4,14 +4,14 @@
 
 **Blocked by:** 05 (needs service boundaries)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Dokploy setup (single VPS, Docker Compose)
-- [ ] Service wiring (ports, networks, volumes)
-- [ ] Database setup (PostgreSQL, ClickHouse, Redis, NATS)
-- [ ] Environment variables and secrets management
-- [ ] SSL/TLS configuration
-- [ ] Backup strategy
-- [ ] Scaling plan (vertical first, horizontal later)
+- [x] Dokploy setup (single VPS, Docker Compose)
+- [x] Service wiring (ports, networks, volumes)
+- [x] Database setup (PostgreSQL, ClickHouse, Redis, NATS)
+- [x] Environment variables and secrets management
+- [x] SSL/TLS configuration
+- [x] Backup strategy
+- [x] Scaling plan (vertical first, horizontal later)
 
 **Output:** `docs/architecture/deployment.md`
