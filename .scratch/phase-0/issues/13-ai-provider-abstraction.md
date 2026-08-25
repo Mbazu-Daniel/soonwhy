@@ -4,11 +4,11 @@
 
 **Blocked by:** 12 (needs evidence gating model)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Provider interface (AIProvider)
-- [ ] Supported providers: OpenAI, Anthropic, Google
-- [ ] Structured output schema:
+- [x] Provider interface (AIProvider)
+- [x] Supported providers: OpenAI, Anthropic, Google
+- [x] Structured output schema:
   ```json
   {
     "summary": "...",
@@ -18,8 +18,8 @@
     "recommendations": [{"action": "...", "impact": "..."}]
   }
   ```
-- [ ] Provider fallback strategy
-- [ ] Cost tracking per provider
-- [ ] Model selection strategy (speed vs quality)
+- [x] Provider fallback strategy
+- [x] Cost tracking per provider
+- [x] Model selection strategy (speed vs quality)
 
-**Output:** `docs/architecture/ai-providers.md`
+**Output:** `docs/architecture/ai-provider-abstraction.md`
