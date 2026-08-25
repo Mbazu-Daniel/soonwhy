@@ -4,17 +4,17 @@
 
 **Blocked by:** 18 (TypeScript), 19 (React), 20 (NestJS), 21 (testing), 22 (git)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Project overview (already exists)
-- [ ] Development commands (already exists)
-- [ ] Structure (already exists)
-- [ ] Coding standards reference (links to 18, 19, 20)
-- [ ] Testing approach reference (link to 21)
-- [ ] Git workflow reference (link to 22)
-- [ ] Error handling reference (link to 23)
-- [ ] How to implement a feature (step-by-step)
-- [ ] How to write tests
-- [ ] How to create a PR
+- [x] Project overview (already exists)
+- [x] Development commands (already exists)
+- [x] Structure (already exists)
+- [x] Coding standards reference (links to 18, 19, 20)
+- [x] Testing approach reference (link to 21)
+- [x] Git workflow reference (link to 22)
+- [x] Error handling reference (link to 23)
+- [x] How to implement a feature (step-by-step)
+- [x] How to write tests
+- [x] How to create a PR
 
 **Output:** `AGENTS.md` (root of repo, update existing)
