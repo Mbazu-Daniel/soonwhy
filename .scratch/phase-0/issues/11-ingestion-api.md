@@ -4,19 +4,18 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Ingestion endpoints:
-  - POST /v1/logs
-  - POST /v1/metrics
-  - POST /v1/traces
-  - POST /v1/requests
-- [ ] Authentication (API key validation)
-- [ ] Tenant resolution (org_id from API key)
-- [ ] Payload validation (schema, required fields)
-- [ ] Rate limiting (per API key, per org)
-- [ ] NATS publishing (topic structure, message format)
-- [ ] Idempotency (deduplication)
-- [ ] Error responses (400, 401, 429, 500)
+- [x] Ingestion endpoints:
+  - POST /api/v1/telemetry/ingest (single + batch)
+- [x] Authentication (API key validation)
+- [x] Tenant resolution (org_id from API key)
+- [x] Payload validation (schema, required fields)
+- [x] Rate limiting (per API key, per org)
+- [x] NATS publishing (topic structure, message format)
+- [x] Idempotency (deduplication)
+- [x] Error responses (400, 401, 413, 422, 429, 500)
+- [x] Batch ingestion support
+- [x] SDK vs direct API differences
 
 **Output:** `docs/architecture/ingestion-api.md`

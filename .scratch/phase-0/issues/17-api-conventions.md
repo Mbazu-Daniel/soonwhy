@@ -4,25 +4,15 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] API versioning strategy (URL-based: /v1/)
-- [ ] Request/response format (JSON)
-- [ ] Error format:
-  ```json
-  {
-    "error": {
-      "code": "VALIDATION_ERROR",
-      "message": "Invalid payload",
-      "details": [{"field": "timestamp", "issue": "required"}],
-      "requestId": "req_abc123"
-    }
-  }
-  ```
-- [ ] Pagination (cursor-based)
-- [ ] Filtering and sorting conventions
-- [ ] Rate limit headers (X-RateLimit-*)
-- [ ] Authentication headers (Authorization: Bearer <token>)
-- [ ] Idempotency keys for mutations
+- [x] API versioning strategy (URL-based: /v1/)
+- [x] Request/response format (JSON)
+- [x] Error format (RFC 7807)
+- [x] Pagination (cursor-based)
+- [x] Filtering and sorting conventions
+- [x] Rate limit headers (X-RateLimit-*)
+- [x] Authentication headers (Authorization: Bearer <token>)
+- [x] Idempotency keys for mutations
 
 **Output:** `docs/architecture/api-conventions.md`
