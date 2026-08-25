@@ -1,0 +1,6 @@
+#!/bin/sh
+# Husky pre-commit hook
+# Runs existing pre-commit checks
+
+# Run existing pre-commit checks (warns about signing)
+/home/daniel/Documents/projects/soonwhy/.githooks/pre-commit
