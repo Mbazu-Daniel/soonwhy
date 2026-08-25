@@ -1,0 +1,30 @@
+#!/bin/sh
+# Pre-merge-commit hook: block AI attribution trailers in PR merges
+# Installed by git-hygiene skill
+
+MSG_FILE="$1"
+DIRTY=0
+
+for pattern in \
+  "^Co-authored-by:.*cursor" \
+  "^Co-authored-by:.*factory-droid" \
+  "^Co-authored-by:.*copilot" \
+  "^Co-authored-by:.*claude" \
+  "^Co-authored-by:.*gpt" \
+  "^Co-authored-by:.*ai\." \
+  "^Co-authored-by:.*bot" \
+  "^Authored-by:.*cursor" \
+  "^Authored-by:.*factory-droid"
+do
+  if grep -qiE "$pattern" "$MSG_FILE"; then
+    echo "BLOCKED: AI attribution trailer detected: $pattern"
+    DIRTY=1
+  fi
+done
+
+if [ "$DIRTY" -eq 1 ]; then
+  echo ""
+  echo "Remove AI attribution trailers before merging."
+  echo "Your identity is already set via git config user.name/email."
+  exit 1
+fi

@@ -1,0 +1,22 @@
+#!/bin/sh
+# Pre-commit hook: enforce file change limits and signing
+# Installed by git-hygiene skill
+
+MAX_FILES=50
+
+# Count staged files (excluding deletes)
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=d | wc -l)
+
+if [ "$STAGED_FILES" -gt "$MAX_FILES" ]; then
+  echo "BLOCKED: $STAGED_FILES files staged (max: $MAX_FILES)"
+  echo ""
+  echo "Split into smaller commits. Each commit should be atomic."
+  echo "Use 'git reset HEAD' to unstage, then commit in batches."
+  exit 1
+fi
+
+# Warn if signing not enabled
+if ! git config --get commit.gpgSign > /dev/null 2>&1; then
+  echo "WARNING: Commit signing not enabled. Run:"
+  echo "  git config commit.gpgSign true"
+fi
