@@ -4,10 +4,10 @@
 
 **Blocked by:** 14 (needs authentication design)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Roles: Owner, Admin, Member, Viewer
-- [ ] Permission matrix:
+- [x] Roles: Owner, Admin, Member, Viewer
+- [x] Permission matrix:
   | Action | Owner | Admin | Member | Viewer |
   |--------|-------|-------|--------|--------|
   | Manage billing | Yes | No | No | No |
@@ -15,8 +15,8 @@
   | Manage projects | Yes | Yes | Yes | No |
   | View dashboard | Yes | Yes | Yes | Yes |
   | Manage API keys | Yes | Yes | No | No |
-- [ ] Role assignment and inheritance
-- [ ] Permission checking middleware
-- [ ] Organization vs project-level permissions
+- [x] Role assignment and inheritance
+- [x] Permission checking middleware
+- [x] Organization vs project-level permissions
 
 **Output:** `docs/architecture/authorization.md`
