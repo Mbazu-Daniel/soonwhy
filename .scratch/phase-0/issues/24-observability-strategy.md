@@ -4,24 +4,24 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Self-monitoring: Soonwhy uses Soonwhy
-- [ ] Internal metrics:
+- [x] Self-monitoring: Soonwhy uses Soonwhy
+- [x] Internal metrics:
   - API latency (p50, p95, p99)
   - Ingestion rate (events/second)
   - Worker health (processing time, queue depth)
   - ClickHouse query performance
   - Redis memory and connections
   - NATS message throughput
-- [ ] Internal logs:
+- [x] Internal logs:
   - Structured JSON
   - Request context (requestId, orgId, userId)
   - Error tracking
-- [ ] Internal traces:
+- [x] Internal traces:
   - Distributed tracing across services
   - Span naming conventions
-- [ ] Alerting:
+- [x] Alerting:
   - Internal incidents for system health
   - Anomaly detection on key metrics
 
