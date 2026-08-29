@@ -41,3 +41,6 @@ dist/
 
 # Turbo
 .turbo/
+
+# Local dev binaries and data
+.dev/
