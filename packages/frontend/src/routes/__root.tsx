@@ -1,5 +1,4 @@
-import { Outlet, createRootRoute } from "@tanstack/react-router";
-import { Meta, Scripts } from "@tanstack/start";
+import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
 import "../styles/globals.css";
 
 export const Route = createRootRoute({
@@ -17,22 +16,14 @@ export const Route = createRootRoute({
       },
     ],
   }),
-  component: RootComponent,
+  shellComponent: RootDocument,
 });
-
-function RootComponent() {
-  return (
-    <RootDocument>
-      <Outlet />
-    </RootDocument>
-  );
-}
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html>
       <head>
-        <Meta />
+        <HeadContent />
       </head>
       <body>
         {children}
