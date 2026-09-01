@@ -3,11 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "turbo dev",
-    "build": "turbo build",
-    "test": "turbo test",
-    "lint": "turbo lint",
-    "typecheck": "turbo typecheck",
+    "dev": "pnpm --filter './packages/*' dev",
+    "build": "pnpm --filter './packages/*' build",
+    "test": "vitest",
+    "lint": "oxlint",
     "format": "oxfmt",
     "prepare": "husky"
   },
@@ -15,10 +14,8 @@
     "@commitlint/cli": "^21.2.2",
     "@commitlint/config-conventional": "^21.2.2",
     "husky": "^9.1.7",
-    "oxfmt": "^0.1.0",
-    "oxlint": "^0.16.0",
-    "turbo": "^2.10.12",
+    "oxfmt": "^0.11.0",
+    "oxlint": "^1.80.0",
     "vitest": "^3.2.0"
-  },
-  "packageManager": "pnpm@10.9.0"
+  }
 }

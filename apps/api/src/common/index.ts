@@ -1,3 +1,4 @@
+export * from './common.module';
 export * from './decorators';
 export * from './pipes/zod-validation.pipe';
 export * from './filters/http-exception.filter';

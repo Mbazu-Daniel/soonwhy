@@ -7,12 +7,6 @@ dist/
 build/
 .output/
 
-# TypeScript build artifacts (declarations, source maps)
-*.js.map
-*.d.ts
-*.d.ts.map
-tsconfig.tsbuildinfo
-
 # IDE
 .vscode/
 .idea/
@@ -47,3 +41,15 @@ dist/
 
 # Turbo
 .turbo/
+
+# Local agent planning / issue tracker
+.scratch/
+
+# Local dev binaries and data
+.dev/
+
+# Legacy scaffold copies (superseded by packages/)
+apps/
+
+# TypeScript incremental build info
+*.tsbuildinfo

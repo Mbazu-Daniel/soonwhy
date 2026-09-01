@@ -9,6 +9,7 @@ Issues and specs for this repo live as markdown files in `.scratch/`.
 - Implementation issues are one file per ticket at `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01`, never a single combined tickets file
 - Triage state is recorded as a `Status:` line near the top of each issue file (see `triage-labels.md` for the role strings)
 - Comments and conversation history append to the bottom of the file under a `## Comments` heading
+- Scratch paths (including `phase-N` feature slugs) are planning-only. Branch names, commit messages, and PR titles must describe the code change, not the phase or ticket filename (see AGENTS.md)
 
 ## When a skill says "publish to the issue tracker"
 
