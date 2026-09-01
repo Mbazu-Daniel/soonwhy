@@ -1,0 +1,14 @@
+{
+  "name": "@soonwhy/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+    "./auto/http": { "types": "./dist/auto/http.d.ts", "default": "./dist/auto/http.js" },
+    "./auto/db": { "types": "./dist/auto/db.d.ts", "default": "./dist/auto/db.js" }
+  },
+  "scripts": {     "build": "tsc -b", "typecheck": "tsc --noEmit" },
+  "devDependencies": { "typescript": "^5.8.0" }
+}
