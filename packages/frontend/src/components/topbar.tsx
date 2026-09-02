@@ -18,6 +18,7 @@ import {
 import { Avatar, AvatarFallback } from '~/components/ui/avatar';
 import { api } from '~/lib/api';
 import { signOut, clearSession, getSessionToken } from '~/lib/auth-client';
+import { useProject } from '~/lib/project-context';
 import { LogOut, ChevronDown } from 'lucide-react';
 
 interface Project {
@@ -42,8 +43,7 @@ interface SessionUser {
 
 export function TopBar() {
   const navigate = useNavigate();
-  const orgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
-  const projectId = typeof window !== 'undefined' ? localStorage.getItem('project_id') : null;
+  const { projectId, orgId, envSlug, setProjectId, setEnvSlug } = useProject();
   const token = getSessionToken();
 
   const { data: session } = useQuery({
@@ -71,16 +71,6 @@ export function TopBar() {
     navigate({ to: '/auth/sign-in' });
   }
 
-  function handleProjectChange(value: string) {
-    localStorage.setItem('project_id', value);
-    window.location.reload();
-  }
-
-  function handleEnvChange(value: string) {
-    localStorage.setItem('env_slug', value);
-    window.location.reload();
-  }
-
   const userName = session?.user?.name || session?.user?.email || 'U';
   const userInitial = userName.charAt(0).toUpperCase();
 
@@ -89,7 +79,7 @@ export function TopBar() {
       <div className="flex items-center gap-4">
         <h1 className="font-semibold text-lg">SoonWhy</h1>
         {projects && projects.length > 0 && (
-          <Select value={projectId || ''} onValueChange={handleProjectChange}>
+          <Select value={projectId || ''} onValueChange={setProjectId}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Select project" />
             </SelectTrigger>
@@ -103,7 +93,7 @@ export function TopBar() {
           </Select>
         )}
         {environments && environments.length > 0 && (
-          <Select defaultValue="production" onValueChange={handleEnvChange}>
+          <Select value={envSlug || ''} onValueChange={setEnvSlug}>
             <SelectTrigger className="w-36">
               <SelectValue placeholder="Environment" />
             </SelectTrigger>
@@ -119,7 +109,7 @@ export function TopBar() {
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="flex items-center gap-2">
+          <Button variant="ghost" className="flex items-center gap-2" aria-label="User menu">
             <Avatar className="h-6 w-6">
               <AvatarFallback>{userInitial}</AvatarFallback>
             </Avatar>

@@ -23,15 +23,20 @@ function SignUp() {
     setError('');
     setLoading(true);
 
-    const result = await signUp(email, password, name);
+    try {
+      const result = await signUp(email, password, name);
 
-    if (result.error) {
-      setError(result.error.message);
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
+
+      navigate({ to: '/auth/sign-in' });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Sign up failed');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    navigate({ to: '/auth/sign-in' });
   }
 
   return (

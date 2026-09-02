@@ -1,4 +1,6 @@
 import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
+import { QueryProvider } from "~/components/query-provider";
+import { ProjectProvider } from "~/lib/project-context";
 import "../styles/globals.css";
 
 export const Route = createRootRoute({
@@ -21,12 +23,16 @@ export const Route = createRootRoute({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html>
+    <html lang="en">
       <head>
         <HeadContent />
       </head>
       <body>
-        {children}
+        <QueryProvider>
+          <ProjectProvider>
+            {children}
+          </ProjectProvider>
+        </QueryProvider>
         <Scripts />
       </body>
     </html>

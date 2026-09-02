@@ -27,7 +27,7 @@ function DashboardLayout() {
   useEffect(() => {
     if (sessionLoading) return;
 
-    if (!token || session?.error) {
+    if (!token || !session) {
       clearSession();
       navigate({ to: '/auth/sign-in' });
       return;

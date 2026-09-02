@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '~/components/ui/card';
 import { Skeleton } from '~/components/ui/skeleton';
 import { api } from '~/lib/api';
+import { useProject } from '~/lib/project-context';
 
 export const Route = createFileRoute('/dashboard/errors')({
   component: ErrorOverview,
@@ -17,12 +18,8 @@ interface ErrorEntry {
   lastSeen: string;
 }
 
-function getProjectId(): string | null {
-  return typeof window !== 'undefined' ? localStorage.getItem('project_id') : null;
-}
-
 function ErrorOverview() {
-  const projectId = getProjectId();
+  const { projectId } = useProject();
 
   const { data: errors, isLoading } = useQuery({
     queryKey: ['dashboard-errors', projectId],
@@ -54,7 +51,7 @@ function ErrorOverview() {
           ) : (
             <div className="divide-y">
               {errors.map((error) => (
-                <div key={error.fingerprint} className="p-4 hover:bg-muted/50 transition-colors">
+                <div key={error.fingerprint} className="p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <p className="font-mono text-sm truncate">{error.errorMessage}</p>

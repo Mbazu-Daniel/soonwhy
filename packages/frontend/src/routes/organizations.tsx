@@ -133,6 +133,9 @@ function Organizations() {
                   key={org.id}
                   className="cursor-pointer hover:border-primary transition-colors"
                   onClick={() => selectOrg(org)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectOrg(org); } }}
+                  role="button"
+                  tabIndex={0}
                 >
                   <CardContent className="p-4 flex items-center justify-between">
                     <div>

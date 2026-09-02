@@ -1,5 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-const API_PREFIX = '/api/v1';
+import { API_BASE, API_PREFIX } from './config';
 
 export interface User {
   id: string;

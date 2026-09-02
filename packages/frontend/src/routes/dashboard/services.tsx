@@ -6,6 +6,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '~/components/ui/table';
 import { api } from '~/lib/api';
+import { useProject } from '~/lib/project-context';
 
 export const Route = createFileRoute('/dashboard/services')({
   component: ServiceOverview,
@@ -18,12 +19,8 @@ interface Service {
   avgLatency: number;
 }
 
-function getProjectId(): string | null {
-  return typeof window !== 'undefined' ? localStorage.getItem('project_id') : null;
-}
-
 function ServiceOverview() {
-  const projectId = getProjectId();
+  const { projectId } = useProject();
 
   const { data: services, isLoading } = useQuery({
     queryKey: ['dashboard-services', projectId],
