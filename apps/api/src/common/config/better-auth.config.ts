@@ -2,8 +2,8 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { organization } from 'better-auth/plugins';
 import argon2 from 'argon2';
-import { db } from '../../db';
-import * as schema from '../../db/schema';
+import { db } from '../db';
+import * as schema from '../db/schema';
 
 const githubEnabled = !!(
   process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET

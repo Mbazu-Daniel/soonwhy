@@ -1,6 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext, HttpException, HttpStatus } from '@nestjs/common';
 import { Request } from 'express';
-import { RedisService } from '../../redis/redis.service';
+import { RedisService } from '../redis/redis.service';
 import { TenantRequest } from '../middleware/tenant-context.middleware';
 
 @Injectable()

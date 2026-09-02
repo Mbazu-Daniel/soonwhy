@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
-import { db } from '../../../db';
-import { organizations } from '../../../db/schema';
+import { db } from '../../../common/db';
+import { organizations } from '../../../common/db/schema';
 
 @Injectable()
 export class OrganizationsRepository {

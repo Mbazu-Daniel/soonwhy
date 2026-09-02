@@ -1,7 +1,7 @@
 import { Injectable, NestMiddleware, UnauthorizedException } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { auth } from '../config/better-auth.config';
-import { db } from '../../db';
+import { db } from '../db';
 import { sql } from 'drizzle-orm';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
