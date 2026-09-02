@@ -4,7 +4,7 @@ import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
-import { authClient, setSessionToken } from '~/lib/auth-client';
+import { signIn, setSessionToken } from '~/lib/auth-client';
 
 export const Route = createFileRoute('/auth/sign-in')({
   component: SignIn,
@@ -22,27 +22,19 @@ function SignIn() {
     setError('');
     setLoading(true);
 
-    try {
-      const result = await authClient.signIn.email({
-        email,
-        password,
-      });
+    const result = await signIn(email, password);
 
-      if (result.error) {
-        setError(result.error.message || 'Sign in failed');
-        return;
-      }
-
-      if (result.data?.session?.token) {
-        setSessionToken(result.data.session.token);
-      }
-
-      navigate({ to: '/organizations' });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign in failed');
-    } finally {
+    if (result.error) {
+      setError(result.error.message);
       setLoading(false);
+      return;
     }
+
+    if (result.data?.session?.token) {
+      setSessionToken(result.data.session.token);
+    }
+
+    navigate({ to: '/organizations' });
   }
 
   return (

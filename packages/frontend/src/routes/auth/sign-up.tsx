@@ -4,8 +4,7 @@ import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
-import { authClient } from '~/lib/auth-client';
-import { api } from '~/lib/api';
+import { signUp } from '~/lib/auth-client';
 
 export const Route = createFileRoute('/auth/sign-up')({
   component: SignUp,
@@ -24,24 +23,15 @@ function SignUp() {
     setError('');
     setLoading(true);
 
-    try {
-      const result = await authClient.signUp.email({
-        name,
-        email,
-        password,
-      });
+    const result = await signUp(email, password, name);
 
-      if (result.error) {
-        setError(result.error.message || 'Sign up failed');
-        return;
-      }
-
-      navigate({ to: '/auth/sign-in' });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign up failed');
-    } finally {
+    if (result.error) {
+      setError(result.error.message);
       setLoading(false);
+      return;
     }
+
+    navigate({ to: '/auth/sign-in' });
   }
 
   return (

@@ -1,9 +1,12 @@
 import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Sidebar } from '~/components/sidebar';
 import { TopBar } from '~/components/topbar';
 import { Toaster } from '~/components/ui/sonner';
 import { Skeleton } from '~/components/ui/skeleton';
+import { getSessionToken, clearSession } from '~/lib/auth-client';
+import { api } from '~/lib/api';
 
 export const Route = createFileRoute('/dashboard/layout')({
   component: DashboardLayout,
@@ -12,20 +15,32 @@ export const Route = createFileRoute('/dashboard/layout')({
 function DashboardLayout() {
   const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
+  const token = getSessionToken();
+
+  const { data: session, isLoading: sessionLoading } = useQuery({
+    queryKey: ['session'],
+    queryFn: () => api.get<{ user: { id: string } }>('/auth/session'),
+    enabled: !!token,
+    retry: false,
+  });
 
   useEffect(() => {
-    const token = localStorage.getItem('session_token');
-    if (!token) {
+    if (sessionLoading) return;
+
+    if (!token || session?.error) {
+      clearSession();
       navigate({ to: '/auth/sign-in' });
       return;
     }
+
     const orgId = localStorage.getItem('org_id');
     if (!orgId) {
       navigate({ to: '/organizations' });
       return;
     }
+
     setChecking(false);
-  }, [navigate]);
+  }, [token, session, sessionLoading, navigate]);
 
   if (checking) {
     return (

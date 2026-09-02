@@ -17,7 +17,7 @@ import {
 } from '~/components/ui/select';
 import { Avatar, AvatarFallback } from '~/components/ui/avatar';
 import { api } from '~/lib/api';
-import { clearSession } from '~/lib/auth-client';
+import { signOut, clearSession, getSessionToken } from '~/lib/auth-client';
 import { LogOut, ChevronDown } from 'lucide-react';
 
 interface Project {
@@ -32,10 +32,26 @@ interface Environment {
   slug: string;
 }
 
+interface SessionUser {
+  user: {
+    id: string;
+    email: string;
+    name: string | null;
+  };
+}
+
 export function TopBar() {
   const navigate = useNavigate();
   const orgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
   const projectId = typeof window !== 'undefined' ? localStorage.getItem('project_id') : null;
+  const token = getSessionToken();
+
+  const { data: session } = useQuery({
+    queryKey: ['session'],
+    queryFn: () => api.get<SessionUser>('/auth/session'),
+    enabled: !!token,
+    retry: false,
+  });
 
   const { data: projects } = useQuery({
     queryKey: ['projects', orgId],
@@ -49,7 +65,8 @@ export function TopBar() {
     enabled: !!projectId,
   });
 
-  function handleSignOut() {
+  async function handleSignOut() {
+    if (token) await signOut(token);
     clearSession();
     navigate({ to: '/auth/sign-in' });
   }
@@ -64,7 +81,8 @@ export function TopBar() {
     window.location.reload();
   }
 
-  const currentProject = projects?.find((p) => p.id === projectId);
+  const userName = session?.user?.name || session?.user?.email || 'U';
+  const userInitial = userName.charAt(0).toUpperCase();
 
   return (
     <header className="h-14 border-b flex items-center justify-between px-4 bg-background">
@@ -103,12 +121,23 @@ export function TopBar() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="flex items-center gap-2">
             <Avatar className="h-6 w-6">
-              <AvatarFallback>U</AvatarFallback>
+              <AvatarFallback>{userInitial}</AvatarFallback>
             </Avatar>
             <ChevronDown className="h-3 w-3" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          {session?.user && (
+            <>
+              <div className="px-2 py-1.5 text-sm">
+                <p className="font-medium">{session.user.name || session.user.email}</p>
+                {session.user.name && (
+                  <p className="text-xs text-muted-foreground">{session.user.email}</p>
+                )}
+              </div>
+              <DropdownMenuSeparator />
+            </>
+          )}
           <DropdownMenuItem onClick={handleSignOut}>
             <LogOut className="h-4 w-4 mr-2" />
             Sign out

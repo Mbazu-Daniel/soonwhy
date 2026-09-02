@@ -95,7 +95,7 @@ export class SoonwhyClient {
 
   private async sendBatch(batch: TelemetryEvent[], retry = 0): Promise<void> {
     try {
-      const res = await fetch(`${this.config.baseUrl}/v1/ingest`, {
+      const res = await fetch(`${this.config.baseUrl}/api/v1/ingest`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.config.apiKey}` },
         body: JSON.stringify({ batch }),

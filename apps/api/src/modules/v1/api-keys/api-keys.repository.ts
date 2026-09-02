@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { createHash, randomBytes } from 'crypto';
-import { db } from '../../../db';
-import { apiKeys } from '../../../db/schema';
+import { db } from '../../../common/db';
+import { apiKeys } from '../../../common/db/schema';
 
 @Injectable()
 export class ApiKeysRepository {

@@ -1,10 +1,5 @@
-import { createAuthClient } from 'better-auth/react';
-
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-export const authClient = createAuthClient({
-  baseURL: API_BASE,
-});
+const API_PREFIX = '/api/v1';
 
 export interface User {
   id: string;
@@ -17,6 +12,65 @@ export interface User {
 export interface Session {
   user: User;
   session: { id: string; token: string; expiresAt: string };
+}
+
+export interface AuthResult {
+  data?: { session: { token: string; id: string; expiresAt: string }; user: User };
+  error?: { message: string; status: number };
+}
+
+export async function signIn(email: string, password: string): Promise<AuthResult> {
+  try {
+    const res = await fetch(`${API_BASE}${API_PREFIX}/auth/sign-in`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) return { error: { message: data.message || 'Sign in failed', status: res.status } };
+    return { data };
+  } catch (err) {
+    return { error: { message: err instanceof Error ? err.message : 'Sign in failed', status: 0 } };
+  }
+}
+
+export async function signUp(email: string, password: string, name: string): Promise<AuthResult> {
+  try {
+    const res = await fetch(`${API_BASE}${API_PREFIX}/auth/sign-up`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, name }),
+    });
+    const data = await res.json();
+    if (!res.ok) return { error: { message: data.message || 'Sign up failed', status: res.status } };
+    return { data };
+  } catch (err) {
+    return { error: { message: err instanceof Error ? err.message : 'Sign up failed', status: 0 } };
+  }
+}
+
+export async function signOut(token: string): Promise<void> {
+  try {
+    await fetch(`${API_BASE}${API_PREFIX}/auth/sign-out`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    // Sign out is best-effort — clear local state regardless
+  }
+}
+
+export async function getSession(token: string): Promise<AuthResult> {
+  try {
+    const res = await fetch(`${API_BASE}${API_PREFIX}/auth/session`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (!res.ok) return { error: { message: data.message || 'Session expired', status: res.status } };
+    return { data };
+  } catch {
+    return { error: { message: 'Network error', status: 0 } };
+  }
 }
 
 export function setSessionToken(token: string) {
@@ -35,5 +89,6 @@ export function clearSession() {
     localStorage.removeItem('session_token');
     localStorage.removeItem('org_id');
     localStorage.removeItem('project_id');
+    localStorage.removeItem('env_slug');
   }
 }
