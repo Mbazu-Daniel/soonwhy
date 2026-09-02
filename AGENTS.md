@@ -36,12 +36,19 @@ Single-context layout. See `docs/agents/domain.md`.
 
 ## Git: branches and commits
 
-Name branches and commit messages from **what the code does**, not from planning folders or epic labels.
+**RULE: Branch names and commit messages describe what the code does. Never use phase numbers, epic labels, ticket filenames, or planning folder slugs.**
 
-- Prefer: `feat/clickhouse-client`, `fix/auth-session-expiry`, `feat: add ClickHouse client`
-- Avoid: `phase-2`, `phase1`, `epic-3`, framework labels (`nestjs-module`), scratch path slugs like `02-clickhouse-module` as the whole name
-- `.scratch/phase-N/` (and similar) is local planning only — never copy that into a branch name, commit subject, or PR title
-- When creating a branch or committing, derive the slug from the capability or bug fixed, not from the ticket directory, phase number, or framework/boilerplate type
+| Bad | Good |
+| --- | --- |
+| `feat/phase-2` | `feat/clickhouse-client` |
+| `feat/phase3-dashboard` | `feat/dashboard-ui` |
+| `fix/phase-1-issue-04` | `fix/auth-session-expiry` |
+| `feat/nestjs-module` | `feat/api-crud-modules` |
+| `02-clickhouse-module` | `feat/clickhouse-client` |
+
+- `.scratch/phase-N/` is local planning only — never leak it into branch names, commit subjects, or PR titles
+- Derive the slug from the **capability** or **bug fixed**, not from the ticket directory, phase number, or framework type
+- Before pushing, ask: "Would a stranger understand what this branch does from the name alone?" If not, rename it
 
 ## Structure
 
