@@ -14,6 +14,7 @@ import { ServicesModule } from './modules/v1/services';
 import { ProjectsModule } from './modules/v1/projects';
 import { HealthModule } from './modules/v1/health';
 import { IngestionModule } from './modules/v1/ingestion';
+import { DashboardModule } from './modules/v1/dashboard';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { IngestionModule } from './modules/v1/ingestion';
     ProjectsModule,
     HealthModule,
     IngestionModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],
