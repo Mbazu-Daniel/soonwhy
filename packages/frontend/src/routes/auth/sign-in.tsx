@@ -22,19 +22,24 @@ function SignIn() {
     setError('');
     setLoading(true);
 
-    const result = await signIn(email, password);
+    try {
+      const result = await signIn(email, password);
 
-    if (result.error) {
-      setError(result.error.message);
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
+
+      if (result.data?.session?.token) {
+        setSessionToken(result.data.session.token);
+      }
+
+      navigate({ to: '/organizations' });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Sign in failed');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    if (result.data?.session?.token) {
-      setSessionToken(result.data.session.token);
-    }
-
-    navigate({ to: '/organizations' });
   }
 
   return (

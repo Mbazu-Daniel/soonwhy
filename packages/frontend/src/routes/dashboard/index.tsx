@@ -5,6 +5,7 @@ import { Skeleton } from '~/components/ui/skeleton';
 import { HealthScore } from '~/components/health-score';
 import { MetricCard } from '~/components/metric-cards';
 import { api } from '~/lib/api';
+import { useProject } from '~/lib/project-context';
 import { Activity, AlertTriangle, Clock, TrendingUp } from 'lucide-react';
 
 export const Route = createFileRoute('/dashboard/')({
@@ -23,12 +24,8 @@ interface OverviewData {
   statusCodes: { code: number; label: string; count: number; percentage: number }[];
 }
 
-function getProjectId(): string | null {
-  return typeof window !== 'undefined' ? localStorage.getItem('project_id') : null;
-}
-
 function DashboardOverview() {
-  const projectId = getProjectId();
+  const { projectId } = useProject();
 
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard-overview', projectId],

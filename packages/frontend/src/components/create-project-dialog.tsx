@@ -113,10 +113,14 @@ export function CreateProjectDialog({ onCreated }: { onCreated?: (project: Proje
 export function ApiKeyDisplay({ projectId }: { projectId: string }) {
   const [copied, setCopied] = useState(false);
 
-  function handleCopy() {
-    navigator.clipboard.writeText(`sw_${projectId}`);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(`sw_${projectId}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API may fail in some environments
+    }
   }
 
   return (

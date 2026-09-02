@@ -28,7 +28,7 @@ export function HealthScore({ score, className }: HealthScoreProps) {
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className={cn('text-2xl font-bold', color.text)}>{score || '—'}</span>
+        <span className={cn('text-2xl font-bold', color.text)}>{score}</span>
       </div>
     </div>
   );

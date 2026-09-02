@@ -11,6 +11,7 @@ import {
 } from '~/components/ui/select';
 import { Search, ChevronDown, ChevronRight } from 'lucide-react';
 import { api } from '~/lib/api';
+import { useProject } from '~/lib/project-context';
 
 export const Route = createFileRoute('/dashboard/logs')({
   component: LogViewer,
@@ -31,10 +32,6 @@ const LEVEL_COLORS: Record<string, string> = {
   error: 'bg-destructive/10 text-destructive border-destructive/20',
   debug: 'bg-muted text-muted-foreground border-border',
 };
-
-function getProjectId(): string | null {
-  return typeof window !== 'undefined' ? localStorage.getItem('project_id') : null;
-}
 
 function LogRow({ log }: { log: LogEntry }) {
   const [expanded, setExpanded] = useState(false);
@@ -65,7 +62,7 @@ function LogRow({ log }: { log: LogEntry }) {
 }
 
 function LogViewer() {
-  const projectId = getProjectId();
+  const { projectId } = useProject();
   const [search, setSearch] = useState('');
   const [levelFilter, setLevelFilter] = useState('all');
 
