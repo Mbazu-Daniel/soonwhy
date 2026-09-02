@@ -8,14 +8,9 @@ import { TenantGuard } from '../../../common/middleware/tenant-context.guard';
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
-  @Get('health')
-  async getHealthScore(@CurrentOrg() org: OrgContext, @Query('projectId') projectId: string) {
-    return this.dashboardService.getHealthScore(org.orgId, projectId);
-  }
-
-  @Get('metrics')
-  async getMetrics(@CurrentOrg() org: OrgContext, @Query('projectId') projectId: string) {
-    return this.dashboardService.getMetrics(org.orgId, projectId);
+  @Get('overview')
+  async getOverview(@CurrentOrg() org: OrgContext, @Query('projectId') projectId: string) {
+    return this.dashboardService.getOverview(org.orgId, projectId);
   }
 
   @Get('services')
