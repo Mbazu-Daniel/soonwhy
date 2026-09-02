@@ -19,7 +19,8 @@ import { Avatar, AvatarFallback } from '~/components/ui/avatar';
 import { api } from '~/lib/api';
 import { signOut, clearSession, getSessionToken } from '~/lib/auth-client';
 import { useProject } from '~/lib/project-context';
-import { LogOut, ChevronDown } from 'lucide-react';
+import { LogOut, ChevronDown, Menu } from 'lucide-react';
+import { useSidebar } from '~/lib/sidebar-context';
 
 interface Project {
   id: string;
@@ -74,9 +75,14 @@ export function TopBar() {
   const userName = session?.user?.name || session?.user?.email || 'U';
   const userInitial = userName.charAt(0).toUpperCase();
 
+  const { toggle } = useSidebar();
+
   return (
     <header className="h-14 border-b flex items-center justify-between px-4 bg-background">
       <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" className="lg:hidden" onClick={toggle} aria-label="Toggle sidebar">
+          <Menu className="h-5 w-5" />
+        </Button>
         <h1 className="font-semibold text-lg">SoonWhy</h1>
         {projects && projects.length > 0 && (
           <Select value={projectId || ''} onValueChange={setProjectId}>
