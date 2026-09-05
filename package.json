@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm --filter './apps/*' --filter './packages/{cron,ingest,sdk}' dev",
-    "build": "pnpm --filter './apps/*' --filter './packages/{cron,ingest,sdk}' build",
+    "dev": "pnpm --filter @soonwhy/shared build && pnpm --filter './apps/*' --filter './packages/{cron,ingest,sdk}' dev",
+    "build": "pnpm --filter @soonwhy/shared build && pnpm --filter './apps/*' --filter './packages/{cron,ingest,sdk}' build",
     "test": "vitest",
     "lint": "oxlint",
     "format": "oxfmt",

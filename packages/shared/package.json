@@ -1,0 +1,29 @@
+{
+  "name": "@soonwhy/shared",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch"
+  },
+  "dependencies": {
+    "@clickhouse/client": "^1.7.0",
+    "@nestjs/common": "^11.0.0",
+    "drizzle-orm": "^0.45.2",
+    "ioredis": "^5.8.2",
+    "nats": "^2.29.0",
+    "postgres": "^3.4.9",
+    "reflect-metadata": "^0.2.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "typescript": "^5.8.0"
+  }
+}
