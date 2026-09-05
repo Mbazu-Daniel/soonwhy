@@ -20,9 +20,9 @@ export class ApiKeysRepository {
     });
   }
 
-  async findApiKeysByOrgId(orgId: string) {
+  async findApiKeysByProjectId(projectId: string) {
     const keys = await db.query.apiKeys.findMany({
-      where: eq(apiKeys.orgId, orgId),
+      where: eq(apiKeys.projectId, projectId),
     });
     // eslint-disable-next-line no-unused-vars
     return keys.map(({ keyHash: _, ...rest }) => rest);
@@ -35,7 +35,7 @@ export class ApiKeysRepository {
   }
 
   async createApiKey(data: {
-    orgId: string;
+    projectId: string;
     name: string;
     scopes: string[];
     expiresAt?: Date;
@@ -47,7 +47,7 @@ export class ApiKeysRepository {
     const [apiKey] = await db
       .insert(apiKeys)
       .values({
-        orgId: data.orgId,
+        projectId: data.projectId,
         name: data.name,
         prefix,
         keyHash,

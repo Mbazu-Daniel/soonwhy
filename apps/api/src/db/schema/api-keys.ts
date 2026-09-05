@@ -1,10 +1,10 @@
 import { generateId } from '../generate-id';
 import { pgTable, text, timestamp } from 'drizzle-orm/pg-core';
-import { organizations } from './organizations';
+import { projects } from './projects';
 
 export const apiKeys = pgTable('api_keys', {
   id: text('id').primaryKey().$defaultFn(() => generateId()),
-  orgId: text('org_id').references(() => organizations.id, { onDelete: 'cascade' }).notNull(),
+  projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
   name: text('name').notNull(),
   prefix: text('prefix').notNull(),
   keyHash: text('key_hash').notNull(),
