@@ -4,15 +4,15 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+ **Status: done**
 
-- [ ] Logs table schema
-- [ ] Metrics table schema
-- [ ] Traces/spans table schema
-- [ ] Requests table schema
-- [ ] Partition strategy (by date, org_id)
-- [ ] ORDER BY clauses for common queries
-- [ ] Retention policy (hot data 0-7 days)
-- [ ] Materialized views for aggregations
+- [x] Logs table schema
+- [x] Metrics table schema
+- [x] Traces/spans table schema
+- [x] Requests table schema
+- [x] Partition strategy (by date, org_id)
+- [x] ORDER BY clauses for common queries
+- [x] Retention policy (hot data 0-7 days)
+- [x] Materialized views for aggregations
 
 **Output:** `docs/architecture/clickhouse-schema.md`

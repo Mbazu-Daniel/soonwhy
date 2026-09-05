@@ -4,9 +4,9 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+ **Status: done**
 
-- [ ] Error hierarchy:
+- [x] Error hierarchy:
   - AppError (base class)
   - ValidationError (400)
   - AuthError (401)
@@ -15,13 +15,13 @@
   - ConflictError (409)
   - RateLimitError (429)
   - InternalError (500)
-- [ ] Error propagation:
+- [x] Error propagation:
   - Throw at business logic layer
   - Catch in controller, format response
   - Log with context (requestId, userId, orgId)
-- [ ] User-facing error format (from API conventions)
-- [ ] Retryable vs non-retryable errors
-- [ ] SDK fail-open behavior (catch and continue)
-- [ ] Structured logging for errors
+- [x] User-facing error format (from API conventions)
+- [x] Retryable vs non-retryable errors
+- [x] SDK fail-open behavior (catch and continue)
+- [x] Structured logging for errors
 
 **Output:** `docs/engineering/error-handling.md`

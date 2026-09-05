@@ -4,17 +4,17 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+ **Status: done**
 
-- [ ] Service inventory:
+- [x] Service inventory:
   - API (NestJS) — REST endpoints, auth, tenant resolution
   - Ingestion Worker — receives telemetry from SDK, validates, publishes to NATS
   - Processor Worker — normalizes, aggregates, writes to ClickHouse
   - AI Worker — evidence extraction, LLM calls, confidence scoring
   - Scheduler — cron jobs, data migration, cleanup
   - Notifications — email, Slack, Discord, webhooks
-- [ ] Communication patterns (NATS JetStream topics)
-- [ ] Service responsibilities (what each service owns)
-- [ ] Service boundaries (what each service does NOT do)
+- [x] Communication patterns (NATS JetStream topics)
+- [x] Service responsibilities (what each service owns)
+- [x] Service boundaries (what each service does NOT do)
 
 **Output:** `docs/architecture/services.md`

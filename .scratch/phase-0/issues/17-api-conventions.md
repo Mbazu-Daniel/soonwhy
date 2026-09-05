@@ -4,11 +4,11 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+ **Status: done**
 
-- [ ] API versioning strategy (URL-based: /v1/)
-- [ ] Request/response format (JSON)
-- [ ] Error format:
+- [x] API versioning strategy (URL-based: /v1/)
+- [x] Request/response format (JSON)
+- [x] Error format:
   ```json
   {
     "error": {
@@ -19,10 +19,10 @@
     }
   }
   ```
-- [ ] Pagination (cursor-based)
-- [ ] Filtering and sorting conventions
-- [ ] Rate limit headers (X-RateLimit-*)
-- [ ] Authentication headers (Authorization: Bearer <token>)
-- [ ] Idempotency keys for mutations
+- [x] Pagination (cursor-based)
+- [x] Filtering and sorting conventions
+- [x] Rate limit headers (X-RateLimit-*)
+- [x] Authentication headers (Authorization: Bearer <token>)
+- [x] Idempotency keys for mutations
 
 **Output:** `docs/architecture/api-conventions.md`
