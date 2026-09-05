@@ -6,14 +6,14 @@ import { CreateApiKeyInput } from './dto';
 export class ApiKeysService {
   constructor(private readonly apiKeysRepository: ApiKeysRepository) {}
 
-  async getApiKeyById(id: string) {
-    const key = await this.apiKeysRepository.findApiKeyById(id);
+  private async getApiKeyById(id: string) {
+    const key = await this.apiKeysRepository.getApiKeyById(id);
     if (!key) throw new NotFoundException('API key not found');
     return key;
   }
 
   async getApiKeysForProject(projectId: string) {
-    return this.apiKeysRepository.findApiKeysByProjectId(projectId);
+    return this.apiKeysRepository.getApiKeysByProjectId(projectId);
   }
 
   async createApiKey(projectId: string, input: CreateApiKeyInput) {
@@ -26,14 +26,14 @@ export class ApiKeysService {
   }
 
   async deleteApiKey(id: string) {
-    const key = await this.apiKeysRepository.findApiKeyById(id);
+    const key = await this.apiKeysRepository.getApiKeyById(id);
     if (!key) throw new NotFoundException('API key not found');
     return this.apiKeysRepository.deleteApiKey(id);
   }
 
   async validateKey(rawKey: string): Promise<{ projectId: string; scopes: string[] } | null> {
     const keyHash = this.apiKeysRepository.hash(rawKey);
-    const key = await this.apiKeysRepository.findApiKeyByHash(keyHash);
+    const key = await this.apiKeysRepository.getApiKeyByHash(keyHash);
     if (!key) return null;
     if (key.expiresAt && key.expiresAt < new Date()) return null;
     await this.apiKeysRepository.updateLastUsedAt(key.id);

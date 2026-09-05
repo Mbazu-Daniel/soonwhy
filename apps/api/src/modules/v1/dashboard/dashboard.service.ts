@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ClickhouseService } from '../../../clickhouse';
+import { ClickhouseService } from '../../../common/clickhouse';
 
 @Injectable()
 export class DashboardService {
