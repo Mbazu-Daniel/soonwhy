@@ -26,14 +26,4 @@ export class DashboardController {
   ) {
     return this.dashboardService.getErrors(org.orgId, projectId, limit ? parseInt(limit, 10) : 50);
   }
-
-  @Get('logs')
-  async getLogs(
-    @CurrentOrg() org: OrgContext,
-    @Query('projectId') projectId: string,
-    @Query('limit') limit?: string,
-    @Query('level') level?: string,
-  ) {
-    return this.dashboardService.getLogs(org.orgId, projectId, limit ? parseInt(limit, 10) : 100, level);
-  }
 }

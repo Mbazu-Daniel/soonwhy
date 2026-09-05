@@ -161,16 +161,4 @@ export class DashboardService {
       ),
     );
   }
-
-  async getLogs(orgId: string, projectId: string, limit = 100, level?: string) {
-    const levelFilter = level && level !== 'all' ? `AND level = {level:String}` : '';
-    return this.clickhouse.query<{ id: string; timestamp: string; level: string; service: string; message: string; attributes: string }>(
-      `SELECT id, toString(timestamp) as timestamp, level, service, message, attributes
-      FROM logs
-      WHERE org_id = {orgId:String} AND project_id = {projectId:String} ${levelFilter}
-      ORDER BY timestamp DESC
-      LIMIT {limit:UInt32}`,
-      { orgId, projectId, limit, ...(level ? { level } : {}) },
-    );
-  }
 }

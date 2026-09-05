@@ -23,7 +23,7 @@ interface LogEntry {
   level: string;
   service: string;
   message: string;
-  attributes: string;
+  attributes: string | Record<string, unknown>;
 }
 
 const LEVEL_COLORS: Record<string, string> = {
@@ -36,7 +36,11 @@ const LEVEL_COLORS: Record<string, string> = {
 function LogRow({ log }: { log: LogEntry }) {
   const [expanded, setExpanded] = useState(false);
   let fields: Record<string, unknown> = {};
-  try { fields = JSON.parse(log.attributes); } catch {}
+  if (typeof log.attributes === 'string') {
+    try { fields = JSON.parse(log.attributes); } catch { fields = {}; }
+  } else if (log.attributes && typeof log.attributes === 'object') {
+    fields = log.attributes as Record<string, unknown>;
+  }
 
   return (
     <div className="border-b last:border-b-0">
@@ -65,14 +69,47 @@ function LogViewer() {
   const { projectId } = useProject();
   const [search, setSearch] = useState('');
   const [levelFilter, setLevelFilter] = useState('all');
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [allLogs, setAllLogs] = useState<LogEntry[]>([]);
 
-  const { data: logs, isLoading } = useQuery({
-    queryKey: ['dashboard-logs', projectId, levelFilter],
-    queryFn: () => api.get<LogEntry[]>(`/dashboard/logs?projectId=${projectId}${levelFilter !== 'all' ? `&level=${levelFilter}` : ''}`),
+  const queryKey = ['logs', projectId, levelFilter, search, cursor] as const;
+
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey,
+    queryFn: () => {
+      const params = new URLSearchParams({ projectId: projectId! });
+      if (levelFilter !== 'all') params.set('level', levelFilter);
+      if (search) params.set('q', search);
+      if (cursor) params.set('cursor', cursor);
+      params.set('limit', '50');
+      return api.get<{ data: LogEntry[]; nextCursor?: string }>(`/logs?${params.toString()}`);
+    },
     enabled: !!projectId,
   });
 
-  const filteredLogs = logs?.filter((log) => !search || log.message.toLowerCase().includes(search.toLowerCase())) ?? [];
+  const logs = data?.data ?? [];
+  const nextCursor = data?.nextCursor;
+
+  // Reset cursor when filters change
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setCursor(undefined);
+    setAllLogs([]);
+  };
+  const handleLevelChange = (value: string) => {
+    setLevelFilter(value);
+    setCursor(undefined);
+    setAllLogs([]);
+  };
+
+  // Accumulate logs for pagination
+  const displayLogs = cursor ? [...allLogs, ...logs] : logs;
+  const handleLoadMore = () => {
+    if (nextCursor) {
+      setAllLogs(displayLogs);
+      setCursor(nextCursor);
+    }
+  };
 
   if (!projectId) {
     return <div className="space-y-6"><h2 className="text-2xl font-bold">Logs</h2><Card><CardContent className="p-8 text-center text-muted-foreground">Select a project</CardContent></Card></div>;
@@ -87,9 +124,9 @@ function LogViewer() {
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search logs..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+              <Input placeholder="Search logs..." value={search} onChange={(e) => handleSearchChange(e.target.value)} className="pl-9" />
             </div>
-            <Select value={levelFilter} onValueChange={setLevelFilter}>
+            <Select value={levelFilter} onValueChange={handleLevelChange}>
               <SelectTrigger className="w-32"><SelectValue placeholder="Level" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Levels</SelectItem>
@@ -99,23 +136,30 @@ function LogViewer() {
                 <SelectItem value="debug">Debug</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="ghost" size="sm" onClick={() => { setSearch(''); setLevelFilter('all'); }}>Reset</Button>
+            <Button variant="ghost" size="sm" onClick={() => { handleSearchChange(''); handleLevelChange('all'); }}>Reset</Button>
           </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-muted-foreground">{filteredLogs.length} log entries</CardTitle>
+          <CardTitle className="text-sm text-muted-foreground">{displayLogs.length} log entries {isFetching && !isLoading ? '(loading...)' : ''}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-4 space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
-          ) : filteredLogs.length === 0 ? (
+          ) : displayLogs.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground text-sm">No logs found</div>
           ) : (
             <div className="divide-y max-h-[600px] overflow-y-auto">
-              {filteredLogs.map((log) => <LogRow key={log.id} log={log} />)}
+              {displayLogs.map((log) => <LogRow key={log.id} log={log} />)}
+              {nextCursor && (
+                <div className="p-3 text-center">
+                  <Button variant="outline" size="sm" onClick={handleLoadMore} disabled={isFetching}>
+                    {isFetching ? 'Loading...' : 'Load more'}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>

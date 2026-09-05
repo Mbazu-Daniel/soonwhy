@@ -1,5 +1,5 @@
 import { Module, Global } from '@nestjs/common';
-import { ClickhouseService } from './clickhouse.service';
+import { ClickhouseService } from '@soonwhy/shared';
 import { MigrationService } from './migration.service';
 
 @Global()
