@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { ClickhouseService } from './clickhouse.service';
+import { ClickhouseService } from '@soonwhy/shared';
 import { migrations } from './migrations';
 
 @Injectable()

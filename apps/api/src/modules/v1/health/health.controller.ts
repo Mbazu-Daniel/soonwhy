@@ -1,30 +1,23 @@
 import { Controller, Get } from '@nestjs/common';
-import { HealthCheckService, HealthCheck, HttpHealthIndicator, MemoryHealthIndicator } from '@nestjs/terminus';
 
 @Controller('health')
 export class HealthController {
-  constructor(
-    private health: HealthCheckService,
-    private http: HttpHealthIndicator,
-    private memory: MemoryHealthIndicator,
-  ) {}
+  private ok() {
+    return { status: 'ok', timestamp: new Date().toISOString() };
+  }
 
   @Get()
-  @HealthCheck()
   check() {
-    return this.health.check([
-      () => this.http.pingCheck('google', 'https://google.com'),
-      () => this.memory.checkRSS('memory_rss', 300 * 1024 * 1024),
-    ]);
+    return this.ok();
   }
 
   @Get('live')
   live() {
-    return { status: 'ok', timestamp: new Date().toISOString() };
+    return this.ok();
   }
 
   @Get('ready')
   ready() {
-    return { status: 'ok', timestamp: new Date().toISOString() };
+    return this.ok();
   }
 }

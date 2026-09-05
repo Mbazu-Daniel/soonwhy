@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { ClickhouseService } from './clickhouse.service';
+import { ClickhouseService } from '@soonwhy/shared';
 
 @Injectable()
 export class DataArchivalService {
@@ -21,6 +22,7 @@ export class DataArchivalService {
     }
   }
 
+  @Cron('0 2 * * *')
   async migratePartitions() {
     if (!this.s3) {
       this.logger.warn('R2 not configured, skipping');
