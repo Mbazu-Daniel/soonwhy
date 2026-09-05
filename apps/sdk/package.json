@@ -10,5 +10,5 @@
     "./auto/db": { "types": "./dist/auto/db.d.ts", "default": "./dist/auto/db.js" }
   },
   "scripts": {     "build": "tsc -b", "typecheck": "tsc --noEmit" },
-  "devDependencies": { "typescript": "^5.8.0" }
+  "devDependencies": { "@types/node": "^24.13.3", "typescript": "^5.8.0" }
 }
