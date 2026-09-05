@@ -48,8 +48,5 @@ dist/
 # Local dev binaries and data
 .dev/
 
-# Legacy scaffold copies (superseded by packages/)
-apps/
-
 # TypeScript incremental build info
 *.tsbuildinfo
