@@ -1,11 +1,16 @@
+import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
-import { IngestModule } from './ingest.module';
+import { IngestModule } from './module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(IngestModule);
-  const port = process.env.INGEST_PORT || 3002;
+  // Disable Nest body parser — OTLP needs raw bytes (gzip + protobuf/JSON).
+  const app = await NestFactory.create(IngestModule, { bodyParser: false });
+
+  app.setGlobalPrefix('api');
+
+  const port = process.env.PORT || 3002;
   await app.listen(port);
-  Logger.log(`Ingest service listening on port ${port}`, 'Ingest');
+  Logger.log(`OTLP ingestion running on http://localhost:${port}`, 'Bootstrap');
 }
 bootstrap();
