@@ -5,13 +5,13 @@ import { organizations } from '../../../common/db/schema';
 
 @Injectable()
 export class OrganizationsRepository {
-  async findOrganizationById(id: string) {
+  async getOrganizationById(id: string) {
     return db.query.organizations.findFirst({
       where: eq(organizations.id, id),
     });
   }
 
-  async findOrganizationBySlug(slug: string) {
+  async getOrganizationBySlug(slug: string) {
     return db.query.organizations.findFirst({
       where: eq(organizations.slug, slug),
     });

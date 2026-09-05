@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, ForbiddenException, UseGuards } from '@nestjs/common';
 import { OrganizationsService } from './organizations.service';
 import { CreateOrganizationDto, UpdateOrganizationDto } from './dto';
 import { CurrentUser, AuthUser } from '../../../common/decorators/current-user.decorator';
-import { CurrentOrg, OrgContext } from '../../../common/decorators/current-org.decorator';
 import { CurrentMember, MemberContext } from '../../../common/decorators/current-member.decorator';
+import { TenantGuard } from '../../../common/middleware/tenant-context.guard';
 
+@UseGuards(TenantGuard)
 @Controller('organizations')
 export class OrganizationsController {
   constructor(private readonly organizationsService: OrganizationsService) {}
@@ -35,7 +36,7 @@ export class OrganizationsController {
     @CurrentMember() member: MemberContext,
   ) {
     if (member.orgId !== id && member.role !== 'owner') {
-      throw new Error('Insufficient permissions');
+      throw new ForbiddenException('Insufficient permissions');
     }
     const input = UpdateOrganizationDto.parse(body);
     return this.organizationsService.updateOrganization(id, input);
@@ -47,7 +48,7 @@ export class OrganizationsController {
     @CurrentMember() member: MemberContext,
   ) {
     if (member.role !== 'owner') {
-      throw new Error('Only owners can delete organizations');
+      throw new ForbiddenException('Only owners can delete organizations');
     }
     return this.organizationsService.deleteOrganization(id);
   }
@@ -64,7 +65,7 @@ export class OrganizationsController {
     @CurrentMember() member: MemberContext,
   ) {
     if (!['owner', 'admin'].includes(member.role)) {
-      throw new Error('Only owners and admins can add members');
+      throw new ForbiddenException('Only owners and admins can add members');
     }
     return this.organizationsService.addMemberToOrganization(id, body.userId, body.role);
   }
@@ -76,7 +77,7 @@ export class OrganizationsController {
     @CurrentMember() member: MemberContext,
   ) {
     if (!['owner', 'admin'].includes(member.role)) {
-      throw new Error('Only owners and admins can remove members');
+      throw new ForbiddenException('Only owners and admins can remove members');
     }
     return this.organizationsService.removeMemberFromOrganization(id, userId);
   }

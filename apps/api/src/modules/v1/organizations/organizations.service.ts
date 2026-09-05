@@ -11,7 +11,7 @@ export class OrganizationsService {
   constructor(private readonly organizationsRepository: OrganizationsRepository) {}
 
   async getOrganizationById(id: string) {
-    const org = await this.organizationsRepository.findOrganizationById(id);
+    const org = await this.organizationsRepository.getOrganizationById(id);
     if (!org) {
       throw new NotFoundException('Organization not found');
     }
@@ -19,7 +19,7 @@ export class OrganizationsService {
   }
 
   async getOrganizationBySlug(slug: string) {
-    const org = await this.organizationsRepository.findOrganizationBySlug(slug);
+    const org = await this.organizationsRepository.getOrganizationBySlug(slug);
     if (!org) {
       throw new NotFoundException('Organization not found');
     }
@@ -34,7 +34,7 @@ export class OrganizationsService {
   }
 
   async createOrganization(userId: string, input: CreateOrganizationInput) {
-    const existing = await this.organizationsRepository.findOrganizationBySlug(input.slug);
+    const existing = await this.organizationsRepository.getOrganizationBySlug(input.slug);
     if (existing) {
       throw new ConflictException('Organization slug already exists');
     }
@@ -51,13 +51,13 @@ export class OrganizationsService {
   }
 
   async updateOrganization(id: string, input: UpdateOrganizationInput) {
-    const org = await this.organizationsRepository.findOrganizationById(id);
+    const org = await this.organizationsRepository.getOrganizationById(id);
     if (!org) {
       throw new NotFoundException('Organization not found');
     }
 
     if (input.slug && input.slug !== org.slug) {
-      const existing = await this.organizationsRepository.findOrganizationBySlug(input.slug);
+      const existing = await this.organizationsRepository.getOrganizationBySlug(input.slug);
       if (existing) {
         throw new ConflictException('Organization slug already exists');
       }
@@ -67,7 +67,7 @@ export class OrganizationsService {
   }
 
   async deleteOrganization(id: string) {
-    const org = await this.organizationsRepository.findOrganizationById(id);
+    const org = await this.organizationsRepository.getOrganizationById(id);
     if (!org) {
       throw new NotFoundException('Organization not found');
     }

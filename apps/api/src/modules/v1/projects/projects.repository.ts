@@ -5,19 +5,19 @@ import { projects } from '../../../common/db/schema';
 
 @Injectable()
 export class ProjectsRepository {
-  async findProjectById(id: string) {
+  async getProjectById(id: string) {
     return db.query.projects.findFirst({
       where: eq(projects.id, id),
     });
   }
 
-  async findProjectsByOrgId(orgId: string) {
+  async getProjectsByOrgId(orgId: string) {
     return db.query.projects.findMany({
       where: eq(projects.orgId, orgId),
     });
   }
 
-  async findProjectByOrgAndSlug(orgId: string, slug: string) {
+  async getProjectByOrgAndSlug(orgId: string, slug: string) {
     return db.query.projects.findFirst({
       where: and(eq(projects.orgId, orgId), eq(projects.slug, slug)),
     });

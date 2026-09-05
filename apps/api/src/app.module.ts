@@ -1,6 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './modules/v1/auth';
 import { RedisModule } from './common/redis';
@@ -25,7 +23,5 @@ import { DashboardModule } from './modules/v1/dashboard';
     HealthModule,
     DashboardModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}

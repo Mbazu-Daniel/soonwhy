@@ -1,5 +1,6 @@
+import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common';
 
@@ -25,6 +26,6 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3001;
   await app.listen(port);
-  console.log(`Backend running on http://localhost:${port}`);
+  Logger.log(`Backend running on http://localhost:${port}`, 'Bootstrap');
 }
 bootstrap();

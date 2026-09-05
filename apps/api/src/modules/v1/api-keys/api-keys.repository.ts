@@ -14,13 +14,13 @@ export class ApiKeysRepository {
     return randomBytes(32).toString('hex');
   }
 
-  async findApiKeyById(id: string) {
+  async getApiKeyById(id: string) {
     return db.query.apiKeys.findFirst({
       where: eq(apiKeys.id, id),
     });
   }
 
-  async findApiKeysByProjectId(projectId: string) {
+  async getApiKeysByProjectId(projectId: string) {
     const keys = await db.query.apiKeys.findMany({
       where: eq(apiKeys.projectId, projectId),
     });
@@ -28,7 +28,7 @@ export class ApiKeysRepository {
     return keys.map(({ keyHash: _, ...rest }) => rest);
   }
 
-  async findApiKeyByHash(keyHash: string) {
+  async getApiKeyByHash(keyHash: string) {
     return db.query.apiKeys.findFirst({
       where: eq(apiKeys.keyHash, keyHash),
     });

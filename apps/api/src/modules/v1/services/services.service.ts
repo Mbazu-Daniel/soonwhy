@@ -7,17 +7,17 @@ export class ServicesService {
   constructor(private readonly servicesRepository: ServicesRepository) {}
 
   async getServiceById(id: string) {
-    const svc = await this.servicesRepository.findServiceById(id);
+    const svc = await this.servicesRepository.getServiceById(id);
     if (!svc) throw new NotFoundException('Service not found');
     return svc;
   }
 
   async getServicesForProject(projectId: string) {
-    return this.servicesRepository.findServicesByProjectId(projectId);
+    return this.servicesRepository.getServicesByProjectId(projectId);
   }
 
   async createService(projectId: string, input: CreateServiceInput) {
-    const existing = await this.servicesRepository.findServiceByProjectAndSlug(
+    const existing = await this.servicesRepository.getServiceByProjectAndSlug(
       projectId,
       input.slug,
     );
@@ -26,7 +26,7 @@ export class ServicesService {
   }
 
   async deleteService(id: string) {
-    const svc = await this.servicesRepository.findServiceById(id);
+    const svc = await this.servicesRepository.getServiceById(id);
     if (!svc) throw new NotFoundException('Service not found');
     return this.servicesRepository.deleteService(id);
   }
