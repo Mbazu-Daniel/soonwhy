@@ -28,12 +28,6 @@ interface Project {
   slug: string;
 }
 
-interface Environment {
-  id: string;
-  name: string;
-  slug: string;
-}
-
 interface SessionUser {
   user: {
     id: string;
@@ -44,7 +38,7 @@ interface SessionUser {
 
 export function TopBar() {
   const navigate = useNavigate();
-  const { projectId, orgId, envSlug, setProjectId, setEnvSlug } = useProject();
+  const { projectId, orgId, setProjectId } = useProject();
   const token = getSessionToken();
 
   const { data: session } = useQuery({
@@ -58,12 +52,6 @@ export function TopBar() {
     queryKey: ['projects', orgId],
     queryFn: () => api.get<Project[]>('/projects'),
     enabled: !!orgId,
-  });
-
-  const { data: environments } = useQuery({
-    queryKey: ['environments', projectId],
-    queryFn: () => api.get<Environment[]>(`/environments?projectId=${projectId}`),
-    enabled: !!projectId,
   });
 
   async function handleSignOut() {
@@ -93,20 +81,6 @@ export function TopBar() {
               {projects.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
                   {p.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-        {environments && environments.length > 0 && (
-          <Select value={envSlug || ''} onValueChange={setEnvSlug}>
-            <SelectTrigger className="w-36">
-              <SelectValue placeholder="Environment" />
-            </SelectTrigger>
-            <SelectContent>
-              {environments.map((e) => (
-                <SelectItem key={e.id} value={e.slug}>
-                  {e.name}
                 </SelectItem>
               ))}
             </SelectContent>
