@@ -88,6 +88,5 @@ export function clearSession() {
     localStorage.removeItem('session_token');
     localStorage.removeItem('org_id');
     localStorage.removeItem('project_id');
-    localStorage.removeItem('env_slug');
   }
 }

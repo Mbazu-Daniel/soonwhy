@@ -3,10 +3,8 @@ import { createContext, useContext, useState, useCallback, type ReactNode } from
 interface ProjectContextValue {
   projectId: string | null;
   orgId: string | null;
-  envSlug: string | null;
   setProjectId: (id: string) => void;
   setOrgId: (id: string) => void;
-  setEnvSlug: (slug: string) => void;
 }
 
 const ProjectContext = createContext<ProjectContextValue | null>(null);
@@ -17,9 +15,6 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   );
   const [orgId, setOrgIdState] = useState<string | null>(
     () => typeof window !== 'undefined' ? localStorage.getItem('org_id') : null,
-  );
-  const [envSlug, setEnvSlugState] = useState<string | null>(
-    () => typeof window !== 'undefined' ? localStorage.getItem('env_slug') : null,
   );
 
   const setProjectId = useCallback((id: string) => {
@@ -32,13 +27,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     setOrgIdState(id);
   }, []);
 
-  const setEnvSlug = useCallback((slug: string) => {
-    localStorage.setItem('env_slug', slug);
-    setEnvSlugState(slug);
-  }, []);
-
   return (
-    <ProjectContext.Provider value={{ projectId, orgId, envSlug, setProjectId, setOrgId, setEnvSlug }}>
+    <ProjectContext.Provider value={{ projectId, orgId, setProjectId, setOrgId }}>
       {children}
     </ProjectContext.Provider>
   );
