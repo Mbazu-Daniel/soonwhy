@@ -4,15 +4,15 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+ **Status: done**
 
-- [ ] Better Auth integration
-- [ ] Email + password authentication
-- [ ] OAuth providers (GitHub, Google)
-- [ ] Session management (JWT, refresh tokens)
-- [ ] API key authentication (for SDK)
-- [ ] API key format (prefix + hash, not raw keys)
-- [ ] Session storage (Redis)
-- [ ] Logout and session invalidation
+- [x] Better Auth integration
+- [x] Email + password authentication
+- [x] OAuth providers (GitHub, Google)
+- [x] Session management (JWT, refresh tokens)
+- [x] API key authentication (for SDK)
+- [x] API key format (prefix + hash, not raw keys)
+- [x] Session storage (Redis)
+- [x] Logout and session invalidation
 
 **Output:** `docs/architecture/authentication.md`

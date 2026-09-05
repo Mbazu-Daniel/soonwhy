@@ -1,6 +1,6 @@
 # Phase 0: Product Foundation — Map
 
-Status: in-progress
+Status: in-progress — engineering foundation done, docs pending (updated 2026-09-05). Phase-2 (SDK & Ingestion) and Phase-3 (Dashboard) are **done**; see their maps.
 
 ## Objective
 
@@ -19,18 +19,18 @@ None. This phase blocks everything else.
 | 01 | Product Vision & Personas | open | — |
 | 03 | Competitive Positioning | open | — |
 | 04 | Pricing Model | open | — |
-| 05 | Service Boundaries | open | — |
-| 08 | ClickHouse Schema | open | — |
-| 09 | R2 + Parquet Lifecycle | open | — |
-| 10 | SDK Client Design | open | — |
-| 11 | Ingestion API | open | — |
+| 05 | Service Boundaries | done | — |
+| 08 | ClickHouse Schema | done | — |
+| 09 | R2 + Parquet Lifecycle | done | — |
+| 10 | SDK Client Design | done | — |
+| 11 | Ingestion API | done | — |
 | 12 | Evidence Gating Model | open | — |
-| 14 | Authentication Design | open | — |
-| 17 | API Conventions | open | — |
-| 18 | TypeScript Conventions | open | — |
+| 14 | Authentication Design | done | — |
+| 17 | API Conventions | done | — |
+| 18 | TypeScript Conventions | done | — |
 | 21 | Testing Strategy | open | — |
-| 22 | Git Strategy | open | — |
-| 23 | Error Handling | open | — |
+| 22 | Git Strategy | done | — |
+| 23 | Error Handling | done | — |
 | 24 | Observability Strategy | open | — |
 | 25 | Definition of Done | open | — |
 
@@ -42,10 +42,10 @@ None. This phase blocks everything else.
 | 06 | Data Flow Diagram | open | 05 |
 | 07 | Deployment Architecture | open | 05 |
 | 13 | AI Provider Abstraction | open | 12 |
-| 15 | Authorization & RBAC | open | 14 |
-| 16 | Tenant Isolation | open | 15 |
-| 19 | React Conventions | open | 18 |
-| 20 | NestJS Conventions | open | 18 |
+| 15 | Authorization & RBAC | done | 14 |
+| 16 | Tenant Isolation | done | 15 |
+| 19 | React Conventions | done | 18 |
+| 20 | NestJS Conventions | done | 18 |
 
 ### Tier 3 (after Tier 2)
 
@@ -66,14 +66,15 @@ Tickets whose blockers are all done: **01, 03, 04, 05, 08, 09, 10, 11, 12, 14, 1
 ## Decisions So Far
 
 - Backend: NestJS + Drizzle ORM (ADR-0001)
-- Hot Storage: Self-hosted ClickHouse on Dokploy (ADR-0002)
-- Cold Storage: Cloudflare R2 + Parquet (ADR-0002)
-- Event Bus: NATS JetStream
+- Hot Storage: Self-hosted ClickHouse on Dokploy (ADR-0002) — now `apps/api/src/common/clickhouse` + `apps/api/src/common/db/clickhouse`
+- Cold Storage: Cloudflare R2 + Parquet (ADR-0002) — now `apps/api/src/common/data-archival`
+- Event Bus: NATS JetStream — now `apps/api/src/common/nats`
 - Pricing: Pure pay-as-you-go (ADR-0003)
 - AI: Evidence-gated responses (ADR-0004)
 - Tenancy: Shared DB with RLS (ADR-0005)
-- Auth: Better Auth
-- Frontend: TanStack Start + React + Tailwind + shadcn/ui
+- Auth: Better Auth — now `apps/api/src/modules/v1/auth`
+- Frontend: TanStack Start + React + Tailwind + shadcn/ui — now `apps/ui` (moved from `packages/frontend`)
+- Monorepo: `apps/*` only (`packages/` cleaned, `pnpm-workspace.yaml` → `apps/*`), `tsconfig/` at root, `apps/sdk` (moved from `packages/sdk`), `apps/api/src/shared` + `apps/ui/src/shared` (moved from `packages/shared`), `find*` → `get*` in repositories
 
 ## Fog
 

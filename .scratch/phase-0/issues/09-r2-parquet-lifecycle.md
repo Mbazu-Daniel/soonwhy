@@ -4,14 +4,14 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+ **Status: done**
 
-- [ ] R2 bucket structure (org/project/environment/date/type)
-- [ ] Parquet file naming convention
-- [ ] Partition strategy for Parquet (org, project, date, event_type)
-- [ ] Migration strategy (ClickHouse → R2, scheduled batch)
-- [ ] Retention policy (7-30 days warm, 30-90 days archive, 90+ delete)
-- [ ] Query strategy for cold data (DuckDB on-demand)
-- [ ] Compression settings
+- [x] R2 bucket structure (org/project/environment/date/type)
+- [x] Parquet file naming convention
+- [x] Partition strategy for Parquet (org, project, date, event_type)
+- [x] Migration strategy (ClickHouse → R2, scheduled batch)
+- [x] Retention policy (7-30 days warm, 30-90 days archive, 90+ delete)
+- [x] Query strategy for cold data (DuckDB on-demand)
+- [x] Compression settings
 
 **Output:** `docs/architecture/cold-storage.md`
