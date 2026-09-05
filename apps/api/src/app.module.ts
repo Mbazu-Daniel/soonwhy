@@ -7,14 +7,13 @@ import { AuthModule } from './auth';
 import { RedisModule } from './redis';
 import { NatsModule } from './nats';
 import { ClickhouseModule } from './clickhouse';
+import { DataArchivalModule } from './common/data-archival';
 import { OrganizationsModule } from './modules/v1/organizations';
-import { EnvironmentsModule } from './modules/v1/environments';
 import { ApiKeysModule } from './modules/v1/api-keys';
 import { ServicesModule } from './modules/v1/services';
 import { ProjectsModule } from './modules/v1/projects';
 import { HealthModule } from './modules/v1/health';
 import { IngestionModule } from './modules/v1/ingestion';
-import { ColdStorageModule } from './modules/v1/cold-storage';
 
 @Module({
   imports: [
@@ -24,14 +23,13 @@ import { ColdStorageModule } from './modules/v1/cold-storage';
     RedisModule,
     NatsModule,
     ClickhouseModule,
+    DataArchivalModule,
     OrganizationsModule,
-    EnvironmentsModule,
     ApiKeysModule,
     ServicesModule,
     ProjectsModule,
     HealthModule,
     IngestionModule,
-    ColdStorageModule,
   ],
   controllers: [AppController],
   providers: [AppService],

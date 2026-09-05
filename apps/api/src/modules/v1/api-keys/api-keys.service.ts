@@ -12,13 +12,13 @@ export class ApiKeysService {
     return key;
   }
 
-  async getApiKeysForOrganization(orgId: string) {
-    return this.apiKeysRepository.findApiKeysByOrgId(orgId);
+  async getApiKeysForProject(projectId: string) {
+    return this.apiKeysRepository.findApiKeysByProjectId(projectId);
   }
 
-  async createApiKey(orgId: string, input: CreateApiKeyInput) {
+  async createApiKey(projectId: string, input: CreateApiKeyInput) {
     return this.apiKeysRepository.createApiKey({
-      orgId,
+      projectId,
       name: input.name,
       scopes: input.scopes ?? [],
       expiresAt: input.expiresAt ? new Date(input.expiresAt) : undefined,
@@ -31,12 +31,12 @@ export class ApiKeysService {
     return this.apiKeysRepository.deleteApiKey(id);
   }
 
-  async validateKey(rawKey: string): Promise<{ orgId: string; scopes: string[] } | null> {
+  async validateKey(rawKey: string): Promise<{ projectId: string; scopes: string[] } | null> {
     const keyHash = this.apiKeysRepository.hash(rawKey);
     const key = await this.apiKeysRepository.findApiKeyByHash(keyHash);
     if (!key) return null;
     if (key.expiresAt && key.expiresAt < new Date()) return null;
     await this.apiKeysRepository.updateLastUsedAt(key.id);
-    return { orgId: key.orgId, scopes: key.scopes || [] };
+    return { projectId: key.projectId, scopes: key.scopes || [] };
   }
 }
