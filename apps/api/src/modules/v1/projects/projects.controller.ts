@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto, UpdateProjectDto } from './dto';
 import { CurrentOrg, OrgContext } from '../../../common/decorators/current-org.decorator';
@@ -10,10 +10,7 @@ export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
   @Post()
-  async createProject(
-    @CurrentOrg() org: OrgContext,
-    @Body() body: unknown,
-  ) {
+  async createProject(@CurrentOrg() org: OrgContext, @Body() body: unknown) {
     const input = CreateProjectDto.parse(body);
     return this.projectsService.createProject(org.orgId, input);
   }
@@ -24,18 +21,22 @@ export class ProjectsController {
   }
 
   @Get(':id')
-  async getProjectById(@Param('id') id: string) {
-    return this.projectsService.getProjectById(id);
+  async getProjectById(@CurrentOrg() org: OrgContext, @Param('id') id: string) {
+    return this.projectsService.getProjectById(id, org.orgId);
   }
 
   @Put(':id')
-  async updateProject(@Param('id') id: string, @Body() body: unknown) {
+  async updateProject(
+    @CurrentOrg() org: OrgContext,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
     const input = UpdateProjectDto.parse(body);
-    return this.projectsService.updateProject(id, input);
+    return this.projectsService.updateProject(id, org.orgId, input);
   }
 
   @Delete(':id')
-  async deleteProject(@Param('id') id: string) {
-    return this.projectsService.deleteProject(id);
+  async deleteProject(@CurrentOrg() org: OrgContext, @Param('id') id: string) {
+    return this.projectsService.deleteProject(id, org.orgId);
   }
 }
