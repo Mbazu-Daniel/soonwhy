@@ -43,6 +43,8 @@ export class LogsService {
         }
       } else {
         attributes = r.attributes;
+      }
+
       return {
         id: r.id,
         timestamp: r.timestamp,
