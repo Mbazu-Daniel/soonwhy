@@ -4,19 +4,19 @@ import type { ParsedLogRecord, ParsedMetricPoint, ParsedSpan, TenantContext } fr
 
 export type { TenantContext };
 
-function chTimestamp(isoOrMs: string | number): string {
+function telemetryTimestamp(isoOrMs: string | number): string {
   const date =
     typeof isoOrMs === 'number'
       ? new Date(isoOrMs)
       : new Date(isoOrMs.includes('T') ? isoOrMs : Number(isoOrMs));
   if (Number.isNaN(date.getTime())) {
-    return new Date().toISOString().replace('T', ' ').replace('Z', '');
+    return new Date().toISOString();
   }
-  return date.toISOString().replace('T', ' ').replace('Z', '');
+  return date.toISOString();
 }
 
-function nanoToChTimestamp(nano: string): string {
-  return chTimestamp(nanoToMs(nano) || Date.now());
+function nanoToTelemetryTimestamp(nano: string): string {
+  return telemetryTimestamp(nanoToMs(nano) || Date.now());
 }
 
 function mapMetricUnit(unit: string): 'ms' | 'count' | 'bytes' | 'percent' {
@@ -39,7 +39,7 @@ function metricValue(point: ParsedMetricPoint): number {
 export function mapSpanToTraceRow(span: ParsedSpan, tenant: TenantContext) {
   return {
     id: randomUUID(),
-    timestamp: nanoToChTimestamp(span.startTimeUnixNano),
+    timestamp: nanoToTelemetryTimestamp(span.startTimeUnixNano),
     org_id: tenant.organizationId,
     project_id: tenant.projectId,
     service: span.resource.serviceName || '',
@@ -110,7 +110,7 @@ export function mapLogToRow(record: ParsedLogRecord, tenant: TenantContext) {
 
   return {
     id: randomUUID(),
-    timestamp: chTimestamp(record.timestamp),
+    timestamp: telemetryTimestamp(record.timestamp),
     org_id: tenant.organizationId,
     project_id: tenant.projectId,
     service: record.resource.serviceName || '',
