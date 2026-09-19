@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { eq, and } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '../../../common/db';
 import { projects } from '../../../common/db/schema';
 
 @Injectable()
 export class ProjectsRepository {
-  async getProjectById(id: string) {
+  async getProjectById(id: string, orgId: string) {
     return db.query.projects.findFirst({
-      where: eq(projects.id, id),
+      where: and(eq(projects.id, id), eq(projects.orgId, orgId)),
     });
   }
 
@@ -28,16 +28,18 @@ export class ProjectsRepository {
     return project;
   }
 
-  async updateProject(id: string, data: { name?: string; description?: string }) {
+  async updateProject(id: string, orgId: string, data: { name?: string; description?: string }) {
     const [updated] = await db
       .update(projects)
       .set({ ...data, updatedAt: new Date() })
-      .where(eq(projects.id, id))
+      .where(and(eq(projects.id, id), eq(projects.orgId, orgId)))
       .returning();
     return updated;
   }
 
-  async deleteProject(id: string) {
-    await db.delete(projects).where(eq(projects.id, id));
+  async deleteProject(id: string, orgId: string) {
+    await db
+      .delete(projects)
+      .where(and(eq(projects.id, id), eq(projects.orgId, orgId)));
   }
 }
