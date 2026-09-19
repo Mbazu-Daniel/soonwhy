@@ -56,3 +56,10 @@ The organization remains the SaaS security boundary. Project remains the telemet
 This branch moves the telemetry write/read path to Quickwit. Postgres remains the source of truth for SaaS resources such as organizations, projects, members, and API keys.
 
 The ClickHouse dependency can be removed after all telemetry repositories have moved to Quickwit.
+
+
+## Phase 1 completion boundary
+
+The storage transfer removes ClickHouse from the application telemetry path. Postgres owns SaaS state, NATS owns ingestion transport, Quickwit owns searchable telemetry indexes, and R2/S3-compatible storage owns durable index data.
+
+The next phase can build detection and evidence analysis on this stable storage boundary without carrying a hot/cold database split.
