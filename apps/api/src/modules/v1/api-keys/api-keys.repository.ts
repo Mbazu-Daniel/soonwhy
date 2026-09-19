@@ -37,11 +37,11 @@ export class ApiKeysRepository {
     const keys = await db.query.apiKeys.findMany({
       where: eq(apiKeys.projectId, projectId),
     });
-    return keys.map((key) => {
-      const sanitized = { ...key };
-      delete sanitized.keyHash;
-      return sanitized;
-    });
+    return keys.map((key) =>
+      Object.fromEntries(
+        Object.entries(key).filter(([name]) => name !== 'keyHash'),
+      ) as Omit<typeof key, 'keyHash'>,
+    );
   }
 
   async getApiKeyByHash(keyHash: string) {
