@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { ClickhouseService } from '../../../common/clickhouse';
+import { QUICKWIT_INDEXES, QuickwitService } from '@soonwhy/shared';
+import { quickwitTerm, quickwitTenantQuery, quickwitTimestamp } from '../../../common/quickwit/query';
 
 export interface TraceRow {
   traceId: string;
@@ -19,49 +20,73 @@ export interface TraceListRow {
   spanCount: number;
 }
 
+interface TraceAggregation {
+  buckets?: Array<{
+    key: string;
+    doc_count: number;
+    min_timestamp?: { value: number | null };
+    max_timestamp?: { value: number | null };
+    span_count?: { value: number };
+  }>;
+}
+
 @Injectable()
 export class TracesRepository {
-  constructor(private readonly clickhouse: ClickhouseService) {}
+  constructor(private readonly quickwit: QuickwitService) {}
 
-  async listTraces(params: { orgId: string; projectId: string; from: string; to: string; limit: number; cursor?: { ts: string; traceId: string } }): Promise<TraceListRow[]> {
-    const cursorFilter = params.cursor ? `AND (minTimestamp, traceId) < ({cursorTs:DateTime64(3)}, {cursorTraceId:String})` : '';
-    const query = `
-      SELECT
-        traceId,
-        any(name) AS name,
-        toString(min(timestamp)) AS start,
-        toString(max(timestamp)) AS end,
-        count() AS spanCount,
-        min(timestamp) AS minTimestamp
-      FROM traces
-      WHERE org_id = {orgId:String} AND project_id = {projectId:String}
-        AND timestamp BETWEEN {from:DateTime64(3)} AND {to:DateTime64(3)}
-        ${cursorFilter}
-      GROUP BY traceId
-      ORDER BY minTimestamp DESC
-      LIMIT {limit:UInt32}
-    `;
-    return this.clickhouse.query<TraceListRow>(query, {
-      orgId: params.orgId,
-      projectId: params.projectId,
-      from: params.from,
-      to: params.to,
-      limit: params.limit,
-      ...(params.cursor ? { cursorTs: params.cursor.ts, cursorTraceId: params.cursor.traceId } : {}),
+  async listTraces(params: {
+    orgId: string;
+    projectId: string;
+    from: string;
+    to: string;
+    limit: number;
+    cursor?: { ts: string; traceId: string };
+  }): Promise<TraceListRow[]> {
+    const result = await this.quickwit.search<TraceRow>(QUICKWIT_INDEXES.traces, {
+      query: quickwitTenantQuery(params.orgId, params.projectId),
+      startTimestamp: quickwitTimestamp(params.from),
+      endTimestamp: quickwitTimestamp(params.to),
+      maxHits: 0,
+      aggregations: {
+        traces: {
+          terms: {
+            field: 'traceId',
+            size: params.limit,
+          },
+          aggs: {
+            min_timestamp: { min: { field: 'timestamp' } },
+            max_timestamp: { max: { field: 'timestamp' } },
+            span_count: { value_count: { field: 'spanId' } },
+          },
+        },
+      },
     });
+
+    const aggregation = result.aggregations?.traces as TraceAggregation | undefined;
+    return (aggregation?.buckets ?? []).map((bucket) => ({
+      traceId: bucket.key,
+      name: '',
+      start: new Date(bucket.min_timestamp?.value ?? 0).toISOString(),
+      end: new Date(bucket.max_timestamp?.value ?? 0).toISOString(),
+      spanCount: bucket.span_count?.value ?? bucket.doc_count,
+    }));
   }
 
-  async getTraceSpans(params: { orgId: string; projectId: string; traceId: string }): Promise<TraceRow[]> {
-    const query = `
-      SELECT traceId, spanId, parentSpanId, name, duration, toString(timestamp) as timestamp, service
-      FROM traces
-      WHERE org_id = {orgId:String} AND project_id = {projectId:String} AND traceId = {traceId:String}
-      ORDER BY timestamp ASC
-    `;
-    return this.clickhouse.query<TraceRow>(query, {
-      orgId: params.orgId,
-      projectId: params.projectId,
-      traceId: params.traceId,
+  async getTraceSpans(params: {
+    orgId: string;
+    projectId: string;
+    traceId: string;
+  }): Promise<TraceRow[]> {
+    const result = await this.quickwit.search<TraceRow>(QUICKWIT_INDEXES.traces, {
+      query: quickwitTenantQuery(
+        params.orgId,
+        params.projectId,
+        quickwitTerm('traceId', params.traceId),
+      ),
+      maxHits: 10000,
+      sortBy: ['timestamp:asc'],
     });
+
+    return result.hits.flatMap((hit) => (hit._source ? [hit._source] : []));
   }
 }
