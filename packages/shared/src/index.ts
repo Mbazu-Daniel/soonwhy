@@ -7,3 +7,9 @@ export {
   apiKeyFromAuthorization,
   type ValidatedApiKey,
 } from './auth/api-keys';
+export {
+  QuickwitService,
+  type QuickwitHit,
+  type QuickwitSearchInput,
+  type QuickwitSearchResponse,
+} from './quickwit';
