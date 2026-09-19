@@ -97,54 +97,50 @@ export class DashboardService {
   }
 
   async getServices(orgId: string, projectId: string) {
-    const cacheKey = `services:${orgId}:${projectId}`;
-    return this.cached(cacheKey, async () => {
-      // Two queries instead of N+1: one for requests, one for errors, join in JS
-      const [requestStats, errorStats] = await Promise.all([
-        this.clickhouse.query<{ service: string; requestCount: number; avgLatency: number }>(
-          `SELECT service, count() as requestCount, avg(duration) as avgLatency
-          FROM requests
-          WHERE org_id = {orgId:String} AND project_id = {projectId:String} AND timestamp >= now() - INTERVAL 24 HOUR
-          GROUP BY service ORDER BY requestCount DESC`,
-          { orgId, projectId },
-        ),
-        this.clickhouse.query<{ service: string; errorCount: number }>(
-          `SELECT service, count() as errorCount
-          FROM errors
-          WHERE org_id = {orgId:String} AND project_id = {projectId:String} AND timestamp >= now() - INTERVAL 24 HOUR
-          GROUP BY service`,
-          { orgId, projectId },
-        ),
-      ]);
-
-      const errorMap = new Map(errorStats.map((e) => [e.service, e.errorCount]));
-      return requestStats.map((r) => ({
-        service: r.service,
-        requestCount: r.requestCount,
-        errorCount: errorMap.get(r.service) ?? 0,
-        avgLatency: Math.round(r.avgLatency),
+    return this.cached(`services:${orgId}:${projectId}`, async () => {
+      const result = await this.quickwit.search(QUICKWIT_INDEXES.requests, {
+        query: quickwitTenantQuery(orgId, projectId),
+        startTimestamp: Math.floor((Date.now() - 86_400_000) / 1000),
+        endTimestamp: Math.floor(Date.now() / 1000),
+        maxHits: 0,
+        aggregations: {
+          services: {
+            terms: { field: 'service', size: 100, order: { _count: 'desc' } },
+            aggs: { latency: { stats: { field: 'duration' } } },
+          },
+        },
+      });
+      const buckets = (result.aggregations?.services as { buckets?: Array<{ key: string; doc_count: number; latency?: { avg?: number } }> } | undefined)?.buckets ?? [];
+      return buckets.map((bucket) => ({
+        service: bucket.key,
+        requestCount: bucket.doc_count,
+        errorCount: 0,
+        avgLatency: Math.round(bucket.latency?.avg ?? 0),
       }));
     });
   }
 
   async getErrors(orgId: string, projectId: string, limit = 50) {
-    const cacheKey = `errors:${orgId}:${projectId}:${limit}`;
-    return this.cached(cacheKey, () =>
-      this.clickhouse.query<{ fingerprint: string; errorMessage: string; errorType: string; service: string; count: number; lastSeen: string }>(
-        `SELECT
-          fingerprint,
-          any(errorMessage) as errorMessage,
-          any(errorType) as errorType,
-          any(service) as service,
-          count() as count,
-          max(timestamp) as lastSeen
-        FROM errors
-        WHERE org_id = {orgId:String} AND project_id = {projectId:String} AND timestamp >= now() - INTERVAL 24 HOUR
-        GROUP BY fingerprint
-        ORDER BY count DESC
-        LIMIT {limit:UInt32}`,
-        { orgId, projectId, limit },
-      ),
-    );
+    return this.cached(`errors:${orgId}:${projectId}:${limit}`, async () => {
+      const result = await this.quickwit.search(QUICKWIT_INDEXES.logs, {
+        query: quickwitTenantQuery(orgId, projectId, 'level:error'),
+        startTimestamp: Math.floor((Date.now() - 86_400_000) / 1000),
+        endTimestamp: Math.floor(Date.now() / 1000),
+        maxHits: limit,
+        sortBy: ['timestamp:desc'],
+      });
+      return result.hits.flatMap((hit) => {
+        const source = hit._source as Record<string, unknown> | undefined;
+        if (!source) return [];
+        return [{
+          fingerprint: String(source.fingerprint ?? source.traceId ?? source.message ?? ''),
+          errorMessage: String(source.message ?? ''),
+          errorType: String(source.errorType ?? 'Error'),
+          service: String(source.service ?? ''),
+          count: 1,
+          lastSeen: String(source.timestamp ?? ''),
+        }];
+      });
+    });
   }
 }
