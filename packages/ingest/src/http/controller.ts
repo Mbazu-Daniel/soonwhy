@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { gunzipSync } from 'zlib';
+import { createHash } from 'crypto';
 import {
   ApiKeysService,
   apiKeyFromAuthorization,
@@ -125,9 +126,10 @@ export class IngestController {
 
       const result = meta.parse(parsed);
       const accepted = result.items.slice(0, 10000);
+      const requestId = createHash('sha256').update(body).digest('hex');
       const rejected = result.rejected + Math.max(0, result.items.length - 10000);
 
-      await this.publish(auth, signal, accepted);
+      await this.publish(auth, signal, accepted, requestId);
       this.metrics.recordAccepted(accepted.length);
       this.metrics.recordRejected(rejected);
       this.metrics.recordLatency(Date.now() - started);
@@ -194,8 +196,13 @@ export class IngestController {
     return result;
   }
 
-  private async publish(auth: ValidatedApiKey, signal: Signal, items: unknown[]) {
-    for (const item of items) {
+  private async publish(
+    auth: ValidatedApiKey,
+    signal: Signal,
+    items: unknown[],
+    requestId: string,
+  ) {
+    for (const [index, item] of items.entries()) {
       await this.nats.publish(
         `ingest.${auth.projectId}.${signal}`,
         new TextEncoder().encode(
@@ -205,6 +212,7 @@ export class IngestController {
             organizationId: auth.organizationId,
           }),
         ),
+        `otel:${requestId}:${signal}:${index}`,
       );
       this.metrics.recordPublished(1);
     }
