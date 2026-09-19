@@ -2,7 +2,7 @@
 
 ## Pricing Philosophy
 
-Soonwhy uses pure pay-as-you-go pricing. No per-host fees, no seat licenses, no minimum commitments, no surprise bills. You pay for what you use, and you can predict your costs based on your usage.
+Soonwhy uses paid-first pricing with a 7-day trial. Paid plans include a predictable allowance for telemetry and AI usage, with transparent overage rates. There are no per-host fees and no seat-based platform charge.
 
 ## Pricing Rates
 
@@ -77,16 +77,16 @@ Monthly storage cost = (Hot GB × $0.02) + (Cold GB × $0.005) + (Archive GB × 
 
 ---
 
-## Free Tier
+## 7-Day Trial
 
 ### What's Included
 
 | Metric | Limit | Notes |
 |--------|-------|-------|
-| **Ingestion** | 1 GB/month | All telemetry types |
-| **Storage** | 1 GB | Hot storage only |
-| **AI Analysis** | 100 analyses/month | All analysis types |
-| **API Requests** | 100K requests/month | All API types |
+| **Ingestion** | Trial allowance | All telemetry types |
+| **Storage** | Trial allowance | Hot storage only |
+| **AI Analysis** | Trial allowance | All analysis types |
+| **API Requests** | Trial allowance | All API types |
 | **Retention** | 7 days | Hot storage only |
 | **Projects** | 1 | Single project |
 | **Environments** | 2 | Production + Staging |
@@ -94,11 +94,11 @@ Monthly storage cost = (Hot GB × $0.02) + (Cold GB × $0.005) + (Archive GB × 
 
 ### Free Tier Rules
 
-- No credit card required
-- No time limit (free forever)
-- Upgrades to paid tier when limits exceeded
-- Downgrades back to free tier when usage drops
-- No data deletion on downgrade (retained for 30 days)
+- Trial lasts 7 days
+- Trial converts to a selected paid plan after the trial period
+- Usage beyond the included allowance is billed at the published overage rate
+- Billing is blocked until a payment method is available
+- Trial data is retained according to the selected plan's retention policy
 
 ---
 
@@ -352,12 +352,12 @@ Subject: Soonwhy Usage Alert - 100% of Monthly Budget
 You've reached 100% of your monthly budget for August 2026.
 
 Current usage:
-- Ingestion: 50.0 GB ($25.00)
+- Ingestion: 67.5 GB ($33.75)
 - Storage: 12.5 GB ($0.25)
 - AI Analysis: 150 analyses ($15.00)
 - API Requests: 100K requests ($1.00)
 
-Total: $41.25 of $50.00 budget
+Total: $50.00 of $50.00 budget
 
 Action taken:
 - Ingestion: Throttled to 10 req/sec
@@ -385,11 +385,11 @@ Total: $8.04/month
 
 **Scale-Up (50GB/month ingestion)**
 ```
-Ingestion: 50 GB × $0.45 = $22.50 (10% volume discount)
+Ingestion: 50 GB × $0.50 = $25.00
 Storage: 20 GB × $0.02 = $0.40
 AI Analysis: 500 × $0.10 = $50.00
 API Requests: 500K × $0.10/10K = $5.00
-Total: $77.90/month
+Total: $80.40/month
 ```
 
 **Enterprise (500GB/month ingestion)**
