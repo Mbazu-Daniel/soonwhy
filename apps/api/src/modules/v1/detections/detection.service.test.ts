@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '../../../common/db';
+import type { QuickwitService } from '@soonwhy/shared';
 import { DetectionService } from './detection.service';
 
 vi.mock('../../../common/db', () => ({
@@ -11,7 +12,7 @@ vi.mock('../../../common/db', () => ({
 describe('DetectionService', () => {
   const quickwit = {
     search: vi.fn(),
-  };
+  } as unknown as QuickwitService;
   const projectsRepository = {
     getProjectById: vi.fn(),
   };
