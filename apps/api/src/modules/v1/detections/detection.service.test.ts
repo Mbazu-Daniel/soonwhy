@@ -192,4 +192,12 @@ describe('DetectionService', () => {
     expect(evidenceQuery).toContain('service:"orders\\" OR statusCode\\:500"');
   });
 
+  it('rejects listing findings for a project outside the active organization', async () => {
+    projectsRepository.getProjectById.mockResolvedValue(undefined);
+
+    const service = new DetectionService(quickwit, projectsRepository);
+
+    await expect(service.list('org-1', 'project-from-another-org')).rejects.toThrow('Project not found');
+  });
+
 });
