@@ -1,3 +1,4 @@
+import { QuickwitModule } from './common/quickwit';
 import { Module } from '@nestjs/common';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './modules/v1/auth';
@@ -14,7 +15,7 @@ import { RequestsModule } from './modules/v1/requests';
 import { TracesModule } from './modules/v1/traces';
 
 @Module({
-  imports: [
+  imports: [QuickwitModule,
     CommonModule,
     AuthModule,
     ClickhouseModule,
