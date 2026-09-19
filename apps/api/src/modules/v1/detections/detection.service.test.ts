@@ -56,7 +56,7 @@ describe('DetectionService', () => {
   });
 
   it('detects high latency and persists sanitized evidence for the scoped project', async () => {
-    quickwit.search
+    search
       .mockResolvedValueOnce({
         aggregations: {
           services: {
@@ -114,7 +114,7 @@ describe('DetectionService', () => {
   });
 
   it('detects a critical error-rate finding when 5xx responses reach 10 percent', async () => {
-    quickwit.search
+    search
       .mockResolvedValueOnce({
         aggregations: {
           services: {
@@ -197,7 +197,7 @@ describe('DetectionService', () => {
     expect(search).not.toHaveBeenCalled();
   });
   it('escapes service names before building Quickwit evidence queries', async () => {
-    quickwit.search
+    search
       .mockResolvedValueOnce({
         aggregations: {
           services: {
