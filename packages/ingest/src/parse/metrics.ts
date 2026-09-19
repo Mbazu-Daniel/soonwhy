@@ -58,22 +58,18 @@ export function parseMetricsPayload(payload: any): ParseMetricsResult {
             const noRecordedValue = (flags & 1) === 1;
             const rawDouble = dp.asDouble ?? dp.as_double;
             const rawInt = dp.asInt ?? dp.as_int;
+            if (rawDouble === undefined && rawInt === undefined) {
+              rejected++;
+              continue;
+            }
 
             points.push({
               timestamp,
               metricName,
               metricUnit: metric.unit || '',
               metricType: type,
-              value: noRecordedValue
-                ? null
-                : rawDouble !== undefined
-                  ? finiteNumber(rawDouble)
-                  : null,
-              valueInt: noRecordedValue
-                ? null
-                : rawInt !== undefined
-                  ? int64String(rawInt)
-                  : null,
+              value: rawDouble !== undefined ? finiteNumber(rawDouble) : null,
+              valueInt: rawInt !== undefined ? int64String(rawInt) : null,
               resource: parsedResource,
               attributes: decodeAttributes(dp.attributes || []),
             });
