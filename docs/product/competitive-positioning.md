@@ -337,7 +337,12 @@ No per-host fees, no seat licenses, no minimums:
 
 ## Source Notes
 
-Competitor pricing and capabilities should be rechecked before publication. Current reference points: Datadog pricing, SigNoz pricing, Grafana Cloud pricing, New Relic pricing, and Tinybird pricing. Retrieved September 2026.
+Competitor pricing and capabilities should be rechecked before publication. Current reference points, retrieved September 2026:
+- Datadog: https://www.datadoghq.com/pricing/list/
+- SigNoz: https://signoz.io/pricing/
+- Grafana Cloud: https://grafana.com/pricing/
+- New Relic: https://newrelic.com/pricing
+- Tinybird: https://www.tinybird.co/docs/forward/pricing
 
 ## Competitive Advantages
 
