@@ -2,7 +2,7 @@
 
 ## Project overview
 
-Full-stack TypeScript monorepo with TanStack Start (frontend) and NestJS (backend).
+Full-stack TypeScript monorepo with TanStack Start (frontend) and NestJS (API), with shared infrastructure and telemetry ingestion packages.
 
 ## Agent skills
 
@@ -28,9 +28,9 @@ Single-context layout. See `docs/agents/domain.md`.
 
 ## Development
 
-- `pnpm dev` — start both frontend and backend
-- `pnpm build` — build all packages
-- `pnpm test` — run vitest
+- `pnpm dev` — start the frontend, API, and runtime packages
+- `pnpm build` — build the shared package, apps, cron, and ingestion packages
+- `pnpm test` — run Vitest
 - `pnpm lint` — run oxlint
 - `pnpm format` — run oxfmt
 
@@ -43,7 +43,6 @@ Single-context layout. See `docs/agents/domain.md`.
 | `feat/phase-2` | `feat/clickhouse-client` |
 | `feat/phase3-dashboard` | `feat/dashboard-ui` |
 | `fix/phase-1-issue-04` | `fix/auth-session-expiry` |
-| `feat/nestjs-module` | `feat/api-crud-modules` |
 | `02-clickhouse-module` | `feat/clickhouse-client` |
 
 - `.scratch/phase-N/` is local planning only — never leak it into branch names, commit subjects, or PR titles
@@ -53,7 +52,13 @@ Single-context layout. See `docs/agents/domain.md`.
 ## Structure
 
 ```
+apps/
+├── api/          # NestJS API
+└── ui/           # TanStack Start + React frontend
+
 packages/
-├── frontend/   # TanStack Start + React + Tailwind + shadcn/ui
-└── backend/    # NestJS API
+├── shared/       # shared infrastructure clients and types
+├── ingest/       # OTLP ingestion service
+├── cron/         # scheduled jobs
+└── tsconfig/     # shared TypeScript configuration
 ```
