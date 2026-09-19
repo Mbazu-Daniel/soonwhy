@@ -9,7 +9,15 @@ export class RateLimiter implements OnModuleInit, OnModuleDestroy {
   private connected = false;
 
   constructor() {
-    this.rateLimitPerMinute = parseInt(process.env.RATE_LIMIT_PER_MINUTE || '10000', 10);
+    const configuredLimit = Number.parseInt(
+      process.env.RATE_LIMIT_PER_MINUTE || '10000',
+      10,
+    );
+    if (!Number.isSafeInteger(configuredLimit) || configuredLimit <= 0) {
+      throw new Error('RATE_LIMIT_PER_MINUTE must be a positive integer');
+    }
+
+    this.rateLimitPerMinute = configuredLimit;
     this.redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
       lazyConnect: true,
       maxRetriesPerRequest: 1,
