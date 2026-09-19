@@ -43,18 +43,19 @@ API validates request:
 ├── API key → org_id, project_id, environment_id
 ├── Rate limiting (per API key)
 ├── Schema validation (Zod)
-└── Publishes to NATS: telemetry.raw.{org_id}.{project_id}
+└── Publishes once to NATS: telemetry.raw.{org_id}.{project_id}
 ```
 
 **Step 3: Ingestion Worker → NATS**
 ```
 Ingestion Worker:
-├── Receives HTTP request
-├── Enriches with org/project/environment metadata
-├── Publishes to NATS JetStream topic
-├── Returns acknowledgment to SDK
-└── Handles backpressure (drops events if queue full)
+├── Consumes the validated internal handoff
+├── Enriches with org/project/environment metadata when required
+├── Publishes to NATS JetStream only if the API has not already published
+└── Never receives the external SDK HTTP request directly
 ```
+
+The MVP implementation uses the API as the single external ingestion owner. The worker path is reserved for asynchronous processing so the same request is not published twice.
 
 **Step 4: NATS → Processor Worker**
 ```
@@ -175,10 +176,12 @@ Processor Worker writes to R2:
 
 **Step 4: Processor Worker → ClickHouse**
 ```
-Processor Worker deletes old data:
-├── ALTER TABLE {table} DELETE WHERE timestamp < NOW() - INTERVAL 7 DAY
+Processor Worker deletes old data only after archive verification:
+├── Confirm the R2 object exists and its checksum/row count matches the export manifest
+├── Record the archive status as verified
+├── Delete only rows covered by that verified manifest
 ├── OPTIMIZE TABLE {table} FINAL
-└── Updates lifecycle metadata
+└── Keep failed or unverified exports in ClickHouse for retry
 ```
 
 ---
@@ -315,7 +318,7 @@ Notifications Service sends notification:
 
 ```
 ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│   API        │────▶│   Billing    │────▶│   Stripe     │
+│   API        │────▶│ Billing Logic│────▶│   Stripe     │
 │   Service    │     │   Service    │     │              │
 └──────────────┘     └──────────────┘     └──────────────┘
        │                    │
@@ -334,7 +337,9 @@ Notifications Service sends notification:
 
 ### Detailed Steps
 
-**Step 1: API → Billing Service**
+Billing is owned by the API service in the MVP; no standalone Billing Service is deployed.
+
+**Step 1: API → Billing Logic**
 ```
 API tracks usage:
 ├── Increment Redis counters (real-time)
@@ -386,9 +391,10 @@ ai
 │   │   └── {org_id}
 │   └── result
 │       └── {org_id}
-└── evidence
-    └── {org_id}
-        └── {analysis_id}
+└── analysis
+    └── evidence
+        └── {org_id}
+            └── {analysis_id}
 
 notifications
 ├── alert
