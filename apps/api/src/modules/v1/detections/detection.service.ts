@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { and, desc, eq } from 'drizzle-orm';
 import { QUICKWIT_INDEXES, QuickwitService } from '@soonwhy/shared';
 import { db } from '../../../common/db';
 import { findings, type DetectionEvidence } from '../../../common/db/schema/findings';
-import { quickwitTenantQuery } from '../../../common/quickwit/query';
+import { quickwitTenantQuery, quickwitTerm } from '../../../common/quickwit/query';
+import { ProjectsRepository } from '../projects/projects.repository';
+import { sanitizeRequestUrl } from './detection.utils';
 import type { DetectionFinding, DetectionWindow, FindingSeverity, FindingType } from './detection.types';
 
 const WINDOW_MS = 15 * 60_000;
@@ -33,9 +35,14 @@ interface RequestSource {
 
 @Injectable()
 export class DetectionService {
-  constructor(private readonly quickwit: QuickwitService) {}
+  constructor(
+    private readonly quickwit: QuickwitService,
+    private readonly projectsRepository: ProjectsRepository,
+  ) {}
 
   async run(orgId: string, projectId: string): Promise<DetectionFinding[]> {
+    await this.assertProjectAccess(orgId, projectId);
+
     const end = new Date();
     const start = new Date(end.getTime() - WINDOW_MS);
     const startTimestamp = Math.floor(start.getTime() / 1000);
@@ -115,12 +122,22 @@ export class DetectionService {
   }
 
   async list(orgId: string, projectId: string, limit = 50) {
+    await this.assertProjectAccess(orgId, projectId);
+
     return db
       .select()
       .from(findings)
       .where(and(eq(findings.orgId, orgId), eq(findings.projectId, projectId)))
       .orderBy(desc(findings.detectedAt))
       .limit(Math.min(Math.max(limit, 1), 100));
+  }
+
+  private async assertProjectAccess(orgId: string, projectId: string): Promise<void> {
+    const project = await this.projectsRepository.getProjectById(projectId, orgId);
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
   }
 
   private async requestEvidence(
@@ -132,7 +149,7 @@ export class DetectionService {
     type: FindingType,
   ): Promise<DetectionEvidence[]> {
     const tenant = quickwitTenantQuery(orgId, projectId);
-    const service = 'service:"' + serviceName + '"';
+    const service = quickwitTerm('service', serviceName);
     const query = type === 'latency'
       ? tenant + ' AND ' + service
       : tenant + ' AND ' + service + ' AND statusCode:[500 TO 599]';
@@ -155,7 +172,7 @@ export class DetectionService {
         context: {
           service: String(source.service ?? serviceName),
           method: String(source.method ?? ''),
-          url: String(source.url ?? ''),
+          path: sanitizeRequestUrl(String(source.url ?? '')),
           statusCode: Number(source.statusCode ?? 0),
           traceId: String(source.traceId ?? ''),
           timestamp: String(source.timestamp ?? ''),
