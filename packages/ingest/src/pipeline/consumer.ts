@@ -76,7 +76,7 @@ export class IngestConsumer implements OnModuleInit {
         string,
         unknown
       >;
-      await this.insertOne(signal, payload);
+      await this.insertOne(signal, payload, String(msg.info.streamSequence));
       msg.ack();
       this.metrics.recordInserted(1);
     } catch (error) {
@@ -124,7 +124,11 @@ export class IngestConsumer implements OnModuleInit {
     };
   }
 
-  private async insertOne(signal: Signal, payload: Record<string, unknown>) {
+  private async insertOne(
+    signal: Signal,
+    payload: Record<string, unknown>,
+    deduplicationToken: string,
+  ) {
     const tenant = this.tenantFrom(payload);
     if (!tenant.projectId || !tenant.organizationId) {
       throw new Error('Missing tenant on ingest payload');
@@ -132,19 +136,37 @@ export class IngestConsumer implements OnModuleInit {
 
     if (signal === 'trace') {
       const span = payload as unknown as ParsedSpan & TenantContext;
-      await this.clickhouse.insert('traces', [mapSpanToTraceRow(span, tenant)]);
+      await this.clickhouse.insert(
+        'traces',
+        [mapSpanToTraceRow(span, tenant)],
+        `trace:${deduplicationToken}`,
+      );
       const request = mapSpanToRequestRow(span, tenant);
-      if (request) await this.clickhouse.insert('requests', [request]);
+      if (request) {
+        await this.clickhouse.insert(
+          'requests',
+          [request],
+          `request:${deduplicationToken}`,
+        );
+      }
       return;
     }
 
     if (signal === 'log') {
       const record = payload as unknown as ParsedLogRecord & TenantContext;
-      await this.clickhouse.insert('logs', [mapLogToRow(record, tenant)]);
+      await this.clickhouse.insert(
+        'logs',
+        [mapLogToRow(record, tenant)],
+        `log:${deduplicationToken}`,
+      );
       return;
     }
 
     const point = payload as unknown as ParsedMetricPoint & TenantContext;
-    await this.clickhouse.insert('metrics', [mapMetricToRow(point, tenant)]);
+    await this.clickhouse.insert(
+      'metrics',
+      [mapMetricToRow(point, tenant)],
+      `metric:${deduplicationToken}`,
+    );
   }
 }
