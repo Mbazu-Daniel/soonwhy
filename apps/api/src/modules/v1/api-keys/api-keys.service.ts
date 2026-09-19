@@ -6,17 +6,14 @@ import { CreateApiKeyInput } from './dto';
 export class ApiKeysService {
   constructor(private readonly apiKeysRepository: ApiKeysRepository) {}
 
-  private async getApiKeyById(id: string) {
-    const key = await this.apiKeysRepository.getApiKeyById(id);
-    if (!key) throw new NotFoundException('API key not found');
-    return key;
+  async getApiKeysForProject(projectId: string, orgId: string) {
+    return this.apiKeysRepository.getApiKeysByProjectId(projectId, orgId);
   }
 
-  async getApiKeysForProject(projectId: string) {
-    return this.apiKeysRepository.getApiKeysByProjectId(projectId);
-  }
+  async createApiKey(projectId: string, orgId: string, input: CreateApiKeyInput) {
+    const project = await this.apiKeysRepository.getProject(projectId, orgId);
+    if (!project) throw new NotFoundException('Project not found');
 
-  async createApiKey(projectId: string, input: CreateApiKeyInput) {
     return this.apiKeysRepository.createApiKey({
       projectId,
       name: input.name,
@@ -25,8 +22,8 @@ export class ApiKeysService {
     });
   }
 
-  async deleteApiKey(id: string) {
-    const key = await this.apiKeysRepository.getApiKeyById(id);
+  async deleteApiKey(id: string, orgId: string) {
+    const key = await this.apiKeysRepository.getApiKeyById(id, orgId);
     if (!key) throw new NotFoundException('API key not found');
     return this.apiKeysRepository.deleteApiKey(id);
   }
