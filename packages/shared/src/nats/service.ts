@@ -7,6 +7,7 @@ import {
   AckPolicy,
   DeliverPolicy,
   JsMsg,
+  headers,
 } from 'nats';
 
 export type NatsMessageHandler = (msg: JsMsg) => Promise<void>;
@@ -50,6 +51,7 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
         await jsm.streams.update(this.config.streamName, {
           ...info.config,
           subjects: [...new Set([...subjects, 'ingest.>'])],
+          duplicate_window: 10 * 60 * 1_000_000_000,
         });
       }
     } catch (error) {
@@ -64,6 +66,7 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
         retention: RetentionPolicy.Limits,
         max_bytes: 1024 * 1024 * 1024,
         max_age: 24 * 60 * 60 * 1_000_000_000,
+        duplicate_window: 10 * 60 * 1_000_000_000,
         storage: 'file' as any,
       });
       this.logger.log(`Stream "${this.config.streamName}" created`);
@@ -80,8 +83,15 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
     return this.connection;
   }
 
-  async publish(subject: string, data: Uint8Array): Promise<void> {
-    await this.client.publish(subject, data);
+  async publish(subject: string, data: Uint8Array, messageId?: string): Promise<void> {
+    if (!messageId) {
+      await this.client.publish(subject, data);
+      return;
+    }
+
+    const messageHeaders = headers();
+    messageHeaders.set('Nats-Msg-Id', messageId);
+    await this.client.publish(subject, data, { headers: messageHeaders });
   }
 
   async subscribe(
