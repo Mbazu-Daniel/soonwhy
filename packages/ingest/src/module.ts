@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import {
   ApiKeysService,
-  ClickhouseService,
+  QuickwitService,
+  QUICKWIT_INDEX_CONFIG,
+  QUICKWIT_INDEXES,
   NatsService,
   RateLimiter,
 } from '@soonwhy/shared';
@@ -15,7 +17,7 @@ import { IngestStats } from './pipeline/stats';
     ApiKeysService,
     RateLimiter,
     NatsService,
-    ClickhouseService,
+    QuickwitService,
     IngestStats,
     IngestConsumer,
   ],
