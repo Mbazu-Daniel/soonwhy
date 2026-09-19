@@ -53,15 +53,14 @@ GET    /api/v1/billing/invoices    # Get invoices
 
 ### 2. Ingestion Worker
 
-**Purpose:** Receives telemetry from SDK, validates, and publishes to NATS.
+**Purpose:** Processes validated telemetry forwarded by the API service and publishes it to NATS.
 
 **Responsibilities:**
-- Receive telemetry via HTTP (from API) or direct SDK connection
-- Validate telemetry schema
+- Consume validated telemetry from the API service
 - Enrich with metadata (org, project, environment)
 - Publish to NATS JetStream topics
-- Handle backpressure (drop events when queue full)
-- Rate limiting per API key
+- Handle backpressure
+- Report processing failures for retry
 
 **Does NOT:**
 - Store telemetry in ClickHouse (delegates to Processor Worker)
@@ -77,7 +76,7 @@ GET    /api/v1/billing/invoices    # Get invoices
 
 **Input/Output:**
 ```
-Input:  HTTP POST /ingest (telemetry events)
+Input:  Internal API → worker handoff
 Output: NATS topic: telemetry.raw.{org_id}.{project_id}
 ```
 
@@ -454,12 +453,17 @@ services:
     image: soonwhy/scheduler
     environment:
       - NATS_URL=nats://nats:4222
+      - DATABASE_URL=postgresql://...
       - CLICKHOUSE_URL=http://clickhouse:8123
+      - R2_ENDPOINT=...
+      - R2_ACCESS_KEY_ID=...
+      - R2_SECRET_ACCESS_KEY=...
 
   notifications:
     image: soonwhy/notifications
     environment:
-      - NATS_URL=nats://nats://nats:4222
+      - NATS_URL=nats://nats:4222
+      - DATABASE_URL=postgresql://...
       - SENDGRID_API_KEY=...
 
   nats:
