@@ -2,8 +2,6 @@ import { Module } from '@nestjs/common';
 import {
   ApiKeysService,
   QuickwitService,
-  QUICKWIT_INDEX_CONFIG,
-  QUICKWIT_INDEXES,
   NatsService,
   RateLimiter,
 } from '@soonwhy/shared';
