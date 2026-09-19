@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiKeysService } from './api-keys.service';
 import { CreateApiKeyDto } from './dto';
+import { CurrentOrg, OrgContext } from '../../../common/decorators/current-org.decorator';
 import { TenantGuard } from '../../../common/middleware/tenant-context.guard';
 
 @UseGuards(TenantGuard)
@@ -10,20 +11,24 @@ export class ApiKeysController {
 
   @Post()
   async createApiKey(
+    @CurrentOrg() org: OrgContext,
     @Query('projectId') projectId: string,
     @Body() body: unknown,
   ) {
     const input = CreateApiKeyDto.parse(body);
-    return this.apiKeysService.createApiKey(projectId, input);
+    return this.apiKeysService.createApiKey(projectId, org.orgId, input);
   }
 
   @Get()
-  async getApiKeysForProject(@Query('projectId') projectId: string) {
-    return this.apiKeysService.getApiKeysForProject(projectId);
+  async getApiKeysForProject(
+    @CurrentOrg() org: OrgContext,
+    @Query('projectId') projectId: string,
+  ) {
+    return this.apiKeysService.getApiKeysForProject(projectId, org.orgId);
   }
 
   @Delete(':id')
-  async deleteApiKey(@Param('id') id: string) {
-    return this.apiKeysService.deleteApiKey(id);
+  async deleteApiKey(@CurrentOrg() org: OrgContext, @Param('id') id: string) {
+    return this.apiKeysService.deleteApiKey(id, org.orgId);
   }
 }
