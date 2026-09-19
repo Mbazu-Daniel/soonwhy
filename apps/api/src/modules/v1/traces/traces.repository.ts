@@ -36,8 +36,8 @@ export class TracesRepository {
       FROM traces
       WHERE org_id = {orgId:String} AND project_id = {projectId:String}
         AND timestamp BETWEEN {from:DateTime64(3)} AND {to:DateTime64(3)}
-        ${cursorFilter}
       GROUP BY traceId
+      HAVING 1 ${cursorFilter}
       ORDER BY minTimestamp DESC
       LIMIT {limit:UInt32}
     `;
