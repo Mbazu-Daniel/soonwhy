@@ -13,3 +13,4 @@ export {
   type QuickwitSearchInput,
   type QuickwitSearchResponse,
 } from './quickwit';
+export { QUICKWIT_INDEXES, QUICKWIT_INDEX_CONFIG } from './quickwit/config';
