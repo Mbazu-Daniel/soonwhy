@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { QuickwitService } from '@soonwhy/shared';
 import { QUICKWIT_INDEXES } from '@soonwhy/shared';
-import { quickwitTenantQuery, quickwitTimestamp } from '../../../common/quickwit/query';
+import { quickwitTerm, quickwitTenantQuery, quickwitTimestamp } from '../../../common/quickwit/query';
 
 export interface RawLogRow {
   id: string;
