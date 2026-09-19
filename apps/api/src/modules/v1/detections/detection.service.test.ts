@@ -194,7 +194,7 @@ describe('DetectionService', () => {
     const service = new DetectionService(quickwit, projectsRepository);
 
     await expect(service.run('org-1', 'project-from-another-org')).rejects.toThrow('Project not found');
-    expect(quickwit.search).not.toHaveBeenCalled();
+    expect(search).not.toHaveBeenCalled();
   });
   it('escapes service names before building Quickwit evidence queries', async () => {
     quickwit.search
