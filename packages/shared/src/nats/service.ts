@@ -52,7 +52,12 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
           subjects: [...new Set([...subjects, 'ingest.>'])],
         });
       }
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!/stream.*not found|stream not found/i.test(message)) {
+        throw error;
+      }
+
       await jsm.streams.add({
         name: this.config.streamName,
         subjects: ['ingest.>'],
