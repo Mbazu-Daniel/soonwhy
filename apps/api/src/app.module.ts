@@ -12,6 +12,7 @@ import { LogsModule } from './modules/v1/logs';
 import { MetricsModule } from './modules/v1/metrics';
 import { RequestsModule } from './modules/v1/requests';
 import { TracesModule } from './modules/v1/traces';
+import { DetectionModule } from './modules/v1/detections';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { TracesModule } from './modules/v1/traces';
     MetricsModule,
     RequestsModule,
     TracesModule,
+    DetectionModule,
   ],
 })
 export class AppModule {}
