@@ -79,7 +79,7 @@ export function mapSpanToRequestRow(span: ParsedSpan, tenant: TenantContext) {
 
   return {
     id: randomUUID(),
-    timestamp: nanoToChTimestamp(span.startTimeUnixNano),
+    timestamp: nanoToTelemetryTimestamp(span.startTimeUnixNano),
     org_id: tenant.organizationId,
     project_id: tenant.projectId,
     service: span.resource.serviceName || '',
@@ -116,7 +116,7 @@ export function mapLogToRow(record: ParsedLogRecord, tenant: TenantContext) {
     service: record.resource.serviceName || '',
     level: record.severityLevel,
     message: record.message,
-    attributes: JSON.stringify(attrs),
+    attributes: attrs,
     stackTrace: String(record.attributes['exception.stacktrace'] ?? ''),
   };
 }
@@ -124,7 +124,7 @@ export function mapLogToRow(record: ParsedLogRecord, tenant: TenantContext) {
 export function mapMetricToRow(point: ParsedMetricPoint, tenant: TenantContext) {
   return {
     id: randomUUID(),
-    timestamp: chTimestamp(point.timestamp),
+    timestamp: telemetryTimestamp(point.timestamp),
     org_id: tenant.organizationId,
     project_id: tenant.projectId,
     service: point.resource.serviceName || '',
