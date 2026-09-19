@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { ProjectsRepository } from './projects.repository';
 import { CreateProjectInput, UpdateProjectInput } from './dto';
 
@@ -6,8 +6,8 @@ import { CreateProjectInput, UpdateProjectInput } from './dto';
 export class ProjectsService {
   constructor(private readonly projectsRepository: ProjectsRepository) {}
 
-  async getProjectById(id: string) {
-    const project = await this.projectsRepository.getProjectById(id);
+  async getProjectById(id: string, orgId: string) {
+    const project = await this.projectsRepository.getProjectById(id, orgId);
     if (!project) throw new NotFoundException('Project not found');
     return project;
   }
@@ -22,15 +22,13 @@ export class ProjectsService {
     return this.projectsRepository.createProject({ orgId, ...input });
   }
 
-  async updateProject(id: string, input: UpdateProjectInput) {
-    const project = await this.projectsRepository.getProjectById(id);
-    if (!project) throw new NotFoundException('Project not found');
-    return this.projectsRepository.updateProject(id, input);
+  async updateProject(id: string, orgId: string, input: UpdateProjectInput) {
+    await this.getProjectById(id, orgId);
+    return this.projectsRepository.updateProject(id, orgId, input);
   }
 
-  async deleteProject(id: string) {
-    const project = await this.projectsRepository.getProjectById(id);
-    if (!project) throw new NotFoundException('Project not found');
-    return this.projectsRepository.deleteProject(id);
+  async deleteProject(id: string, orgId: string) {
+    await this.getProjectById(id, orgId);
+    return this.projectsRepository.deleteProject(id, orgId);
   }
 }
