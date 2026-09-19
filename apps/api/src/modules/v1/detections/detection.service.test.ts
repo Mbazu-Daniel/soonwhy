@@ -153,6 +153,21 @@ describe('DetectionService', () => {
       observedValue: 10,
       threshold: 5,
       unit: '%',
+      evidence: [
+        {
+          kind: 'request',
+          label: 'error-request',
+          value: 500,
+          context: {
+            service: 'payments',
+            method: 'POST',
+            path: '/payments',
+            statusCode: 500,
+            traceId: 'trace-2',
+            timestamp: '2026-09-19T22:10:00.000Z',
+          },
+        },
+      ],
     };
     const returning = vi.fn().mockResolvedValue([errorPersistedRow]);
     const values = vi.fn().mockReturnValue({ returning });
