@@ -193,26 +193,30 @@ We combine telemetry collection, intelligent analysis, and evidence-backed insig
 
 | Feature | Soonwhy | Datadog | SigNoz | Grafana | New Relic | Tinybird |
 |---------|---------|---------|--------|---------|-----------|----------|
-| **AI Root Cause Analysis** | ✅ Evidence-gated | ⚠️ Generic | ❌ None | ❌ None | ⚠️ Basic | ❌ None |
-| **Self-Hosted Option** | ✅ Docker Compose | ❌ No | ✅ Yes | ✅ Yes | ❌ No | ❌ No |
-| **SDK-First Integration** | ✅ Yes | ❌ Agent-based | ⚠️ OTel-based | ❌ Agent-based | ⚠️ Agent-based | ❌ API-only |
+| **AI Root Cause Analysis** | 🧭 Planned for MVP | ⚠️ Generic | ❌ None | ❌ None | ⚠️ Basic | ❌ None |
+| **Self-Hosted Option** | 🧭 Planned for MVP | ❌ No | ✅ Yes | ✅ Yes | ❌ No | ❌ No |
+| **SDK-First Integration** | 🧭 Planned for MVP | ❌ Agent-based | ⚠️ OTel-based | ❌ Agent-based | ⚠️ Agent-based | ❌ API-only |
 | **Pay-As-You-Go** | ✅ Yes | ❌ Per-host | ✅ Yes | ⚠️ Complex | ❌ Per-user | ✅ Yes |
 | **Free Tier** | ✅ 1GB/month | ✅ 5 hosts | ✅ Unlimited | ✅ 10K series | ✅ 100GB | ✅ 10GB |
 | **OpenTelemetry Native** | ✅ Yes | ⚠️ Partial | ✅ Yes | ✅ Yes | ⚠️ Partial | ❌ No |
 | **ClickHouse Storage** | ✅ Yes | ❌ No | ✅ Yes | ❌ No | ❌ No | ✅ Yes |
-| **Cold Storage (R2+Parquet)** | ✅ Yes | ❌ No | ❌ No | ❌ No | ❌ No | ❌ No |
-| **Evidence-Based AI** | ✅ Yes | ❌ No | ❌ No | ❌ No | ❌ No | ❌ No |
+| **Cold Storage (R2+Parquet)** | 🧭 Planned for MVP | ❌ No | ❌ No | ❌ No | ❌ No | ❌ No |
+| **Evidence-Based AI** | 🧭 Planned for MVP | ❌ No | ❌ No | ❌ No | ❌ No | ❌ No |
 | **Developer Experience** | ✅ Low friction | ⚠️ Medium | ⚠️ Medium | ⚠️ Steep | ⚠️ Medium | ✅ Low friction |
 
 ---
 
 ## Pricing Comparison
 
+### Scenario assumptions
+
+These are illustrative estimates, not observed customer bills. Soonwhy scenarios assume the stated ingestion volume plus the storage, AI-analysis, and API-request volumes shown below. Competitor figures use the published pricing pages available when this document was updated and may not be directly comparable because billing meters differ.
+
 ### Startup Scenario (5 hosts, 10GB/month telemetry)
 
 | Platform | Monthly Cost | Annual Cost |
 |----------|--------------|-------------|
-| **Soonwhy** | **$5.50** | **$66** |
+| **Soonwhy** | **$8.04** | **$96.48** |
 | Datadog | $90 (5 × $18) | $1,080 |
 | SigNoz Cloud | $49 + $3 = $52 | $624 |
 | Grafana Cloud | $19 + usage ≈ $30 | $360 |
@@ -223,7 +227,7 @@ We combine telemetry collection, intelligent analysis, and evidence-backed insig
 
 | Platform | Monthly Cost | Annual Cost |
 |----------|--------------|-------------|
-| **Soonwhy** | **$55** | **$660** |
+| **Soonwhy** | **$80.40** | **$964.80** |
 | Datadog | $900 + APM $1,550 = $2,450 | $29,400 |
 | SigNoz Cloud | $49 + $30 = $79 | $948 |
 | Grafana Cloud | $19 + usage ≈ $200 | $2,400 |
@@ -234,7 +238,7 @@ We combine telemetry collection, intelligent analysis, and evidence-backed insig
 
 | Platform | Monthly Cost | Annual Cost |
 |----------|--------------|-------------|
-| **Soonwhy** | **$550** | **$6,600** |
+| **Soonwhy** | **$699.00** | **$8,388.00** |
 | Datadog | $3,600 + APM $6,200 = $9,800 | $117,600 |
 | SigNoz Cloud | $4,000 minimum | $48,000 |
 | Grafana Cloud | $25,000 minimum | $25,000 |
@@ -330,6 +334,10 @@ No per-host fees, no seat licenses, no minimums:
 **Soonwhy's Position:** AI-powered, self-hosted, evidence-gated observability
 
 ---
+
+## Source Notes
+
+Competitor pricing and capabilities should be rechecked before publication. Current reference points: Datadog pricing, SigNoz pricing, Grafana Cloud pricing, New Relic pricing, and Tinybird pricing. Retrieved September 2026.
 
 ## Competitive Advantages
 
