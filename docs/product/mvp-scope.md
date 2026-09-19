@@ -79,7 +79,7 @@
 ### Advanced AI (v2+)
 - Predictive analytics (forecast issues before they happen)
 - Auto-remediation (suggest or execute fixes)
-- Natural language queries (ask questions in plain English)
+- Predictive analytics and auto-remediation
 - AI-generated runbooks
 
 ### Enterprise Features (v3+)
@@ -96,11 +96,13 @@
 - Mobile app
 - Scheduled reports
 
-### Multi-Tenancy (v2+)
+### Multi-Tenancy
 - Organization management
 - Team collaboration
 - Billing per team
 - Cost allocation
+
+Organization and tenant boundaries are MVP prerequisites for project ownership, telemetry isolation, usage metering, and access control.
 
 ### Advanced Storage (v3+)
 - Custom retention policies
@@ -127,7 +129,7 @@
 | Metric | Target | Measurement | Why It Matters |
 |--------|--------|-------------|----------------|
 | **MTTR reduction** | > 50% | Time to resolve incidents with vs. without | Value demonstration |
-| **AI accuracy** | > 80% | Correct root causes cited by AI | Trust in product |
+| **AI root-cause accuracy** | > 80% | Correct root causes on a versioned evaluation set, using a predefined rubric | Trust in product |
 | **Cost predictability** | Linear | Spend scales linearly with usage | No surprise bills |
 | **Integration time** | < 30 minutes | From signup to production data | Time to value |
 | **API latency** | < 200ms | P95 latency for ingestion API | Performance |
@@ -143,6 +145,10 @@
 | **Time to first AI insight** | < 10 minutes | Value speed |
 
 ---
+
+## AI Evaluation Method
+
+AI accuracy is measured against a versioned evaluation dataset of representative incidents with known root causes. Each response is scored against a fixed rubric: root-cause correctness, supporting-evidence correctness, and unsupported-claim rate. Accuracy is the percentage of evaluation cases meeting the required correctness threshold. The dataset and rubric are versioned with each GA evaluation.
 
 ## Launch Criteria
 
