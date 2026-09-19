@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { ClickhouseService } from '../../../common/clickhouse';
+import { QuickwitService } from '@soonwhy/shared';
+import { QUICKWIT_INDEXES } from '@soonwhy/shared';
+import { quickwitTenantQuery, quickwitTimestamp } from '../../../common/quickwit/query';
 
 export interface RawLogRow {
   id: string;
@@ -7,12 +9,12 @@ export interface RawLogRow {
   level: string;
   service: string;
   message: string;
-  attributes: string;
+  attributes: Record<string, unknown> | string;
 }
 
 @Injectable()
 export class LogsRepository {
-  constructor(private readonly clickhouse: ClickhouseService) {}
+  constructor(private readonly quickwit: QuickwitService) {}
 
   async queryLogs(params: {
     orgId: string;
@@ -25,38 +27,20 @@ export class LogsRepository {
     limit: number;
     cursor?: { ts: string; id: string };
   }): Promise<RawLogRow[]> {
-    const { orgId, projectId, from, to, level, service, q, limit, cursor } = params;
+    const filters: string[] = [];
+    if (params.level && params.level !== 'all') filters.push(quickwitTerm('level', params.level));
+    if (params.service) filters.push(quickwitTerm('service', params.service));
+    if (params.q) filters.push(quickwitTerm('message', params.q));
 
-    const levelFilter = level && level !== 'all' ? `AND level = {level:String}` : '';
-    const serviceFilter = service ? `AND service = {service:String}` : '';
-    const qFilter = q ? `AND message ILIKE {q:String}` : '';
-    const cursorFilter = cursor ? `AND (timestamp, id) < ({cursorTs:DateTime64(3)}, {cursorId:String})` : '';
+    const query = quickwitTenantQuery(params.orgId, params.projectId, filters.length ? filters.join(' AND ') : '*');
+    const result = await this.quickwit.search<RawLogRow>(QUICKWIT_INDEXES.logs, {
+      query,
+      startTimestamp: quickwitTimestamp(params.from),
+      endTimestamp: quickwitTimestamp(params.to),
+      maxHits: params.limit,
+      sortBy: ['timestamp:desc'],
+    });
 
-    const query = `
-      SELECT id, toString(timestamp) as timestamp, level, service, message, attributes
-      FROM logs
-      WHERE org_id = {orgId:String} AND project_id = {projectId:String}
-        AND timestamp BETWEEN {from:DateTime64(3)} AND {to:DateTime64(3)}
-        ${levelFilter}
-        ${serviceFilter}
-        ${qFilter}
-        ${cursorFilter}
-      ORDER BY timestamp DESC, id DESC
-      LIMIT {limit:UInt32}
-    `;
-
-    const queryParams: Record<string, unknown> = {
-      orgId,
-      projectId,
-      from,
-      to,
-      limit,
-      ...(level && level !== 'all' ? { level } : {}),
-      ...(service ? { service } : {}),
-      ...(q ? { q: `%${q}%` } : {}),
-      ...(cursor ? { cursorTs: cursor.ts, cursorId: cursor.id } : {}),
-    };
-
-    return this.clickhouse.query<RawLogRow>(query, queryParams);
+    return result.hits.flatMap((hit) => (hit._source ? [hit._source] : []));
   }
 }
