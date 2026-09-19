@@ -8,8 +8,8 @@ This document shows the end-to-end data flow from SDK telemetry submission to da
 
 ```
 ┌─────────┐     ┌─────────┐     ┌──────────────┐     ┌─────────┐     ┌──────────────┐
-│   SDK   │────▶│   API   │────▶│  Ingestion   │────▶│  NATS   │────▶│  Processor   │
-│         │     │ Service │     │   Worker     │     │ JetStream│     │   Worker     │
+│   SDK   │────▶│   API   │────▶│    NATS      │────▶│  Processor   │
+│         │     │ Service │     │  JetStream   │     │          │     │   Worker     │
 └─────────┘     └─────────┘     └──────────────┘     └─────────┘     └──────────────┘
      │                                                         │              │
      │                                                         │              ▼
@@ -46,16 +46,13 @@ API validates request:
 └── Publishes once to NATS: telemetry.raw.{org_id}.{project_id}
 ```
 
-**Step 3: Ingestion Worker → NATS**
+**Step 3: NATS → Processor Worker**
 ```
-Ingestion Worker:
-├── Consumes the validated internal handoff
-├── Enriches with org/project/environment metadata when required
-├── Publishes to NATS JetStream only if the API has not already published
-└── Never receives the external SDK HTTP request directly
+NATS JetStream:
+├── Stores the validated telemetry message
+├── Applies delivery and retry policy
+└── Delivers telemetry to the Processor Worker
 ```
-
-The MVP implementation uses the API as the single external ingestion owner. The worker path is reserved for asynchronous processing so the same request is not published twice.
 
 **Step 4: NATS → Processor Worker**
 ```
