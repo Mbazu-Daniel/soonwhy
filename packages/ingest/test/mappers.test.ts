@@ -50,7 +50,7 @@ describe('OTLP JSON parse + ClickHouse mappers', () => {
     expect(row.service).toBe('api');
     expect(row.level).toBe('info');
     expect(row.message).toBe('hello');
-    const attrs = JSON.parse(row.attributes);
+    const attrs = row.attributes as Record<string, unknown>;
     expect(attrs.traceId).toBe('a'.repeat(32));
     expect(attrs.spanId).toBe('b'.repeat(16));
     expect(attrs['service.version']).toBe('1.0.0');
