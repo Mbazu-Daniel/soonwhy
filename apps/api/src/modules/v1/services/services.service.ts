@@ -28,6 +28,6 @@ export class ServicesService {
 
   async deleteService(id: string, orgId: string) {
     await this.getServiceById(id, orgId);
-    return this.servicesRepository.deleteService(id, orgId);
+    return this.servicesRepository.deleteService(id);
   }
 }
