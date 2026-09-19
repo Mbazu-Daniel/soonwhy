@@ -53,8 +53,19 @@ export class ClickhouseService implements OnModuleInit, OnModuleDestroy {
     return result.json<T[]>() as unknown as Promise<T[]>;
   }
 
-  async insert(table: string, values: Record<string, unknown>[]) {
-    return this.getClient().insert({ table, values, format: 'JSONEachRow' });
+  async insert(
+    table: string,
+    values: Record<string, unknown>[],
+    deduplicationToken?: string,
+  ) {
+    return this.getClient().insert({
+      table,
+      values,
+      format: 'JSONEachRow',
+      ...(deduplicationToken
+        ? { clickhouse_settings: { insert_deduplication_token: deduplicationToken } }
+        : {}),
+    });
   }
 
   async exec(query: string) {
