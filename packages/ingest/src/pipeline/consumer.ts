@@ -1,6 +1,8 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import {
-  ClickhouseService,
+  QuickwitService,
+  QUICKWIT_INDEX_CONFIG,
+  QUICKWIT_INDEXES,
   NatsService,
   type NatsMessageHandler,
 } from '@soonwhy/shared';
@@ -30,12 +32,13 @@ export class IngestConsumer implements OnModuleInit {
 
   constructor(
     private readonly nats: NatsService,
-    private readonly clickhouse: ClickhouseService,
+    private readonly quickwit: QuickwitService,
     private readonly metrics: IngestStats,
   ) {}
 
   async onModuleInit() {
     const signals: Signal[] = ['trace', 'log', 'metric'];
+    await Promise.all(Object.values(QUICKWIT_INDEXES).map((indexId) => this.quickwit.ensureIndex(indexId, QUICKWIT_INDEX_CONFIG)));
     for (const signal of signals) {
       await this.nats.subscribe(
         `ingest.*.${signal}`,
@@ -132,19 +135,19 @@ export class IngestConsumer implements OnModuleInit {
 
     if (signal === 'trace') {
       const span = payload as unknown as ParsedSpan & TenantContext;
-      await this.clickhouse.insert('traces', [mapSpanToTraceRow(span, tenant)]);
+      await this.quickwit.ingest(QUICKWIT_INDEXES.traces, [mapSpanToTraceRow(span, tenant)]);
       const request = mapSpanToRequestRow(span, tenant);
-      if (request) await this.clickhouse.insert('requests', [request]);
+      if (request) await this.quickwit.ingest(QUICKWIT_INDEXES.requests, [request]);
       return;
     }
 
     if (signal === 'log') {
       const record = payload as unknown as ParsedLogRecord & TenantContext;
-      await this.clickhouse.insert('logs', [mapLogToRow(record, tenant)]);
+      await this.quickwit.ingest(QUICKWIT_INDEXES.logs, [mapLogToRow(record, tenant)]);
       return;
     }
 
     const point = payload as unknown as ParsedMetricPoint & TenantContext;
-    await this.clickhouse.insert('metrics', [mapMetricToRow(point, tenant)]);
+    await this.quickwit.ingest(QUICKWIT_INDEXES.metrics, [mapMetricToRow(point, tenant)]);
   }
 }
