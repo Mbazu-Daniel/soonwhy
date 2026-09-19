@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
@@ -71,6 +71,11 @@ function LogViewer() {
   const [levelFilter, setLevelFilter] = useState('all');
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [allLogs, setAllLogs] = useState<LogEntry[]>([]);
+
+  useEffect(() => {
+    setCursor(undefined);
+    setAllLogs([]);
+  }, [projectId]);
 
   const queryKey = ['logs', projectId, levelFilter, search, cursor] as const;
 
