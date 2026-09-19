@@ -56,6 +56,10 @@ export function parseMetricsPayload(payload: any): ParseMetricsResult {
 
             const flags = Number(dp.flags) || 0;
             const noRecordedValue = (flags & 1) === 1;
+            if (noRecordedValue) {
+              rejected++;
+              continue;
+            }
             const rawDouble = dp.asDouble ?? dp.as_double;
             const rawInt = dp.asInt ?? dp.as_int;
             if (rawDouble === undefined && rawInt === undefined) {
