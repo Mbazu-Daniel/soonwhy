@@ -1,13 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ClickhouseService } from '../../../common/clickhouse';
+import { Injectable } from '@nestjs/common';
+import { QUICKWIT_INDEXES, QuickwitService } from '@soonwhy/shared';
+import { quickwitTenantQuery } from '../../../common/quickwit/query';
 
 @Injectable()
 export class DashboardService {
-  private readonly logger = new Logger(DashboardService.name);
   private cache = new Map<string, { data: unknown; expires: number }>();
   private readonly CACHE_TTL = 30_000; // 30s
 
-  constructor(private readonly clickhouse: ClickhouseService) {}
+  constructor(private readonly quickwit: QuickwitService) {}
 
   private async cached<T>(key: string, fn: () => Promise<T>): Promise<T> {
     const now = Date.now();
@@ -30,83 +30,69 @@ export class DashboardService {
   }
 
   private async getHealthScoreRaw(orgId: string, projectId: string) {
-    const rows = await this.clickhouse.query<{ requests: number; errors: number; avgLatency: number }>(
-      `SELECT
-        countIf(table = 'requests') as requests,
-        countIf(table = 'errors') as errors,
-        (SELECT avg(duration) FROM requests WHERE org_id = {orgId:String} AND project_id = {projectId:String} AND timestamp >= now() - INTERVAL 24 HOUR) as avgLatency
-      FROM (
-        SELECT 'requests' as table FROM requests WHERE org_id = {orgId:String} AND project_id = {projectId:String} AND timestamp >= now() - INTERVAL 24 HOUR LIMIT 1
-        UNION ALL
-        SELECT 'errors' as table FROM errors WHERE org_id = {orgId:String} AND project_id = {projectId:String} AND timestamp >= now() - INTERVAL 24 HOUR LIMIT 1
-      )`,
-      { orgId, projectId },
-    );
-
-    // Better approach: single query for counts
-    const counts = await this.clickhouse.query<{ requestCount: number; errorCount: number }>(
-      `SELECT
-        (SELECT count() FROM requests WHERE org_id = {orgId:String} AND project_id = {projectId:String} AND timestamp >= now() - INTERVAL 24 HOUR) as requestCount,
-        (SELECT count() FROM errors WHERE org_id = {orgId:String} AND project_id = {projectId:String} AND timestamp >= now() - INTERVAL 24 HOUR) as errorCount`,
-      { orgId, projectId },
-    );
-
-    const requests = counts[0]?.requestCount ?? 0;
-    const errors = counts[0]?.errorCount ?? 0;
-    const avgLatency = rows[0]?.avgLatency ?? 0;
-
-    if (requests === 0) return { score: 0, errorRate: 0, requestRate: 0, avgLatency: 0 };
-
-    const errorRate = (errors / requests) * 100;
-    const requestRate = requests / 86400;
-    const score = Math.max(0, Math.min(100, Math.round(100 - errorRate * 10 - avgLatency / 100)));
-
-    return { score, errorRate: Math.round(errorRate * 100) / 100, requestRate: Math.round(requestRate * 10) / 10, avgLatency: Math.round(avgLatency) };
+    const result = await this.quickwit.search(QUICKWIT_INDEXES.requests, {
+      query: quickwitTenantQuery(orgId, projectId),
+      startTimestamp: Math.floor((Date.now() - 86_400_000) / 1000),
+      endTimestamp: Math.floor(Date.now() / 1000),
+      maxHits: 0,
+      aggregations: {
+        latency: { percentiles: { field: 'duration', percents: [95] } },
+        status: {
+          range: {
+            field: 'statusCode',
+            ranges: [
+              { from: 400, to: 500, key: '4xx' },
+              { from: 500, key: '5xx' },
+            ],
+          },
+        },
+      },
+    });
+    const total = result.num_hits;
+    const status = result.aggregations?.status as { buckets?: Array<{ key: string; doc_count: number }> } | undefined;
+    const errors = (status?.buckets ?? []).reduce((sum, bucket) => sum + bucket.doc_count, 0);
+    const latency = result.aggregations?.latency as { values?: Record<string, number> } | undefined;
+    const p95 = latency?.values?.['95.0'] ?? 0;
+    const errorRate = total ? (errors / total) * 100 : 0;
+    return {
+      score: total ? Math.max(0, Math.min(100, Math.round(100 - errorRate * 10 - p95 / 100))) : 0,
+      errorRate: Math.round(errorRate * 100) / 100,
+      requestRate: Math.round((total / 86400) * 10) / 10,
+      avgLatency: Math.round(p95),
+    };
   }
 
   private async getMetricsRaw(orgId: string, projectId: string) {
-    // Single query hitting requests table once
-    const rows = await this.clickhouse.query<{
-      totalRequests: number;
-      errorCount: number;
-      latencyP50: number;
-      latencyP95: number;
-      latencyP99: number;
-      status2xx: number;
-      status3xx: number;
-      status4xx: number;
-      status5xx: number;
-    }>(
-      `SELECT
-        count() as totalRequests,
-        (SELECT count() FROM errors WHERE org_id = {orgId:String} AND project_id = {projectId:String} AND timestamp >= now() - INTERVAL 24 HOUR) as errorCount,
-        quantile(0.50)(duration) as latencyP50,
-        quantile(0.95)(duration) as latencyP95,
-        quantile(0.99)(duration) as latencyP99,
-        countIf(statusCode >= 200 AND statusCode < 300) as status2xx,
-        countIf(statusCode >= 300 AND statusCode < 400) as status3xx,
-        countIf(statusCode >= 400 AND statusCode < 500) as status4xx,
-        countIf(statusCode >= 500) as status5xx
-      FROM requests
-      WHERE org_id = {orgId:String} AND project_id = {projectId:String} AND timestamp >= now() - INTERVAL 24 HOUR`,
-      { orgId, projectId },
-    );
-
-    const r = rows[0];
-    const total = r?.totalRequests ?? 0;
-
+    const result = await this.quickwit.search(QUICKWIT_INDEXES.requests, {
+      query: quickwitTenantQuery(orgId, projectId),
+      startTimestamp: Math.floor((Date.now() - 86_400_000) / 1000),
+      endTimestamp: Math.floor(Date.now() / 1000),
+      maxHits: 0,
+      aggregations: {
+        latency: { percentiles: { field: 'duration', percents: [50, 95, 99] } },
+        status: {
+          range: {
+            field: 'statusCode',
+            ranges: [
+              { from: 200, to: 300, key: '2xx' },
+              { from: 300, to: 400, key: '3xx' },
+              { from: 400, to: 500, key: '4xx' },
+              { from: 500, key: '5xx' },
+            ],
+          },
+        },
+      },
+    });
+    const latency = result.aggregations?.latency as { values?: Record<string, number> } | undefined;
+    const status = result.aggregations?.status as { buckets?: Array<{ key: string; doc_count: number }> } | undefined;
+    const total = result.num_hits;
     return {
       totalRequests: total,
-      errorRate: total > 0 ? Math.round(((r?.errorCount ?? 0) / total) * 10000) / 100 : 0,
-      latencyP50: Math.round(r?.latencyP50 ?? 0),
-      latencyP95: Math.round(r?.latencyP95 ?? 0),
-      latencyP99: Math.round(r?.latencyP99 ?? 0),
-      statusCodes: [
-        { code: 200, label: '2xx', count: r?.status2xx ?? 0 },
-        { code: 300, label: '3xx', count: r?.status3xx ?? 0 },
-        { code: 400, label: '4xx', count: r?.status4xx ?? 0 },
-        { code: 500, label: '5xx', count: r?.status5xx ?? 0 },
-      ].map((s) => ({ ...s, percentage: total > 0 ? Math.round((s.count / total) * 10000) / 100 : 0 })),
+      errorRate: total ? Math.round(((status?.buckets ?? []).filter((b) => b.key === '4xx' || b.key === '5xx').reduce((n, b) => n + b.doc_count, 0) / total) * 10000) / 100 : 0,
+      latencyP50: Math.round(latency?.values?.['50.0'] ?? 0),
+      latencyP95: Math.round(latency?.values?.['95.0'] ?? 0),
+      latencyP99: Math.round(latency?.values?.['99.0'] ?? 0),
+      statusCodes: (status?.buckets ?? []).map((s) => ({ code: Number(s.key.slice(0, 3)), label: s.key, count: s.doc_count, percentage: total ? Math.round((s.doc_count / total) * 10000) / 100 : 0 })),
     };
   }
 
