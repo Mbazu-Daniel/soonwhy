@@ -144,6 +144,20 @@ describe('DetectionService', () => {
         ],
       });
 
+    const errorPersistedRow = {
+      ...persistedRow,
+      type: 'error_rate',
+      severity: 'critical',
+      title: 'Elevated error rate in payments',
+      description: 'HTTP 5xx responses account for 10.00% of requests over the last 15 minutes.',
+      observedValue: 10,
+      threshold: 5,
+      unit: '%',
+    };
+    const returning = vi.fn().mockResolvedValue([errorPersistedRow]);
+    const values = vi.fn().mockReturnValue({ returning });
+    vi.mocked(db.insert).mockReturnValue({ values } as never);
+
     const service = new DetectionService(quickwit, projectsRepository);
     const findings = await service.run('org-1', 'project-1');
 
