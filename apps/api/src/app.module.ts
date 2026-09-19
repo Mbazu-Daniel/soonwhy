@@ -2,7 +2,6 @@ import { QuickwitModule } from './common/quickwit';
 import { Module } from '@nestjs/common';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './modules/v1/auth';
-import { ClickhouseModule } from './common/clickhouse';
 import { OrganizationsModule } from './modules/v1/organizations';
 import { ApiKeysModule } from './modules/v1/api-keys';
 import { ServicesModule } from './modules/v1/services';
@@ -15,10 +14,10 @@ import { RequestsModule } from './modules/v1/requests';
 import { TracesModule } from './modules/v1/traces';
 
 @Module({
-  imports: [QuickwitModule,
+  imports: [
+    QuickwitModule,
     CommonModule,
     AuthModule,
-    ClickhouseModule,
     OrganizationsModule,
     ApiKeysModule,
     ServicesModule,
