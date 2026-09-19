@@ -49,21 +49,7 @@ export class ServicesRepository {
     return svc;
   }
 
-  async deleteService(id: string, orgId: string) {
-    await db
-      .delete(services)
-      .where(
-        and(
-          eq(services.id, id),
-          eq(
-            services.projectId,
-            db
-              .select({ id: projects.id })
-              .from(projects)
-              .where(and(eq(projects.orgId, orgId), eq(projects.id, services.projectId)))
-              .limit(1),
-          ),
-        ),
-      );
+  async deleteService(id: string) {
+    await db.delete(services).where(eq(services.id, id));
   }
 }
