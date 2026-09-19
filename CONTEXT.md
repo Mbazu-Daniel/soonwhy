@@ -78,3 +78,10 @@ NATS JetStream for async communication between API and workers.
 
 ### Parquet
 Columnar file format for efficient analytical queries on archived telemetry.
+
+
+## Telemetry storage
+
+Quickwit is the primary telemetry search/index layer. Its splits are stored directly in S3-compatible object storage such as Cloudflare R2. NATS JetStream remains the ingestion boundary between OTLP parsing and indexing.
+
+Postgres remains the source of truth for SaaS state. ClickHouse is no longer part of the primary telemetry write path and is being removed from telemetry read paths as those modules migrate.
