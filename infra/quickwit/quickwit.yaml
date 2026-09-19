@@ -1,0 +1,19 @@
+version: 0.7
+cluster_id: soonwhy
+data_dir: /quickwit/qwdata
+metastore_uri: ${QW_METASTORE_URI:-s3://soonwhy-quickwit/metastore}
+default_index_root_uri: ${QW_DEFAULT_INDEX_ROOT_URI:-s3://soonwhy-quickwit/indexes}
+
+storage:
+  s3:
+    endpoint: ${QW_S3_ENDPOINT:-http://minio:9000}
+    region: ${QW_S3_REGION:-us-east-1}
+    access_key_id: ${AWS_ACCESS_KEY_ID:-soonwhy}
+    secret_access_key: ${AWS_SECRET_ACCESS_KEY:-soonwhy-secret}
+
+rest:
+  listen_port: 7280
+
+indexer:
+  split_store_max_num_splits: 1000
+  max_concurrent_split_uploads: 4
