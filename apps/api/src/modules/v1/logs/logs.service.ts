@@ -35,11 +35,14 @@ export class LogsService {
 
     const data = rows.map((r) => {
       let attributes: Record<string, unknown> = {};
-      try {
-        attributes = JSON.parse(r.attributes || '{}');
-      } catch {
-        attributes = {};
-      }
+      if (typeof r.attributes === 'string') {
+        try {
+          attributes = JSON.parse(r.attributes || '{}') as Record<string, unknown>;
+        } catch {
+          attributes = {};
+        }
+      } else {
+        attributes = r.attributes;
       return {
         id: r.id,
         timestamp: r.timestamp,
