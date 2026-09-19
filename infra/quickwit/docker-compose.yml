@@ -1,0 +1,45 @@
+services:
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: soonwhy
+      MINIO_ROOT_PASSWORD: soonwhy-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        until mc alias set local http://minio:9000 soonwhy soonwhy-secret; do sleep 1; done
+        mc mb --ignore-existing local/soonwhy-quickwit
+
+  quickwit:
+    image: quickwit/quickwit:0.9.0
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+    command: run
+    environment:
+      AWS_ACCESS_KEY_ID: soonwhy
+      AWS_SECRET_ACCESS_KEY: soonwhy-secret
+      QW_S3_ENDPOINT: http://minio:9000
+      QW_METASTORE_URI: s3://soonwhy-quickwit/metastore
+      QW_DEFAULT_INDEX_ROOT_URI: s3://soonwhy-quickwit/indexes
+    ports:
+      - "7280:7280"
+    volumes:
+      - quickwit-data:/quickwit/qwdata
+      - ./quickwit.yaml:/quickwit/config/quickwit.yaml:ro
+
+volumes:
+  minio-data:
+  quickwit-data:
