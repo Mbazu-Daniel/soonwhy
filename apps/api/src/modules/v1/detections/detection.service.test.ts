@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '../../../common/db';
 import type { QuickwitService } from '@soonwhy/shared';
+import type { ProjectsRepository } from '../projects/projects.repository';
 import { DetectionService } from './detection.service';
 
 vi.mock('../../../common/db', () => ({
@@ -10,12 +11,10 @@ vi.mock('../../../common/db', () => ({
 }));
 
 describe('DetectionService', () => {
-  const quickwit = {
-    search: vi.fn(),
-  } as unknown as QuickwitService;
-  const projectsRepository = {
-    getProjectById: vi.fn(),
-  };
+  const search = vi.fn();
+  const quickwit = { search } as unknown as QuickwitService;
+  const getProjectById = vi.fn();
+  const projectsRepository = { getProjectById } as unknown as ProjectsRepository;
 
   const persistedRow = {
     id: 'finding-1',
@@ -49,7 +48,7 @@ describe('DetectionService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    projectsRepository.getProjectById.mockResolvedValue({ id: 'project-1', orgId: 'org-1' });
+    getProjectById.mockResolvedValue({ id: 'project-1', orgId: 'org-1' });
 
     const returning = vi.fn().mockResolvedValue([persistedRow]);
     const values = vi.fn().mockReturnValue({ returning });
@@ -96,7 +95,7 @@ describe('DetectionService', () => {
     expect(findings[0]?.type).toBe('latency');
     expect(findings[0]?.evidence[0]?.context?.path).toBe('/orders');
 
-    const evidenceQuery = quickwit.search.mock.calls[1]?.[1]?.query as string;
+    const evidenceQuery = search.mock.calls[1]?.[1]?.query as string;
     expect(evidenceQuery).toContain('service:"orders\\/service"');
 
     const inserted = vi.mocked(db.insert).mock.results[0]?.value as {
@@ -190,7 +189,7 @@ describe('DetectionService', () => {
   });
 
   it('rejects a project outside the active organization before querying telemetry', async () => {
-    projectsRepository.getProjectById.mockResolvedValue(undefined);
+    getProjectById.mockResolvedValue(undefined);
 
     const service = new DetectionService(quickwit, projectsRepository);
 
@@ -218,12 +217,12 @@ describe('DetectionService', () => {
     const service = new DetectionService(quickwit, projectsRepository);
     await service.run('org-1', 'project-1');
 
-    const evidenceQuery = quickwit.search.mock.calls[1]?.[1]?.query as string;
+    const evidenceQuery = search.mock.calls[1]?.[1]?.query as string;
     expect(evidenceQuery).toContain('service:"orders\\" OR statusCode\\:500"');
   });
 
   it('rejects listing findings for a project outside the active organization', async () => {
-    projectsRepository.getProjectById.mockResolvedValue(undefined);
+    getProjectById.mockResolvedValue(undefined);
 
     const service = new DetectionService(quickwit, projectsRepository);
 
