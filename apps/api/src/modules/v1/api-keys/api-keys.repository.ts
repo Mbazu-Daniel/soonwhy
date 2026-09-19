@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { createHash, randomBytes } from 'crypto';
 import { db } from '../../../common/db';
-import { apiKeys } from '../../../common/db/schema';
+import { apiKeys, projects } from '../../../common/db/schema';
 
 @Injectable()
 export class ApiKeysRepository {
@@ -14,17 +14,29 @@ export class ApiKeysRepository {
     return randomBytes(32).toString('hex');
   }
 
-  async getApiKeyById(id: string) {
-    return db.query.apiKeys.findFirst({
-      where: eq(apiKeys.id, id),
+  async getProject(projectId: string, orgId: string) {
+    return db.query.projects.findFirst({
+      where: and(eq(projects.id, projectId), eq(projects.orgId, orgId)),
     });
   }
 
-  async getApiKeysByProjectId(projectId: string) {
+  async getApiKeyById(id: string, orgId: string) {
+    const [result] = await db
+      .select({ apiKey: apiKeys })
+      .from(apiKeys)
+      .innerJoin(projects, eq(apiKeys.projectId, projects.id))
+      .where(and(eq(apiKeys.id, id), eq(projects.orgId, orgId)))
+      .limit(1);
+    return result?.apiKey;
+  }
+
+  async getApiKeysByProjectId(projectId: string, orgId: string) {
+    const project = await this.getProject(projectId, orgId);
+    if (!project) return [];
+
     const keys = await db.query.apiKeys.findMany({
       where: eq(apiKeys.projectId, projectId),
     });
-    // eslint-disable-next-line no-unused-vars
     return keys.map(({ keyHash: _, ...rest }) => rest);
   }
 
