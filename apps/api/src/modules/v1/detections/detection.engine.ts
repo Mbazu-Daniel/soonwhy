@@ -99,3 +99,52 @@ export function evaluateSignal(
       : {}),
   };
 }
+
+export type ThroughputSeverity = 'warning' | 'critical';
+
+export interface ThroughputSignal {
+  type: 'throughput';
+  observedValue: number;
+  threshold: number;
+  severity: ThroughputSeverity;
+  unit: 'requests';
+  baselineValue: number;
+  changePercent: number;
+}
+
+const THROUGHPUT_WARNING_DECREASE = 0.3;
+const THROUGHPUT_CRITICAL_DECREASE = 0.5;
+const MIN_BASELINE_SAMPLES = 20;
+
+export function evaluateThroughput(
+  observedRequests: number,
+  baseline?: DetectionBaseline,
+): ThroughputSignal | undefined {
+  if (
+    !Number.isFinite(observedRequests) ||
+    observedRequests < 0 ||
+    baseline === undefined ||
+    baseline.samples < MIN_BASELINE_SAMPLES ||
+    !Number.isFinite(baseline.value) ||
+    baseline.value <= 0
+  ) {
+    return undefined;
+  }
+
+  const changeRatio = (observedRequests - baseline.value) / baseline.value;
+  const decrease = -changeRatio;
+
+  if (decrease < THROUGHPUT_WARNING_DECREASE) {
+    return undefined;
+  }
+
+  return {
+    type: 'throughput',
+    observedValue: observedRequests,
+    threshold: baseline.value * (1 - THROUGHPUT_WARNING_DECREASE),
+    severity: decrease >= THROUGHPUT_CRITICAL_DECREASE ? 'critical' : 'warning',
+    unit: 'requests',
+    baselineValue: baseline.value,
+    changePercent: changeRatio * 100,
+  };
+}
