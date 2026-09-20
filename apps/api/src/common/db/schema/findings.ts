@@ -5,7 +5,7 @@ import { projects } from './projects';
 import { services } from './services';
 
 export interface DetectionEvidence {
-  kind: 'metric' | 'request' | 'log' | 'trace';
+  kind: 'metric' | 'request' | 'log' | 'trace' | 'recommendation';
   label: string;
   value: number | string;
   context?: Record<string, string | number | boolean | null>;
