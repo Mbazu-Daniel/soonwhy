@@ -4,6 +4,9 @@ import type { ParsedLogRecord, ParsedMetricPoint, ParsedSpan, TenantContext } fr
 
 export type { TenantContext };
 
+const SENSITIVE_ATTRIBUTE_PATTERN =
+  /authorization|cookie|set-cookie|password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|credit[_-]?card|card[_-]?number|cvv|request\.body|response\.body/i;
+
 function telemetryTimestamp(isoOrMs: string | number): string {
   const date =
     typeof isoOrMs === 'number'
@@ -36,6 +39,12 @@ function metricValue(point: ParsedMetricPoint): number {
   return 0;
 }
 
+function safeLogAttributes(attributes: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(attributes).filter(([key]) => !SENSITIVE_ATTRIBUTE_PATTERN.test(key)),
+  );
+}
+
 export function mapSpanToTraceRow(span: ParsedSpan, tenant: TenantContext) {
   return {
     id: randomUUID(),
@@ -43,12 +52,17 @@ export function mapSpanToTraceRow(span: ParsedSpan, tenant: TenantContext) {
     org_id: tenant.organizationId,
     project_id: tenant.projectId,
     service: span.resource.serviceName || '',
+    serviceVersion: span.resource.serviceVersion || '',
+    environment: span.resource.environment || '',
+    region: span.resource.region || '',
     traceId: span.traceId,
     spanId: span.spanId,
     parentSpanId: span.parentSpanId || '',
     name: span.name || '',
     duration: span.durationMs,
     spanKind: span.kind,
+    statusCode: span.statusCode,
+    statusMessage: span.statusMessage || '',
     dependencyType: getDependencyType(span),
     dependencyName: getDependencyName(span),
   };
@@ -110,11 +124,17 @@ export function mapSpanToRequestRow(span: ParsedSpan, tenant: TenantContext) {
         span.attributes['http.method'] ??
         '',
     ) || '';
+  const route =
+    String(
+      span.attributes['http.route'] ??
+        span.attributes['url.template'] ??
+        '',
+    ) || '';
   const url =
     String(
       span.attributes['url.path'] ??
         span.attributes['http.target'] ??
-        span.attributes['http.route'] ??
+        route ??
         span.attributes['http.url'] ??
         span.name ??
         '',
@@ -133,18 +153,25 @@ export function mapSpanToRequestRow(span: ParsedSpan, tenant: TenantContext) {
     org_id: tenant.organizationId,
     project_id: tenant.projectId,
     service: span.resource.serviceName || '',
+    serviceVersion: span.resource.serviceVersion || '',
+    environment: span.resource.environment || '',
+    region: span.resource.region || '',
+    traceId: span.traceId,
+    spanId: span.spanId,
+    parentSpanId: span.parentSpanId || '',
     method,
+    route,
     url,
     statusCode: Number.isFinite(statusCode) ? statusCode : 0,
     duration: span.durationMs,
     userAgent: String(span.attributes['user_agent.original'] ?? ''),
-    ip: String(span.attributes['client.address'] ?? span.attributes['net.peer.ip'] ?? ''),
   };
 }
 
 export function mapLogToRow(record: ParsedLogRecord, tenant: TenantContext) {
+  const safeAttributes = safeLogAttributes(record.attributes);
   const attrs: Record<string, unknown> = {
-    ...record.attributes,
+    ...safeAttributes,
     ...(record.traceId ? { traceId: record.traceId } : {}),
     ...(record.spanId ? { spanId: record.spanId } : {}),
     ...(record.resource.serviceVersion
@@ -164,10 +191,15 @@ export function mapLogToRow(record: ParsedLogRecord, tenant: TenantContext) {
     org_id: tenant.organizationId,
     project_id: tenant.projectId,
     service: record.resource.serviceName || '',
+    serviceVersion: record.resource.serviceVersion || '',
+    environment: record.resource.environment || '',
+    region: record.resource.region || '',
+    traceId: record.traceId || '',
+    spanId: record.spanId || '',
     level: record.severityLevel,
     message: record.message,
     attributes: attrs,
-    stackTrace: String(record.attributes['exception.stacktrace'] ?? ''),
+    stackTrace: String(safeAttributes['exception.stacktrace'] ?? ''),
   };
 }
 
@@ -178,6 +210,9 @@ export function mapMetricToRow(point: ParsedMetricPoint, tenant: TenantContext) 
     org_id: tenant.organizationId,
     project_id: tenant.projectId,
     service: point.resource.serviceName || '',
+    serviceVersion: point.resource.serviceVersion || '',
+    environment: point.resource.environment || '',
+    region: point.resource.region || '',
     name: point.metricName,
     value: metricValue(point),
     unit: mapMetricUnit(point.metricUnit),
