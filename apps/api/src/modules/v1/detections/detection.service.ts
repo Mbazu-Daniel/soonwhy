@@ -6,6 +6,7 @@ import { findings, type DetectionEvidence } from '../../../common/db/schema/find
 import { quickwitTenantQuery, quickwitTerm } from '../../../common/quickwit/query';
 import { ProjectsRepository } from '../projects/projects.repository';
 import { sanitizeRequestUrl } from './detection.utils';
+import { correlateFindings } from './detection.correlation';
 import { evaluateSignal, evaluateThroughput, evaluateTraceSpan } from './detection.engine';
 import type { DetectionFinding, DetectionWindow, FindingSeverity, FindingType } from './detection.types';
 
@@ -298,6 +299,82 @@ export class DetectionService {
               spanName: candidate.spanName,
               traceDurationMs: candidate.traceDuration,
               contributionPercent: signal.observedValue,
+            },
+          },
+        ],
+      }));
+    }
+
+    const correlated = correlateFindings(detected);
+
+    for (const bottleneck of correlated) {
+      const dependencyDescription = bottleneck.dependencyName
+        ? ' The correlated dependency is ' + bottleneck.dependencyName + '.'
+        : '';
+      const supportingTypes = bottleneck.supportingFindings
+        .map((finding) => finding.type)
+        .filter((type, index, types) => types.indexOf(type) === index)
+        .join(', ');
+
+      detected.push(await this.persistFinding({
+        orgId,
+        projectId,
+        serviceName: bottleneck.serviceName,
+        type: 'bottleneck',
+        severity: bottleneck.supportingFindings.some((finding) => finding.severity === 'critical')
+          ? 'critical'
+          : bottleneck.latency.severity,
+        title: 'Correlated bottleneck in ' + bottleneck.serviceName,
+        description:
+          'Request latency is correlated with ' +
+          supportingTypes +
+          '.' +
+          dependencyDescription +
+          ' The evidence points to the dependency or operation captured in the trace rather than the API boundary alone.',
+        observedValue: bottleneck.latency.observedValue,
+        threshold: bottleneck.latency.threshold,
+        unit: bottleneck.latency.unit,
+        start,
+        end,
+        evidence: [
+          {
+            kind: 'metric',
+            label: 'correlated-signal',
+            value: bottleneck.latency.observedValue,
+            context: {
+              service: bottleneck.serviceName,
+              sourceFindingId: bottleneck.latency.id,
+              sourceFindingType: bottleneck.latency.type,
+            },
+          },
+          ...bottleneck.supportingFindings.map((finding) => ({
+            kind: 'metric' as const,
+            label: 'supporting-finding',
+            value: finding.observedValue,
+            context: {
+              findingId: finding.id,
+              findingType: finding.type,
+              severity: finding.severity,
+              service: finding.serviceName,
+            },
+          })),
+          ...bottleneck.traceIds.map((traceId) => ({
+            kind: 'trace' as const,
+            label: 'correlated-trace',
+            value: traceId,
+            context: {
+              traceId,
+              service: bottleneck.serviceName,
+            },
+          })),
+          {
+            kind: 'recommendation',
+            label: 'optimization-guidance',
+            value: bottleneck.recommendation,
+            context: {
+              dependencyType: bottleneck.dependencyType ?? null,
+              dependencyName: bottleneck.dependencyName ?? null,
+              source: 'deterministic-correlation',
             },
           },
         ],
