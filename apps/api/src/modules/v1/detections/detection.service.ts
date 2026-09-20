@@ -6,11 +6,14 @@ import { findings, type DetectionEvidence } from '../../../common/db/schema/find
 import { quickwitTenantQuery, quickwitTerm } from '../../../common/quickwit/query';
 import { ProjectsRepository } from '../projects/projects.repository';
 import { sanitizeRequestUrl } from './detection.utils';
+import {
+  DETECTION_RULES,
+  evaluateSignal,
+  type DetectionSignalType,
+} from './detection.engine';
 import type { DetectionFinding, DetectionWindow, FindingSeverity, FindingType } from './detection.types';
 
 const WINDOW_MS = 15 * 60_000;
-const LATENCY_THRESHOLD_MS = 1_000;
-const ERROR_RATE_THRESHOLD = 5;
 
 interface ServiceBucket {
   key: string;
@@ -81,36 +84,38 @@ export class DetectionService {
       const errors = bucket.errors?.doc_count ?? 0;
       const errorRate = total ? (errors / total) * 100 : 0;
 
-      if (p95 >= LATENCY_THRESHOLD_MS) {
+      const latencySignal = evaluateSignal('latency', p95);
+      if (latencySignal) {
         detected.push(await this.persistFinding({
           orgId,
           projectId,
           serviceName: bucket.key,
-          type: 'latency',
-          severity: p95 >= LATENCY_THRESHOLD_MS * 2 ? 'critical' : 'warning',
+          type: latencySignal.type,
+          severity: latencySignal.severity,
           title: 'High latency detected in ' + bucket.key,
           description: 'The 95th percentile request latency is ' + Math.round(p95) + 'ms over the last 15 minutes.',
-          observedValue: p95,
-          threshold: LATENCY_THRESHOLD_MS,
-          unit: 'ms',
+          observedValue: latencySignal.observedValue,
+          threshold: latencySignal.threshold,
+          unit: latencySignal.unit,
           start,
           end,
           evidence: await this.requestEvidence(orgId, projectId, bucket.key, startTimestamp, endTimestamp, 'latency'),
         }));
       }
 
-      if (errorRate >= ERROR_RATE_THRESHOLD) {
+      const errorSignal = evaluateSignal('error_rate', errorRate);
+      if (errorSignal) {
         detected.push(await this.persistFinding({
           orgId,
           projectId,
           serviceName: bucket.key,
-          type: 'error_rate',
-          severity: errorRate >= ERROR_RATE_THRESHOLD * 2 ? 'critical' : 'warning',
+          type: errorSignal.type,
+          severity: errorSignal.severity,
           title: 'Elevated error rate in ' + bucket.key,
           description: 'HTTP 5xx responses account for ' + errorRate.toFixed(2) + '% of requests over the last 15 minutes.',
-          observedValue: errorRate,
-          threshold: ERROR_RATE_THRESHOLD,
-          unit: '%',
+          observedValue: errorSignal.observedValue,
+          threshold: errorSignal.threshold,
+          unit: errorSignal.unit,
           start,
           end,
           evidence: await this.requestEvidence(orgId, projectId, bucket.key, startTimestamp, endTimestamp, 'error_rate'),
