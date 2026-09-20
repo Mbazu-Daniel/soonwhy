@@ -1,6 +1,6 @@
 import type { DetectionEvidence } from '../../../common/db/schema/findings';
 
-export type FindingType = 'latency' | 'error_rate';
+export type FindingType = 'latency' | 'error_rate' | 'throughput';
 export type FindingSeverity = 'warning' | 'critical';
 
 export interface DetectionWindow {
