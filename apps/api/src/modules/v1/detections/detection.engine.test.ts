@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DETECTION_RULES, evaluateSignal, evaluateThroughput } from './detection.engine';
+import { DETECTION_RULES, evaluateSignal, evaluateThroughput, evaluateTraceSpan } from './detection.engine';
 
 describe('evaluateSignal', () => {
   it('does not detect values below the threshold without a baseline regression', () => {
