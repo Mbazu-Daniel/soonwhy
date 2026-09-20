@@ -1,29 +1,39 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { CurrentOrg, OrgContext } from '../../../common/decorators/current-org.decorator';
 import { TenantGuard } from '../../../common/middleware/tenant-context.guard';
 
 @UseGuards(TenantGuard)
-@Controller('dashboard')
+@Controller('projects/:projectId/dashboard')
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('overview')
-  async getOverview(@CurrentOrg() org: OrgContext, @Query('projectId') projectId: string) {
+  async getOverview(
+    @CurrentOrg() org: OrgContext,
+    @Param('projectId') projectId: string,
+  ) {
     return this.dashboardService.getOverview(org.orgId, projectId);
   }
 
   @Get('services')
-  async getServices(@CurrentOrg() org: OrgContext, @Query('projectId') projectId: string) {
+  async getServices(
+    @CurrentOrg() org: OrgContext,
+    @Param('projectId') projectId: string,
+  ) {
     return this.dashboardService.getServices(org.orgId, projectId);
   }
 
   @Get('errors')
   async getErrors(
     @CurrentOrg() org: OrgContext,
-    @Query('projectId') projectId: string,
+    @Param('projectId') projectId: string,
     @Query('limit') limit?: string,
   ) {
-    return this.dashboardService.getErrors(org.orgId, projectId, limit ? parseInt(limit, 10) : 50);
+    return this.dashboardService.getErrors(
+      org.orgId,
+      projectId,
+      limit ? parseInt(limit, 10) : 50,
+    );
   }
 }
