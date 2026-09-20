@@ -92,3 +92,28 @@ describe('evaluateThroughput', () => {
     expect(evaluateThroughput(0, { value: 0, samples: 100 })).toBeUndefined();
   });
 });
+
+
+describe('dependency latency detection', () => {
+  it('detects a slow dependency above the absolute threshold', () => {
+    expect(evaluateSignal('dependency_latency', 650)).toEqual({
+      type: 'dependency_latency',
+      observedValue: 650,
+      threshold: 500,
+      severity: 'warning',
+      unit: 'ms',
+    });
+  });
+
+  it('classifies a critical dependency regression', () => {
+    expect(
+      evaluateSignal('dependency_latency', 800, { value: 300, samples: 100 })?.severity,
+    ).toBe('critical');
+  });
+
+  it('ignores low-sample dependency baselines', () => {
+    expect(
+      evaluateSignal('dependency_latency', 600, { value: 300, samples: 19 }),
+    ).toBeUndefined();
+  });
+});
