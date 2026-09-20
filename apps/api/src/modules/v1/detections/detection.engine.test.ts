@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DETECTION_RULES, evaluateSignal } from './detection.engine';
+import { DETECTION_RULES, evaluateSignal, evaluateThroughput } from './detection.engine';
 
 describe('evaluateSignal', () => {
   it('does not detect values below the threshold without a baseline regression', () => {
@@ -62,5 +62,33 @@ describe('evaluateSignal', () => {
   it('ignores non-finite observations', () => {
     expect(evaluateSignal('latency', Number.NaN)).toBeUndefined();
     expect(evaluateSignal('error_rate', Number.POSITIVE_INFINITY)).toBeUndefined();
+  });
+});
+
+describe('evaluateThroughput', () => {
+  it('detects a 30 percent throughput decrease', () => {
+    expect(evaluateThroughput(70, { value: 100, samples: 100 })).toEqual({
+      type: 'throughput',
+      observedValue: 70,
+      threshold: 70,
+      severity: 'warning',
+      unit: 'requests',
+      baselineValue: 100,
+      changePercent: -30,
+    });
+  });
+
+  it('classifies a 50 percent throughput decrease as critical', () => {
+    expect(evaluateThroughput(50, { value: 100, samples: 100 })?.severity).toBe('critical');
+  });
+
+  it('ignores small or low-sample throughput changes', () => {
+    expect(evaluateThroughput(75, { value: 100, samples: 100 })).toBeUndefined();
+    expect(evaluateThroughput(50, { value: 100, samples: 19 })).toBeUndefined();
+  });
+
+  it('ignores invalid throughput values and empty baselines', () => {
+    expect(evaluateThroughput(Number.NaN, { value: 100, samples: 100 })).toBeUndefined();
+    expect(evaluateThroughput(0, { value: 0, samples: 100 })).toBeUndefined();
   });
 });
