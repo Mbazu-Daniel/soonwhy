@@ -1,4 +1,4 @@
-export type DetectionSignalType = 'latency' | 'error_rate';
+export type DetectionSignalType = 'latency' | 'error_rate' | 'dependency_latency';
 
 export interface DetectionRule {
   type: DetectionSignalType;
@@ -43,6 +43,15 @@ export const DETECTION_RULES: Record<DetectionSignalType, DetectionRule> = {
     regressionAbsoluteIncrease: 2,
     criticalRegressionRelativeIncrease: 2,
     unit: '%',
+  },
+  dependency_latency: {
+    type: 'dependency_latency',
+    threshold: 500,
+    criticalMultiplier: 2,
+    regressionRelativeIncrease: 0.5,
+    regressionAbsoluteIncrease: 250,
+    criticalRegressionRelativeIncrease: 1,
+    unit: 'ms',
   },
 };
 
