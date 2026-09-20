@@ -82,12 +82,12 @@ function LogViewer() {
   const { data, isLoading, isFetching } = useQuery({
     queryKey,
     queryFn: () => {
-      const params = new URLSearchParams({ projectId: projectId! });
+      const params = new URLSearchParams();
       if (levelFilter !== 'all') params.set('level', levelFilter);
       if (search) params.set('q', search);
       if (cursor) params.set('cursor', cursor);
       params.set('limit', '50');
-      return api.get<{ data: LogEntry[]; nextCursor?: string }>(`/logs?${params.toString()}`);
+      return api.get<{ data: LogEntry[]; nextCursor?: string }>(`/projects/${projectId}/logs?${params.toString()}`);
     },
     enabled: !!projectId,
   });
