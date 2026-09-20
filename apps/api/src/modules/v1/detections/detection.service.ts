@@ -7,9 +7,7 @@ import { quickwitTenantQuery, quickwitTerm } from '../../../common/quickwit/quer
 import { ProjectsRepository } from '../projects/projects.repository';
 import { sanitizeRequestUrl } from './detection.utils';
 import {
-  DETECTION_RULES,
   evaluateSignal,
-  type DetectionSignalType,
 } from './detection.engine';
 import type { DetectionFinding, DetectionWindow, FindingSeverity, FindingType } from './detection.types';
 
