@@ -1,4 +1,4 @@
-export type DetectionSignalType = 'latency' | 'error_rate' | 'dependency_latency';
+export type DetectionSignalType = 'latency' | 'error_rate' | 'dependency_latency' | 'trace_span';
 
 export interface DetectionRule {
   type: DetectionSignalType;
@@ -52,6 +52,15 @@ export const DETECTION_RULES: Record<DetectionSignalType, DetectionRule> = {
     regressionAbsoluteIncrease: 250,
     criticalRegressionRelativeIncrease: 1,
     unit: 'ms',
+  },
+  trace_span: {
+    type: 'trace_span',
+    threshold: 50,
+    criticalMultiplier: 1.5,
+    regressionRelativeIncrease: 0,
+    regressionAbsoluteIncrease: 0,
+    criticalRegressionRelativeIncrease: 0.75,
+    unit: '%',
   },
 };
 
@@ -155,5 +164,44 @@ export function evaluateThroughput(
     unit: 'requests',
     baselineValue: baseline.value,
     changePercent: changeRatio * 100,
+  };
+}
+
+
+export interface TraceSpanSignal {
+  type: 'trace_span';
+  observedValue: number;
+  threshold: number;
+  severity: 'warning' | 'critical';
+  unit: '%';
+  spanDuration: number;
+  traceDuration: number;
+}
+
+export function evaluateTraceSpan(
+  spanDuration: number,
+  traceDuration: number,
+): TraceSpanSignal | undefined {
+  if (
+    !Number.isFinite(spanDuration) ||
+    !Number.isFinite(traceDuration) ||
+    spanDuration <= 0 ||
+    traceDuration <= 0 ||
+    spanDuration > traceDuration
+  ) {
+    return undefined;
+  }
+
+  const contribution = (spanDuration / traceDuration) * 100;
+  if (contribution < 50) return undefined;
+
+  return {
+    type: 'trace_span',
+    observedValue: contribution,
+    threshold: 50,
+    severity: contribution >= 75 ? 'critical' : 'warning',
+    unit: '%',
+    spanDuration,
+    traceDuration,
   };
 }
