@@ -104,6 +104,46 @@ describe('OTLP JSON parse + ClickHouse mappers', () => {
     expect(requestRow!.statusCode).toBe(200);
   });
 
+  it('normalizes client database spans for dependency detection', () => {
+    const start = BigInt(Date.now()) * 1_000_000n;
+    const end = start + 800_000_000n;
+    const { spans, rejected } = parseTracesPayload({
+      resourceSpans: [
+        {
+          resource: {
+            attributes: [{ key: 'service.name', value: { stringValue: 'api' } }],
+          },
+          scopeSpans: [
+            {
+              spans: [
+                {
+                  traceId: 'e'.repeat(32),
+                  spanId: 'f'.repeat(16),
+                  parentSpanId: 'd'.repeat(16),
+                  name: 'SELECT users',
+                  kind: 3,
+                  startTimeUnixNano: String(start),
+                  endTimeUnixNano: String(end),
+                  status: { code: 1 },
+                  attributes: [
+                    { key: 'db.system.name', value: { stringValue: 'postgresql' } },
+                    { key: 'server.address', value: { stringValue: 'postgres' } },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(rejected).toBe(0);
+    const row = mapSpanToTraceRow(spans[0]!, tenant);
+    expect(row.spanKind).toBe(3);
+    expect(row.dependencyType).toBe('database');
+    expect(row.dependencyName).toBe('postgresql');
+  });
+
   it('maps gauge metrics into metrics table rows', () => {
     const { points, rejected } = parseMetricsPayload({
       resourceMetrics: [
