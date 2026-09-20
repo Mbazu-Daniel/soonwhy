@@ -4,12 +4,12 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Vision statement (1-2 sentences)
-- [ ] Product principles (3-5 principles that guide decisions)
-- [ ] Target personas (2-3 personas with demographics, goals, pain points)
-- [ ] Jobs-To-Be-Done for each persona
-- [ ] How Soonwhy fits into their workflow
+- [x] Vision statement (1-2 sentences)
+- [x] Product principles (3-5 principles that guide decisions)
+- [x] Target personas (2-3 personas with demographics, goals, pain points)
+- [x] Jobs-To-Be-Done for each persona
+- [x] How Soonwhy fits into their workflow
 
 **Output:** `docs/product/vision.md`
