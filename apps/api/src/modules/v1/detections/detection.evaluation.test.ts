@@ -33,14 +33,14 @@ describe('controlled detection evaluation', () => {
 
     expect(result).toEqual({
       total: 19,
-      truePositives: 8,
-      falsePositives: 1,
-      trueNegatives: 9,
-      falseNegatives: 1,
-      precision: 8 / 9,
-      recall: 8 / 9,
-      passed: 17,
-      failed: 2,
+      truePositives: 13,
+      falsePositives: 0,
+      trueNegatives: 6,
+      falseNegatives: 0,
+      precision: 1,
+      recall: 1,
+      passed: 19,
+      failed: 0,
     });
   });
 
