@@ -7,7 +7,7 @@ import { chRange } from '../../../common/clickhouse/ch-time';
 export class LogsService {
   constructor(private readonly logsRepository: LogsRepository) {}
 
-  async getLogs(orgId: string, input: GetLogsInput) {
+  async getLogs(orgId: string, projectId: string, input: GetLogsInput) {
     const { from, to } = chRange(input.from, input.to);
 
     let cursor: { ts: string; id: string } | undefined;
@@ -23,7 +23,7 @@ export class LogsService {
     const limit = input.limit ?? 50;
     const rows = await this.logsRepository.queryLogs({
       orgId,
-      projectId: input.projectId,
+      projectId,
       from,
       to,
       level: input.level || 'all',
