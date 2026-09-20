@@ -117,3 +117,23 @@ describe('dependency latency detection', () => {
     ).toBeUndefined();
   });
 });
+
+
+describe('evaluateTraceSpan', () => {
+  it('detects a span responsible for at least half of a trace duration', () => {
+    expect(evaluateTraceSpan(600, 1000)).toMatchObject({
+      type: 'trace_span',
+      observedValue: 60,
+      threshold: 50,
+      severity: 'warning',
+    });
+  });
+
+  it('marks a span contributing at least 75 percent as critical', () => {
+    expect(evaluateTraceSpan(800, 1000)?.severity).toBe('critical');
+  });
+
+  it('ignores spans that are not a meaningful part of the trace', () => {
+    expect(evaluateTraceSpan(400, 1000)).toBeUndefined();
+  });
+});
