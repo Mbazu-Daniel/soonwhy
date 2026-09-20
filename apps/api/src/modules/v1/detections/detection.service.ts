@@ -6,7 +6,7 @@ import { findings, type DetectionEvidence } from '../../../common/db/schema/find
 import { quickwitTenantQuery, quickwitTerm } from '../../../common/quickwit/query';
 import { ProjectsRepository } from '../projects/projects.repository';
 import { sanitizeRequestUrl } from './detection.utils';
-import { evaluateSignal } from './detection.engine';
+import { evaluateSignal, evaluateThroughput } from './detection.engine';
 import type { DetectionFinding, DetectionWindow, FindingSeverity, FindingType } from './detection.types';
 
 const WINDOW_MS = 15 * 60_000;
@@ -122,6 +122,41 @@ export class DetectionService {
           evidence: await this.requestEvidence(orgId, projectId, bucket.key, startTimestamp, endTimestamp, 'error_rate'),
         }));
       }
+
+      const throughputSignal = evaluateThroughput(
+        bucket.doc_count,
+        baseline
+          ? { value: baseline.samples, samples: baseline.samples }
+          : undefined,
+      );
+      if (throughputSignal) {
+        detected.push(await this.persistFinding({
+          orgId,
+          projectId,
+          serviceName: bucket.key,
+          type: throughputSignal.type,
+          severity: throughputSignal.severity,
+          title: 'Throughput degradation detected in ' + bucket.key,
+          description: this.describeThroughputSignal(throughputSignal),
+          observedValue: throughputSignal.observedValue,
+          threshold: throughputSignal.threshold,
+          unit: throughputSignal.unit,
+          start,
+          end,
+          evidence: [
+            {
+              kind: 'metric',
+              label: 'throughput-regression',
+              value: throughputSignal.observedValue,
+              context: {
+                service: bucket.key,
+                baselineRequests: throughputSignal.baselineValue,
+                changePercent: throughputSignal.changePercent,
+              },
+            },
+          ],
+        }));
+      }
     }
 
     return detected;
@@ -189,6 +224,12 @@ export class DetectionService {
     }
 
     return description + ' This is a ' + signal.changePercent.toFixed(0) + '% increase from the previous comparable window.';
+  }
+
+  private describeThroughputSignal(signal: ReturnType<typeof evaluateThroughput>): string {
+    if (!signal) return 'Request throughput degraded over the last 15 minutes.';
+
+    return 'Request throughput fell from an expected ' + Math.round(signal.baselineValue) + ' requests to ' + Math.round(signal.observedValue) + ' requests over the last 15 minutes (' + signal.changePercent.toFixed(0) + '%).';
   }
 
   private async assertProjectAccess(orgId: string, projectId: string): Promise<void> {
