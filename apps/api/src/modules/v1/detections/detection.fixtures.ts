@@ -2,7 +2,7 @@ export const checkoutRegressionFixture = {
   service: {
     current: {
       key: 'checkout-api',
-      doc_count: 100,
+      doc_count: 60,
       latency: { values: { '95.0': 1_600 } },
       errors: { doc_count: 10 },
     },
@@ -42,7 +42,7 @@ export const checkoutRegressionFixture = {
           traceId: 'trace-checkout-001',
           spanId: 'span-http-001',
           name: 'POST /checkout',
-          duration: 1_500,
+          duration: 1_600,
           parentSpanId: undefined,
         },
       },
