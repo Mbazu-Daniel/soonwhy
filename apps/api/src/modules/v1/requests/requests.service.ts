@@ -16,11 +16,11 @@ export class RequestsService {
       );
   }
 
-  async getStats(orgId: string, input: GetRequestsStatsInput) {
+  async getStats(orgId: string, projectId: string, input: GetRequestsStatsInput) {
     const { from, to } = chRange(input.from, input.to);
     const stats = await this.requestsRepository.queryStats({
       orgId,
-      projectId: input.projectId,
+      projectId,
       from,
       to,
     });
