@@ -62,7 +62,7 @@ export class DetectionService {
         {
           latency: this.getLatency(bucket),
           errorRate: this.getErrorRate(bucket),
-          samples: bucket.doc_count,
+          requests: bucket.doc_count,
         },
       ]),
     );
@@ -126,7 +126,7 @@ export class DetectionService {
       const throughputSignal = evaluateThroughput(
         bucket.doc_count,
         baseline
-          ? { value: baseline.samples, samples: baseline.samples }
+          ? { value: baseline.requests, samples: baseline.requests }
           : undefined,
       );
       if (throughputSignal) {
