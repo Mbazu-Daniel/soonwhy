@@ -6,7 +6,7 @@ import { findings, type DetectionEvidence } from '../../../common/db/schema/find
 import { quickwitTenantQuery, quickwitTerm } from '../../../common/quickwit/query';
 import { ProjectsRepository } from '../projects/projects.repository';
 import { sanitizeRequestUrl } from './detection.utils';
-import { evaluateSignal, evaluateThroughput } from './detection.engine';
+import { evaluateSignal, evaluateThroughput, evaluateTraceSpan } from './detection.engine';
 import type { DetectionFinding, DetectionWindow, FindingSeverity, FindingType } from './detection.types';
 
 const WINDOW_MS = 15 * 60_000;
@@ -234,15 +234,72 @@ export class DetectionService {
         unit: signal.unit,
         start,
         end,
-        evidence: await this.dependencyEvidence(
-          orgId,
-          projectId,
-          serviceName,
-          dependencyType,
-          dependencyName,
-          startTimestamp,
-          endTimestamp,
-        ),
+        evidence: [
+          ...(await this.dependencyEvidence(
+            orgId,
+            projectId,
+            serviceName,
+            dependencyType,
+            dependencyName,
+            startTimestamp,
+            endTimestamp,
+          )),
+          {
+            kind: 'recommendation',
+            label: 'optimization-guidance',
+            value: this.dependencyRecommendation(dependencyType),
+            context: {
+              dependencyType,
+              dependencyName,
+              observedLatencyMs: Math.round(dependency.latency),
+            },
+          },
+        ],
+      }));
+    }
+
+    const traceSpans = await this.searchTraceSpanCandidates(
+      orgId,
+      projectId,
+      startTimestamp,
+      endTimestamp,
+    );
+
+    for (const candidate of traceSpans) {
+      const signal = evaluateTraceSpan(candidate.spanDuration, candidate.traceDuration);
+      if (!signal) continue;
+
+      detected.push(await this.persistFinding({
+        orgId,
+        projectId,
+        serviceName: candidate.serviceName,
+        type: signal.type,
+        severity: signal.severity,
+        title: 'Span dominates trace latency in ' + candidate.serviceName,
+        description:
+          candidate.spanName +
+          ' accounts for ' +
+          signal.observedValue.toFixed(0) +
+          '% of the trace duration.',
+        observedValue: signal.observedValue,
+        threshold: signal.threshold,
+        unit: signal.unit,
+        start,
+        end,
+        evidence: [
+          {
+            kind: 'trace',
+            label: 'dominant-span',
+            value: candidate.spanDuration,
+            context: {
+              traceId: candidate.traceId,
+              spanId: candidate.spanId,
+              spanName: candidate.spanName,
+              traceDurationMs: candidate.traceDuration,
+              contributionPercent: signal.observedValue,
+            },
+          },
+        ],
       }));
     }
 
@@ -365,6 +422,94 @@ export class DetectionService {
         }];
       }),
     );
+  }
+
+  private async searchTraceSpanCandidates(
+    orgId: string,
+    projectId: string,
+    startTimestamp: number,
+    endTimestamp: number,
+  ): Promise<Array<{
+    traceId: string;
+    spanId: string;
+    spanName: string;
+    serviceName: string;
+    spanDuration: number;
+    traceDuration: number;
+  }>> {
+    const result = await this.quickwit.search<TraceSource>(QUICKWIT_INDEXES.traces, {
+      query: quickwitTenantQuery(orgId, projectId),
+      startTimestamp,
+      endTimestamp,
+      maxHits: 5000,
+      sortBy: ['duration:desc'],
+    });
+
+    const traces = new Map<string, {
+      duration: number;
+      rootService: string;
+      spans: TraceSource[];
+    }>();
+
+    for (const hit of result.hits) {
+      const source = hit._source;
+      if (!source?.traceId) continue;
+
+      const trace = traces.get(source.traceId) ?? {
+        duration: 0,
+        rootService: String(source.service ?? ''),
+        spans: [],
+      };
+      trace.spans.push(source);
+
+      const startMs = new Date(String(source.timestamp ?? '')).getTime();
+      const duration = Number(source.duration ?? 0);
+      if (Number.isFinite(startMs) && Number.isFinite(duration) && duration > 0) {
+        trace.duration = Math.max(trace.duration, startMs + duration);
+      }
+
+      if (!source.parentSpanId) {
+        trace.rootService = String(source.service ?? trace.rootService);
+      }
+
+      traces.set(source.traceId, trace);
+    }
+
+    return Array.from(traces.entries()).flatMap(([traceId, trace]) => {
+      const starts = trace.spans
+        .map((span) => new Date(String(span.timestamp ?? '')).getTime())
+        .filter(Number.isFinite);
+      if (!starts.length || trace.duration <= Math.min(...starts)) return [];
+
+      const traceDuration = trace.duration - Math.min(...starts);
+      const candidate = trace.spans
+        .filter((span) => Number(span.duration ?? 0) > 0)
+        .sort((a, b) => Number(b.duration ?? 0) - Number(a.duration ?? 0))[0];
+
+      if (!candidate) return [];
+
+      return [{
+        traceId,
+        spanId: String(candidate.spanId ?? ''),
+        spanName: String(candidate.name ?? ''),
+        serviceName: String(candidate.service ?? trace.rootService),
+        spanDuration: Number(candidate.duration ?? 0),
+        traceDuration,
+      }];
+    });
+  }
+
+  private dependencyRecommendation(dependencyType: string): string {
+    switch (dependencyType) {
+      case 'database':
+        return 'Inspect the query shape and database plan first. Check for N+1 queries, missing indexes, excessive reads or selected fields, offset pagination, and repeated queries. Use EXPLAIN ANALYZE before changing the query or schema.';
+      case 'http':
+        return 'Inspect downstream latency, request payload size, retries, timeouts, and connection reuse. Avoid retry amplification and reduce unnecessary payload or downstream calls where possible.';
+      case 'rpc':
+        return 'Inspect downstream RPC latency, retry behavior, timeouts, connection reuse, and whether multiple calls can be batched or avoided.';
+      default:
+        return 'Inspect the downstream operation and trace its latency contribution before changing the caller. Check for repeated calls, unnecessary work, and connection or pooling issues.';
+    }
   }
 
   private async dependencyEvidence(
