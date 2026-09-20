@@ -59,3 +59,8 @@ apps/
 
 # TypeScript incremental build info
 *.tsbuildinfo
+
+# Repository documentation files
+*.md
+*.txt
+!README.md
