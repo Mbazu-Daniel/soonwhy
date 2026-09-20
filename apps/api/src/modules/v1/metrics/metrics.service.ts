@@ -7,12 +7,12 @@ import { chRange } from '../../../common/clickhouse/ch-time';
 export class MetricsService {
   constructor(private readonly metricsRepository: MetricsRepository) {}
 
-  async getMetrics(orgId: string, input: GetMetricsInput) {
+  async getMetrics(orgId: string, projectId: string, input: GetMetricsInput) {
     const { from, to } = chRange(input.from, input.to);
 
     const buckets = await this.metricsRepository.queryMetrics({
       orgId,
-      projectId: input.projectId,
+      projectId,
       from,
       to,
       interval: input.interval,
