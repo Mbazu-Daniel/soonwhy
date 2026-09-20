@@ -18,8 +18,21 @@ interface ServiceBucket {
   errors?: { doc_count?: number };
 }
 
+interface DependencyBucket {
+  key: string;
+  doc_count: number;
+  latency?: { values?: Record<string, number> };
+  dependencyType?: { buckets?: Array<{ key: string; doc_count: number }> };
+}
+
+interface DependencyServiceBucket {
+  key: string;
+  dependencies?: { buckets?: DependencyBucket[] };
+}
+
 interface Aggregations {
   services?: { buckets?: ServiceBucket[] };
+  dependencies?: { buckets?: DependencyServiceBucket[] };
 }
 
 interface RequestSource {
@@ -30,6 +43,17 @@ interface RequestSource {
   duration?: number;
   statusCode?: number;
   traceId?: string;
+}
+
+interface TraceSource {
+  timestamp?: string;
+  service?: string;
+  traceId?: string;
+  spanId?: string;
+  name?: string;
+  duration?: number;
+  dependencyName?: string;
+  dependencyType?: string;
 }
 
 @Injectable()
@@ -63,6 +87,7 @@ export class DetectionService {
           latency: this.getLatency(bucket),
           errorRate: this.getErrorRate(bucket),
           requests: bucket.doc_count,
+          samples: bucket.doc_count,
         },
       ]),
     );
@@ -159,6 +184,65 @@ export class DetectionService {
       }
     }
 
+    const [currentDependencies, baselineDependencies] = await Promise.all([
+      this.searchDependencyBuckets(orgId, projectId, startTimestamp, endTimestamp),
+      this.searchDependencyBuckets(
+        orgId,
+        projectId,
+        startTimestamp - Math.floor(WINDOW_MS / 1000),
+        startTimestamp,
+      ),
+    ]);
+
+    const baselineByDependency = new Map(
+      baselineDependencies.map((dependency) => [
+        dependency.key,
+        dependency,
+      ]),
+    );
+
+    for (const dependency of currentDependencies) {
+      const baseline = baselineByDependency.get(dependency.key);
+      const signal = evaluateSignal(
+        'dependency_latency',
+        dependency.latency,
+        baseline
+          ? { value: baseline.latency, samples: baseline.samples }
+          : undefined,
+      );
+
+      if (!signal) continue;
+
+      const [serviceName, dependencyType, dependencyName] = dependency.key.split('|');
+
+      detected.push(await this.persistFinding({
+        orgId,
+        projectId,
+        serviceName,
+        type: signal.type,
+        severity: signal.severity,
+        title: 'Slow ' + dependencyType + ' dependency in ' + serviceName,
+        description: this.describeSignal(
+          dependencyType + ' dependency ' + dependencyName + ' has a 95th percentile latency of ' + Math.round(dependency.latency) + 'ms.',
+          signal,
+        ),
+        observedValue: signal.observedValue,
+        threshold: signal.threshold,
+        unit: signal.unit,
+        start,
+        end,
+        evidence: await this.dependencyEvidence(
+          orgId,
+          projectId,
+          serviceName,
+          dependencyType,
+          dependencyName,
+          startTimestamp,
+          endTimestamp,
+        ),
+      }));
+    }
+
     return detected;
   }
 
@@ -213,6 +297,120 @@ export class DetectionService {
   private getErrorRate(bucket: ServiceBucket): number {
     const errors = bucket.errors?.doc_count ?? 0;
     return bucket.doc_count ? (errors / bucket.doc_count) * 100 : 0;
+  }
+
+  private async searchDependencyBuckets(
+    orgId: string,
+    projectId: string,
+    startTimestamp: number,
+    endTimestamp: number,
+  ): Promise<Array<{ key: string; latency: number; samples: number }>> {
+    const result = await this.quickwit.search<never>(QUICKWIT_INDEXES.traces, {
+      query: quickwitTenantQuery(
+        orgId,
+        projectId,
+        quickwitTerm('spanKind', '3'),
+      ),
+      startTimestamp,
+      endTimestamp,
+      maxHits: 0,
+      aggregations: {
+        dependencies: {
+          terms: {
+            field: 'service',
+            size: 100,
+            order: { _count: 'desc' },
+          },
+          aggs: {
+            dependencies: {
+              terms: {
+                field: 'dependencyName',
+                size: 100,
+                order: { _count: 'desc' },
+              },
+              aggs: {
+                latency: {
+                  percentiles: { field: 'duration', percents: [95] },
+                },
+                dependencyType: {
+                  terms: {
+                    field: 'dependencyType',
+                    size: 1,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const aggregation = (result.aggregations as Aggregations | undefined)?.dependencies;
+    return (aggregation?.buckets ?? []).flatMap((serviceBucket) =>
+      (serviceBucket.dependencies?.buckets ?? []).flatMap((dependencyBucket) => {
+        const dependencyName = dependencyBucket.key;
+        if (!dependencyName) return [];
+
+        const dependencyType = dependencyBucket.dependencyType?.buckets?.[0]?.key;
+        const latency = dependencyBucket.latency?.values?.['95.0'] ?? 0;
+        if (!dependencyType || latency <= 0) return [];
+
+        return [{
+          key: serviceBucket.key + '|' + dependencyType + '|' + dependencyName,
+          latency,
+          samples: dependencyBucket.doc_count,
+        }];
+      }),
+    );
+  }
+
+  private async dependencyEvidence(
+    orgId: string,
+    projectId: string,
+    serviceName: string,
+    dependencyType: string,
+    dependencyName: string,
+    startTimestamp: number,
+    endTimestamp: number,
+  ): Promise<DetectionEvidence[]> {
+    const query = quickwitTenantQuery(
+      orgId,
+      projectId,
+      [
+        quickwitTerm('service', serviceName),
+        quickwitTerm('spanKind', '3'),
+        quickwitTerm('dependencyType', dependencyType),
+        quickwitTerm('dependencyName', dependencyName),
+      ].join(' AND '),
+    );
+
+    const result = await this.quickwit.search<TraceSource>(QUICKWIT_INDEXES.traces, {
+      query,
+      startTimestamp,
+      endTimestamp,
+      maxHits: 5,
+      sortBy: ['duration:desc'],
+    });
+
+    return result.hits.flatMap((hit) => {
+      const source = hit._source;
+      if (!source) return [];
+
+      return [{
+        kind: 'trace',
+        label: 'slow-dependency-span',
+        value: Number(source.duration ?? 0),
+        context: {
+          service: String(source.service ?? serviceName),
+          dependencyType,
+          dependencyName,
+          traceId: String(source.traceId ?? ''),
+          spanId: String(source.spanId ?? ''),
+          spanName: String(source.name ?? ''),
+          timestamp: String(source.timestamp ?? ''),
+        },
+      }];
+    });
   }
 
   private describeSignal(
