@@ -6,9 +6,7 @@ import { findings, type DetectionEvidence } from '../../../common/db/schema/find
 import { quickwitTenantQuery, quickwitTerm } from '../../../common/quickwit/query';
 import { ProjectsRepository } from '../projects/projects.repository';
 import { sanitizeRequestUrl } from './detection.utils';
-import {
-  evaluateSignal,
-} from './detection.engine';
+import { evaluateSignal } from './detection.engine';
 import type { DetectionFinding, DetectionWindow, FindingSeverity, FindingType } from './detection.types';
 
 const WINDOW_MS = 15 * 60_000;
@@ -49,6 +47,103 @@ export class DetectionService {
     const startTimestamp = Math.floor(start.getTime() / 1000);
     const endTimestamp = Math.floor(end.getTime() / 1000);
 
+    const [currentBuckets, baselineBuckets] = await Promise.all([
+      this.searchServiceBuckets(orgId, projectId, startTimestamp, endTimestamp),
+      this.searchServiceBuckets(
+        orgId,
+        projectId,
+        startTimestamp - Math.floor(WINDOW_MS / 1000),
+        startTimestamp,
+      ),
+    ]);
+    const baselineByService = new Map(
+      baselineBuckets.map((bucket) => [
+        bucket.key,
+        {
+          latency: this.getLatency(bucket),
+          errorRate: this.getErrorRate(bucket),
+          samples: bucket.doc_count,
+        },
+      ]),
+    );
+    const detected: DetectionFinding[] = [];
+
+    for (const bucket of currentBuckets) {
+      const p95 = this.getLatency(bucket);
+      const errorRate = this.getErrorRate(bucket);
+      const baseline = baselineByService.get(bucket.key);
+
+      const latencySignal = evaluateSignal(
+        'latency',
+        p95,
+        baseline
+          ? { value: baseline.latency, samples: baseline.samples }
+          : undefined,
+      );
+      if (latencySignal) {
+        detected.push(await this.persistFinding({
+          orgId,
+          projectId,
+          serviceName: bucket.key,
+          type: latencySignal.type,
+          severity: latencySignal.severity,
+          title: 'High latency detected in ' + bucket.key,
+          description: this.describeSignal('The 95th percentile request latency is ' + Math.round(p95) + 'ms over the last 15 minutes.', latencySignal),
+          observedValue: latencySignal.observedValue,
+          threshold: latencySignal.threshold,
+          unit: latencySignal.unit,
+          start,
+          end,
+          evidence: await this.requestEvidence(orgId, projectId, bucket.key, startTimestamp, endTimestamp, 'latency'),
+        }));
+      }
+
+      const errorSignal = evaluateSignal(
+        'error_rate',
+        errorRate,
+        baseline
+          ? { value: baseline.errorRate, samples: baseline.samples }
+          : undefined,
+      );
+      if (errorSignal) {
+        detected.push(await this.persistFinding({
+          orgId,
+          projectId,
+          serviceName: bucket.key,
+          type: errorSignal.type,
+          severity: errorSignal.severity,
+          title: 'Elevated error rate in ' + bucket.key,
+          description: this.describeSignal('HTTP 5xx responses account for ' + errorRate.toFixed(2) + '% of requests over the last 15 minutes.', errorSignal),
+          observedValue: errorSignal.observedValue,
+          threshold: errorSignal.threshold,
+          unit: errorSignal.unit,
+          start,
+          end,
+          evidence: await this.requestEvidence(orgId, projectId, bucket.key, startTimestamp, endTimestamp, 'error_rate'),
+        }));
+      }
+    }
+
+    return detected;
+  }
+
+  async list(orgId: string, projectId: string, limit = 50) {
+    await this.assertProjectAccess(orgId, projectId);
+
+    return db
+      .select()
+      .from(findings)
+      .where(and(eq(findings.orgId, orgId), eq(findings.projectId, projectId)))
+      .orderBy(desc(findings.detectedAt))
+      .limit(Math.min(Math.max(limit, 1), 100));
+  }
+
+  private async searchServiceBuckets(
+    orgId: string,
+    projectId: string,
+    startTimestamp: number,
+    endTimestamp: number,
+  ): Promise<ServiceBucket[]> {
     const result = await this.quickwit.search<never>(QUICKWIT_INDEXES.requests, {
       query: quickwitTenantQuery(orgId, projectId),
       startTimestamp,
@@ -73,66 +168,27 @@ export class DetectionService {
       },
     });
 
-    const buckets = (result.aggregations as Aggregations | undefined)?.services?.buckets ?? [];
-    const detected: DetectionFinding[] = [];
-
-    for (const bucket of buckets) {
-      const p95 = bucket.latency?.values?.['95.0'] ?? 0;
-      const total = bucket.doc_count;
-      const errors = bucket.errors?.doc_count ?? 0;
-      const errorRate = total ? (errors / total) * 100 : 0;
-
-      const latencySignal = evaluateSignal('latency', p95);
-      if (latencySignal) {
-        detected.push(await this.persistFinding({
-          orgId,
-          projectId,
-          serviceName: bucket.key,
-          type: latencySignal.type,
-          severity: latencySignal.severity,
-          title: 'High latency detected in ' + bucket.key,
-          description: 'The 95th percentile request latency is ' + Math.round(p95) + 'ms over the last 15 minutes.',
-          observedValue: latencySignal.observedValue,
-          threshold: latencySignal.threshold,
-          unit: latencySignal.unit,
-          start,
-          end,
-          evidence: await this.requestEvidence(orgId, projectId, bucket.key, startTimestamp, endTimestamp, 'latency'),
-        }));
-      }
-
-      const errorSignal = evaluateSignal('error_rate', errorRate);
-      if (errorSignal) {
-        detected.push(await this.persistFinding({
-          orgId,
-          projectId,
-          serviceName: bucket.key,
-          type: errorSignal.type,
-          severity: errorSignal.severity,
-          title: 'Elevated error rate in ' + bucket.key,
-          description: 'HTTP 5xx responses account for ' + errorRate.toFixed(2) + '% of requests over the last 15 minutes.',
-          observedValue: errorSignal.observedValue,
-          threshold: errorSignal.threshold,
-          unit: errorSignal.unit,
-          start,
-          end,
-          evidence: await this.requestEvidence(orgId, projectId, bucket.key, startTimestamp, endTimestamp, 'error_rate'),
-        }));
-      }
-    }
-
-    return detected;
+    return (result.aggregations as Aggregations | undefined)?.services?.buckets ?? [];
   }
 
-  async list(orgId: string, projectId: string, limit = 50) {
-    await this.assertProjectAccess(orgId, projectId);
+  private getLatency(bucket: ServiceBucket): number {
+    return bucket.latency?.values?.['95.0'] ?? 0;
+  }
 
-    return db
-      .select()
-      .from(findings)
-      .where(and(eq(findings.orgId, orgId), eq(findings.projectId, projectId)))
-      .orderBy(desc(findings.detectedAt))
-      .limit(Math.min(Math.max(limit, 1), 100));
+  private getErrorRate(bucket: ServiceBucket): number {
+    const errors = bucket.errors?.doc_count ?? 0;
+    return bucket.doc_count ? (errors / bucket.doc_count) * 100 : 0;
+  }
+
+  private describeSignal(
+    description: string,
+    signal: ReturnType<typeof evaluateSignal>,
+  ): string {
+    if (signal?.baselineValue === undefined || signal.changePercent === undefined) {
+      return description;
+    }
+
+    return description + ' This is a ' + signal.changePercent.toFixed(0) + '% increase from the previous comparable window.';
   }
 
   private async assertProjectAccess(orgId: string, projectId: string): Promise<void> {
