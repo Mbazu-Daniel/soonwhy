@@ -7,6 +7,12 @@ dist/
 build/
 .output/
 
+# TypeScript build artifacts (declarations, source maps)
+*.js.map
+*.d.ts
+*.d.ts.map
+tsconfig.tsbuildinfo
+
 # IDE
 .vscode/
 .idea/
