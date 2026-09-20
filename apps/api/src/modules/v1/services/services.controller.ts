@@ -1,11 +1,11 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto';
 import { CurrentOrg, OrgContext } from '../../../common/decorators/current-org.decorator';
 import { TenantGuard } from '../../../common/middleware/tenant-context.guard';
 
 @UseGuards(TenantGuard)
-@Controller('services')
+@Controller('projects/:projectId/services')
 export class ServicesController {
   constructor(private readonly servicesService: ServicesService) {}
 
@@ -13,7 +13,7 @@ export class ServicesController {
   async createService(
     @CurrentOrg() org: OrgContext,
     @Body() body: unknown,
-    @Query('projectId') projectId: string,
+    @Param('projectId') projectId: string,
   ) {
     const input = CreateServiceDto.parse(body);
     return this.servicesService.createService(projectId, org.orgId, input);
@@ -22,7 +22,7 @@ export class ServicesController {
   @Get()
   async getServicesForProject(
     @CurrentOrg() org: OrgContext,
-    @Query('projectId') projectId: string,
+    @Param('projectId') projectId: string,
   ) {
     return this.servicesService.getServicesForProject(projectId, org.orgId);
   }
