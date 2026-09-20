@@ -11,7 +11,7 @@ export interface TraceSpan extends TraceRow {
 export class TracesService {
   constructor(private readonly tracesRepository: TracesRepository) {}
 
-  async listTraces(orgId: string, input: GetTracesInput) {
+  async listTraces(orgId: string, projectId: string, input: GetTracesInput) {
     const { from, to } = chRange(input.from, input.to);
 
     let cursor: { ts: string; traceId: string } | undefined;
@@ -26,7 +26,7 @@ export class TracesService {
 
     const rows = await this.tracesRepository.listTraces({
       orgId,
-      projectId: input.projectId,
+      projectId,
       from,
       to,
       limit: input.limit,
