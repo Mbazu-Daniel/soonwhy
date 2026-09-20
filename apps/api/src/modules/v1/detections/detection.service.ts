@@ -50,10 +50,13 @@ interface TraceSource {
   service?: string;
   traceId?: string;
   spanId?: string;
+  parentSpanId?: string;
   name?: string;
   duration?: number;
   dependencyName?: string;
   dependencyType?: string;
+  spanKind?: number;
+  attributes?: Record<string, string | number | boolean | null>;
 }
 
 @Injectable()
