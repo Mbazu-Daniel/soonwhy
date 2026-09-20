@@ -41,3 +41,8 @@ dist/
 
 # Turbo
 .turbo/
+
+# Repository documentation files
+*.md
+*.txt
+!README.md
