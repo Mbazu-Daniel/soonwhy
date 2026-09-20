@@ -48,7 +48,57 @@ export function mapSpanToTraceRow(span: ParsedSpan, tenant: TenantContext) {
     parentSpanId: span.parentSpanId || '',
     name: span.name || '',
     duration: span.durationMs,
+    spanKind: span.kind,
+    dependencyType: getDependencyType(span),
+    dependencyName: getDependencyName(span),
   };
+}
+
+function getDependencyType(span: ParsedSpan): string {
+  if (span.kind !== 3) return '';
+
+  if (
+    span.attributes['db.system.name'] ||
+    span.attributes['db.system'] ||
+    span.attributes.db_system
+  ) {
+    return 'database';
+  }
+
+  if (
+    span.attributes['rpc.system'] ||
+    span.attributes['rpc.service.name'] ||
+    span.attributes['rpc.service']
+  ) {
+    return 'rpc';
+  }
+
+  if (
+    span.attributes['http.request.method'] ||
+    span.attributes['http.method'] ||
+    span.attributes['url.full'] ||
+    span.attributes['http.url']
+  ) {
+    return 'http';
+  }
+
+  return 'service';
+}
+
+function getDependencyName(span: ParsedSpan): string {
+  if (span.kind !== 3) return '';
+
+  return String(
+    span.attributes['db.system.name'] ??
+      span.attributes['db.system'] ??
+      span.attributes['server.address'] ??
+      span.attributes['network.peer.address'] ??
+      span.attributes['rpc.service.name'] ??
+      span.attributes['rpc.service'] ??
+      span.resource.serviceName ??
+      span.name ??
+      '',
+  );
 }
 
 export function mapSpanToRequestRow(span: ParsedSpan, tenant: TenantContext) {
