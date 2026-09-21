@@ -137,7 +137,7 @@ export class IngestController {
       if (error instanceof UnauthorizedException) throw error;
       this.logger.error(`OTLP ${signal} failed`, error as Error);
       this.metrics.recordError();
-      return this.sendError(res, 400, error instanceof Error ? error.message : 'Bad request');
+      return this.sendError(res, 400, `Invalid OTLP ${signal} request`);
     }
   }
 

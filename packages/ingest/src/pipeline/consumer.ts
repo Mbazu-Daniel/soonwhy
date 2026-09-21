@@ -54,7 +54,7 @@ export class IngestConsumer implements OnModuleInit {
     await this.nats.subscribe(
       'ingest.dlq.>',
       async (msg) => {
-        this.logger.warn(`DLQ message on ${msg.subject}: ${new TextDecoder().decode(msg.data).slice(0, 500)}`);
+        this.logger.warn(`DLQ message on ${msg.subject}`);
         msg.ack();
       },
       { durable: 'ingest-dlq', maxDeliver: 3 },
