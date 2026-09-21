@@ -218,6 +218,7 @@ export class DetectionService {
       if (!signal) continue;
 
       const [serviceName, dependencyType, dependencyName] = dependency.key.split('|');
+      if (!serviceName || !dependencyType || !dependencyName) continue;
 
       detected.push(await this.persistFinding({
         orgId,
