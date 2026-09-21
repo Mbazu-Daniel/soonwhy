@@ -31,7 +31,7 @@ describe('OTLP JSON parse + telemetry mappers', () => {
                   timeUnixNano: String(BigInt(Date.now()) * 1_000_000n),
                   severityNumber: 9,
                   severityText: 'INFO',
-                  body: { stringValue: 'hello' },
+                  body: { stringValue: 'request failed authorization=Bearer super-secret password=secret123' },
                   traceId: 'a'.repeat(32),
                   spanId: 'b'.repeat(16),
                   attributes: [
@@ -62,6 +62,10 @@ describe('OTLP JSON parse + telemetry mappers', () => {
     expect(attrs['order.id']).toBe('order_123');
     expect(attrs.authorization).toBeUndefined();
     expect(attrs.api_key).toBeUndefined();
+    expect(row.message).not.toContain('super-secret');
+    expect(row.message).not.toContain('secret123');
+    expect(row.message).toContain('authorization=');
+    expect(row.message).toContain('password=');
   });
 
   it('maps spans to traces and HTTP server spans to canonical request events', () => {
@@ -93,7 +97,7 @@ describe('OTLP JSON parse + telemetry mappers', () => {
                   attributes: [
                     { key: 'http.request.method', value: { stringValue: 'GET' } },
                     { key: 'http.route', value: { stringValue: '/users' } },
-                    { key: 'url.path', value: { stringValue: '/users' } },
+                    { key: 'url.path', value: { stringValue: '/users?api_key=secret&token=abc' } },
                     { key: 'http.response.status_code', value: { intValue: 200 } },
                   ],
                 },
