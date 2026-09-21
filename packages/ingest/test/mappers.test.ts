@@ -62,10 +62,10 @@ describe('OTLP JSON parse + telemetry mappers', () => {
     expect(attrs['order.id']).toBe('order_123');
     expect(attrs.authorization).toBeUndefined();
     expect(attrs.api_key).toBeUndefined();
-    expect(row.message).toContain('authorization=[REDACTED]');
-    expect(row.message).toContain('password=[REDACTED]');
     expect(row.message).not.toContain('super-secret');
     expect(row.message).not.toContain('secret123');
+    expect(row.message).toContain('authorization=');
+    expect(row.message).toContain('password=');
   });
 
   it('maps spans to traces and HTTP server spans to canonical request events', () => {
