@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '../../../common/db';
+import type { DetectionEvidence } from '../../../common/db/schema/findings';
 import type { QuickwitService } from '@soonwhy/shared';
 import type { ProjectsRepository } from '../projects/projects.repository';
 import { DetectionService } from './detection.service';
@@ -18,7 +19,7 @@ describe('DetectionService realistic telemetry scenarios', () => {
 
     let sequence = 0;
     vi.mocked(db.insert).mockImplementation(() => ({
-      values: vi.fn().mockImplementation((input: { type: string }) => ({
+      values: vi.fn().mockImplementation((input: { type: string; evidence?: DetectionEvidence[] }) => ({
         returning: vi.fn().mockResolvedValue([{
           id: 'finding-' + (++sequence),
           projectId: 'project-1',
