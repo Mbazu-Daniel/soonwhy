@@ -7,6 +7,12 @@ export type { TenantContext };
 const SENSITIVE_ATTRIBUTE_PATTERN =
   /authorization|cookie|set-cookie|password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|credit[_-]?card|card[_-]?number|cvv|request\.body|response\.body/i;
 
+const SENSITIVE_TEXT_PATTERNS = [
+  /(authorization\s*[:=]\s*bearer\s+)[^\s,;]+/gi,
+  /((?:password|passwd|token|api[_-]?key|access[_-]?key|secret|client[_-]?secret|private[_-]?key)\s*[:=]\s*)[^\s,;]+/gi,
+  /((?:cookie|set-cookie)\s*[:=]\s*)[^\n]+/gi,
+];
+
 function telemetryTimestamp(isoOrMs: string | number): string {
   const date =
     typeof isoOrMs === 'number'
@@ -43,6 +49,28 @@ function safeLogAttributes(attributes: Record<string, unknown>): Record<string, 
   return Object.fromEntries(
     Object.entries(attributes).filter(([key]) => !SENSITIVE_ATTRIBUTE_PATTERN.test(key)),
   );
+}
+
+function sanitizeSensitiveText(value: string): string {
+  return SENSITIVE_TEXT_PATTERNS.reduce(
+    (text, pattern) => text.replace(pattern, '$1[REDACTED]'),
+    value,
+  );
+}
+
+function sanitizeRequestUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+
+  try {
+    if (/^https?:\/\//i.test(trimmed)) {
+      return new URL(trimmed).pathname || '/';
+    }
+  } catch {
+    // Fall back to stripping the query/hash from malformed URLs.
+  }
+
+  return trimmed.split(/[?#]/, 1)[0] || '/';
 }
 
 export function mapSpanToTraceRow(span: ParsedSpan, tenant: TenantContext) {
@@ -161,7 +189,7 @@ export function mapSpanToRequestRow(span: ParsedSpan, tenant: TenantContext) {
     parentSpanId: span.parentSpanId || '',
     method,
     route,
-    url,
+    url: sanitizeRequestUrl(url),
     statusCode: Number.isFinite(statusCode) ? statusCode : 0,
     duration: span.durationMs,
     userAgent: String(span.attributes['user_agent.original'] ?? ''),
@@ -197,9 +225,9 @@ export function mapLogToRow(record: ParsedLogRecord, tenant: TenantContext) {
     traceId: record.traceId || '',
     spanId: record.spanId || '',
     level: record.severityLevel,
-    message: record.message,
+    message: sanitizeSensitiveText(record.message),
     attributes: attrs,
-    stackTrace: String(safeAttributes['exception.stacktrace'] ?? ''),
+    stackTrace: sanitizeSensitiveText(String(safeAttributes['exception.stacktrace'] ?? '')),
   };
 }
 
