@@ -63,6 +63,7 @@ export class DetectionService {
           latency: this.getLatency(bucket),
           errorRate: this.getErrorRate(bucket),
           requests: bucket.doc_count,
+          samples: bucket.doc_count,
         },
       ]),
     );
