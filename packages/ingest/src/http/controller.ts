@@ -25,10 +25,15 @@ import { parseMetricsPayload } from '../parse/metrics';
 import { decodeProtobufPayload, encodePartialSuccess } from '../parse/protobuf';
 
 type Signal = 'trace' | 'log' | 'metric';
+type ParsedPayload = Record<string, unknown>;
 
 const SIGNAL_META: Record<
   Signal,
-  { rejectedField: string; label: string; parse: (p: any) => { items: unknown[]; rejected: number } }
+  {
+    rejectedField: string;
+    label: string;
+    parse: (p: ParsedPayload) => { items: unknown[]; rejected: number };
+  }
 > = {
   trace: {
     rejectedField: 'rejectedSpans',
