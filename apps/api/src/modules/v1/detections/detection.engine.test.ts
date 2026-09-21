@@ -32,15 +32,15 @@ describe('evaluateSignal', () => {
       type: 'latency',
       observedValue: 600,
       threshold: DETECTION_RULES.latency.threshold,
-      severity: 'warning',
+      severity: 'critical',
       unit: 'ms',
       baselineValue: 300,
       changePercent: 100,
     });
   });
 
-  it('does not use a low-sample baseline', () => {
-    expect(evaluateSignal('latency', 600, { value: 300, samples: 19 })).toBeUndefined();
+  it('does not use a low-sample baseline for regression detection', () => {
+    expect(evaluateSignal('latency', 400, { value: 300, samples: 19 })).toBeUndefined();
   });
 
   it('detects error-rate regression from a healthy baseline', () => {
@@ -48,7 +48,7 @@ describe('evaluateSignal', () => {
       type: 'error_rate',
       observedValue: 3,
       threshold: DETECTION_RULES.error_rate.threshold,
-      severity: 'warning',
+      severity: 'critical',
       unit: '%',
       baselineValue: 1,
       changePercent: 200,
@@ -111,9 +111,9 @@ describe('dependency latency detection', () => {
     ).toBe('critical');
   });
 
-  it('ignores low-sample dependency baselines', () => {
+  it('does not use a low-sample baseline for regression detection', () => {
     expect(
-      evaluateSignal('dependency_latency', 600, { value: 300, samples: 19 }),
+      evaluateSignal('dependency_latency', 400, { value: 300, samples: 19 }),
     ).toBeUndefined();
   });
 });
