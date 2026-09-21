@@ -32,9 +32,7 @@ describe('DetectionService realistic telemetry scenarios', () => {
           unit: 'ms',
           windowStart: new Date('2026-09-20T18:00:00.000Z'),
           windowEnd: new Date('2026-09-20T18:15:00.000Z'),
-          evidence: input.type === 'bottleneck'
-            ? [{ kind: 'trace', label: 'correlated-trace', value: 'trace-checkout-001', context: { traceId: 'trace-checkout-001' } }]
-            : [],
+          evidence: input.evidence ?? [],
         }]),
       })),
     } as never));
