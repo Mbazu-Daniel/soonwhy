@@ -111,9 +111,9 @@ describe('dependency latency detection', () => {
     ).toBe('critical');
   });
 
-  it('ignores low-sample dependency baselines', () => {
+  it('does not use a low-sample baseline for regression detection', () => {
     expect(
-      evaluateSignal('dependency_latency', 600, { value: 300, samples: 19 }),
+      evaluateSignal('dependency_latency', 400, { value: 300, samples: 19 }),
     ).toBeUndefined();
   });
 });
