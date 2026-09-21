@@ -5,12 +5,12 @@ import type { ParsedLogRecord, ParsedMetricPoint, ParsedSpan, TenantContext } fr
 export type { TenantContext };
 
 const SENSITIVE_ATTRIBUTE_PATTERN =
-  /authorization|cookie|set-cookie|password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|credit[_-]?card|card[_-]?number|cvv|request\\.body|response\\.body/i;
+  /authorization|cookie|set-cookie|password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|credit[_-]?card|card[_-]?number|cvv|request\.body|response\.body/i;
 
 const SENSITIVE_TEXT_PATTERNS = [
-  /(authorization\\s*[:=]\\s*bearer\\s+)[^\\s,;]+/gi,
-  /((?:password|passwd|token|api[_-]?key|access[_-]?key|secret|client[_-]?secret|private[_-]?key)\\s*[:=]\\s*)[^\\s,;]+/gi,
-  /((?:cookie|set-cookie)\\s*[:=]\\s*)[^\\n]+/gi,
+  /(authorization\s*[:=]\s*bearer\s+)[^\s,;]+/gi,
+  /((?:password|passwd|token|api[_-]?key|access[_-]?key|secret|client[_-]?secret|private[_-]?key)\s*[:=]\s*)[^\s,;]+/gi,
+  /((?:cookie|set-cookie)\s*[:=]\s*)[^\n]+/gi,
 ];
 
 function telemetryTimestamp(isoOrMs: string | number): string {
@@ -63,7 +63,7 @@ function sanitizeRequestUrl(value: string): string {
   if (!trimmed) return '';
 
   try {
-    if (/^https?:\\/\\//i.test(trimmed)) {
+    if (/^https?:\/\//i.test(trimmed)) {
       return new URL(trimmed).pathname || '/';
     }
   } catch {
