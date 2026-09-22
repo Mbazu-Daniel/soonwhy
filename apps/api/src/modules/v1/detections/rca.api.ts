@@ -37,7 +37,7 @@ export class RcaApiService {
     }
 
     try {
-      const analysis = await this.orchestrator.analyze(projectId, bottleneck);
+      const result = await this.orchestrator.analyze(projectId, bottleneck);
       const evidence = buildRcaEvidence(projectId, bottleneck);
       return this.persistence.persist({
         orgId,
