@@ -1,4 +1,4 @@
-import type { RcaAnalysis, RcaEvidence } from './rca.types';
+import type { RcaAnalysis, RcaEvidence, RcaUsage } from './rca.types';
 import { RcaAnalysisRepository, type CreateRcaAnalysisInput } from './rca.repository';
 
 export interface PersistRcaAnalysisInput {
@@ -30,7 +30,7 @@ export class RcaPersistenceService {
       evidenceRefs: input.analysis.evidenceRefs,
       limitations: input.analysis.limitations,
       confidence: input.analysis.confidence,
-      evidenceSnapshot: JSON.parse(JSON.stringify(input.evidence)) as Record<string, unknown>,
+      evidenceSnapshot: JSON.parse(JSON.stringify({ ...input.evidence, rcaUsage: input.usage })) as Record<string, unknown>,
       provider: input.provider,
       model: input.model,
       promptVersion: input.promptVersion,
