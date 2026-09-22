@@ -11,7 +11,12 @@ export class RcaService {
     bottleneck: CorrelatedBottleneck,
   ): Promise<RcaProviderResult> {
     const evidence = buildRcaEvidence(projectId, bottleneck);
-    const analysis = await this.provider.analyze(evidence);
-    return validateRcaAnalysis(analysis, evidence);
+    const result = await this.provider.analyze(evidence);
+
+    return {
+      analysis: validateRcaAnalysis(result.analysis, evidence),
+      usage: result.usage,
+      promptVersion: result.promptVersion,
+    };
   }
 }

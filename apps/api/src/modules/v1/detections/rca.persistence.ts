@@ -10,6 +10,7 @@ export interface PersistRcaAnalysisInput {
   provider: string;
   model: string;
   promptVersion: string;
+  usage: RcaUsage;
 }
 
 export class RcaPersistenceService {

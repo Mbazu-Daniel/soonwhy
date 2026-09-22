@@ -2,7 +2,22 @@ import type { RcaEvidence } from './rca.types';
 
 export const RCA_PROMPT_VERSION = 'v2';
 
-const SYSTEM_PROMPT = [
+export interface RcaPromptDefinition {
+  version: string;
+  systemPrompt: string;
+  schema: {
+    summary: 'string';
+    rootCause: 'string';
+    contributingFactors: string[];
+    investigationSteps: string[];
+    suggestedChanges: string[];
+    evidenceRefs: string[];
+    confidence: 'low | medium | high';
+    limitations: string[];
+  };
+}
+
+const BASE_SYSTEM_PROMPT = [
   'You are Soonwhy RCA, an observability root-cause analysis assistant.',
   'Analyze only the supplied structured telemetry evidence.',
   'Do not invent services, traces, metrics, causes, or remediation results.',
@@ -16,23 +31,62 @@ const SYSTEM_PROMPT = [
   'Return valid JSON matching the requested schema and no markdown.',
 ].join(' ');
 
-export function buildRcaPrompt(evidence: RcaEvidence): string {
-  const schema = {
-    summary: 'string',
-    rootCause: 'string',
-    contributingFactors: ['string'],
-    investigationSteps: ['string'],
-    suggestedChanges: ['string'],
-    evidenceRefs: ['string'],
-    confidence: 'low | medium | high',
-    limitations: ['string'],
-  };
+const RCA_PROMPT_DEFINITIONS: Record<string, RcaPromptDefinition> = {
+  v1: {
+    version: 'v1',
+    systemPrompt: [
+      'You are Soonwhy RCA, an observability root-cause analysis assistant.',
+      'Analyze only the supplied structured telemetry evidence.',
+      'Do not invent services, traces, metrics, causes, or remediation results.',
+      'Use evidenceRefs to reference only IDs present in the supplied evidence.',
+      'Return valid JSON matching the requested schema and no markdown.',
+    ].join(' '),
+    schema: {
+      summary: 'string',
+      rootCause: 'string',
+      contributingFactors: ['string'],
+      investigationSteps: ['string'],
+      suggestedChanges: ['string'],
+      evidenceRefs: ['string'],
+      confidence: 'low | medium | high',
+      limitations: ['string'],
+    },
+  },
+  v2: {
+    version: 'v2',
+    systemPrompt: BASE_SYSTEM_PROMPT,
+    schema: {
+      summary: 'string',
+      rootCause: 'string',
+      contributingFactors: ['string'],
+      investigationSteps: ['string'],
+      suggestedChanges: ['string'],
+      evidenceRefs: ['string'],
+      confidence: 'low | medium | high',
+      limitations: ['string'],
+    },
+  },
+};
+
+export function getRcaPromptDefinition(version = RCA_PROMPT_VERSION): RcaPromptDefinition {
+  const definition = RCA_PROMPT_DEFINITIONS[version];
+  if (!definition) throw new Error(`Unsupported RCA prompt version: ${version}`);
+  return definition;
+}
+
+export function buildRcaPrompt(
+  evidence: RcaEvidence,
+  version = RCA_PROMPT_VERSION,
+): string {
+  const definition = getRcaPromptDefinition(version);
 
   return [
-    SYSTEM_PROMPT,
+    definition.systemPrompt,
+    '',
+    `Prompt version: ${definition.version}`,
     '',
     'Output schema:',
-    JSON.stringify(schema),
+    JSON.stringify(definition.schema),
     '',
     'Evidence:',
     JSON.stringify(evidence),
