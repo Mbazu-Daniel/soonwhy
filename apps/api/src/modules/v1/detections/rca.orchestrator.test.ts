@@ -14,33 +14,19 @@ describe('RcaOrchestrator', () => {
       confidence: 'medium' as const,
       limitations: [],
     };
-    const rcaService = {
-      analyze: vi.fn().mockResolvedValue(analysis),
-    };
-    const provider = { analyze: vi.fn() };
-
-    const orchestrator = new RcaOrchestrator(rcaService, provider);
+    const rcaService = { analyze: vi.fn().mockResolvedValue(analysis) };
+    const orchestrator = new RcaOrchestrator(rcaService);
 
     await expect(
-      orchestrator.analyze(
-        'project_123',
-        {
-          serviceName: 'checkout-api',
-          latency: {} as CorrelatedBottleneck['latency'],
-          supportingFindings: [],
-          recommendation: 'Inspect the dependency.',
-          traceIds: [],
-        },
-      ),
+      orchestrator.analyze('project_123', {
+        serviceName: 'checkout-api',
+        latency: {} as CorrelatedBottleneck['latency'],
+        supportingFindings: [],
+        recommendation: 'Inspect the dependency.',
+        traceIds: [],
+      }),
     ).resolves.toEqual(analysis);
 
     expect(rcaService.analyze).toHaveBeenCalledOnce();
-  });
-
-  it('reports provider configuration state', () => {
-    const service = { analyze: vi.fn() };
-    const provider = { analyze: vi.fn() };
-
-    expect(new RcaOrchestrator(service, provider).isConfigured()).toBe(true);
   });
 });
