@@ -1,6 +1,6 @@
 import { RcaAnalysisSchema } from './rca.validation';
-import { buildRcaPrompt } from './rca.prompt';
-import type { RcaEvidence, RcaProvider } from './rca.types';
+import { buildRcaPrompt, RCA_PROMPT_VERSION } from './rca.prompt';
+import type { RcaEvidence, RcaProvider, RcaProviderResult } from './rca.types';
 
 export interface OpenAiCompatibleRcaProviderConfig {
   apiKey: string;
@@ -8,28 +8,44 @@ export interface OpenAiCompatibleRcaProviderConfig {
   baseUrl?: string;
   timeoutMs?: number;
   maxPromptCharacters?: number;
+  maxRetries?: number;
+  inputCostPerMillionTokensUsd?: number;
+  outputCostPerMillionTokensUsd?: number;
+  promptVersion?: string;
 }
 
-interface OpenAiUsage {\n  prompt_tokens?: number;\n  completion_tokens?: number;\n  total_tokens?: number;\n}\n\ninterface ChatCompletionResponse {
+interface OpenAiUsage {
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  total_tokens?: number;
+}
+
+interface ChatCompletionResponse {
   choices?: Array<{ message?: { content?: string | null } }>;
+  usage?: OpenAiUsage;
 }
 
 export class OpenAiCompatibleRcaProvider implements RcaProvider {
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
-  private readonly maxPromptCharacters: number;\n  private readonly maxRetries: number;
+  private readonly maxPromptCharacters: number;
+  private readonly maxRetries: number;
+  private readonly promptVersion: string;
 
   constructor(private readonly config: OpenAiCompatibleRcaProviderConfig) {
     this.baseUrl = (config.baseUrl ?? 'https://api.openai.com/v1').replace(/\/$/, '');
     this.timeoutMs = config.timeoutMs ?? 30_000;
-    this.maxPromptCharacters = config.maxPromptCharacters ?? 30_000;\n    this.maxRetries = config.maxRetries ?? 1;\n\n    if (this.maxRetries < 0) throw new Error('RCA provider max retries cannot be negative');
+    this.maxPromptCharacters = config.maxPromptCharacters ?? 30_000;
+    this.maxRetries = config.maxRetries ?? 1;
+    this.promptVersion = config.promptVersion ?? RCA_PROMPT_VERSION;
 
+    if (this.maxRetries < 0) throw new Error('RCA provider max retries cannot be negative');
     if (!config.apiKey.trim()) throw new Error('RCA provider API key is required');
     if (!config.model.trim()) throw new Error('RCA provider model is required');
   }
 
-  async analyze(input: RcaEvidence) {
-    const prompt = buildRcaPrompt(input);
+  async analyze(input: RcaEvidence): Promise<RcaProviderResult> {
+    const prompt = buildRcaPrompt(input, this.promptVersion);
     if (prompt.length > this.maxPromptCharacters) {
       throw new Error('RCA evidence exceeds the provider prompt size limit');
     }
@@ -61,6 +77,7 @@ export class OpenAiCompatibleRcaProvider implements RcaProvider {
 
         return {
           analysis,
+          promptVersion: this.promptVersion,
           usage: {
             requestDurationMs: Date.now() - startedAt,
             inputTokens,
@@ -99,7 +116,10 @@ export class OpenAiCompatibleRcaProvider implements RcaProvider {
 
       if (!response.ok) {
         const detail = (await response.text()).slice(0, 500);
-        throw new RcaProviderRequestError(response.status, `RCA provider request failed (${response.status}): ${detail}`);
+        throw new RcaProviderRequestError(
+          response.status,
+          `RCA provider request failed (${response.status}): ${detail}`,
+        );
       }
 
       return (await response.json()) as ChatCompletionResponse;
@@ -126,87 +146,6 @@ export class OpenAiCompatibleRcaProvider implements RcaProvider {
     if (inputRate === undefined || outputRate === undefined) return undefined;
     return (inputTokens / 1_000_000) * inputRate
       + (outputTokens / 1_000_000) * outputRate;
-  }rt { RcaAnalysisSchema } from './rca.validation';
-import { buildRcaPrompt } from './rca.prompt';
-import type { RcaEvidence, RcaProvider } from './rca.types';
-
-export interface OpenAiCompatibleRcaProviderConfig {
-  apiKey: string;
-  model: string;
-  baseUrl?: string;
-  timeoutMs?: number;
-  maxPromptCharacters?: number;
-}
-
-interface OpenAiUsage {\n  prompt_tokens?: number;\n  completion_tokens?: number;\n  total_tokens?: number;\n}\n\ninterface ChatCompletionResponse {
-  choices?: Array<{ message?: { content?: string | null } }>;
-}
-
-export class OpenAiCompatibleRcaProvider implements RcaProvider {
-  private readonly baseUrl: string;
-  private readonly timeoutMs: number;
-  private readonly maxPromptCharacters: number;\n  private readonly maxRetries: number;
-
-  constructor(private readonly config: OpenAiCompatibleRcaProviderConfig) {
-    this.baseUrl = (config.baseUrl ?? 'https://api.openai.com/v1').replace(/\/$/, '');
-    this.timeoutMs = config.timeoutMs ?? 30_000;
-    this.maxPromptCharacters = config.maxPromptCharacters ?? 30_000;\n    this.maxRetries = config.maxRetries ?? 1;\n\n    if (this.maxRetries < 0) throw new Error('RCA provider max retries cannot be negative');
-
-    if (!config.apiKey.trim()) throw new Error('RCA provider API key is required');
-    if (!config.model.trim()) throw new Error('RCA provider model is required');
-  }
-
-  async analyze(input: RcaEvidence) {
-    const prompt = buildRcaPrompt(input);
-    if (prompt.length > this.maxPromptCharacters) {
-      throw new Error('RCA evidence exceeds the provider prompt size limit');
-    }
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
-
-    try {
-      const response = await fetch(`${this.baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          authorization: `Bearer ${this.config.apiKey}`,
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: this.config.model,
-          temperature: 0,
-          response_format: { type: 'json_object' },
-          messages: [{ role: 'user', content: prompt }],
-        }),
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        const detail = (await response.text()).slice(0, 500);
-        throw new Error(`RCA provider request failed (${response.status}): ${detail}`);
-      }
-
-      const payload = (await response.json()) as ChatCompletionResponse;
-      const content = payload.choices?.[0]?.message?.content;
-      if (!content) throw new Error('RCA provider returned an empty response');
-
-      let parsedJson: unknown;
-      try {
-        parsedJson = JSON.parse(content);
-      } catch {
-        throw new Error('RCA provider returned invalid JSON');
-      }
-
-      return RcaAnalysisSchema.parse(parsedJson);
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        throw new Error('RCA provider request timed out');
-      }
-      if (error instanceof Error) throw error;
-      throw new Error('RCA provider request failed');
-    } finally {
-      clearTimeout(timeout);
-    }
   }
 }
 

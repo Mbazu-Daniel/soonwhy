@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { RcaService } from './rca.service';
 import { DisabledRcaProvider, OpenAiCompatibleRcaProvider } from './rca.provider';
 import { RCA_PROVIDER } from './rca.tokens';
+import { RCA_PROMPT_VERSION } from './rca.prompt';
 
 @Module({
   providers: [
@@ -17,6 +18,12 @@ import { RCA_PROVIDER } from './rca.tokens';
           apiKey,
           model,
           baseUrl: process.env.SOONWHY_RCA_BASE_URL,
+          timeoutMs: Number(process.env.SOONWHY_RCA_TIMEOUT_MS) || undefined,
+          maxPromptCharacters: Number(process.env.SOONWHY_RCA_MAX_PROMPT_CHARACTERS) || undefined,
+          maxRetries: Number(process.env.SOONWHY_RCA_MAX_RETRIES) || undefined,
+          inputCostPerMillionTokensUsd: Number(process.env.SOONWHY_RCA_INPUT_COST_PER_MILLION_TOKENS_USD) || undefined,
+          outputCostPerMillionTokensUsd: Number(process.env.SOONWHY_RCA_OUTPUT_COST_PER_MILLION_TOKENS_USD) || undefined,
+          promptVersion: process.env.SOONWHY_RCA_PROMPT_VERSION ?? RCA_PROMPT_VERSION,
         });
       },
     },
