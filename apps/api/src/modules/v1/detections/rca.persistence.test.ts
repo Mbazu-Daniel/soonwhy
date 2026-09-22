@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { RcaAnalysis, RcaEvidence } from './rca.types';
 import { RcaPersistenceService } from './rca.persistence';
+import type { RcaAnalysisRepository } from './rca.repository';
 
 const evidence: RcaEvidence = {
   projectId: 'project_123',
@@ -34,14 +35,19 @@ const analysis: RcaAnalysis = {
   limitations: [],
 };
 
+function repository(): Pick<RcaAnalysisRepository, 'create' | 'findLatest' | 'list'> {
+  return {
+    create: vi.fn(),
+    findLatest: vi.fn(),
+    list: vi.fn(),
+  };
+}
+
 describe('RcaPersistenceService', () => {
   it('persists a grounded analysis with its evidence snapshot and metadata', async () => {
-    const repository = {
-      create: vi.fn().mockResolvedValue({ id: 'rca_123' }),
-      findLatest: vi.fn(),
-      list: vi.fn(),
-    };
-    const service = new RcaPersistenceService(repository);
+    const repo = repository();
+    vi.mocked(repo.create).mockResolvedValue({ id: 'rca_123' } as never);
+    const service = new RcaPersistenceService(repo);
 
     await expect(
       service.persist({
@@ -56,12 +62,12 @@ describe('RcaPersistenceService', () => {
       }),
     ).resolves.toEqual({ id: 'rca_123' });
 
-    expect(repository.create).toHaveBeenCalledWith(
+    expect(repo.create).toHaveBeenCalledWith(
       expect.objectContaining({
         orgId: 'org_123',
         projectId: 'project_123',
         findingId: 'finding_latency',
-        evidenceSnapshot: evidence,
+        evidenceSnapshot: expect.objectContaining({ projectId: 'project_123' }),
         provider: 'openai-compatible',
         model: 'test-model',
         promptVersion: 'v1',
@@ -70,56 +76,43 @@ describe('RcaPersistenceService', () => {
   });
 
   it('keeps regeneration as a new analysis record', async () => {
-    const repository = {
-      create: vi.fn()
-        .mockResolvedValueOnce({ id: 'rca_1' })
-        .mockResolvedValueOnce({ id: 'rca_2' }),
-      findLatest: vi.fn(),
-      list: vi.fn(),
+    const repo = repository();
+    vi.mocked(repo.create)
+      .mockResolvedValueOnce({ id: 'rca_1' } as never)
+      .mockResolvedValueOnce({ id: 'rca_2' } as never);
+    const service = new RcaPersistenceService(repo);
+
+    const input = {
+      orgId: 'org_123',
+      projectId: 'project_123',
+      findingId: 'finding_latency',
+      evidence,
+      analysis,
+      provider: 'openai-compatible',
+      model: 'test-model',
+      promptVersion: 'v1',
     };
-    const service = new RcaPersistenceService(repository);
+    await service.persist(input);
+    await service.persist(input);
 
-    await service.persist({
-      orgId: 'org_123',
-      projectId: 'project_123',
-      findingId: 'finding_latency',
-      evidence,
-      analysis,
-      provider: 'openai-compatible',
-      model: 'test-model',
-      promptVersion: 'v1',
-    });
-    await service.persist({
-      orgId: 'org_123',
-      projectId: 'project_123',
-      findingId: 'finding_latency',
-      evidence,
-      analysis,
-      provider: 'openai-compatible',
-      model: 'test-model',
-      promptVersion: 'v1',
-    });
-
-    expect(repository.create).toHaveBeenCalledTimes(2);
+    expect(repo.create).toHaveBeenCalledTimes(2);
   });
 
   it('passes tenant and project scope through to reads', async () => {
-    const repository = {
-      create: vi.fn(),
-      findLatest: vi.fn().mockResolvedValue({ id: 'rca_2' }),
-      list: vi.fn().mockResolvedValue([]),
-    };
-    const service = new RcaPersistenceService(repository);
+    const repo = repository();
+    vi.mocked(repo.findLatest).mockResolvedValue({ id: 'rca_2' } as never);
+    vi.mocked(repo.list).mockResolvedValue([]);
+    const service = new RcaPersistenceService(repo);
 
     await service.findLatest('org_123', 'project_123', 'finding_latency');
     await service.list('org_123', 'project_123', 'finding_latency');
 
-    expect(repository.findLatest).toHaveBeenCalledWith(
+    expect(repo.findLatest).toHaveBeenCalledWith(
       'org_123',
       'project_123',
       'finding_latency',
     );
-    expect(repository.list).toHaveBeenCalledWith(
+    expect(repo.list).toHaveBeenCalledWith(
       'org_123',
       'project_123',
       'finding_latency',

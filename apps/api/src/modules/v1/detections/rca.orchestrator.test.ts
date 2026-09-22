@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { CorrelatedBottleneck } from './detection.correlation';
 import { RcaOrchestrator } from './rca.orchestrator';
+import type { RcaService } from './rca.service';
 
 describe('RcaOrchestrator', () => {
   it('delegates analysis to RcaService', async () => {
@@ -14,7 +15,9 @@ describe('RcaOrchestrator', () => {
       confidence: 'medium' as const,
       limitations: [],
     };
-    const rcaService = { analyze: vi.fn().mockResolvedValue(analysis) };
+    const rcaService: Pick<RcaService, 'analyze'> = {
+      analyze: vi.fn().mockResolvedValue(analysis),
+    };
     const orchestrator = new RcaOrchestrator(rcaService);
 
     await expect(

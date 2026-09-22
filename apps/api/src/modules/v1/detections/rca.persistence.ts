@@ -13,7 +13,7 @@ export interface PersistRcaAnalysisInput {
 }
 
 export class RcaPersistenceService {
-  constructor(private readonly repository: RcaAnalysisRepository) {}
+  constructor(private readonly repository: Pick<RcaAnalysisRepository, 'create' | 'findLatest' | 'list'>) {}
 
   async persist(input: PersistRcaAnalysisInput) {
     const values: CreateRcaAnalysisInput = {
@@ -30,7 +30,7 @@ export class RcaPersistenceService {
       evidenceRefs: input.analysis.evidenceRefs,
       limitations: input.analysis.limitations,
       confidence: input.analysis.confidence,
-      evidenceSnapshot: input.evidence,
+      evidenceSnapshot: JSON.parse(JSON.stringify(input.evidence)) as Record<string, unknown>,
       provider: input.provider,
       model: input.model,
       promptVersion: input.promptVersion,

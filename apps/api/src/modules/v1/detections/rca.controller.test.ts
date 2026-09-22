@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { RcaController } from './rca.controller';
 
+const org = { orgId: 'org_1', userRole: 'owner' };
+
 describe('RcaController', () => {
   it('gets the latest RCA for the current organization', async () => {
     const rcaApi = {
@@ -11,7 +13,7 @@ describe('RcaController', () => {
     const controller = new RcaController(rcaApi);
 
     await expect(controller.getLatest(
-      { orgId: 'org_1' },
+      org,
       'project_1',
       'finding_1',
     )).resolves.toEqual({ id: 'rca_1' });
@@ -28,7 +30,7 @@ describe('RcaController', () => {
     const controller = new RcaController(rcaApi);
 
     await expect(controller.generate(
-      { orgId: 'org_1' },
+      org,
       'project_1',
       'finding_1',
       { regenerate: true },
@@ -50,7 +52,7 @@ describe('RcaController', () => {
     });
 
     expect(() => controller.generate(
-      { orgId: 'org_1' },
+      org,
       'project_1',
       'finding_1',
       { unexpected: true },
