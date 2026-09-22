@@ -8,12 +8,12 @@ describe('RcaService', () => {
       analyze: vi.fn().mockResolvedValue({
         summary: 'Database latency is contributing to checkout latency.',
         rootCause: 'The evidence points to the database dependency.',
-        contributingFactors: [],
+        contributingFactors: ['Database latency increased.'],
         investigationSteps: ['Inspect the query plan.'],
-        suggestedChanges: ['Review indexes and query shape.'],
-        evidenceRefs: ['finding_latency:0'],
+        suggestedChanges: ['Candidate: review indexes and query shape.'],
+        evidenceRefs: ['finding_latency:0', 'finding_dependency:0'],
         confidence: 'medium',
-        limitations: [],
+        limitations: ['The exact query plan is not established.'],
       }),
     };
 
@@ -36,8 +36,28 @@ describe('RcaService', () => {
         },
         evidence: [],
       },
-      supportingFindings: [],
-      recommendation: 'Inspect the dominant operation.',
+      supportingFindings: [{
+        id: 'finding_dependency',
+        projectId: 'project_123',
+        serviceName: 'checkout-api',
+        type: 'dependency_latency',
+        severity: 'critical',
+        title: 'Slow database dependency',
+        description: 'database latency increased',
+        observedValue: 900,
+        threshold: 500,
+        unit: 'ms',
+        window: {
+          start: new Date('2026-09-22T00:00:00.000Z'),
+          end: new Date('2026-09-22T00:15:00.000Z'),
+        },
+        evidence: [{
+          kind: 'metric',
+          label: 'dependency-latency',
+          value: 900,
+        }],
+      }],
+      recommendation: 'Inspect the database query plan.',
       traceIds: [],
     } satisfies CorrelatedBottleneck;
 
