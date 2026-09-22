@@ -3,7 +3,6 @@ import { jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { organizations } from './organizations';
 import { projects } from './projects';
 import { findings } from './findings';
-import type { RcaAnalysis, RcaEvidence } from '../../../modules/v1/detections/rca.types';
 
 export const rcaAnalyses = pgTable('rca_analyses', {
   id: text('id').primaryKey().$defaultFn(() => generateId()),
@@ -20,7 +19,7 @@ export const rcaAnalyses = pgTable('rca_analyses', {
   evidenceRefs: jsonb('evidence_refs').$type<string[]>().notNull(),
   limitations: jsonb('limitations').$type<string[]>().notNull(),
   confidence: text('confidence').notNull(),
-  evidenceSnapshot: jsonb('evidence_snapshot').$type<RcaEvidence>().notNull(),
+  evidenceSnapshot: jsonb('evidence_snapshot').$type<Record<string, unknown>>().notNull(),
   provider: text('provider').notNull(),
   model: text('model').notNull(),
   promptVersion: text('prompt_version').notNull(),
