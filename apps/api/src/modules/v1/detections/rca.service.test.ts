@@ -3,7 +3,7 @@ import type { CorrelatedBottleneck } from './detection.correlation';
 import { RcaService } from './rca.service';
 
 describe('RcaService', () => {
-  it('passes the structured evidence contract to the provider', async () => {
+  it('validates the provider response against supplied evidence', async () => {
     const provider = {
       analyze: vi.fn().mockResolvedValue({
         summary: 'Database latency is contributing to checkout latency.',
@@ -11,7 +11,7 @@ describe('RcaService', () => {
         contributingFactors: [],
         investigationSteps: ['Inspect the query plan.'],
         suggestedChanges: ['Review indexes and query shape.'],
-        evidenceRefs: ['finding_dependency:0'],
+        evidenceRefs: ['finding_latency:0'],
         confidence: 'medium',
         limitations: [],
       }),
@@ -50,5 +50,50 @@ describe('RcaService', () => {
       serviceName: 'checkout-api',
     });
     expect(result.summary).toContain('Database latency');
+  });
+
+  it('rejects a provider response that references unavailable evidence', async () => {
+    const provider = {
+      analyze: vi.fn().mockResolvedValue({
+        summary: 'Checkout latency increased.',
+        rootCause: 'Unknown.',
+        contributingFactors: [],
+        investigationSteps: [],
+        suggestedChanges: [],
+        evidenceRefs: ['invented:0'],
+        confidence: 'low',
+        limitations: ['Insufficient evidence.'],
+      }),
+    };
+
+    const bottleneck = {
+      serviceName: 'checkout-api',
+      latency: {
+        id: 'finding_latency',
+        projectId: 'project_123',
+        serviceName: 'checkout-api',
+        type: 'latency',
+        severity: 'warning',
+        title: 'High latency',
+        description: 'slow',
+        observedValue: 1200,
+        threshold: 1000,
+        unit: 'ms',
+        window: {
+          start: new Date('2026-09-22T00:00:00.000Z'),
+          end: new Date('2026-09-22T00:15:00.000Z'),
+        },
+        evidence: [],
+      },
+      supportingFindings: [],
+      recommendation: 'Investigate the dominant operation.',
+      traceIds: [],
+    } satisfies CorrelatedBottleneck;
+
+    const service = new RcaService(provider);
+
+    await expect(service.analyze('project_123', bottleneck)).rejects.toThrow(
+      'unknown evidence ID',
+    );
   });
 });
