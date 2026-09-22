@@ -1,5 +1,6 @@
 import type { CorrelatedBottleneck } from './detection.correlation';
 import { buildRcaEvidence } from './rca.evidence';
+import { validateRcaAnalysis } from './rca.validation';
 import type { RcaAnalysis, RcaProvider } from './rca.types';
 
 export class RcaService {
@@ -10,6 +11,7 @@ export class RcaService {
     bottleneck: CorrelatedBottleneck,
   ): Promise<RcaAnalysis> {
     const evidence = buildRcaEvidence(projectId, bottleneck);
-    return this.provider.analyze(evidence);
+    const analysis = await this.provider.analyze(evidence);
+    return validateRcaAnalysis(analysis, evidence);
   }
 }
