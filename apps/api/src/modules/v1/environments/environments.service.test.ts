@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { EnvironmentsService } from './environments.service';
 
 describe('EnvironmentsService', () => {
   const repository = {
     list: vi.fn(),
+    projectBelongsToOrg: vi.fn(),
     findBySlug: vi.fn(),
     create: vi.fn(),
   };
@@ -19,7 +20,20 @@ describe('EnvironmentsService', () => {
     expect(repository.list).toHaveBeenCalledWith('project-1', 'org-1');
   });
 
+  it('rejects creation for a project outside the tenant', async () => {
+    repository.projectBelongsToOrg.mockResolvedValue(false);
+    const service = new EnvironmentsService(repository as never);
+
+    await expect(service.create('project-2', 'org-1', {
+      name: 'Production',
+      slug: 'production',
+      kind: 'production',
+    })).rejects.toBeInstanceOf(BadRequestException);
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
   it('rejects duplicate environment slugs in a project', async () => {
+    repository.projectBelongsToOrg.mockResolvedValue(true);
     repository.findBySlug.mockResolvedValue({ id: 'env-1' });
     const service = new EnvironmentsService(repository as never);
 
