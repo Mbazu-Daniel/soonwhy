@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import type { RcaAnalysis, RcaUsage } from './rca.types';
+import { db } from '../../../common/db';
+import { rcaInvocations } from '../../../common/db/schema';
+import { generateId } from '../../../common/db/generate-id';
 
 export type RcaInvocationStatus = 'succeeded' | 'failed';
 
@@ -28,6 +31,15 @@ export interface RcaGovernanceSink {
 }
 
 @Injectable()
+export class DatabaseRcaGovernanceSink implements RcaGovernanceSink {
+  async recordSuccess(input: Omit<RcaInvocationRecord, 'id' | 'status' | 'createdAt' | 'errorCode'>): Promise<void> {
+    await db.insert(rcaInvocations).values({ id: generateId(), ...input, status: 'succeeded' });
+  }
+  async recordFailure(input: Omit<RcaInvocationRecord, 'id' | 'status' | 'createdAt'> & { errorCode?: string }): Promise<void> {
+    await db.insert(rcaInvocations).values({ id: generateId(), ...input, status: 'failed' });
+  }
+}
+
 export class NoopRcaGovernanceSink implements RcaGovernanceSink {
   async recordSuccess(): Promise<void> {}
   async recordFailure(): Promise<void> {}
