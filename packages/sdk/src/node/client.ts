@@ -18,15 +18,13 @@ export class Client implements NodeSdk {
     this.sdk = runtime.sdk;
     this.exporter = runtime.exporter;
 
-    if (this.options.registerShutdownHandlers) {
-      this.registerShutdownHandlers();
-    }
   }
 
   start(): void {
     if (this.started) return;
     this.sdk.start();
     this.started = true;
+    if (this.options.registerShutdownHandlers) this.registerShutdownHandlers();
   }
 
   async shutdown(): Promise<void> {
