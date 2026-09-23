@@ -1,6 +1,4 @@
 import { initNode } from '@soonwhy/sdk/node';
-import { Pool } from 'pg';
-import Redis from 'ioredis';
 
 const sdk = initNode({
   apiKey: process.env.SOONWHY_API_KEY ?? '',
@@ -8,6 +6,9 @@ const sdk = initNode({
   serviceName: 'soonwhy-example-dependencies',
   environment: '4c-validation',
 });
+
+const { Pool } = await import('pg');
+const { default: Redis } = await import('ioredis');
 
 const postgres = new Pool({
   connectionString: process.env.DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/postgres',
