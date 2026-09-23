@@ -1,7 +1,4 @@
 import { initNode } from '@soonwhy/sdk/node';
-import 'reflect-metadata';
-import { Controller, Get, Module } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
 
 const sdk = initNode({
   apiKey: process.env.SOONWHY_API_KEY ?? '',
@@ -9,6 +6,10 @@ const sdk = initNode({
   serviceName: 'soonwhy-example-nestjs',
   environment: '4c-validation',
 });
+
+const { Controller, Get, Module } = await import('@nestjs/common');
+const { NestFactory } = await import('@nestjs/core');
+await import('reflect-metadata');
 
 @Controller()
 class ExampleController {
