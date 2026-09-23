@@ -20,9 +20,6 @@ export class InvestigationService {
     const finding = await this.repository.getFinding(findingId, orgId);
     if (!finding) throw new NotFoundException('Finding not found');
 
-    const existing = await this.repository.findOpenByFinding(findingId, orgId);
-    if (existing) throw new ConflictException('An investigation is already open for this finding');
-
     const evidence = finding.evidence as DetectionEvidence[];
     const evidenceRefs = evidence.map((item) => ({
       findingId: finding.id,
@@ -31,31 +28,45 @@ export class InvestigationService {
       value: item.value,
     }));
 
-    return this.repository.create({
-      orgId,
-      projectId: finding.projectId,
-      findingId: finding.id,
-      status: 'open',
-      serviceName: finding.serviceName,
-      title: 'Investigation for ' + finding.title,
-      summary: finding.description,
-      evidence: evidenceRefs,
-      evidenceSnapshot: {
-        finding: {
-          id: finding.id,
-          type: finding.type,
-          severity: finding.severity,
-          title: finding.title,
-          description: finding.description,
-          observedValue: finding.observedValue,
-          threshold: finding.threshold,
-          unit: finding.unit,
-          windowStart: finding.windowStart.toISOString(),
-          windowEnd: finding.windowEnd.toISOString(),
-          detectedAt: finding.detectedAt.toISOString(),
+    try {
+      return await this.repository.create({
+        orgId,
+        projectId: finding.projectId,
+        findingId: finding.id,
+        status: 'open',
+        serviceName: finding.serviceName,
+        title: 'Investigation for ' + finding.title,
+        summary: finding.description,
+        evidence: evidenceRefs,
+        evidenceSnapshot: {
+          finding: {
+            id: finding.id,
+            type: finding.type,
+            severity: finding.severity,
+            title: finding.title,
+            description: finding.description,
+            observedValue: finding.observedValue,
+            threshold: finding.threshold,
+            unit: finding.unit,
+            windowStart: finding.windowStart.toISOString(),
+            windowEnd: finding.windowEnd.toISOString(),
+            detectedAt: finding.detectedAt.toISOString(),
+          },
+          evidence,
         },
-        evidence,
-      },
-    });
+      });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new ConflictException('An investigation is already open for this finding');
+      }
+      throw error;
+    }
   }
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return typeof error === 'object'
+    && error !== null
+    && 'code' in error
+    && error.code === '23505';
 }
