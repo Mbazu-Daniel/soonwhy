@@ -1,5 +1,5 @@
 import { generateId } from '../generate-id';
-import { pgTable, integer, text, timestamp } from 'drizzle-orm/pg-core';
+import { integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import { organizations } from './organizations';
 import { projects } from './projects';
 
@@ -14,4 +14,7 @@ export const detectionRuns = pgTable('detection_runs', {
   startedAt: timestamp('started_at').defaultNow().notNull(),
   completedAt: timestamp('completed_at'),
   error: text('error'),
-});
+}, (table) => ({
+  projectWindowUnique: uniqueIndex('detection_runs_project_window_unique')
+    .on(table.projectId, table.windowStart, table.windowEnd),
+}));
