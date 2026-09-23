@@ -1,4 +1,3 @@
-import type { DetectionEvidence } from '../../../common/db/schema/findings';
 import type { DetectionFinding } from './detection.types';
 
 export type RcaConfidence = 'low' | 'medium' | 'high';
@@ -10,7 +9,7 @@ export interface RcaEvidenceItem {
   severity: DetectionFinding['severity'];
   label: string;
   value: number | string;
-  context?: DetectionEvidence['context'];
+  context?: Record<string, unknown>;
 }
 
 export interface RcaEvidence {
