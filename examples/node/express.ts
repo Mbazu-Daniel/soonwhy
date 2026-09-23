@@ -1,5 +1,4 @@
 import { initNode } from '@soonwhy/sdk/node';
-import express from 'express';
 
 const sdk = initNode({
   apiKey: process.env.SOONWHY_API_KEY ?? '',
@@ -7,6 +6,8 @@ const sdk = initNode({
   serviceName: 'soonwhy-example-express',
   environment: '4c-validation',
 });
+
+const { default: express } = await import('express');
 
 const app = express();
 
