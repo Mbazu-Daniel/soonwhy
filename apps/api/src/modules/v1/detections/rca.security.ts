@@ -41,7 +41,20 @@ export function sanitizeRcaValue(value: unknown, key?: string): unknown {
   return '[redacted]';
 }
 
-export function sanitizeRcaContext(context: unknown): Record<string, unknown> | undefined {
+export function sanitizeRcaContext(
+  context: unknown,
+): Record<string, string | number | boolean | null> | undefined {
   if (!context || typeof context !== 'object' || Array.isArray(context)) return undefined;
-  return sanitizeRcaValue(context) as Record<string, unknown>;
+
+  const sanitized = sanitizeRcaValue(context);
+  if (!sanitized || typeof sanitized !== 'object' || Array.isArray(sanitized)) return undefined;
+
+  return Object.fromEntries(
+    Object.entries(sanitized).map(([key, value]) => [
+      key,
+      typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || value === null
+        ? value
+        : '[redacted]',
+    ]),
+  );
 }
