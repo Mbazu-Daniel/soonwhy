@@ -1,5 +1,5 @@
-const SENSITIVE_KEY = /(authorization|cookie|set-cookie|password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|credit[_-]?card|card[_-]?number|cvv|request\.body|response\.body|email|phone|address)/i;
-const URL_WITH_QUERY = /https?:\/\/[^\s"'<>]+/gi;
+const SENSITIVE_KEY = /(authorization|cookie|set-cookie|password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|credit[_-]?card|card[_-]?number|cvv|request\\.body|response\\.body|email|phone|address)/i;
+const URL_WITH_QUERY = /https?:\\/\\/[^\\s"'<>]+/gi;
 const MAX_STRING_LENGTH = 500;
 
 function sanitizeString(value: string): string {
@@ -20,7 +20,7 @@ function sanitizeString(value: string): string {
 }
 
 export function sanitizeRcaValue(value: unknown, key?: string): unknown {
-  if (key && SENSITIVE_KEY.test(key) && (typeof value !== 'object' || value === null)) return '[redacted]';
+  if (key && SENSITIVE_KEY.test(key)) return '[redacted]';
 
   if (typeof value === 'string') return sanitizeString(value);
   if (typeof value === 'number' || typeof value === 'boolean' || value === null) return value;
@@ -49,12 +49,5 @@ export function sanitizeRcaContext(
   const sanitized = sanitizeRcaValue(context);
   if (!sanitized || typeof sanitized !== 'object' || Array.isArray(sanitized)) return undefined;
 
-  return Object.fromEntries(
-    Object.entries(sanitized).map(([key, value]) => [
-      key,
-      typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || value === null
-        ? value
-        : '[redacted]',
-    ]),
-  );
+  return sanitized as Record<string, string | number | boolean | null>;
 }
