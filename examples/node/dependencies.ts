@@ -15,7 +15,7 @@ const postgres = new Pool({
   connectionTimeoutMillis: 1_000,
 });
 
-const redis = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379');
+const RedisClient = Redis as unknown as new (url?: string) => { set(key: string, value: string): Promise<unknown>; get(key: string): Promise<unknown>; quit(): Promise<unknown> };\nconst redis = new RedisClient(process.env.REDIS_URL ?? 'redis://localhost:6379');
 
 try {
   await postgres.query('select 1');
