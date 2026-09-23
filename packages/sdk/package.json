@@ -1,0 +1,25 @@
+{
+  "name": "@soonwhy/sdk",
+  "version": "0.1.0",
+  "description": "Node.js SDK foundation for Soonwhy telemetry ingestion.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest"
+  },
+  "engines": {"node": ">=20"},
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.0"
+  }
+}
