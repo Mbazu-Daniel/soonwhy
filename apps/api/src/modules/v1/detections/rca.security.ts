@@ -1,5 +1,3 @@
-import type { DetectionEvidence } from '../../../common/db/schema/findings';
-
 const SENSITIVE_KEY = /(authorization|cookie|set-cookie|password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|credit[_-]?card|card[_-]?number|cvv|request\.body|response\.body|email|phone|address)/i;
 const URL_WITH_QUERY = /https?:\/\/[^\s"'<>]+/gi;
 const MAX_STRING_LENGTH = 500;
@@ -39,21 +37,9 @@ export function sanitizeRcaValue(value: unknown, key?: string): unknown {
 
 export function sanitizeRcaContext(
   context: unknown,
-): DetectionEvidence['context'] | undefined {
+): Record<string, unknown> | undefined {
   if (!context || typeof context !== 'object' || Array.isArray(context)) return undefined;
   const sanitized = sanitizeRcaValue(context);
   if (!sanitized || typeof sanitized !== 'object' || Array.isArray(sanitized)) return undefined;
-
-  const result: Record<string, string | number | boolean | null> = {};
-  for (const [key, value] of Object.entries(sanitized as Record<string, unknown>)) {
-    if (
-      typeof value === 'string' ||
-      typeof value === 'number' ||
-      typeof value === 'boolean' ||
-      value === null
-    ) {
-      result[key] = value;
-    }
-  }
-  return result;
+  return sanitized as Record<string, unknown>;
 }
