@@ -7,6 +7,7 @@ import { quickwitTenantQuery, quickwitTerm } from '../../../common/quickwit/quer
 import { ProjectsRepository } from '../projects/projects.repository';
 import { sanitizeRequestUrl } from './detection.utils';
 import { correlateFindings } from './detection.correlation';
+import { completeDetectionRun, failDetectionRun, startDetectionRun } from './detection.run';
 import { evaluateSignal, evaluateThroughput, evaluateTraceSpan } from './detection.engine';
 import type { DetectionFinding, DetectionWindow, FindingSeverity, FindingType } from './detection.types';
 
@@ -69,9 +70,23 @@ export class DetectionService {
 
   async run(orgId: string, projectId: string): Promise<DetectionFinding[]> {
     await this.assertProjectAccess(orgId, projectId);
-
     const end = new Date();
     const start = new Date(end.getTime() - WINDOW_MS);
+    const run = await startDetectionRun(orgId, projectId, start, end);
+
+    try {
+      const findings = await this.executeDetection(orgId, projectId, start, end);
+      await completeDetectionRun(run.id, findings.length);
+      return findings;
+    } catch (error) {
+      await failDetectionRun(run.id, error instanceof Error ? error.message : 'Detection failed');
+      throw error;
+    }
+  }
+
+  private async executeDetection(orgId: string, projectId: string, start: Date, end: Date): Promise<DetectionFinding[]> {
+    await this.assertProjectAccess(orgId, projectId);
+
     const startTimestamp = Math.floor(start.getTime() / 1000);
     const endTimestamp = Math.floor(end.getTime() / 1000);
 
