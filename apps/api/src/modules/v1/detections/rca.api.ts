@@ -4,7 +4,12 @@ import { RcaPersistenceService } from './rca.persistence';
 import { RcaOrchestrator } from './rca.orchestrator';
 import { buildRcaEvidence } from './rca.evidence';
 import type { CorrelatedBottleneck } from './detection.correlation';
-import { DatabaseRcaGovernanceSink, getRcaErrorCode, toRcaUsageFields } from './rca.governance';
+import {
+  DatabaseRcaGovernanceSink,
+  NoopRcaGovernanceSink,
+  getRcaErrorCode,
+  toRcaUsageFields,
+} from './rca.governance';
 
 @Injectable()
 export class RcaApiService {
@@ -12,7 +17,7 @@ export class RcaApiService {
     private readonly repository: Pick<RcaAnalysisRepository, 'findFinding'>,
     private readonly orchestrator: Pick<RcaOrchestrator, 'analyze'>,
     private readonly persistence: Pick<RcaPersistenceService, 'findLatest' | 'list' | 'persist'>,
-    private readonly governance: DatabaseRcaGovernanceSink,
+    private readonly governance: DatabaseRcaGovernanceSink = new NoopRcaGovernanceSink(),
   ) {}
 
   async getLatest(orgId: string, projectId: string, findingId: string) {
@@ -52,7 +57,9 @@ export class RcaApiService {
         usage: result.usage,
       });
       await this.governance.recordSuccess({
-        orgId, projectId, findingId,
+        orgId,
+        projectId,
+        findingId,
         provider: process.env.SOONWHY_RCA_PROVIDER ?? 'openai-compatible',
         model: process.env.SOONWHY_RCA_MODEL ?? 'unknown',
         promptVersion: result.promptVersion,
@@ -61,7 +68,9 @@ export class RcaApiService {
       return persisted;
     } catch (error) {
       await this.governance.recordFailure({
-        orgId, projectId, findingId,
+        orgId,
+        projectId,
+        findingId,
         provider: process.env.SOONWHY_RCA_PROVIDER ?? 'openai-compatible',
         model: process.env.SOONWHY_RCA_MODEL ?? 'unknown',
         promptVersion: process.env.SOONWHY_RCA_PROMPT_VERSION ?? 'unknown',
