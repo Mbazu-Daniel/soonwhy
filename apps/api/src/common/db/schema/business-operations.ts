@@ -1,5 +1,6 @@
 import { generateId } from '../generate-id';
-import { pgTable, text, timestamp, real } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, real, uniqueIndex, check } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { organizations } from './organizations';
 import { projects } from './projects';
 import { services } from './services';
@@ -22,4 +23,15 @@ export const businessOperations = pgTable('business_operations', {
   sloUnit: text('slo_unit'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
-});
+}, (table) => ({
+  projectSlugUnique: uniqueIndex('business_operations_project_slug_unique')
+    .on(table.projectId, table.slug),
+  criticalityCheck: check(
+    'business_operations_criticality_check',
+    sql`${table.criticality} in ('low', 'medium', 'high', 'critical')`,
+  ),
+  sloTargetCheck: check(
+    'business_operations_slo_target_check',
+    sql`${table.sloTarget} is null or ${table.sloTarget} > 0`,
+  ),
+}));
