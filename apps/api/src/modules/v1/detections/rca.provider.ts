@@ -25,8 +25,6 @@ interface ChatCompletionResponse {
   usage?: OpenAiUsage;
 }
 
-const MAX_PROVIDER_ERROR_BODY = 256;
-
 export class OpenAiCompatibleRcaProvider implements RcaProvider {
   private readonly baseUrl: string;
   private readonly timeoutMs: number;

@@ -95,7 +95,9 @@ describe('RcaApiService', () => {
       projectId: 'project_1',
       findingId: 'finding_1',
       provider: 'openai-compatible',
-      promptVersion: 'v1',
+      model: 'unknown',
+      promptVersion: 'v2',
+      usage: expect.any(Object),
     }));
   });
 
