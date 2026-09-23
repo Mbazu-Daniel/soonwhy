@@ -114,7 +114,7 @@ describe('validateRcaQuality', () => {
           context: { conflict: true },
         }],
       }),
-    ).not.toThrow();
+    )).not.toThrow();
 
     expect(() => validateRcaQuality(
       analysis({ confidence: 'medium', limitations: [] }),
