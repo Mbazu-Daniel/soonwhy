@@ -89,7 +89,7 @@ export function createOpenTelemetryRuntime(options: ResolvedNodeSdkOptions): OTe
   return { sdk, exporter };
 }
 
-function buildInstrumentationConfig(
+export function buildInstrumentationConfig(
   requested: ResolvedNodeSdkOptions['instrumentations'],
 ): Record<string, Record<string, unknown>> {
   const config: Record<string, Record<string, unknown>> = {
