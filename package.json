@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter @soonwhy/shared build && pnpm --filter './apps/*' --filter './packages/{cron,ingest}' dev",
-    "build": "pnpm --filter @soonwhy/shared build && pnpm --filter @soonwhy/sdk build && pnpm --filter './apps/*' --filter './packages/{cron,ingest}' build",
+    "build": "pnpm --filter @soonwhy/shared build && pnpm --filter @soonwhy/sdk build && pnpm --filter @soonwhy/sdk-node build && pnpm --filter './apps/*' --filter './packages/{cron,ingest}' build",
     "test": "pnpm --filter @soonwhy/shared build && vitest",
     "lint": "oxlint",
     "format": "oxfmt",
