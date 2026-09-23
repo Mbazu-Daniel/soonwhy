@@ -13,6 +13,15 @@ export class EnvironmentsRepository {
       .where(and(eq(environments.projectId, projectId), eq(projects.orgId, orgId)));
   }
 
+  async projectBelongsToOrg(projectId: string, orgId: string) {
+    const [project] = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(and(eq(projects.id, projectId), eq(projects.orgId, orgId)))
+      .limit(1);
+    return !!project;
+  }
+
   async findBySlug(projectId: string, orgId: string, slug: string) {
     const [row] = await db
       .select({ environment: environments })
