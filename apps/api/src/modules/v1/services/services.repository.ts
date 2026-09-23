@@ -54,6 +54,37 @@ export class ServicesRepository {
     return result?.service;
   }
 
+  async projectBelongsToOrg(projectId: string, orgId: string) {
+    const [project] = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(and(eq(projects.id, projectId), eq(projects.orgId, orgId)))
+      .limit(1);
+    return !!project;
+  }
+
+  async referencesBelongToOrg(ownerId: string | undefined, teamId: string | undefined, orgId: string) {
+    if (ownerId) {
+      const [owner] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.id, ownerId), eq(users.orgId, orgId)))
+        .limit(1);
+      if (!owner) return false;
+    }
+
+    if (teamId) {
+      const [team] = await db
+        .select({ id: teams.id })
+        .from(teams)
+        .where(and(eq(teams.id, teamId), eq(teams.orgId, orgId)))
+        .limit(1);
+      if (!team) return false;
+    }
+
+    return true;
+  }
+
   async createService(data: {
     projectId: string;
     orgId: string;
