@@ -16,6 +16,7 @@ import { DetectionModule } from './modules/v1/detections';
 import { EnvironmentsModule } from './modules/v1/environments';
 import { TeamsModule } from './modules/v1/teams';
 import { DeploymentsModule } from './modules/v1/deployments';
+import { BusinessOperationsModule } from './modules/v1/business-operations/business-operations.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { DeploymentsModule } from './modules/v1/deployments';
     EnvironmentsModule,
     TeamsModule,
     DeploymentsModule,
+    BusinessOperationsModule,
   ],
 })
 export class AppModule {}
