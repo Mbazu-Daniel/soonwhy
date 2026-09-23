@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { EnvironmentsRepository } from './environments.repository';
 import type { CreateEnvironmentInput } from './dto/create-environment.dto';
 
@@ -12,6 +12,10 @@ export class EnvironmentsService {
   }
 
   async create(projectId: string, orgId: string, input: CreateEnvironmentInput) {
+    if (!(await this.repository.projectBelongsToOrg(projectId, orgId))) {
+      throw new BadRequestException('Project does not belong to the current organization');
+    }
+
     if (await this.repository.findBySlug(projectId, orgId, input.slug)) {
       throw new ConflictException('Environment slug already exists in this project');
     }
