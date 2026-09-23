@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { ServicesRepository } from './services.repository';
 import { CreateServiceInput } from './dto';
 
@@ -17,6 +17,14 @@ export class ServicesService {
   }
 
   async createService(projectId: string, orgId: string, input: CreateServiceInput) {
+    if (!(await this.servicesRepository.projectBelongsToOrg(projectId, orgId))) {
+      throw new BadRequestException('Project does not belong to the current organization');
+    }
+
+    if (!(await this.servicesRepository.referencesBelongToOrg(input.ownerId, input.teamId, orgId))) {
+      throw new BadRequestException('Service owner and team must belong to the current organization');
+    }
+
     const existing = await this.servicesRepository.getServiceByProjectAndSlug(projectId, orgId, input.slug);
     if (existing) throw new ConflictException('Service slug already exists in this project');
 
