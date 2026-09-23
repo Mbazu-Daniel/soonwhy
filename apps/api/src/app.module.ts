@@ -13,6 +13,8 @@ import { MetricsModule } from './modules/v1/metrics';
 import { RequestsModule } from './modules/v1/requests';
 import { TracesModule } from './modules/v1/traces';
 import { DetectionModule } from './modules/v1/detections';
+import { EnvironmentsModule } from './modules/v1/environments';
+import { TeamsModule } from './modules/v1/teams';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { DetectionModule } from './modules/v1/detections';
     RequestsModule,
     TracesModule,
     DetectionModule,
+    EnvironmentsModule,
+    TeamsModule,
   ],
 })
 export class AppModule {}
