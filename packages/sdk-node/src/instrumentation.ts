@@ -1,24 +1,73 @@
-import { defaultResource, resourceFromAttributes } from '@opentelemetry/resources';
-import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
-import { NodeSDK } from '@opentelemetry/sdk-node';
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
-import {
-  AlwaysOffSampler,
-  AlwaysOnSampler,
-  TraceIdRatioBasedSampler,
-} from '@opentelemetry/sdk-trace-base';
+import { createRequire } from 'node:module';
 import type { ResolvedNodeSdkOptions } from './config.js';
 
-const ENABLED = new Set(['http', 'express', 'nestjs-core', 'pg', 'redis', 'ioredis']);
+const require = createRequire(import.meta.url);
+const ENABLED = new Set([
+  'http',
+  'express',
+  'nestjs-core',
+  'pg',
+  'redis',
+  'ioredis',
+  'undici',
+]);
+
+interface NodeSdkModule {
+  NodeSDK: new (configuration: Record<string, unknown>) => {
+    start(): void;
+    shutdown(): Promise<void>;
+  };
+}
+
+interface TraceExporterModule {
+  OTLPTraceExporter: new (options: {
+    url: string;
+    headers: Record<string, string>;
+    timeoutMillis: number;
+  }) => {
+    shutdown(): Promise<void>;
+  };
+}
+
+interface AutoInstrumentationModule {
+  getNodeAutoInstrumentations(
+    configuration?: Record<string, Record<string, unknown>>,
+  ): unknown;
+}
+
+interface ResourceModule {
+  defaultResource(): { merge(other: unknown): unknown };
+  resourceFromAttributes(attributes: Record<string, unknown>): unknown;
+}
+
+interface SamplerModule {
+  AlwaysOffSampler: new () => unknown;
+  AlwaysOnSampler: new () => unknown;
+  TraceIdRatioBasedSampler: new (ratio: number) => unknown;
+}
 
 export interface OTelRuntime {
-  sdk: NodeSDK;
-  exporter: OTLPTraceExporter;
+  sdk: {
+    start(): void;
+    shutdown(): Promise<void>;
+  };
+  exporter: {
+    shutdown(): Promise<void>;
+  };
 }
 
 export function createOpenTelemetryRuntime(options: ResolvedNodeSdkOptions): OTelRuntime {
-  const resource = defaultResource().merge(
-    resourceFromAttributes({
+  const resources = require('@opentelemetry/resources') as ResourceModule;
+  const sdkModule = require('@opentelemetry/sdk-node') as NodeSdkModule;
+  const exporterModule = require(
+    '@opentelemetry/exporter-trace-otlp-proto',
+  ) as TraceExporterModule;
+  const autoInstrumentationModule = require(
+    '@opentelemetry/auto-instrumentations-node',
+  ) as AutoInstrumentationModule;
+
+  const resource = resources.defaultResource().merge(
+    resources.resourceFromAttributes({
       'service.name': options.serviceName,
       ...(options.serviceVersion ? { 'service.version': options.serviceVersion } : {}),
       ...(options.environment ? { 'deployment.environment.name': options.environment } : {}),
@@ -27,7 +76,7 @@ export function createOpenTelemetryRuntime(options: ResolvedNodeSdkOptions): OTe
     }),
   );
 
-  const exporter = new OTLPTraceExporter({
+  const exporter = new exporterModule.OTLPTraceExporter({
     url: `${options.endpoint}/traces`,
     headers: {
       authorization: `Bearer ${options.apiKey}`,
@@ -35,11 +84,11 @@ export function createOpenTelemetryRuntime(options: ResolvedNodeSdkOptions): OTe
     timeoutMillis: options.timeoutMs,
   });
 
-  const instrumentations = getNodeAutoInstrumentations(
+  const instrumentations = autoInstrumentationModule.getNodeAutoInstrumentations(
     buildInstrumentationConfig(options.instrumentations),
   );
 
-  const sdk = new NodeSDK({
+  const sdk = new sdkModule.NodeSDK({
     resource,
     traceExporter: exporter,
     instrumentations: [instrumentations],
@@ -54,18 +103,30 @@ function buildInstrumentationConfig(
 ): Record<string, Record<string, unknown>> {
   const config: Record<string, Record<string, unknown>> = {};
 
-  for (const name of [
-    'http',
-    'express',
-    'nestjs-core',
-    'pg',
-    'redis',
-    'ioredis',
-  ]) {
-    config[`@opentelemetry/instrumentation-${name}`] = {
-      enabled: requested[name === 'nestjs-core' ? 'nestjs' : name as keyof typeof requested],
-    };
-  }
+  config['@opentelemetry/instrumentation-http'] = {
+    enabled: requested.http,
+  };
+  config['@opentelemetry/instrumentation-express'] = {
+    enabled: requested.express,
+  };
+  config['@opentelemetry/instrumentation-nestjs-core'] = {
+    enabled: requested.nestjs,
+  };
+  config['@opentelemetry/instrumentation-pg'] = {
+    enabled: requested.postgres,
+    enhancedDatabaseReporting: false,
+  };
+  config['@opentelemetry/instrumentation-redis'] = {
+    enabled: requested.redis,
+    dbStatementSerializer: (command: string) => command,
+  };
+  config['@opentelemetry/instrumentation-ioredis'] = {
+    enabled: requested.ioredis,
+    dbStatementSerializer: (command: string) => command,
+  };
+  config['@opentelemetry/instrumentation-undici'] = {
+    enabled: requested.http,
+  };
 
   for (const name of [
     'amqplib',
@@ -96,7 +157,6 @@ function buildInstrumentationConfig(
     'restify',
     'runtime-node',
     'socket.io',
-    'undici',
     'winston',
   ]) {
     config[`@opentelemetry/instrumentation-${name}`] = { enabled: false };
@@ -106,13 +166,15 @@ function buildInstrumentationConfig(
 }
 
 function createSampler(options: ResolvedNodeSdkOptions): unknown {
+  const samplers = require('@opentelemetry/sdk-trace-base') as SamplerModule;
+
   switch (options.sampling.type) {
     case 'always_off':
-      return new AlwaysOffSampler();
+      return new samplers.AlwaysOffSampler();
     case 'ratio':
-      return new TraceIdRatioBasedSampler(options.sampling.ratio);
+      return new samplers.TraceIdRatioBasedSampler(options.sampling.ratio);
     case 'always_on':
-      return new AlwaysOnSampler();
+      return new samplers.AlwaysOnSampler();
   }
 }
 
