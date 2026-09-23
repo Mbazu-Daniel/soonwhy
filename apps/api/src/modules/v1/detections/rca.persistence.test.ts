@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { RcaAnalysis, RcaEvidence } from './rca.types';
+import type { RcaAnalysis, RcaEvidence, RcaUsage } from './rca.types';
 import { RcaPersistenceService } from './rca.persistence';
 import type { RcaAnalysisRepository } from './rca.repository';
 
@@ -35,6 +35,15 @@ const analysis: RcaAnalysis = {
   limitations: [],
 };
 
+const usage: RcaUsage = {
+  requestDurationMs: 42,
+  inputTokens: 120,
+  outputTokens: 80,
+  totalTokens: 200,
+  estimatedCostUsd: 0.0012,
+  retries: 1,
+};
+
 function repository(): Pick<RcaAnalysisRepository, 'create' | 'findLatest' | 'list'> {
   return {
     create: vi.fn(),
@@ -59,6 +68,7 @@ describe('RcaPersistenceService', () => {
         provider: 'openai-compatible',
         model: 'test-model',
         promptVersion: 'v1',
+        usage,
       }),
     ).resolves.toEqual({ id: 'rca_123' });
 
@@ -67,7 +77,10 @@ describe('RcaPersistenceService', () => {
         orgId: 'org_123',
         projectId: 'project_123',
         findingId: 'finding_latency',
-        evidenceSnapshot: expect.objectContaining({ projectId: 'project_123' }),
+        evidenceSnapshot: expect.objectContaining({
+          projectId: 'project_123',
+          rcaUsage: usage,
+        }),
         provider: 'openai-compatible',
         model: 'test-model',
         promptVersion: 'v1',
@@ -91,6 +104,7 @@ describe('RcaPersistenceService', () => {
       provider: 'openai-compatible',
       model: 'test-model',
       promptVersion: 'v1',
+      usage,
     };
     await service.persist(input);
     await service.persist(input);
