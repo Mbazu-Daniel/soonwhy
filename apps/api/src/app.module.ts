@@ -17,6 +17,7 @@ import { EnvironmentsModule } from './modules/v1/environments';
 import { TeamsModule } from './modules/v1/teams';
 import { DeploymentsModule } from './modules/v1/deployments';
 import { BusinessOperationsModule } from './modules/v1/business-operations/business-operations.module';
+import { BusinessOperationsModule } from './modules/v1/business-operations/business-operations.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { BusinessOperationsModule } from './modules/v1/business-operations/busin
     EnvironmentsModule,
     TeamsModule,
     DeploymentsModule,
+    BusinessOperationsModule,
     BusinessOperationsModule,
   ],
 })
