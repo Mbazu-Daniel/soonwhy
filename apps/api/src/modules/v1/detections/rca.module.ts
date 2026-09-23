@@ -3,6 +3,7 @@ import { RcaService } from './rca.service';
 import { DisabledRcaProvider, OpenAiCompatibleRcaProvider } from './rca.provider';
 import { RCA_PROVIDER } from './rca.tokens';
 import { RCA_PROMPT_VERSION } from './rca.prompt';
+import { DatabaseRcaGovernanceSink } from './rca.governance';
 
 @Module({
   providers: [
@@ -27,6 +28,7 @@ import { RCA_PROMPT_VERSION } from './rca.prompt';
         });
       },
     },
+    DatabaseRcaGovernanceSink,
     {
       provide: RcaService,
       useFactory: (provider: import('./rca.types').RcaProvider) => new RcaService(provider),
