@@ -5,6 +5,7 @@ export { services } from './services';
 export { teams } from './teams';
 export { environments } from './environments';
 export { deployments } from './deployments';
+export { businessOperations } from './business-operations';
 export { apiKeys } from './api-keys';
 export { findings, type DetectionEvidence } from './findings';
 export { rcaAnalyses } from './rca-analyses';
