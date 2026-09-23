@@ -35,6 +35,6 @@ import { DatabaseRcaGovernanceSink } from './rca.governance';
       inject: [RCA_PROVIDER],
     },
   ],
-  exports: [RcaService],
+  exports: [RcaService, DatabaseRcaGovernanceSink],
 })
 export class RcaModule {}

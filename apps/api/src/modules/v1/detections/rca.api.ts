@@ -6,7 +6,6 @@ import { buildRcaEvidence } from './rca.evidence';
 import type { CorrelatedBottleneck } from './detection.correlation';
 import {
   DatabaseRcaGovernanceSink,
-  NoopRcaGovernanceSink,
   getRcaErrorCode,
   toRcaUsageFields,
 } from './rca.governance';
@@ -17,7 +16,7 @@ export class RcaApiService {
     private readonly repository: Pick<RcaAnalysisRepository, 'findFinding'>,
     private readonly orchestrator: Pick<RcaOrchestrator, 'analyze'>,
     private readonly persistence: Pick<RcaPersistenceService, 'findLatest' | 'list' | 'persist'>,
-    private readonly governance: DatabaseRcaGovernanceSink = new NoopRcaGovernanceSink(),
+    private readonly governance: DatabaseRcaGovernanceSink,
   ) {}
 
   async getLatest(orgId: string, projectId: string, findingId: string) {

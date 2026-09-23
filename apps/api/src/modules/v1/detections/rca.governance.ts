@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { RcaAnalysis, RcaUsage } from './rca.types';
+import type { RcaUsage } from './rca.types';
 import { db } from '../../../common/db';
 import { rcaInvocations } from '../../../common/db/schema';
 import { generateId } from '../../../common/db/generate-id';
@@ -32,16 +32,22 @@ export interface RcaGovernanceSink {
 
 @Injectable()
 export class DatabaseRcaGovernanceSink implements RcaGovernanceSink {
-  async recordSuccess(input: Omit<RcaInvocationRecord, 'id' | 'status' | 'createdAt' | 'errorCode'>): Promise<void> {
+  async recordSuccess(
+    input: Omit<RcaInvocationRecord, 'id' | 'status' | 'createdAt' | 'errorCode'>,
+  ): Promise<void> {
     await db.insert(rcaInvocations).values({ id: generateId(), ...input, status: 'succeeded' });
   }
-  async recordFailure(input: Omit<RcaInvocationRecord, 'id' | 'status' | 'createdAt'> & { errorCode?: string }): Promise<void> {
+
+  async recordFailure(
+    input: Omit<RcaInvocationRecord, 'id' | 'status' | 'createdAt'> & { errorCode?: string },
+  ): Promise<void> {
     await db.insert(rcaInvocations).values({ id: generateId(), ...input, status: 'failed' });
   }
 }
 
 export class NoopRcaGovernanceSink implements RcaGovernanceSink {
   async recordSuccess(): Promise<void> {}
+
   async recordFailure(): Promise<void> {}
 }
 
@@ -59,8 +65,4 @@ export function toRcaUsageFields(usage: RcaUsage) {
 export function getRcaErrorCode(error: unknown): string {
   if (error instanceof Error) return error.name;
   return 'UnknownError';
-}
-
-export function isRcaAnalysis(value: unknown): value is RcaAnalysis {
-  return !!value && typeof value === 'object' && 'summary' in value && 'rootCause' in value;
 }
