@@ -9,3 +9,4 @@ export { apiKeys } from './api-keys';
 export { findings, type DetectionEvidence } from './findings';
 export { rcaAnalyses } from './rca-analyses';
 export { rcaInvocations } from './rca-invocations';
+export { detectionRuns } from './detection-runs';
