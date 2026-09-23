@@ -63,7 +63,7 @@ describe('validateRcaQuality', () => {
     expect(() => validateRcaQuality(
       analysis({
         rootCause: 'The database is definitely the root cause.',
-        confidence: 'high',
+        confidence: 'medium',
         evidenceRefs: ['latency:0'],
       }),
       evidence({ supportingFindings: [], traces: [] }),
@@ -102,7 +102,7 @@ describe('validateRcaQuality', () => {
 
   it('requires a limitation for conflicting evidence', () => {
     expect(() => validateRcaQuality(
-      analysis({ confidence: 'medium' }),
+      analysis({ confidence: 'medium', limitations: ['Conflicting signals require further investigation.'] }),
       evidence({
         supportingFindings: [{
           id: 'error:0',

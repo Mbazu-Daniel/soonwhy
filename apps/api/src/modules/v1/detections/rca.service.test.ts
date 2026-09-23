@@ -6,6 +6,7 @@ describe('RcaService', () => {
   it('validates the provider response against supplied evidence', async () => {
     const provider = {
       analyze: vi.fn().mockResolvedValue({
+        analysis: {
         summary: 'Database latency is contributing to checkout latency.',
         rootCause: 'The evidence points to the database dependency.',
         contributingFactors: ['Database latency increased.'],
@@ -14,6 +15,9 @@ describe('RcaService', () => {
         evidenceRefs: ['finding_latency:0', 'finding_dependency:0'],
         confidence: 'medium',
         limitations: ['The exact query plan is not established.'],
+        },
+        usage: { requestDurationMs: 12, retries: 0 },
+        promptVersion: 'v2',
       }),
     };
 
@@ -75,6 +79,7 @@ describe('RcaService', () => {
   it('rejects a provider response that references unavailable evidence', async () => {
     const provider = {
       analyze: vi.fn().mockResolvedValue({
+        analysis: {
         summary: 'Checkout latency increased.',
         rootCause: 'Unknown.',
         contributingFactors: [],
@@ -83,6 +88,9 @@ describe('RcaService', () => {
         evidenceRefs: ['invented:0'],
         confidence: 'low',
         limitations: ['Insufficient evidence.'],
+        },
+        usage: { requestDurationMs: 8, retries: 0 },
+        promptVersion: 'v2',
       }),
     };
 
