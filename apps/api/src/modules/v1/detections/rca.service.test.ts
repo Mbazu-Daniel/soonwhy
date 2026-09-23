@@ -73,7 +73,7 @@ describe('RcaService', () => {
       projectId: 'project_123',
       serviceName: 'checkout-api',
     });
-    expect(result.summary).toContain('Database latency');
+    expect(result.analysis.summary).toContain('Database latency');
   });
 
   it('rejects a provider response that references unavailable evidence', async () => {

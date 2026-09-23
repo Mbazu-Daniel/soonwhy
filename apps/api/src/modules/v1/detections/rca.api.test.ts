@@ -85,7 +85,11 @@ describe('RcaApiService', () => {
       list: vi.fn(),
       persist: vi.fn().mockResolvedValue(persisted),
     };
-    const orchestrator = { analyze: vi.fn().mockResolvedValue(analysis) };
+    const orchestrator = { analyze: vi.fn().mockResolvedValue({
+      analysis,
+      usage: { requestDurationMs: 12, retries: 0 },
+      promptVersion: 'v2',
+    }) };
     const service = new RcaApiService(repository, orchestrator, persistence);
 
     await expect(service.generate('org_1', 'project_1', 'finding_1', true)).resolves.toEqual(persisted);
