@@ -8,6 +8,10 @@ export async function startDetectionRun(
   windowStart: Date,
   windowEnd: Date,
 ) {
+  if (windowStart >= windowEnd) {
+    throw new Error('Detection window start must be before window end');
+  }
+
   const [run] = await db.insert(detectionRuns).values({
     orgId,
     projectId,
@@ -20,20 +24,24 @@ export async function startDetectionRun(
 }
 
 export async function completeDetectionRun(id: string, findingsCount: number) {
+  if (!Number.isInteger(findingsCount) || findingsCount < 0) {
+    throw new Error('Detection findings count must be a non-negative integer');
+  }
+
   const [run] = await db.update(detectionRuns)
     .set({ status: 'completed', findingsCount, completedAt: new Date() })
-    .where(eq(detectionRuns.id, id))
+    .where(and(eq(detectionRuns.id, id), eq(detectionRuns.status, 'running')))
     .returning();
-  if (!run) throw new Error('Detection run not found');
+  if (!run) throw new Error('Detection run not found or is already terminal');
   return run;
 }
 
 export async function failDetectionRun(id: string, error: string) {
   const [run] = await db.update(detectionRuns)
     .set({ status: 'failed', error, completedAt: new Date() })
-    .where(eq(detectionRuns.id, id))
+    .where(and(eq(detectionRuns.id, id), eq(detectionRuns.status, 'running')))
     .returning();
-  if (!run) throw new Error('Detection run not found');
+  if (!run) throw new Error('Detection run not found or is already terminal');
   return run;
 }
 
