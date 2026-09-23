@@ -15,8 +15,16 @@ describe('RcaOrchestrator', () => {
       confidence: 'medium' as const,
       limitations: [],
     };
+    const result = {
+      analysis,
+      usage: {
+        requestDurationMs: 12,
+        retries: 0,
+      },
+      promptVersion: 'v1',
+    };
     const rcaService: Pick<RcaService, 'analyze'> = {
-      analyze: vi.fn().mockResolvedValue(analysis),
+      analyze: vi.fn().mockResolvedValue(result),
     };
     const orchestrator = new RcaOrchestrator(rcaService);
 
@@ -28,7 +36,7 @@ describe('RcaOrchestrator', () => {
         recommendation: 'Inspect the dependency.',
         traceIds: [],
       }),
-    ).resolves.toEqual(analysis);
+    ).resolves.toEqual(result);
 
     expect(rcaService.analyze).toHaveBeenCalledOnce();
   });
