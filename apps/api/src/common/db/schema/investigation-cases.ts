@@ -1,5 +1,6 @@
 import { generateId } from '../generate-id';
-import { jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { check, jsonb, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { organizations } from './organizations';
 import { projects } from './projects';
 import { findings } from './findings';
@@ -24,4 +25,16 @@ export const investigationCases = pgTable('investigation_cases', {
   evidenceSnapshot: jsonb('evidence_snapshot').$type<Record<string, unknown>>().notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+}, (table) => ({
+  projectCreatedIdx: uniqueIndex('investigation_cases_project_created_idx')
+    .on(table.projectId, table.createdAt),
+  findingStatusIdx: uniqueIndex('investigation_cases_finding_status_idx')
+    .on(table.findingId, table.status),
+  openFindingUnique: uniqueIndex('investigation_cases_open_finding_unique')
+    .on(table.findingId)
+    .where(sql`${table.status} = 'open'`),
+  statusCheck: check(
+    'investigation_cases_status_check',
+    sql`${table.status} in ('open', 'investigating', 'resolved', 'closed')`,
+  ),
+}));
