@@ -1,6 +1,7 @@
 import type { CorrelatedBottleneck } from './detection.correlation';
 import type { DetectionEvidence } from '../../../common/db/schema/findings';
 import type { RcaEvidence, RcaEvidenceItem } from './rca.types';
+import { sanitizeRcaContext, sanitizeRcaValue } from './rca.security';
 
 function toItem(
   findingId: string,
@@ -14,9 +15,9 @@ function toItem(
     sourceFindingId: findingId,
     type,
     severity,
-    label: evidence.label,
-    value: evidence.value,
-    context: evidence.context,
+    label: sanitizeRcaValue(evidence.label) as string,
+    value: sanitizeRcaValue(evidence.value) as number | string,
+    context: sanitizeRcaContext(evidence.context),
   };
 }
 
@@ -94,17 +95,17 @@ export function buildRcaEvidence(
       type: 'latency' as const,
       severity: bottleneck.latency.severity,
       label: 'correlation-guidance',
-      value: bottleneck.recommendation,
-      context: {
+      value: sanitizeRcaValue(bottleneck.recommendation) as string,
+      context: sanitizeRcaContext({
         dependencyType: bottleneck.dependencyType ?? null,
         dependencyName: bottleneck.dependencyName ?? null,
-      },
+      }),
     },
   ];
 
   return {
     projectId,
-    serviceName: bottleneck.serviceName,
+    serviceName: sanitizeRcaValue(bottleneck.serviceName) as string,
     severity: bottleneck.supportingFindings.some((finding) => finding.severity === 'critical')
       ? 'critical'
       : bottleneck.latency.severity,
