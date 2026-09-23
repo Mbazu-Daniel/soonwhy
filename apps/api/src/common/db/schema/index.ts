@@ -11,4 +11,3 @@ export { findings, type DetectionEvidence } from './findings';
 export { rcaAnalyses } from './rca-analyses';
 export { rcaInvocations } from './rca-invocations';
 export { detectionRuns } from './detection-runs';
-export { businessOperations } from './business-operations';
