@@ -21,10 +21,20 @@ export class BusinessOperationsService {
       throw new NotFoundException('Service or environment not found');
     }
 
-    if (await this.repository.findBySlug(projectId, orgId, input.slug)) {
-      throw new ConflictException('Business operation slug already exists in this project');
+    try {
+      return await this.repository.create(orgId, projectId, input);
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new ConflictException('Business operation slug already exists in this project');
+      }
+      throw error;
     }
-
-    return this.repository.create(orgId, projectId, input);
   }
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return typeof error === 'object'
+    && error !== null
+    && 'code' in error
+    && error.code === '23505';
 }
