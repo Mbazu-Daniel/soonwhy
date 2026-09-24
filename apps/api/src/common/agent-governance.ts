@@ -28,10 +28,7 @@ export type AgentToolDefinition<TArgs, TResult> = {
   name: string;
   readOnly: true;
   parseArgs: (value: unknown) => TArgs;
-  execute: (
-    args: TArgs,
-    context: AgentExecutionContext,
-  ) => Promise<{ result: TResult; tokens: number; costUsd: number }>;
+  execute: (args: TArgs, context: AgentExecutionContext) => Promise<{ result: TResult; tokens: number; costUsd: number }>;
 };
 
 export type AgentToolExecution<TArgs, TResult> = {
@@ -57,11 +54,7 @@ export class AgentGovernance {
     if (usage.costUsd > policy.maxCostUsdPerInvestigation) throw new Error('Agent cost budget exceeded');
   }
 
-  async execute<TArgs, TResult>(
-    policy: AgentAccessPolicy,
-    execution: AgentToolExecution<TArgs, TResult>,
-    audit: (event: AgentToolAuditEvent) => Promise<void>,
-  ): Promise<TResult> {
+  async execute<TArgs, TResult>(policy: AgentAccessPolicy, execution: AgentToolExecution<TArgs, TResult>, audit: (event: AgentToolAuditEvent) => Promise<void>): Promise<TResult> {
     const { tool, context } = execution;
     const toolName = tool.name;
     try {
@@ -95,9 +88,9 @@ export class AgentGovernance {
   redactSensitiveData(value: string, enabled: boolean): string {
     if (!enabled) return value;
     return value
-      .replace(/(authorization|cookie|set-cookie|x-api-key)\s*[:=]\s*(?:"[^"]*"|'[^']*'|[^\s,;}]+)/gi, '$1: [REDACTED]')
-      .replace(/(password|passwd|secret|token|access_token|refresh_token)\s*[:=]\s*(?:"[^"]*"|'[^']*'|[^\s,;}]+)/gi, '$1: [REDACTED]')
-      .replace(/Bearer\s+[A-Za-z0-9._~+\-/]+=*/gi, 'Bearer [REDACTED]');
+      .replace(/(authorization|cookie|set-cookie|x-api-key)s*[:=]s*(?:Bearers+)?(?:"[^"]*"|'[^']*'|[^s,;}]+)/gi, '$1: [REDACTED]')
+      .replace(/(password|passwd|secret|token|access_token|refresh_token)s*[:=]s*(?:"[^"]*"|'[^']*'|[^s,;}]+)/gi, '$1: [REDACTED]')
+      .replace(/Bearers+[A-Za-z0-9._~+-/]+=*/gi, 'Bearer [REDACTED]');
   }
 
   redactSensitiveValue(value: unknown, enabled: boolean): unknown {
