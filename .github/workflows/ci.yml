@@ -28,6 +28,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Lint
         run: pnpm lint
+      - name: Verify migrations
+        run: pnpm verify:migrations
       - name: Test
         run: pnpm test -- --run
       - name: Build
