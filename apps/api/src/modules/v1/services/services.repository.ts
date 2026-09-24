@@ -68,7 +68,7 @@ export class ServicesRepository {
       const [owner] = await db
         .select({ id: users.id })
         .from(users)
-        .where(and(eq(users.id, ownerId), eq(users.orgId, orgId)))
+        .where(eq(users.id, ownerId))
         .limit(1);
       if (!owner) return false;
     }
