@@ -21,6 +21,11 @@ describe('detection run lifecycle', () => {
       .rejects.toThrow('Detection window start must be before window end');
   });
 
+  it('rejects a non-integer finding count', async () => {
+    await expect(completeDetectionRun('run-1', 1.5))
+      .rejects.toThrow('Detection findings count must be a non-negative integer');
+  });
+
   it('completes a run with the finding count', async () => {
     await expect(completeDetectionRun('run-1', 3))
       .resolves.toMatchObject({ id: 'run-1' });
