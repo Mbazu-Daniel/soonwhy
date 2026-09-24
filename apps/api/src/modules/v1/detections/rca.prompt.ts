@@ -1,3 +1,5 @@
+export const RCA_PROMPT_VERSION = 'v1';
+
 import type { RcaEvidence } from './rca.types';
 
 const SYSTEM_PROMPT = [
