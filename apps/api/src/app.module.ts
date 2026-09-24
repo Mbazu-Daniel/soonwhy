@@ -18,6 +18,7 @@ import { TeamsModule } from './modules/v1/teams';
 import { DeploymentsModule } from './modules/v1/deployments';
 import { BusinessOperationsModule } from './modules/v1/business-operations/business-operations.module';
 import { InvestigationModule } from './modules/v1/investigations/investigation.module';
+import { BillingModule } from './modules/v1/billing/billing.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { InvestigationModule } from './modules/v1/investigations/investigation.m
     DeploymentsModule,
     BusinessOperationsModule,
     InvestigationModule,
+    BillingModule,
   ],
 })
 export class AppModule {}
