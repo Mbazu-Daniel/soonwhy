@@ -1,4 +1,6 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
+import { sql } from 'drizzle-orm';
+import { db } from '../../../common/db';
 
 @Controller('health')
 export class HealthController {
@@ -17,7 +19,16 @@ export class HealthController {
   }
 
   @Get('ready')
-  ready() {
-    return this.ok();
+  async ready() {
+    try {
+      await db.execute(sql`select 1`);
+      return { ...this.ok(), dependencies: { database: 'ok' } };
+    } catch {
+      throw new ServiceUnavailableException({
+        status: 'degraded',
+        timestamp: new Date().toISOString(),
+        dependencies: { database: 'unavailable' },
+      });
+    }
   }
 }
