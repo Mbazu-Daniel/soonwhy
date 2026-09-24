@@ -12,3 +12,4 @@ export { rcaAnalyses } from './rca-analyses';
 export { rcaInvocations } from './rca-invocations';
 export { detectionRuns } from './detection-runs';
 export { investigationCases, type InvestigationEvidenceRef } from './investigation-cases';
+export { agentPolicies, agentAuditEvents, type AgentAccessPolicy } from './agent-governance';
