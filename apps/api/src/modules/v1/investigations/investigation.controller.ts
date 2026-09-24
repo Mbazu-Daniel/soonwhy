@@ -13,6 +13,11 @@ export class InvestigationController {
     return this.service.list(projectId, org.orgId);
   }
 
+  @Get(':id/graph')
+  graph(@CurrentOrg() org: OrgContext, @Param('id') id: string) {
+    return this.service.getGraph(id, org.orgId);
+  }
+
   @Get(':id')
   getById(@CurrentOrg() org: OrgContext, @Param('id') id: string) {
     return this.service.getById(id, org.orgId);
