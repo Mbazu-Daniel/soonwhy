@@ -81,4 +81,75 @@ describe('InvestigationService', () => {
     });
     expect(result.projectId).toBe('project-1');
   });
+
+  it('builds a deterministic graph from the investigation snapshot', async () => {
+    vi.mocked(repository.getById).mockResolvedValue({
+      id: 'investigation-1',
+      findingId: 'finding-1',
+      serviceName: 'checkout-api',
+      title: 'Investigation for checkout latency',
+      evidenceSnapshot: {
+        finding: { id: 'finding-1', severity: 'high' },
+        evidence: [
+          { kind: 'metric', label: 'p95-latency', value: 1600 },
+          { kind: 'trace', label: 'slow-trace', value: 'trace-1' },
+          { kind: 'trace', label: 'slow-trace', value: 'trace-1' },
+        ],
+      },
+    } as never);
+
+    const graph = await service.getGraph('investigation-1', 'org-1');
+
+    expect(graph.investigationId).toBe('investigation-1');
+    expect(graph.nodes).toHaveLength(3);
+    expect(graph.edges).toHaveLength(2);
+    expect(graph.edges.every((edge) => edge.type === 'supported_by')).toBe(true);
+    expect(graph.nodes[1]).toMatchObject({
+      id: 'evidence:finding-1:%5B%22metric%22%2C%22p95-latency%22%2C1600%2Cnull%5D',
+      type: 'evidence',
+      label: 'p95-latency',
+    });
+  });
+
+  it('produces the same graph regardless of evidence order', async () => {
+    const base = {
+      id: 'investigation-1',
+      findingId: 'finding-1',
+      serviceName: 'checkout-api',
+      title: 'Investigation for checkout latency',
+    };
+
+    vi.mocked(repository.getById).mockResolvedValueOnce({
+      ...base,
+      evidenceSnapshot: {
+        finding: { id: 'finding-1', severity: 'high' },
+        evidence: [
+          { kind: 'trace', label: 'slow-trace', value: 'trace-1' },
+          { kind: 'metric', label: 'p95-latency', value: 1600 },
+        ],
+      },
+    } as never);
+    const first = await service.getGraph('investigation-1', 'org-1');
+
+    vi.mocked(repository.getById).mockResolvedValueOnce({
+      ...base,
+      evidenceSnapshot: {
+        finding: { id: 'finding-1', severity: 'high' },
+        evidence: [
+          { kind: 'metric', label: 'p95-latency', value: 1600 },
+          { kind: 'trace', label: 'slow-trace', value: 'trace-1' },
+        ],
+      },
+    } as never);
+    const second = await service.getGraph('investigation-1', 'org-1');
+
+    expect(second).toEqual(first);
+  });
+
+  it('keeps graph lookup tenant-scoped', async () => {
+    vi.mocked(repository.getById).mockResolvedValue(undefined);
+
+    await expect(service.getGraph('investigation-2', 'org-1'))
+      .rejects.toBeInstanceOf(NotFoundException);
+  });
 });
