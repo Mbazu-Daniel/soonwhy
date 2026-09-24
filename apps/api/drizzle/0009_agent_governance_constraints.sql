@@ -7,9 +7,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS agent_policies_org_default_idx
   ON agent_policies (org_id)
   WHERE user_id IS NULL;
 
-DROP INDEX IF EXISTS agent_policies_org_user_idx;
+DROP INDEX IF EXISTS agent_policies_org_user_unique_idx;
 
-CREATE UNIQUE INDEX IF NOT EXISTS agent_policies_org_user_idx
+CREATE UNIQUE INDEX IF NOT EXISTS agent_policies_org_user_unique_idx
   ON agent_policies (org_id, user_id)
   WHERE user_id IS NOT NULL;
 
