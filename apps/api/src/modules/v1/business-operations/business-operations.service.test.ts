@@ -32,7 +32,7 @@ describe('BusinessOperationsService', () => {
 
   it('rejects duplicate operation slugs', async () => {
     vi.mocked(repository.validateContext).mockResolvedValue(true);
-    vi.mocked(repository.findBySlug).mockResolvedValue({ id: 'operation-1' } as never);
+    vi.mocked(repository.create).mockRejectedValue({ code: '23505' });
 
     await expect(service.create('project-1', 'org-1', {
       name: 'Checkout',
