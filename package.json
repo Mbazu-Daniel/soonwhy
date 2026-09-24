@@ -8,6 +8,7 @@
     "test": "pnpm --filter @soonwhy/shared build && vitest",
     "lint": "oxlint",
     "format": "oxfmt",
+    "verify:migrations": "node scripts/verify-migrations.mjs",
     "prepare": "husky"
   },
   "devDependencies": {
