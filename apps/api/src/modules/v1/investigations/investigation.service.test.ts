@@ -31,11 +31,19 @@ describe('InvestigationService', () => {
       id: 'finding-1',
       projectId: 'project-1',
       serviceName: 'checkout-api',
+      type: 'bottleneck',
+      severity: 'critical',
       title: 'Correlated bottleneck',
       description: 'Slow checkout dependency',
+      observedValue: 1600,
+      threshold: 1000,
+      unit: 'ms',
+      windowStart: new Date('2026-09-20T18:00:00.000Z'),
+      windowEnd: new Date('2026-09-20T18:15:00.000Z'),
+      detectedAt: new Date('2026-09-20T18:16:00.000Z'),
       evidence: [],
     } as never);
-    vi.mocked(repository.findOpenByFinding).mockResolvedValue({ id: 'investigation-1' } as never);
+    vi.mocked(repository.create).mockRejectedValue({ code: '23505' });
 
     await expect(service.start('finding-1', 'org-1'))
       .rejects.toBeInstanceOf(ConflictException);
