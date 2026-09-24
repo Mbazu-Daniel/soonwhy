@@ -29,7 +29,7 @@ export const agentPolicies = pgTable('agent_policies', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => [
   uniqueIndex('agent_policies_org_default_idx').on(table.orgId).where(sql`${table.userId} IS NULL`),
-  uniqueIndex('agent_policies_org_user_idx').on(table.orgId, table.userId).where(sql`${table.userId} IS NOT NULL`),
+  uniqueIndex('agent_policies_org_user_unique_idx').on(table.orgId, table.userId).where(sql`${table.userId} IS NOT NULL`),
   check('agent_policies_requests_positive', sql`${table.maxRequestsPerMinute} > 0`),
   check('agent_policies_tokens_positive', sql`${table.maxTokensPerInvestigation} > 0`),
   check('agent_policies_cost_non_negative', sql`${table.maxCostUsdPerInvestigation} >= 0`),
