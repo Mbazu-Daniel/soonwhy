@@ -1,5 +1,6 @@
+import { jsonb, integer, pgTable, real, text, timestamp, boolean, check, uniqueIndex } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { generateId } from '../generate-id';
-import { jsonb, integer, pgTable, real, text, timestamp, boolean, check, uniqueIndex, sql } from 'drizzle-orm/pg-core';
 import { organizations } from './organizations';
 import { users } from './auth';
 import { investigationCases } from './investigation-cases';
