@@ -103,3 +103,10 @@ export class OpenAiCompatibleRcaProvider implements RcaProvider {
     }
   }
 }
+
+
+export class DisabledRcaProvider implements RcaProvider {
+  async analyze(): Promise<never> {
+    throw new Error('RCA provider is not configured');
+  }
+}
