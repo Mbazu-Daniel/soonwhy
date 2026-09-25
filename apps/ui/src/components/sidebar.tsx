@@ -2,72 +2,125 @@ import { Link, useLocation } from '@tanstack/react-router';
 import { cn } from '~/lib/utils';
 import { useSidebar } from '~/lib/sidebar-context';
 import {
-  LayoutDashboard,
-  Server,
+  Activity,
   AlertTriangle,
-  BrainCircuit,
-  ScrollText,
-  Settings,
   ArrowLeft,
+  BrainCircuit,
+  ChevronRight,
+  FileSearch,
+  LayoutDashboard,
+  ScrollText,
+  Server,
+  Settings,
 } from 'lucide-react';
 
 const navItems = [
   { to: '/dashboard', label: 'Overview', icon: LayoutDashboard, exact: true },
   { to: '/dashboard/services', label: 'Services', icon: Server },
-  { to: '/dashboard/errors', label: 'Errors', icon: AlertTriangle },
   { to: '/dashboard/detections', label: 'Detections', icon: BrainCircuit },
+  { to: '/dashboard/errors', label: 'Errors', icon: AlertTriangle },
   { to: '/dashboard/logs', label: 'Logs', icon: ScrollText },
-  { to: '/dashboard/settings', label: 'Settings', icon: Settings },
+];
+
+const workspaceItems = [
+  { to: '/dashboard/traces', label: 'Traces', icon: Activity },
+  { to: '/dashboard/investigations', label: 'Investigations', icon: FileSearch },
 ];
 
 export function Sidebar() {
   const location = useLocation();
   const { open, close } = useSidebar();
 
+  const isActive = (to: string, exact = false) =>
+    exact ? location.pathname === to : location.pathname.startsWith(to);
+
+  const renderItem = (item: (typeof navItems)[number]) => {
+    const active = isActive(item.to, item.exact);
+    return (
+      <Link
+        key={item.to}
+        to={item.to}
+        onClick={close}
+        className={cn(
+          'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+          active
+            ? 'bg-primary text-primary-foreground shadow-sm'
+            : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+        )}
+        aria-current={active ? 'page' : undefined}
+      >
+        <item.icon className="h-[17px] w-[17px] shrink-0" aria-hidden="true" />
+        <span className="flex-1">{item.label}</span>
+        {active && <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />}
+      </Link>
+    );
+  };
+
   return (
     <>
       {open && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-[#182012]/30 backdrop-blur-[1px] lg:hidden"
           onClick={close}
           aria-hidden="true"
         />
       )}
       <aside
         className={cn(
-          'w-60 border-r bg-muted/30 flex flex-col fixed inset-y-0 left-0 z-50 transition-transform duration-200 lg:static lg:translate-x-0',
+          'w-60 border-r bg-white flex flex-col fixed inset-y-0 left-0 z-50 transition-transform duration-200 lg:static lg:translate-x-0',
           open ? 'translate-x-0' : '-translate-x-full'
         )}
+        aria-label="Primary navigation"
       >
-        <div className="p-4 border-b">
-          <Link to="/organizations" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-4 w-4" />
-            Back to organizations
+        <div className="h-16 px-4 border-b flex items-center">
+          <Link to="/organizations" onClick={close} className="group flex items-center gap-2.5 w-full">
+            <span className="h-8 w-8 rounded-lg bg-[#182012] text-[#8BD125] grid place-items-center font-bold text-sm">
+              S
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold tracking-tight">SoonWhy</span>
+              <span className="block text-[11px] text-muted-foreground truncate">Intelligent observability</span>
+            </span>
           </Link>
         </div>
-        <nav className="flex-1 p-3 space-y-1">
-          {navItems.map((item) => {
-            const isActive = item.exact
-              ? location.pathname === item.to
-              : location.pathname.startsWith(item.to);
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                onClick={close}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
-                  isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                )}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+
+        <div className="px-3 pt-5 pb-3">
+          <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Monitor
+          </p>
+          <nav className="space-y-1">{navItems.map(renderItem)}</nav>
+        </div>
+
+        <div className="px-3 py-2">
+          <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Investigate
+          </p>
+          <nav className="space-y-1">{workspaceItems.map(renderItem)}</nav>
+        </div>
+
+        <div className="mt-auto p-3 space-y-2">
+          <Link
+            to="/dashboard/settings"
+            onClick={close}
+            className={cn(
+              'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+              isActive('/dashboard/settings')
+                ? 'bg-secondary text-foreground'
+                : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+            )}
+          >
+            <Settings className="h-[17px] w-[17px]" aria-hidden="true" />
+            Settings
+          </Link>
+          <Link
+            to="/organizations"
+            onClick={close}
+            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-[17px] w-[17px]" aria-hidden="true" />
+            Organizations
+          </Link>
+        </div>
       </aside>
     </>
   );
