@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Activity, CheckCircle2, Copy, KeyRound, Loader2, ShieldAlert, Trash2, Wifi, XCircle } from 'lucide-react';
+import { Activity, CheckCircle2, Copy, KeyRound, Loader2, ShieldAlert, Trash2, Wifi, XCircle, Plus, Users, Layers3, CreditCard } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
@@ -107,6 +107,7 @@ function SettingsPage() {
       </Card>
 
       <ApiKeySettings projectId={projectId} queryClient={queryClient} />
+      <PlatformControls projectId={projectId} orgId={orgId} />
       <SetupGuidance />
     </div>
   );
@@ -261,6 +262,23 @@ function ApiKeySettings({ projectId, queryClient }: { projectId: string; queryCl
       </CardContent>
     </Card>
   );
+}
+
+function PlatformControls({ projectId, orgId }: { projectId: string; orgId: string | null }) {
+  const [teamName, setTeamName] = useState('');
+  const [teamSlug, setTeamSlug] = useState('');
+  const [environmentName, setEnvironmentName] = useState('');
+  const [environmentSlug, setEnvironmentSlug] = useState('');
+  const teams = useQuery({ queryKey: ['teams', orgId], queryFn: () => api.get<Array<{ id: string; name: string; slug: string }>>('/teams'), enabled: !!orgId });
+  const environments = useQuery({ queryKey: ['environments', projectId], queryFn: () => api.get<Array<{ id: string; name: string; slug: string; kind: string }>>(`/environments?projectId=${encodeURIComponent(projectId)}`), enabled: !!projectId });
+  const billing = useQuery({ queryKey: ['billing-dashboard', orgId, projectId], queryFn: () => api.get<{ subscription?: { plan?: { name?: string } }; usage: Array<{ metric: string; quantity: number }>; quotas: Array<{ metric: string; limit: number | null }> }>(`/billing/dashboard?projectId=${encodeURIComponent(projectId)}`), enabled: !!orgId });
+  const createTeam = useMutation({ mutationFn: () => api.post('/teams', { name: teamName.trim(), slug: teamSlug.trim() }), onSuccess: () => { setTeamName(''); setTeamSlug(''); void teams.refetch(); } });
+  const createEnvironment = useMutation({ mutationFn: () => api.post(`/environments?projectId=${encodeURIComponent(projectId)}`, { name: environmentName.trim(), slug: environmentSlug.trim(), kind: 'production' }), onSuccess: () => { setEnvironmentName(''); setEnvironmentSlug(''); void environments.refetch(); } });
+  return <section className="grid gap-4 lg:grid-cols-3">
+    <Card className="border-[#242426] bg-[#0B0B0C] shadow-none"><CardHeader><CardTitle className="flex items-center gap-2 text-base"><Users className="h-4 w-4 text-[#ACFC15]" />Teams</CardTitle></CardHeader><CardContent className="space-y-3"><div className="space-y-2"><Input placeholder="Team name" value={teamName} onChange={(e) => setTeamName(e.target.value)} /><Input placeholder="team-slug" value={teamSlug} onChange={(e) => setTeamSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} /></div><Button size="sm" onClick={() => createTeam.mutate()} disabled={!teamName.trim() || !teamSlug.trim() || createTeam.isPending}><Plus className="mr-2 h-3.5 w-3.5" />Add team</Button><div className="space-y-1 border-t border-[#242426] pt-3">{teams.data?.map((team) => <div key={team.id} className="flex items-center justify-between text-xs"><span>{team.name}</span><span className="font-mono text-[#6E6E70]">{team.slug}</span></div>)}</div></CardContent></Card>
+    <Card className="border-[#242426] bg-[#0B0B0C] shadow-none"><CardHeader><CardTitle className="flex items-center gap-2 text-base"><Layers3 className="h-4 w-4 text-[#ACFC15]" />Environments</CardTitle></CardHeader><CardContent className="space-y-3"><div className="space-y-2"><Input placeholder="Environment name" value={environmentName} onChange={(e) => setEnvironmentName(e.target.value)} /><Input placeholder="production" value={environmentSlug} onChange={(e) => setEnvironmentSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} /></div><Button size="sm" onClick={() => createEnvironment.mutate()} disabled={!environmentName.trim() || !environmentSlug.trim() || createEnvironment.isPending}><Plus className="mr-2 h-3.5 w-3.5" />Add environment</Button><div className="space-y-1 border-t border-[#242426] pt-3">{environments.data?.map((environment) => <div key={environment.id} className="flex items-center justify-between text-xs"><span>{environment.name}</span><span className="rounded-full border border-[#242426] px-2 py-0.5 text-[#989898]">{environment.kind}</span></div>)}</div></CardContent></Card>
+    <Card className="border-[#242426] bg-[#0B0B0C] shadow-none"><CardHeader><CardTitle className="flex items-center gap-2 text-base"><CreditCard className="h-4 w-4 text-[#ACFC15]" />Usage & billing</CardTitle></CardHeader><CardContent><p className="text-xs text-[#989898]">Current plan</p><p className="mt-1 text-lg font-semibold">{billing.data?.subscription?.plan?.name ?? 'No subscription'}</p><div className="mt-4 space-y-2">{billing.data?.usage?.slice(0, 4).map((item) => { const quota = billing.data?.quotas?.find((q) => q.metric === item.metric)?.limit; return <div key={item.metric} className="flex items-center justify-between text-xs"><span className="text-[#989898]">{item.metric}</span><span className="font-mono">{item.quantity.toLocaleString()}{quota != null ? ` / ${quota.toLocaleString()}` : ''}</span></div>; })}</div><p className="mt-4 text-[11px] text-[#6E6E70]">Billing data is already organization-scoped. This surface makes the existing API visible in the product.</p></CardContent></Card>
+  </section>;
 }
 
 function SetupGuidance() {
