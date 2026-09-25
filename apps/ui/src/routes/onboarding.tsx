@@ -20,14 +20,23 @@ const steps = ['Organization', 'Project', 'Connect', 'Verify'];
 function Onboarding() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { orgId, projectId, setOrgId, setProjectId } = useProject();
-  const [step, setStep] = useState(orgId ? (projectId ? 2 : 1) : 0);
+  const { orgId, projectId, setOrgId, setProjectId, clearProjectId } = useProject();
+  const [step, setStep] = useState(() => {
+    if (typeof window === 'undefined') return orgId ? (projectId ? 2 : 1) : 0;
+    const saved = Number(localStorage.getItem('soonwhy:onboarding-step'));
+    return Number.isInteger(saved) && saved >= 0 && saved <= 3 ? saved : (orgId ? (projectId ? 2 : 1) : 0);
+  });
   const [orgName, setOrgName] = useState('');
   const [orgSlug, setOrgSlug] = useState('');
   const [projectName, setProjectName] = useState('');
   const [projectSlug, setProjectSlug] = useState('');
   const [apiKey, setApiKey] = useState<ApiKey | null>(null);
   const [error, setError] = useState('');
+
+  function goToStep(next: number) {
+    setStep(next);
+    if (typeof window !== 'undefined') localStorage.setItem('soonwhy:onboarding-step', String(next));
+  }
 
   const organizations = useQuery({
     queryKey: ['organizations'],
@@ -45,7 +54,7 @@ function Onboarding() {
     onSuccess: (org) => {
       setOrgId(org.id);
       void queryClient.invalidateQueries({ queryKey: ['organizations'] });
-      setStep(1);
+      goToStep(1);
       setError('');
     },
     onError: (err: Error) => setError(err.message),
@@ -56,7 +65,7 @@ function Onboarding() {
     onSuccess: (project) => {
       setProjectId(project.id);
       void queryClient.invalidateQueries({ queryKey: ['projects', orgId] });
-      setStep(2);
+      goToStep(2);
       setError('');
     },
     onError: (err: Error) => setError(err.message),
@@ -66,7 +75,7 @@ function Onboarding() {
     mutationFn: () => api.post<ApiKey>('/api-keys?projectId=' + encodeURIComponent(projectId ?? ''), { name: 'Default ingestion key' }),
     onSuccess: (key) => {
       setApiKey(key);
-      setStep(3);
+      goToStep(3);
       setError('');
     },
     onError: (err: Error) => setError(err.message),
@@ -102,13 +111,9 @@ const sdk = initNode({
 
   function selectOrganization(id: string) {
     setOrgId(id);
-    setProjectIdFromSelection('');
+    clearProjectId();
     setStep(1);
     setError('');
-  }
-
-  function setProjectIdFromSelection(id: string) {
-    setProjectId(id);
   }
 
   function submitOrganization(event: React.FormEvent) {
@@ -135,6 +140,7 @@ const sdk = initNode({
 
   function finish() {
     if (projectId) setProjectId(projectId);
+    localStorage.removeItem('soonwhy:onboarding-step');
     navigate({ to: '/dashboard' });
   }
 
@@ -186,7 +192,7 @@ const sdk = initNode({
               <div className="mb-6 space-y-2">
                 <p className="text-sm font-medium">Use an existing project</p>
                 {projects.data.map((project) => (
-                  <button key={project.id} type="button" onClick={() => { setProjectId(project.id); setStep(2); }} className="flex w-full items-center justify-between rounded-lg border bg-white p-3 text-left hover:border-[#8BD125]">
+                  <button key={project.id} type="button" onClick={() => { setProjectId(project.id); goToStep(2); }} className="flex w-full items-center justify-between rounded-lg border bg-white p-3 text-left hover:border-[#8BD125]">
                     <span><span className="block text-sm font-medium">{project.name}</span><span className="text-xs text-muted-foreground">{project.slug}</span></span>
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   </button>
@@ -214,7 +220,7 @@ const sdk = initNode({
                 <div className="rounded-xl border bg-[#182012] p-4 text-xs text-white"><code className="break-all">{apiKey.key}</code></div>
                 <pre className="overflow-x-auto rounded-xl bg-[#182012] p-4 text-xs leading-6 text-white"><code>{snippet}</code></pre>
                 <Button type="button" variant="outline" onClick={() => void navigator.clipboard?.writeText(snippet)}><Copy /> Copy setup snippet</Button>
-                <Button type="button" className="ml-2 bg-[#182012] text-white hover:bg-[#182012]/90" onClick={() => setStep(3)}>I've connected it <ArrowRight /></Button>
+                <Button type="button" className="ml-2 bg-[#182012] text-white hover:bg-[#182012]/90" onClick={() => goToStep(3)}>I've connected it <ArrowRight /></Button>
               </div>
             ) : (
               <Button type="button" className="mt-5 w-full bg-[#182012] text-white hover:bg-[#182012]/90" disabled={!canContinueConnect || createKey.isPending} onClick={() => createKey.mutate()}>
@@ -239,7 +245,7 @@ const sdk = initNode({
               )}
             </div>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-between">
-              <Button type="button" variant="ghost" onClick={() => setStep(2)}><ArrowLeft /> Back to setup</Button>
+              <Button type="button" variant="ghost" onClick={() => goToStep(2)}><ArrowLeft /> Back to setup</Button>
               <Button type="button" className="bg-[#182012] text-white hover:bg-[#182012]/90" onClick={finish}>{verificationReady ? 'Open dashboard' : 'Go to dashboard'} <ExternalLink /></Button>
             </div>
           </StepCard>
