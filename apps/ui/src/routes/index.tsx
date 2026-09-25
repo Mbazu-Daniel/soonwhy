@@ -81,7 +81,7 @@ function Home() {
               <Link to="/auth/sign-in">Sign in</Link>
             </Button>
             <Button asChild size="sm" className="hidden bg-[#8BD125] font-semibold text-[#182012] hover:bg-[#9BE43A] sm:inline-flex">
-              <Link to="/auth/sign-up">Get started <ArrowRight /></Link>
+              <Link to="/auth/sign-up">Start a project <ArrowRight /></Link>
             </Button>
             <button
               type="button"
@@ -103,7 +103,7 @@ function Home() {
       <div className={`fixed inset-x-4 top-[4.5rem] z-40 origin-top rounded-2xl border border-white/10 bg-[#101610]/95 p-3 shadow-2xl backdrop-blur-xl transition-all duration-300 sm:hidden ${menuOpen ? 'translate-y-0 scale-100 opacity-100' : '-translate-y-3 scale-95 pointer-events-none opacity-0'}`}>
         {[
           ['Product', '#product'],
-          ['How it works', '#how-it-works'],
+          ['Logging', '#logging'],
           ['OpenTelemetry', '#open-telemetry'],
           ['Developers', '#developers'],
         ].map(([label, href]) => (
@@ -141,9 +141,6 @@ function Home() {
             <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
               <Button asChild size="lg" className="h-12 bg-[#8BD125] px-6 font-semibold text-[#182012] hover:bg-[#9BE43A]">
                 <Link to="/auth/sign-up">Start investigating <ArrowRight /></Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="h-12 border-white/15 bg-white/[0.03] px-6 text-white hover:bg-white/[0.07] hover:text-white">
-                <a href="#how-it-works">See how it works</a>
               </Button>
             </div>
 
@@ -210,7 +207,7 @@ function Home() {
             <div className="flex flex-col justify-between gap-7 md:flex-row md:items-end">
               <div className="max-w-2xl">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8BD125]">First-class investigation</p>
-                <h2 className="display-font mt-4 text-4xl sm:text-5xl">From signal to explanation.</h2>
+                <h2 className="geom-font mt-4 text-4xl sm:text-5xl">From signal to explanation.</h2>
                 <p className="mt-5 max-w-xl text-base leading-7 text-white/45">
                   Observability gives you the data. SoonWhy keeps the relationships together so you can understand what is happening and why.
                 </p>
@@ -235,20 +232,25 @@ function Home() {
           </div>
         </section>
 
-        <section id="how-it-works" className="border-b border-white/[0.07] bg-[#0D120C] text-white">
+        <section id="logging" className="border-b border-white/[0.07] bg-[#0D120C] text-white">
           <div className="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-28">
-            <div className="max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#16931F]">How it works</p>
-              <h2 className="display-font mt-4 text-4xl sm:text-5xl">One signal. One investigation.</h2>
-              <p className="mt-5 max-w-xl leading-7 text-white/45">
-                The workflow stays close to the way engineers actually debug production systems.
-              </p>
-            </div>
+            <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8BD125]">Better logging</p>
+                <h2 className="geom-font mt-4 text-4xl sm:text-5xl">Logs should tell the whole story.</h2>
+                <p className="mt-5 max-w-lg leading-7 text-white/45">
+                  SoonWhy treats logs as investigation data, not a stream of messages. Rich context, trace correlation and useful dimensions make every event easier to connect back to the request that produced it.
+                </p>
+                <Link to="/auth/sign-up" className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-[#B5E66A] hover:text-[#D0F49A]">
+                  Start a project <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
 
-            <div className="mt-14">
-              <Step number="01" icon={Terminal} title="Send telemetry" text="Use OpenTelemetry to send traces, logs and request context into your project." />
-              <Step number="02" icon={Activity} title="Detect the signal" text="SoonWhy surfaces latency, error and performance changes from real application telemetry." />
-              <Step number="03" icon={BrainCircuit} title="Investigate why" text="Follow the request, dominant span and dependency to the evidence behind the bottleneck." />
+              <div className="divide-y divide-white/10 border-y border-white/10">
+                <LogPrinciple number="01" title="Wide, contextual events" text="Capture the request, service, deployment, outcome and business context together instead of scattering useful details across dozens of log lines." />
+                <LogPrinciple number="02" title="Trace-aware by default" text="Keep trace and request identity attached so logs can be correlated with the exact request path across services." />
+                <LogPrinciple number="03" title="Signal over noise" text="Prioritize errors, slow requests and meaningful context instead of treating every log line as equally valuable telemetry." />
+              </div>
             </div>
           </div>
         </section>
@@ -258,7 +260,7 @@ function Home() {
             <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8BD125]">OpenTelemetry first</p>
-                <h2 className="display-font mt-4 text-4xl sm:text-5xl">Use the instrumentation you already have.</h2>
+                <h2 className="geom-font mt-4 text-4xl sm:text-5xl">Use the instrumentation you already have.</h2>
                 <p className="mt-5 max-w-lg leading-7 text-white/45">
                   SoonWhy sits on top of OpenTelemetry instead of asking you to replace your application instrumentation.
                 </p>
@@ -296,24 +298,23 @@ function Home() {
         <section className="border-b border-white/[0.07] bg-[#080B07]">
           <div className="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-28">
             <div className="grid gap-14 lg:grid-cols-[0.7fr_1.3fr]">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8BD125]">It just works</p>
-                <h2 className="display-font mt-4 text-4xl sm:text-5xl">The path from request to root cause.</h2>
+              <div className="lg:col-span-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8BD125]">Root-cause analysis</p>
+                <h2 className="geom-font mt-4 max-w-3xl text-4xl sm:text-5xl">The investigation ends with an explanation.</h2>
+                <p className="mt-5 max-w-2xl leading-7 text-white/45">
+                  SoonWhy combines telemetry signals into a causal path, then uses AI to summarize the strongest evidence behind the bottleneck so engineers can validate the finding instead of starting from a blank dashboard.
+                </p>
               </div>
 
-              <div className="divide-y divide-white/10 overflow-hidden rounded-2xl border border-white/10">
+              <div className="editorial-line lg:col-span-2 grid gap-0 border-y border-white/10 md:grid-cols-5">
                 {investigationSteps.map(({ label, detail, icon: Icon }, index) => (
-                  <div key={label} className="flex items-center gap-4 p-5 sm:p-6">
-                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[#8BD125]/[0.08] text-[#8BD125]">
-                      <Icon className="h-4 w-4" />
+                  <div key={label} className="relative border-b border-white/10 p-5 last:border-b-0 md:border-b-0 md:border-r md:last:border-r-0 sm:p-6">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-[10px] text-[#8BD125]">0{index + 1}</span>
+                      <Icon className="h-4 w-4 text-[#8BD125]" />
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold">{label}</p>
-                      <p className="mt-1 truncate font-mono text-xs text-white/35">{detail}</p>
-                    </div>
-                    {index < investigationSteps.length - 1 && (
-                      <ArrowRight className="ml-auto hidden h-4 w-4 text-white/20 sm:block" />
-                    )}
+                    <p className="mt-8 text-sm font-semibold">{label}</p>
+                    <p className="mt-2 font-mono text-xs leading-5 text-white/30">{detail}</p>
                   </div>
                 ))}
               </div>
@@ -356,7 +357,7 @@ function Home() {
             </Link>
             <div className="flex items-center gap-6 text-sm">
               <Link to="/auth/sign-in" className="hover:text-white">Sign in</Link>
-              <Link to="/auth/sign-up" className="hover:text-white">Get started</Link>
+              <Link to="/auth/sign-up" className="hover:text-white">Start a project</Link>
             </div>
           </div>
           <div className="flex flex-col justify-between gap-2 border-t border-white/[0.07] pt-6 text-xs sm:flex-row">
@@ -439,6 +440,33 @@ function Step({ number, icon: Icon, title, text }: { number: string; icon: typeo
       </div>
       <h3 className="geom-font text-2xl">{title}</h3>
       <p className="max-w-xl text-sm leading-7 text-white/40">{text}</p>
+    </div>
+  );
+}
+
+function InvestigationRow({ number, icon: Icon, title, text }: { number: string; icon: typeof BrainCircuit; title: string; text: string }) {
+  return (
+    <div className="grid gap-5 border-b border-white/10 py-8 sm:grid-cols-[48px_1fr]">
+      <div className="flex items-start justify-between sm:block">
+        <span className="font-mono text-[10px] text-[#8BD125]">{number}</span>
+        <Icon className="h-4 w-4 text-[#8BD125] sm:mt-5" />
+      </div>
+      <div>
+        <h3 className="geom-font text-2xl sm:text-3xl">{title}</h3>
+        <p className="mt-4 max-w-2xl text-sm leading-7 text-white/40">{text}</p>
+      </div>
+    </div>
+  );
+}
+
+function LogPrinciple({ number, title, text }: { number: string; title: string; text: string }) {
+  return (
+    <div className="grid gap-4 py-7 sm:grid-cols-[48px_1fr]">
+      <span className="font-mono text-[10px] text-[#8BD125]">{number}</span>
+      <div>
+        <h3 className="geom-font text-2xl">{title}</h3>
+        <p className="mt-3 max-w-2xl text-sm leading-7 text-white/40">{text}</p>
+      </div>
     </div>
   );
 }
