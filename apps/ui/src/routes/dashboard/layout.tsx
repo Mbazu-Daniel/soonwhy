@@ -47,12 +47,12 @@ function DashboardLayout() {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex flex-col bg-background">
+      <div className="dashboard-shell min-h-screen flex flex-col">
         <a href="#main-content" className="skip-link">Skip to main content</a>
         <TopBar />
         <div className="flex min-h-0 flex-1">
           <Sidebar />
-          <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 overflow-y-auto bg-background p-4 sm:p-5 lg:p-6">
+          <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 overflow-y-auto bg-[#080B07] p-4 sm:p-5 lg:p-6">
             <Outlet />
           </main>
         </div>
@@ -64,12 +64,12 @@ function DashboardLayout() {
 
 function DashboardLoading() {
   return (
-    <div className="min-h-screen flex flex-col bg-background" aria-busy="true" aria-label="Loading dashboard">
-      <header className="h-16 shrink-0 border-b bg-white flex items-center px-4 sm:px-6">
+    <div className="dashboard-shell min-h-screen flex flex-col" aria-busy="true" aria-label="Loading dashboard">
+      <header className="h-16 shrink-0 border-b border-white/[0.08] bg-[#0D120C] flex items-center px-4 sm:px-6">
         <Skeleton className="h-8 w-28" />
       </header>
       <div className="flex flex-1">
-        <aside className="hidden w-60 border-r bg-white p-4 lg:block">
+        <aside className="hidden w-60 border-r border-white/[0.08] bg-[#0D120C] p-4 lg:block">
           <Skeleton className="mb-8 h-9 w-full" />
           <div className="space-y-2">
             {[1, 2, 3, 4, 5].map((item) => <Skeleton key={item} className="h-10 w-full" />)}
