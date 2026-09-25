@@ -7,6 +7,7 @@ import { HealthScore } from '~/components/health-score';
 import { MetricCard } from '~/components/metric-cards';
 import { api } from '~/lib/api';
 import { QueryErrorState } from '~/components/query-error-state';
+import { ProductTour } from '~/components/product-tour';
 import { useProject } from '~/lib/project-context';
 
 export const Route = createFileRoute('/dashboard/')({
@@ -62,6 +63,7 @@ function DashboardOverview() {
 
   return (
     <div className="max-w-[1440px] mx-auto space-y-6 pb-10">
+      <ProductTour />
       <section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#16931F]">System overview</p>
