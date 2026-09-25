@@ -24,7 +24,7 @@ interface Organization {
 
 function CreateOrgDialog() {
   const navigate = useNavigate();
-  const { setOrgId } = useProject();
+  const { setOrgId, clearProjectId } = useProject();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
@@ -37,6 +37,7 @@ function CreateOrgDialog() {
     onSuccess: (org) => {
       queryClient.invalidateQueries({ queryKey: ['organizations'] });
       setOrgId(org.id);
+      clearProjectId();
       setOpen(false);
       setName('');
       setSlug('');
