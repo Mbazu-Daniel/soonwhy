@@ -73,10 +73,10 @@ function Home() {
 
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost" size="sm" className="hidden text-white/70 hover:bg-white/5 hover:text-white sm:inline-flex">
-              <Link to="/auth/sign-in">Sign in</Link>
+              <Link to="/login">Sign in</Link>
             </Button>
             <Button asChild size="sm" className="hidden bg-[#8BD125] font-semibold text-[#182012] hover:bg-[#9BE43A] sm:inline-flex">
-              <Link to="/auth/sign-up">Start a project <ArrowRight /></Link>
+              <Link to="/register">Start a project <ArrowRight /></Link>
             </Button>
             <button
               type="button"
@@ -108,8 +108,8 @@ function Home() {
           </a>
         ))}
         <div className="mt-2 border-t border-white/[0.07] pt-2">
-          <Link to="/auth/sign-in" onClick={() => setMenuOpen(false)} className="block rounded-xl px-4 py-3 text-sm text-white/65">Sign in</Link>
-          <Link to="/auth/sign-up" onClick={() => setMenuOpen(false)} className="mt-1 flex items-center justify-between rounded-xl bg-[#8BD125] px-4 py-3 text-sm font-semibold text-[#182012]">
+          <Link to="/login" onClick={() => setMenuOpen(false)} className="block rounded-xl px-4 py-3 text-sm text-white/65">Sign in</Link>
+          <Link to="/register" onClick={() => setMenuOpen(false)} className="mt-1 flex items-center justify-between rounded-xl bg-[#8BD125] px-4 py-3 text-sm font-semibold text-[#182012]">
             Start a project <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
@@ -135,7 +135,7 @@ function Home() {
 
             <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
               <Button asChild size="lg" className="h-12 bg-[#8BD125] px-6 font-semibold text-[#182012] hover:bg-[#9BE43A]">
-                <Link to="/auth/sign-up">Start investigating <ArrowRight /></Link>
+                <Link to="/register">Start investigating <ArrowRight /></Link>
               </Button>
             </div>
 
@@ -207,7 +207,7 @@ function Home() {
                   Observability gives you the data. SoonWhy keeps the relationships together so you can understand what is happening and why.
                 </p>
               </div>
-              <Link to="/auth/sign-up" className="inline-flex items-center gap-2 text-sm font-medium text-[#B5E66A] hover:text-[#D0F49A]">
+              <Link to="/register" className="inline-flex items-center gap-2 text-sm font-medium text-[#B5E66A] hover:text-[#D0F49A]">
                 Start with a project <ChevronRight className="h-4 w-4" />
               </Link>
             </div>
@@ -236,7 +236,7 @@ function Home() {
                 <p className="mt-5 max-w-lg leading-7 text-white/45">
                   SoonWhy treats logs as investigation data, not a stream of messages. Rich context, trace correlation and useful dimensions make every event easier to connect back to the request that produced it.
                 </p>
-                <Link to="/auth/sign-up" className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-[#B5E66A] hover:text-[#D0F49A]">
+                <Link to="/register" className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-[#B5E66A] hover:text-[#D0F49A]">
                   Start a project <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
@@ -337,7 +337,7 @@ function Home() {
               <p className="mt-4 max-w-xl leading-7 text-[#182012]/65">Create a project, connect OpenTelemetry, and investigate your first real signal.</p>
             </div>
             <Button asChild size="lg" className="h-12 shrink-0 bg-[#182012] px-6 text-white hover:bg-[#25311E]">
-              <Link to="/auth/sign-up">Start investigating <ArrowRight /></Link>
+              <Link to="/register">Start investigating <ArrowRight /></Link>
             </Button>
           </div>
         </section>
@@ -351,8 +351,8 @@ function Home() {
               <span className="display-font">SoonWhy</span>
             </Link>
             <div className="flex items-center gap-6 text-sm">
-              <Link to="/auth/sign-in" className="hover:text-white">Sign in</Link>
-              <Link to="/auth/sign-up" className="hover:text-white">Start a project</Link>
+              <Link to="/login" className="hover:text-white">Sign in</Link>
+              <Link to="/register" className="hover:text-white">Start a project</Link>
             </div>
           </div>
           <div className="flex flex-col justify-between gap-2 border-t border-white/[0.07] pt-6 text-xs sm:flex-row">
