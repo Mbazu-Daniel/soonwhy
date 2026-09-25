@@ -19,6 +19,11 @@ export class ServicesController {
     return this.servicesService.createService(projectId, org.orgId, input);
   }
 
+  @Get('map')
+  async getServiceMap(@CurrentOrg() org: OrgContext, @Query('projectId') projectId: string) {
+    return this.servicesService.getServiceMap(projectId, org.orgId);
+  }
+
   @Get()
   async getServicesForProject(
     @CurrentOrg() org: OrgContext,
