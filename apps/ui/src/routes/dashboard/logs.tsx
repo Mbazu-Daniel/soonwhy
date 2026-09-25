@@ -20,11 +20,11 @@ function parseAttributes(attributes: LogEntry['attributes']) { if (typeof attrib
 function LogRow({ log }: { log: LogEntry }) {
   const [expanded, setExpanded] = useState(false); const fields = parseAttributes(log.attributes); const expandable = Object.keys(fields).length > 0;
   return <article className="border-b border-[#DBE5D7] last:border-0">
-    <button type="button" aria-expanded={expandable ? expanded : undefined} onClick={() => expandable && setExpanded(!expanded)} className="flex w-full items-start gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-[#F7FAF4] focus-visible:bg-[#F7FAF4]">
+    <button type="button" aria-expanded={expandable ? expanded : undefined} onClick={() => expandable && setExpanded(!expanded)} className="flex w-full items-start gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-[#F7FAF4] focus-visible:bg-[#F7FAF4] sm:items-center">
       <span className="grid h-5 w-5 shrink-0 place-items-center">{expandable ? (expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />) : null}</span>
-      <time className="w-40 shrink-0 font-mono text-[11px] text-muted-foreground">{new Date(log.timestamp).toLocaleString()}</time>
+      <time className="w-auto shrink-0 font-mono text-[11px] text-muted-foreground sm:w-40">{new Date(log.timestamp).toLocaleString()}</time>
       <Badge variant="outline" className={`w-14 shrink-0 justify-center text-[10px] uppercase ${LEVEL_TREATMENT[log.level] ?? LEVEL_TREATMENT.debug}`}>{log.level}</Badge>
-      <span className="w-32 shrink-0 truncate text-xs font-medium text-[#16931F]">{log.service}</span><span className="min-w-0 flex-1 truncate">{log.message}</span>
+      <span className="hidden w-32 shrink-0 truncate text-xs font-medium text-[#16931F] sm:block">{log.service}</span><span className="min-w-0 flex-1 truncate">{log.message}</span>
     </button>
     {expanded && <div className="bg-[#F7FAF4] px-12 pb-4"><pre className="overflow-x-auto rounded-lg border border-[#DBE5D7] bg-white p-4 text-xs leading-5">{JSON.stringify(fields, null, 2)}</pre></div>}
   </article>;
