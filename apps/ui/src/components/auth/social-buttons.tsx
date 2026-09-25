@@ -11,12 +11,10 @@ export function SocialButtons() {
 
   useEffect(() => { void getAuthProviders().then(setProviders); }, []);
 
-  if (!providers || (!providers.google && !providers.github)) return null;
-
   return (
     <div className="space-y-3">
-      {providers.google && <a href={getSocialSignInUrl('google')} className="auth-social-button"><GoogleIcon /><span>Continue with Google</span></a>}
-      {providers.github && <a href={getSocialSignInUrl('github')} className="auth-social-button"><Github className="h-5 w-5" aria-hidden="true" /><span>Continue with GitHub</span></a>}
+      <a href={getSocialSignInUrl('google')} className={`auth-social-button${providers && !providers.google ? ' opacity-50' : ''}`} aria-disabled={providers ? !providers.google : undefined}><GoogleIcon /><span>Continue with Google</span></a>
+      <a href={getSocialSignInUrl('github')} className={`auth-social-button${providers && !providers.github ? ' opacity-50' : ''}`} aria-disabled={providers ? !providers.github : undefined}><Github className="h-5 w-5" aria-hidden="true" /><span>Continue with GitHub</span></a>
     </div>
   );
 }
