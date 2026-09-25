@@ -42,10 +42,10 @@ function DashboardOverviewPage() {
         <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#16931F]">Mission control</p>
-            <h1 className="mt-2 text-[30px] font-semibold tracking-[-0.04em] text-[#182012]">Good morning, here’s your system.</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#687462]">A quiet overview of traffic, reliability and the evidence SoonWhy has connected across your services.</p>
+            <h1 className="mt-2 text-[30px] font-semibold tracking-[-0.04em] text-[#F6F6F6]">Good morning, here’s your system.</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#989898]">A quiet overview of traffic, reliability and the evidence SoonWhy has connected across your services.</p>
           </div>
-          <div className="flex items-center gap-2 rounded-full border border-[#242426] bg-[#0B0B0C] px-3 py-2 text-xs text-[#687462] shadow-[0_1px_2px_rgba(24,32,18,.03)]">
+          <div className="flex items-center gap-2 rounded-full border border-[#242426] bg-[#0B0B0C] px-3 py-2 text-xs text-[#989898] shadow-[0_1px_2px_rgba(24,32,18,.03)]">
             <span className="h-2 w-2 rounded-full bg-[#8BD125]" />
             Last 24 hours
           </div>
@@ -63,10 +63,10 @@ function DashboardOverviewPage() {
             <CardContent className="p-0">
               <div className="flex items-start justify-between border-b border-[#1B1B1D] px-5 py-5 sm:px-6">
                 <div>
-                  <h2 className="text-sm font-semibold text-[#182012]">Traffic & latency</h2>
+                  <h2 className="text-sm font-semibold text-[#F6F6F6]">Traffic & latency</h2>
                   <p className="mt-1 text-xs text-[#7A8574]">Request volume and response-time health</p>
                 </div>
-                <button type="button" className="rounded-lg border border-[#242426] px-3 py-1.5 text-xs text-[#687462]">24h</button>
+                <button type="button" className="rounded-lg border border-[#242426] px-3 py-1.5 text-xs text-[#989898]">24h</button>
               </div>
               <div className="px-5 pb-6 pt-4 sm:px-6">
                 <div className="flex h-[260px] items-end gap-2 border-b border-[#1B1B1D] pb-0">
@@ -142,9 +142,9 @@ function Metric({ label, value, suffix, icon: Icon, detail, tone }: { label:stri
   return <Card className={tone === 'dark' ? 'rounded-2xl border-[#182012] bg-[#182012] text-white shadow-[0_8px_30px_rgba(24,32,18,.08)]' : 'rounded-2xl border-[#242426] bg-[#0B0B0C] shadow-[0_8px_30px_rgba(24,32,18,.04)]'}><CardContent className="p-5"><div className="flex items-center justify-between"><span className={tone === 'dark' ? 'text-xs text-white/55' : 'text-xs text-[#7A8574]'}>{label}</span><Icon className={tone === 'dark' ? 'h-4 w-4 text-[#8BD125]' : 'h-4 w-4 text-[#16931F]'} /></div><div className="mt-5 flex items-baseline gap-1"><span className="text-[28px] font-semibold tracking-[-0.04em]">{value}</span>{suffix&&<span className={tone === 'dark' ? 'text-xs text-white/40' : 'text-xs text-[#98A292]'}>{suffix}</span>}</div><p className={tone === 'dark' ? 'mt-2 text-xs text-white/45' : 'mt-2 text-xs text-[#98A292]'}>{detail}</p></CardContent></Card>;
 }
 
-function Mini({ label, value }: { label:string; value:string }) { return <div><p className="text-[10px] uppercase tracking-[.12em] text-[#98A292]">{label}</p><p className="mt-1 text-sm font-semibold text-[#182012]">{value}</p></div>; }
+function Mini({ label, value }: { label:string; value:string }) { return <div><p className="text-[10px] uppercase tracking-[.12em] text-[#98A292]">{label}</p><p className="mt-1 text-sm font-semibold text-[#F6F6F6]">{value}</p></div>; }
 function Attention({ icon:Icon, title, detail, tone }: { icon:typeof CheckCircle2; title:string; detail:string; tone?:'ok' }) { return <div className="flex items-start gap-3 px-5 py-4 sm:px-6"><span className={tone === 'ok' ? 'grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#EEF7E4] text-[#16931F]' : 'grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#EAF3F4] text-[#26737A]'}><Icon className="h-4 w-4"/></span><div><p className="text-sm font-medium">{title}</p><p className="mt-1 text-xs leading-5 text-[#7A8574]">{detail}</p></div></div>; }
-function QuickLink({ href, params, icon:Icon, label }: { href:'/$organizationSlug/services'|'/$organizationSlug/traces'|'/$organizationSlug/logs'|'/$organizationSlug/investigations'; params:{organizationSlug:string}; icon:typeof Server; label:string }) { return <Link to={href} params={params} className="flex items-center gap-3 bg-[#0B0B0C] px-5 py-4 text-sm font-medium hover:bg-[#F7FAF4]"><span className="grid h-8 w-8 place-items-center rounded-lg bg-[#F1F5EE] text-[#16931F]"><Icon className="h-4 w-4"/></span>{label}<ArrowUpRight className="ml-auto h-3.5 w-3.5 text-[#98A292]"/></Link>; }
+function QuickLink({ href, params, icon:Icon, label }: { href:'/$organizationSlug/services'|'/$organizationSlug/traces'|'/$organizationSlug/logs'|'/$organizationSlug/investigations'; params:{organizationSlug:string}; icon:typeof Server; label:string }) { return <Link to={href} params={params} className="flex items-center gap-3 bg-[#0B0B0C] px-5 py-4 text-sm font-medium hover:bg-[#040405]"><span className="grid h-8 w-8 place-items-center rounded-lg bg-[#F1F5EE] text-[#16931F]"><Icon className="h-4 w-4"/></span>{label}<ArrowUpRight className="ml-auto h-3.5 w-3.5 text-[#98A292]"/></Link>; }
 function EmptyProject(){return <Card className="rounded-2xl border-dashed border-[#242426] bg-[#0B0B0C]"><CardContent className="p-12 text-center"><Server className="mx-auto h-6 w-6 text-[#16931F]"/><p className="mt-3 text-sm font-medium">Choose a project</p><p className="mt-1 text-xs text-[#7A8574]">Select a project from the top bar to start exploring telemetry.</p></CardContent></Card>;}
 function OverviewSkeleton(){return <div className="p-6 sm:p-8"><div className="mx-auto max-w-[1480px] space-y-6"><Skeleton className="h-10 w-72"/><Skeleton className="h-4 w-96 max-w-full"/><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[1,2,3,4].map(i=><Skeleton key={i} className="h-32 rounded-2xl"/>)}</div><Skeleton className="h-[390px] rounded-2xl"/></div></div>;}
 function formatNumber(value:number|undefined){return value == null ? '—' : value.toLocaleString();}
