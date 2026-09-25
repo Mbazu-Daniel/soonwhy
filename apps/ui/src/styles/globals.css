@@ -31,6 +31,7 @@
 
 html {
   background: #f7faf4;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -52,6 +53,26 @@ textarea {
 
 :focus-visible {
   outline: 2px solid #16931f;
+  outline-offset: 3px;
+}
+
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 100;
+  transform: translateY(-200%);
+  border-radius: 0.5rem;
+  background: #182012;
+  color: #f7faf4;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgb(24 32 18 / 18%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
 }
 
 ::selection {
@@ -65,7 +86,6 @@ pre {
   font-family: "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace;
 }
 
-/* Intentional, non-gradient status treatments. */
 .status-positive {
   color: #16931f;
   background: #e7f5df;
@@ -84,4 +104,19 @@ pre {
 .status-critical {
   color: #8a1c13;
   background: #fde8e6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
