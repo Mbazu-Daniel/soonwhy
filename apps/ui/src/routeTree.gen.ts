@@ -7,6 +7,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrganizationsRouteImport } from './routes/organizations'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
@@ -25,6 +26,11 @@ import { Route as DashboardInvestigationsInvestigationIdRouteImport } from './ro
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrganizationsRoute = OrganizationsRouteImport.update({
@@ -106,6 +112,8 @@ const DashboardInvestigationsInvestigationIdRoute = DashboardInvestigationsInves
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/organizations': typeof OrganizationsRoute
+  '/onboarding': typeof OnboardingRoute
+  '/onboarding': typeof OnboardingRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/dashboard/errors': typeof DashboardErrorsRoute
@@ -124,6 +132,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/organizations': typeof OrganizationsRoute
+  '/onboarding': typeof OnboardingRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/dashboard/errors': typeof DashboardErrorsRoute
@@ -243,6 +252,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/organizations': {
       id: '/organizations'
       path: '/organizations'
@@ -354,6 +370,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OrganizationsRoute: OrganizationsRoute,
+  OnboardingRoute: OnboardingRoute,
   AuthSignInRoute: AuthSignInRoute,
   AuthSignUpRoute: AuthSignUpRoute,
   DashboardErrorsRoute: DashboardErrorsRoute,
