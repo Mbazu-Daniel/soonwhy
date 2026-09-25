@@ -13,7 +13,6 @@ import {
   Terminal,
   Timer,
   Waypoints,
-  X,
 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 
