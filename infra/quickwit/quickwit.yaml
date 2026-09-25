@@ -10,6 +10,7 @@ storage:
     region: ${QW_S3_REGION:-us-east-1}
     access_key_id: ${AWS_ACCESS_KEY_ID:-soonwhy}
     secret_access_key: ${AWS_SECRET_ACCESS_KEY:-soonwhy-secret}
+    force_path_style_access: true
 
 rest:
   listen_port: 7280

@@ -4,9 +4,11 @@ import {
   Delete,
   ForbiddenException,
   Get,
+  Headers,
   Param,
   Post,
   Put,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { OrganizationsService } from './organizations.service';
@@ -20,90 +22,99 @@ export class OrganizationsController {
   constructor(private readonly organizationsService: OrganizationsService) {}
 
   @Post()
-  async createOrganization(@CurrentUser() user: AuthUser, @Body() body: unknown) {
+  async createOrganization(
+    @CurrentUser() user: AuthUser | null,
+    @Headers('authorization') authorization: string | undefined,
+    @Body() body: unknown,
+  ) {
+    if (!user) throw new UnauthorizedException('Sign in required');
     const input = CreateOrganizationDto.parse(body);
-    return this.organizationsService.createOrganization(user.id, input);
+    return this.organizationsService.createOrganization(user.id, input, authorization);
   }
 
   @Get()
-  async getOrganizationsForUser(@CurrentUser() user: AuthUser) {
-    return this.organizationsService.getOrganizationsForUser(user.id);
+  async getOrganizationsForUser(
+    @CurrentUser() user: AuthUser | null,
+    @Headers('authorization') authorization: string | undefined,
+  ) {
+    if (!user) throw new UnauthorizedException('Sign in required');
+    return this.organizationsService.getOrganizationsForUser(authorization);
   }
+}
 
-  @UseGuards(TenantGuard)
-  @Get(':id')
+@UseGuards(TenantGuard)
+@Controller('organization/:organizationId')
+export class OrganizationController {
+  constructor(private readonly organizationsService: OrganizationsService) {}
+
+  @Get()
   async getOrganizationById(
-    @Param('id') id: string,
+    @Param('organizationId') organizationId: string,
     @CurrentMember() member: MemberContext,
   ) {
-    this.assertOrganization(member, id);
-    return this.organizationsService.getOrganizationById(id);
+    this.assertOrganization(member, organizationId);
+    return this.organizationsService.getOrganizationById(organizationId);
   }
 
-  @UseGuards(TenantGuard)
-  @Put(':id')
+  @Put()
   async updateOrganization(
-    @Param('id') id: string,
+    @Param('organizationId') organizationId: string,
     @Body() body: unknown,
     @CurrentMember() member: MemberContext,
   ) {
-    this.assertOrganization(member, id);
+    this.assertOrganization(member, organizationId);
     if (!['owner', 'admin'].includes(member.role)) {
       throw new ForbiddenException('Insufficient permissions');
     }
     const input = UpdateOrganizationDto.parse(body);
-    return this.organizationsService.updateOrganization(id, input);
+    return this.organizationsService.updateOrganization(organizationId, input);
   }
 
-  @UseGuards(TenantGuard)
-  @Delete(':id')
+  @Delete()
   async deleteOrganization(
-    @Param('id') id: string,
+    @Param('organizationId') organizationId: string,
     @CurrentMember() member: MemberContext,
   ) {
-    this.assertOrganization(member, id);
+    this.assertOrganization(member, organizationId);
     if (member.role !== 'owner') {
       throw new ForbiddenException('Only owners can delete organizations');
     }
-    return this.organizationsService.deleteOrganization(id);
+    return this.organizationsService.deleteOrganization(organizationId);
   }
 
-  @UseGuards(TenantGuard)
-  @Get(':id/members')
+  @Get('members')
   async getMembersOfOrganization(
-    @Param('id') id: string,
+    @Param('organizationId') organizationId: string,
     @CurrentMember() member: MemberContext,
   ) {
-    this.assertOrganization(member, id);
-    return this.organizationsService.getMembersOfOrganization(id);
+    this.assertOrganization(member, organizationId);
+    return this.organizationsService.getMembersOfOrganization(organizationId);
   }
 
-  @UseGuards(TenantGuard)
-  @Post(':id/members')
+  @Post('members')
   async addMemberToOrganization(
-    @Param('id') id: string,
+    @Param('organizationId') organizationId: string,
     @Body() body: { userId: string; role?: string },
     @CurrentMember() member: MemberContext,
   ) {
-    this.assertOrganization(member, id);
+    this.assertOrganization(member, organizationId);
     if (!['owner', 'admin'].includes(member.role)) {
       throw new ForbiddenException('Only owners and admins can add members');
     }
-    return this.organizationsService.addMemberToOrganization(id, body.userId, body.role);
+    return this.organizationsService.addMemberToOrganization(organizationId, body.userId, body.role);
   }
 
-  @UseGuards(TenantGuard)
-  @Delete(':id/members/:userId')
+  @Delete('members/:userId')
   async removeMemberFromOrganization(
-    @Param('id') id: string,
+    @Param('organizationId') organizationId: string,
     @Param('userId') userId: string,
     @CurrentMember() member: MemberContext,
   ) {
-    this.assertOrganization(member, id);
+    this.assertOrganization(member, organizationId);
     if (!['owner', 'admin'].includes(member.role)) {
       throw new ForbiddenException('Only owners and admins can remove members');
     }
-    return this.organizationsService.removeMemberFromOrganization(id, userId);
+    return this.organizationsService.removeMemberFromOrganization(organizationId, userId);
   }
 
   private assertOrganization(member: MemberContext, organizationId: string): void {

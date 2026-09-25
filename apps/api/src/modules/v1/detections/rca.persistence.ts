@@ -1,3 +1,4 @@
+import { Inject, Injectable } from '@nestjs/common';
 import type { RcaAnalysis, RcaEvidence, RcaUsage } from './rca.types';
 import { RcaAnalysisRepository, type CreateRcaAnalysisInput } from './rca.repository';
 
@@ -13,8 +14,9 @@ export interface PersistRcaAnalysisInput {
   usage: RcaUsage;
 }
 
+@Injectable()
 export class RcaPersistenceService {
-  constructor(private readonly repository: Pick<RcaAnalysisRepository, 'create' | 'findLatest' | 'list'>) {}
+  constructor(@Inject(RcaAnalysisRepository) private readonly repository: Pick<RcaAnalysisRepository, 'create' | 'findLatest' | 'list'>) {}
 
   async persist(input: PersistRcaAnalysisInput) {
     const values: CreateRcaAnalysisInput = {

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Post, UseGuards } from '@nestjs/common';
 import { CurrentOrg, OrgContext } from '../../../common/decorators/current-org.decorator';
 import { TenantGuard } from '../../../common/middleware/tenant-context.guard';
 import { RcaApiService } from './rca.api';
@@ -11,7 +11,7 @@ const RcaRequestSchema = z.object({
 @Controller('projects/:projectId/findings/:findingId/rca')
 @UseGuards(TenantGuard)
 export class RcaController {
-  constructor(private readonly rcaApi: Pick<RcaApiService, 'getLatest' | 'getHistory' | 'generate'>) {}
+  constructor(@Inject(RcaApiService) private readonly rcaApi: Pick<RcaApiService, 'getLatest' | 'getHistory' | 'generate'>) {}
 
   @Get()
   getLatest(@CurrentOrg() org: OrgContext, @Param('projectId') projectId: string, @Param('findingId') findingId: string) {

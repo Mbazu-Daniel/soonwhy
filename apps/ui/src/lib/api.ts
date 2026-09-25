@@ -7,8 +7,21 @@ export class ApiError extends Error {
   }
 }
 
+const UNSCOPED_PREFIXES = ['/auth', '/organizations', '/health', '/marketing'];
+
+function scopePath(path: string, orgId: string | null): string {
+  const pathname = path.split('?')[0] ?? path;
+  const unscoped = UNSCOPED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+  if (unscoped || pathname.startsWith('/organization/')) return path;
+  if (!orgId) throw new ApiError(400, 'Choose an organization first');
+  return `/organization/${encodeURIComponent(orgId)}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const url = `${API_BASE}${API_PREFIX}${path}`;
+  const orgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
+  const url = `${API_BASE}${API_PREFIX}${scopePath(path, orgId)}`;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
@@ -19,7 +32,6 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const orgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
   if (orgId) {
     headers['X-Org-Id'] = orgId;
   }
@@ -28,6 +40,17 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ message: res.statusText }));
+
+    if (res.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem('session_token');
+      localStorage.removeItem('org_id');
+      localStorage.removeItem('org_slug');
+      localStorage.removeItem('project_id');
+      localStorage.setItem('soonwhy:return-path', window.location.pathname + window.location.search);
+      const path = window.location.pathname;
+      if (path !== '/login' && path !== '/register') window.location.assign('/login');
+    }
+
     throw new ApiError(res.status, body.message || body.detail || 'Request failed');
   }
 

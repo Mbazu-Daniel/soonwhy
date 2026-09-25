@@ -1,8 +1,10 @@
 import { Injectable, NestMiddleware, UnauthorizedException } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
+import { and, eq, sql } from 'drizzle-orm';
 import { auth } from '../config/better-auth.config';
 import { db } from '../db';
-import { sql } from 'drizzle-orm';
+import { members } from '../db/schema/auth';
+import { organizationIdFromUrl } from './organization-path';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const authApi = auth.api as any;
@@ -42,14 +44,20 @@ export class TenantContextMiddleware implements NestMiddleware {
 
     req.user = session.user;
 
-    const orgId = req.headers['x-org-id'] as string || req.query.org_id as string;
-
+    const orgId = organizationIdFromUrl(req.originalUrl || req.url);
     if (orgId) {
-      const member = await authApi.getActiveMember({
-        headers: { authorization: `Bearer ${token}` },
-      });
+      const headerOrg = headerValue(req.headers['x-org-id']);
+      if (headerOrg && headerOrg !== orgId) {
+        throw new UnauthorizedException('X-Org-Id does not match the organization in the path');
+      }
 
-      if (!member || member.organizationId !== orgId) {
+      const [member] = await db
+        .select({ role: members.role })
+        .from(members)
+        .where(and(eq(members.userId, session.user.id), eq(members.organizationId, orgId)))
+        .limit(1);
+
+      if (!member) {
         throw new UnauthorizedException('Not a member of this organization');
       }
 
@@ -63,4 +71,9 @@ export class TenantContextMiddleware implements NestMiddleware {
 
     next();
   }
+}
+
+function headerValue(value: string | string[] | undefined): string | undefined {
+  if (Array.isArray(value)) return value[0];
+  return value;
 }

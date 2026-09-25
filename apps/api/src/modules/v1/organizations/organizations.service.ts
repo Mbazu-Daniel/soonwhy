@@ -26,20 +26,20 @@ export class OrganizationsService {
     return org;
   }
 
-  async getOrganizationsForUser(userId: string) {
-    const session = await authApi.listOrganizations({
-      headers: { 'x-user-id': userId },
+  async getOrganizationsForUser(authorization?: string) {
+    return authApi.listOrganizations({
+      headers: authorization ? { authorization } : {},
     });
-    return session;
   }
 
-  async createOrganization(userId: string, input: CreateOrganizationInput) {
+  async createOrganization(userId: string, input: CreateOrganizationInput, authorization?: string) {
     const existing = await this.organizationsRepository.getOrganizationBySlug(input.slug);
     if (existing) {
       throw new ConflictException('Organization slug already exists');
     }
 
     const result = await authApi.createOrganization({
+      headers: authorization ? { authorization } : {},
       body: {
         name: input.name,
         slug: input.slug,

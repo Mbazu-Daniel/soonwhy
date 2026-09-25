@@ -4,7 +4,10 @@ interface ProjectContextValue {
   projectId: string | null;
   orgId: string | null;
   setProjectId: (id: string) => void;
+  clearProjectId: () => void;
+  orgSlug: string | null;
   setOrgId: (id: string) => void;
+  setOrganization: (org: { id: string; slug: string }) => void;
 }
 
 const ProjectContext = createContext<ProjectContextValue | null>(null);
@@ -16,10 +19,18 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const [orgId, setOrgIdState] = useState<string | null>(
     () => typeof window !== 'undefined' ? localStorage.getItem('org_id') : null,
   );
+  const [orgSlug, setOrgSlugState] = useState<string | null>(
+    () => typeof window !== 'undefined' ? localStorage.getItem('org_slug') : null,
+  );
 
   const setProjectId = useCallback((id: string) => {
     localStorage.setItem('project_id', id);
     setProjectIdState(id);
+  }, []);
+
+  const clearProjectId = useCallback(() => {
+    localStorage.removeItem('project_id');
+    setProjectIdState(null);
   }, []);
 
   const setOrgId = useCallback((id: string) => {
@@ -27,8 +38,15 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     setOrgIdState(id);
   }, []);
 
+  const setOrganization = useCallback((org: { id: string; slug: string }) => {
+    localStorage.setItem('org_id', org.id);
+    localStorage.setItem('org_slug', org.slug);
+    setOrgIdState(org.id);
+    setOrgSlugState(org.slug);
+  }, []);
+
   return (
-    <ProjectContext.Provider value={{ projectId, orgId, setProjectId, setOrgId }}>
+    <ProjectContext.Provider value={{ projectId, orgId, orgSlug, setProjectId, clearProjectId, setOrgId, setOrganization }}>
       {children}
     </ProjectContext.Provider>
   );

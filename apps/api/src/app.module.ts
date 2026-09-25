@@ -1,5 +1,6 @@
 import { QuickwitModule } from './common/quickwit';
 import { Module } from '@nestjs/common';
+import { RouterModule } from '@nestjs/core';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './modules/v1/auth';
 import { OrganizationsModule } from './modules/v1/organizations';
@@ -20,28 +21,38 @@ import { BusinessOperationsModule } from './modules/v1/business-operations/busin
 import { InvestigationModule } from './modules/v1/investigations/investigation.module';
 import { BillingModule } from './modules/v1/billing/billing.module';
 
+const organizationScopedModules = [
+  ApiKeysModule,
+  ServicesModule,
+  ProjectsModule,
+  DashboardModule,
+  LogsModule,
+  MetricsModule,
+  RequestsModule,
+  TracesModule,
+  DetectionModule,
+  EnvironmentsModule,
+  TeamsModule,
+  DeploymentsModule,
+  BusinessOperationsModule,
+  InvestigationModule,
+  BillingModule,
+];
+
 @Module({
   imports: [
     QuickwitModule,
     CommonModule,
+    RouterModule.register([
+      {
+        path: 'organization/:organizationId',
+        children: organizationScopedModules,
+      },
+    ]),
     AuthModule,
     OrganizationsModule,
-    ApiKeysModule,
-    ServicesModule,
-    ProjectsModule,
     HealthModule,
-    DashboardModule,
-    LogsModule,
-    MetricsModule,
-    RequestsModule,
-    TracesModule,
-    DetectionModule,
-    EnvironmentsModule,
-    TeamsModule,
-    DeploymentsModule,
-    BusinessOperationsModule,
-    InvestigationModule,
-    BillingModule,
+    ...organizationScopedModules,
   ],
 })
 export class AppModule {}

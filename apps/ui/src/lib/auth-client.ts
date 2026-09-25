@@ -18,51 +18,91 @@ export interface AuthResult {
   error?: { message: string; status: number };
 }
 
+function withSessionToken(data: AuthResult['data'] & { token?: string }) {
+  if (!data?.token || data.session?.token) return data;
+  return {
+    ...data,
+    session: { token: data.token, id: '', expiresAt: '' },
+  };
+}
+
+export interface AuthProviders {
+  emailAndPassword: boolean;
+  google: boolean;
+  github: boolean;
+}
+
 export async function signIn(email: string, password: string): Promise<AuthResult> {
   try {
     const res = await fetch(`${API_BASE}${API_PREFIX}/auth/sign-in`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ email, password }),
     });
     const data = await res.json();
     if (!res.ok) return { error: { message: data.message || 'Sign in failed', status: res.status } };
-    return { data };
+    return { data: withSessionToken(data) };
   } catch (err) {
     return { error: { message: err instanceof Error ? err.message : 'Sign in failed', status: 0 } };
   }
 }
 
-export async function signUp(email: string, password: string, name: string): Promise<AuthResult> {
+export async function signUp(email: string, password: string): Promise<AuthResult> {
   try {
     const res = await fetch(`${API_BASE}${API_PREFIX}/auth/sign-up`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, name }),
+      credentials: 'include',
+      body: JSON.stringify({ email, password }),
     });
     const data = await res.json();
     if (!res.ok) return { error: { message: data.message || 'Sign up failed', status: res.status } };
-    return { data };
+    return { data: withSessionToken(data) };
   } catch (err) {
     return { error: { message: err instanceof Error ? err.message : 'Sign up failed', status: 0 } };
   }
 }
 
-export async function signOut(token: string): Promise<void> {
+export async function getAuthProviders(): Promise<AuthProviders> {
+  const fallback: AuthProviders = { emailAndPassword: true, google: false, github: false };
+
+  try {
+    const res = await fetch(`${API_BASE}${API_PREFIX}/auth/providers`, {
+      credentials: 'include',
+    });
+    if (!res.ok) return fallback;
+    return { ...fallback, ...(await res.json()) };
+  } catch {
+    return fallback;
+  }
+}
+
+export function getSocialSignInUrl(provider: 'google' | 'github', callbackPath = '/auth/callback'): string {
+  const callbackURL = typeof window !== 'undefined'
+    ? new URL(callbackPath, window.location.origin).toString()
+    : callbackPath;
+
+  return `${API_BASE}${API_PREFIX}/auth/social/${provider}?callbackURL=${encodeURIComponent(callbackURL)}`;
+}
+
+export async function signOut(token?: string): Promise<void> {
   try {
     await fetch(`${API_BASE}${API_PREFIX}/auth/sign-out`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
   } catch {
     // Sign out is best-effort — clear local state regardless
   }
 }
 
-export async function getSession(token: string): Promise<AuthResult> {
+export async function getSession(token?: string): Promise<AuthResult> {
   try {
     const res = await fetch(`${API_BASE}${API_PREFIX}/auth/session`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
     const data = await res.json();
     if (!res.ok) return { error: { message: data.message || 'Session expired', status: res.status } };
@@ -87,6 +127,7 @@ export function clearSession() {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('session_token');
     localStorage.removeItem('org_id');
+    localStorage.removeItem('org_slug');
     localStorage.removeItem('project_id');
   }
 }

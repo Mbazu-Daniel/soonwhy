@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { RcaAnalysisRepository } from './rca.repository';
 import { RcaPersistenceService } from './rca.persistence';
 import { RcaOrchestrator } from './rca.orchestrator';
@@ -13,9 +13,9 @@ import {
 @Injectable()
 export class RcaApiService {
   constructor(
-    private readonly repository: Pick<RcaAnalysisRepository, 'findFinding'>,
-    private readonly orchestrator: Pick<RcaOrchestrator, 'analyze'>,
-    private readonly persistence: Pick<RcaPersistenceService, 'findLatest' | 'list' | 'persist'>,
+    @Inject(RcaAnalysisRepository) private readonly repository: Pick<RcaAnalysisRepository, 'findFinding'>,
+    @Inject(RcaOrchestrator) private readonly orchestrator: Pick<RcaOrchestrator, 'analyze'>,
+    @Inject(RcaPersistenceService) private readonly persistence: Pick<RcaPersistenceService, 'findLatest' | 'list' | 'persist'>,
     private readonly governance: DatabaseRcaGovernanceSink,
   ) {}
 
