@@ -112,7 +112,7 @@ const sdk = initNode({
   function selectOrganization(id: string) {
     setOrgId(id);
     clearProjectId();
-    setStep(1);
+    goToStep(1);
     setError('');
   }
 
