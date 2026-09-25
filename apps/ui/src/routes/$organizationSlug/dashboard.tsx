@@ -34,14 +34,14 @@ function DashboardOverviewPage() {
   const live = data && data.totalRequests > 0 ? data : dashboardOverview;
   const score = live.score;
   const health = score >= 90 ? 'Healthy' : score >= 70 ? 'Needs attention' : 'Investigate';
-  const healthTone = score >= 90 ? 'text-[#16931F]' : score >= 70 ? 'text-[#9A6500]' : 'text-[#8A1C13]';
+  const healthTone = score >= 90 ? 'text-[#ACFC15]' : score >= 70 ? 'text-[#9A6500]' : 'text-[#8A1C13]';
 
   return (
     <div className="min-h-full px-5 py-6 sm:px-8 sm:py-8 xl:px-10">
       <div className="mx-auto max-w-[1480px] space-y-6">
         <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#16931F]">Mission control</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ACFC15]">Mission control</p>
             <h1 className="mt-2 text-[30px] font-semibold tracking-[-0.04em] text-[#F6F6F6]">Good morning, here’s your system.</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[#989898]">A quiet overview of traffic, reliability and the evidence SoonWhy has connected across your services.</p>
           </div>
@@ -64,7 +64,7 @@ function DashboardOverviewPage() {
               <div className="flex items-start justify-between border-b border-[#1B1B1D] px-5 py-5 sm:px-6">
                 <div>
                   <h2 className="text-sm font-semibold text-[#F6F6F6]">Traffic & latency</h2>
-                  <p className="mt-1 text-xs text-[#7A8574]">Request volume and response-time health</p>
+                  <p className="mt-1 text-xs text-[#989898]">Request volume and response-time health</p>
                 </div>
                 <button type="button" className="rounded-lg border border-[#242426] px-3 py-1.5 text-xs text-[#989898]">24h</button>
               </div>
@@ -76,7 +76,7 @@ function DashboardOverviewPage() {
                     </div>
                   ))}
                 </div>
-                <div className="mt-3 flex justify-between text-[10px] text-[#98A292]"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>Now</span></div>
+                <div className="mt-3 flex justify-between text-[10px] text-[#6E6E70]"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>Now</span></div>
                 <div className="mt-5 grid grid-cols-3 gap-4 border-t border-[#1B1B1D] pt-5">
                   <Mini label="Requests/sec" value={formatNumber(live.requestRate)} />
                   <Mini label="P99 latency" value={`${live.latencyP99}ms`} />
@@ -97,7 +97,7 @@ function DashboardOverviewPage() {
                   <span className="text-6xl font-semibold tracking-[-0.06em]">{score}</span>
                   <span className="pb-2 text-sm text-white/40">/100</span>
                 </div>
-                <p className={`mt-3 text-sm font-medium ${healthTone.replace('text-[#16931F]', 'text-[#8BD125]').replace('text-[#9A6500]', 'text-[#F2C66D]').replace('text-[#8A1C13]', 'text-[#F28B82]')}`}>{health}</p>
+                <p className={`mt-3 text-sm font-medium ${healthTone.replace('text-[#ACFC15]', 'text-[#8BD125]').replace('text-[#9A6500]', 'text-[#F2C66D]').replace('text-[#8A1C13]', 'text-[#F28B82]')}`}>{health}</p>
               </div>
               <div className="mt-auto pt-10">
                 <div className="h-2 overflow-hidden rounded-full bg-[#0B0B0C]/10"><div className="h-full rounded-full bg-[#8BD125]" style={{ width: `${Math.min(100, score)}%` }} /></div>
@@ -111,8 +111,8 @@ function DashboardOverviewPage() {
           <Card className="rounded-2xl border-[#242426] bg-[#0B0B0C] shadow-[0_8px_30px_rgba(24,32,18,.04)]">
             <CardContent className="p-0">
               <div className="flex items-center justify-between border-b border-[#1B1B1D] px-5 py-5 sm:px-6">
-                <div><h2 className="text-sm font-semibold">What needs attention</h2><p className="mt-1 text-xs text-[#7A8574]">Signals worth investigating</p></div>
-                <Link to="/$organizationSlug/detections" params={{ organizationSlug }} className="text-xs font-medium text-[#16931F] hover:underline">View all</Link>
+                <div><h2 className="text-sm font-semibold">What needs attention</h2><p className="mt-1 text-xs text-[#989898]">Signals worth investigating</p></div>
+                <Link to="/$organizationSlug/detections" params={{ organizationSlug }} className="text-xs font-medium text-[#ACFC15] hover:underline">View all</Link>
               </div>
               <div className="divide-y divide-[#EEF2EA]">
                 <Attention icon={CheckCircle2} title="No active findings" detail="SoonWhy will surface evidence-backed bottlenecks here." tone="ok" />
@@ -123,7 +123,7 @@ function DashboardOverviewPage() {
 
           <Card className="rounded-2xl border-[#242426] bg-[#0B0B0C] shadow-[0_8px_30px_rgba(24,32,18,.04)]">
             <CardContent className="p-0">
-              <div className="border-b border-[#1B1B1D] px-5 py-5 sm:px-6"><h2 className="text-sm font-semibold">Explore evidence</h2><p className="mt-1 text-xs text-[#7A8574]">Jump into the signals behind your system</p></div>
+              <div className="border-b border-[#1B1B1D] px-5 py-5 sm:px-6"><h2 className="text-sm font-semibold">Explore evidence</h2><p className="mt-1 text-xs text-[#989898]">Jump into the signals behind your system</p></div>
               <div className="grid grid-cols-2 gap-px bg-[#EEF2EA]">
                 <QuickLink href="/$organizationSlug/services" params={{ organizationSlug }} icon={Server} label="Services" />
                 <QuickLink href="/$organizationSlug/traces" params={{ organizationSlug }} icon={GitBranch} label="Traces" />
@@ -139,12 +139,12 @@ function DashboardOverviewPage() {
 }
 
 function Metric({ label, value, suffix, icon: Icon, detail, tone }: { label:string; value:string; suffix?:string; icon:typeof Activity; detail:string; tone?:'dark' }) {
-  return <Card className={tone === 'dark' ? 'rounded-2xl border-[#182012] bg-[#182012] text-white shadow-[0_8px_30px_rgba(24,32,18,.08)]' : 'rounded-2xl border-[#242426] bg-[#0B0B0C] shadow-[0_8px_30px_rgba(24,32,18,.04)]'}><CardContent className="p-5"><div className="flex items-center justify-between"><span className={tone === 'dark' ? 'text-xs text-white/55' : 'text-xs text-[#7A8574]'}>{label}</span><Icon className={tone === 'dark' ? 'h-4 w-4 text-[#8BD125]' : 'h-4 w-4 text-[#16931F]'} /></div><div className="mt-5 flex items-baseline gap-1"><span className="text-[28px] font-semibold tracking-[-0.04em]">{value}</span>{suffix&&<span className={tone === 'dark' ? 'text-xs text-white/40' : 'text-xs text-[#98A292]'}>{suffix}</span>}</div><p className={tone === 'dark' ? 'mt-2 text-xs text-white/45' : 'mt-2 text-xs text-[#98A292]'}>{detail}</p></CardContent></Card>;
+  return <Card className={tone === 'dark' ? 'rounded-2xl border-[#182012] bg-[#182012] text-white shadow-[0_8px_30px_rgba(24,32,18,.08)]' : 'rounded-2xl border-[#242426] bg-[#0B0B0C] shadow-[0_8px_30px_rgba(24,32,18,.04)]'}><CardContent className="p-5"><div className="flex items-center justify-between"><span className={tone === 'dark' ? 'text-xs text-white/55' : 'text-xs text-[#989898]'}>{label}</span><Icon className={tone === 'dark' ? 'h-4 w-4 text-[#8BD125]' : 'h-4 w-4 text-[#ACFC15]'} /></div><div className="mt-5 flex items-baseline gap-1"><span className="text-[28px] font-semibold tracking-[-0.04em]">{value}</span>{suffix&&<span className={tone === 'dark' ? 'text-xs text-white/40' : 'text-xs text-[#6E6E70]'}>{suffix}</span>}</div><p className={tone === 'dark' ? 'mt-2 text-xs text-white/45' : 'mt-2 text-xs text-[#6E6E70]'}>{detail}</p></CardContent></Card>;
 }
 
-function Mini({ label, value }: { label:string; value:string }) { return <div><p className="text-[10px] uppercase tracking-[.12em] text-[#98A292]">{label}</p><p className="mt-1 text-sm font-semibold text-[#F6F6F6]">{value}</p></div>; }
-function Attention({ icon:Icon, title, detail, tone }: { icon:typeof CheckCircle2; title:string; detail:string; tone?:'ok' }) { return <div className="flex items-start gap-3 px-5 py-4 sm:px-6"><span className={tone === 'ok' ? 'grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#EEF7E4] text-[#16931F]' : 'grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#EAF3F4] text-[#26737A]'}><Icon className="h-4 w-4"/></span><div><p className="text-sm font-medium">{title}</p><p className="mt-1 text-xs leading-5 text-[#7A8574]">{detail}</p></div></div>; }
-function QuickLink({ href, params, icon:Icon, label }: { href:'/$organizationSlug/services'|'/$organizationSlug/traces'|'/$organizationSlug/logs'|'/$organizationSlug/investigations'; params:{organizationSlug:string}; icon:typeof Server; label:string }) { return <Link to={href} params={params} className="flex items-center gap-3 bg-[#0B0B0C] px-5 py-4 text-sm font-medium hover:bg-[#040405]"><span className="grid h-8 w-8 place-items-center rounded-lg bg-[#F1F5EE] text-[#16931F]"><Icon className="h-4 w-4"/></span>{label}<ArrowUpRight className="ml-auto h-3.5 w-3.5 text-[#98A292]"/></Link>; }
-function EmptyProject(){return <Card className="rounded-2xl border-dashed border-[#242426] bg-[#0B0B0C]"><CardContent className="p-12 text-center"><Server className="mx-auto h-6 w-6 text-[#16931F]"/><p className="mt-3 text-sm font-medium">Choose a project</p><p className="mt-1 text-xs text-[#7A8574]">Select a project from the top bar to start exploring telemetry.</p></CardContent></Card>;}
+function Mini({ label, value }: { label:string; value:string }) { return <div><p className="text-[10px] uppercase tracking-[.12em] text-[#6E6E70]">{label}</p><p className="mt-1 text-sm font-semibold text-[#F6F6F6]">{value}</p></div>; }
+function Attention({ icon:Icon, title, detail, tone }: { icon:typeof CheckCircle2; title:string; detail:string; tone?:'ok' }) { return <div className="flex items-start gap-3 px-5 py-4 sm:px-6"><span className={tone === 'ok' ? 'grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#EEF7E4] text-[#ACFC15]' : 'grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#EAF3F4] text-[#26737A]'}><Icon className="h-4 w-4"/></span><div><p className="text-sm font-medium">{title}</p><p className="mt-1 text-xs leading-5 text-[#989898]">{detail}</p></div></div>; }
+function QuickLink({ href, params, icon:Icon, label }: { href:'/$organizationSlug/services'|'/$organizationSlug/traces'|'/$organizationSlug/logs'|'/$organizationSlug/investigations'; params:{organizationSlug:string}; icon:typeof Server; label:string }) { return <Link to={href} params={params} className="flex items-center gap-3 bg-[#0B0B0C] px-5 py-4 text-sm font-medium hover:bg-[#040405]"><span className="grid h-8 w-8 place-items-center rounded-lg bg-[#F1F5EE] text-[#ACFC15]"><Icon className="h-4 w-4"/></span>{label}<ArrowUpRight className="ml-auto h-3.5 w-3.5 text-[#6E6E70]"/></Link>; }
+function EmptyProject(){return <Card className="rounded-2xl border-dashed border-[#242426] bg-[#0B0B0C]"><CardContent className="p-12 text-center"><Server className="mx-auto h-6 w-6 text-[#ACFC15]"/><p className="mt-3 text-sm font-medium">Choose a project</p><p className="mt-1 text-xs text-[#989898]">Select a project from the top bar to start exploring telemetry.</p></CardContent></Card>;}
 function OverviewSkeleton(){return <div className="p-6 sm:p-8"><div className="mx-auto max-w-[1480px] space-y-6"><Skeleton className="h-10 w-72"/><Skeleton className="h-4 w-96 max-w-full"/><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[1,2,3,4].map(i=><Skeleton key={i} className="h-32 rounded-2xl"/>)}</div><Skeleton className="h-[390px] rounded-2xl"/></div></div>;}
 function formatNumber(value:number|undefined){return value == null ? '—' : value.toLocaleString();}
