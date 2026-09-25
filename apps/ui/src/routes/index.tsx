@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { useState } from 'react';
 import {
   Activity,
   ArrowRight,
@@ -56,9 +57,12 @@ const investigationSteps = [
 ];
 
 function Home() {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#0B0F0A] text-white selection:bg-[#8BD125] selection:text-[#182012]">
-      <header className="sticky top-0 z-50 border-b border-white/[0.07] bg-[#0B0F0A]/85 backdrop-blur-xl">
+    <div className="landing-page min-h-screen overflow-x-hidden bg-[#080B07] text-white selection:bg-[#8BD125] selection:text-[#182012]">
+      <header className="sticky top-0 z-50 border-b border-white/[0.07] bg-[#080B07]/75 backdrop-blur-xl">
+        <div className="pointer-events-none absolute inset-x-0 top-full h-px bg-gradient-to-r from-transparent via-[#8BD125]/40 to-transparent" />
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 lg:px-8">
           <Link to="/" className="flex items-center gap-2.5 font-semibold tracking-tight">
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#8BD125] text-sm font-black text-[#182012]">S</span>
@@ -66,7 +70,7 @@ function Home() {
           </Link>
 
           <nav className="hidden items-center gap-7 text-sm text-white/55 md:flex">
-            <a href="#product" className="transition-colors hover:text-white">Product</a>
+            <a href="#product" className="group relative transition-colors hover:text-white">Product<span className="absolute -bottom-2 left-0 h-px w-0 bg-[#8BD125] transition-all duration-300 group-hover:w-full" /></a>
             <a href="#how-it-works" className="transition-colors hover:text-white">How it works</a>
             <a href="#open-telemetry" className="transition-colors hover:text-white">OpenTelemetry</a>
             <a href="#developers" className="transition-colors hover:text-white">Developers</a>
@@ -76,15 +80,49 @@ function Home() {
             <Button asChild variant="ghost" size="sm" className="hidden text-white/70 hover:bg-white/5 hover:text-white sm:inline-flex">
               <Link to="/auth/sign-in">Sign in</Link>
             </Button>
-            <Button asChild size="sm" className="bg-[#8BD125] font-semibold text-[#182012] hover:bg-[#9BE43A]">
+            <Button asChild size="sm" className="hidden bg-[#8BD125] font-semibold text-[#182012] hover:bg-[#9BE43A] sm:inline-flex">
               <Link to="/auth/sign-up">Get started <ArrowRight /></Link>
             </Button>
+            <button
+              type="button"
+              aria-label={menuOpen ? 'Close navigation' : 'Open navigation'}
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((open) => !open)}
+              className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.03] text-white sm:hidden"
+            >
+              <span className="relative block h-4 w-4">
+                <span className={`absolute left-0 top-1 h-px w-4 bg-current transition-transform duration-300 ${menuOpen ? 'translate-y-1.5 rotate-45' : ''}`} />
+                <span className={`absolute left-0 top-2.5 h-px w-4 bg-current transition-opacity duration-200 ${menuOpen ? 'opacity-0' : ''}`} />
+                <span className={`absolute left-0 top-4 h-px w-4 bg-current transition-transform duration-300 ${menuOpen ? '-translate-y-1.5 -rotate-45' : ''}`} />
+              </span>
+            </button>
           </div>
         </div>
       </header>
 
+      <div className={`fixed inset-x-4 top-[4.5rem] z-40 origin-top rounded-2xl border border-white/10 bg-[#101610]/95 p-3 shadow-2xl backdrop-blur-xl transition-all duration-300 sm:hidden ${menuOpen ? 'translate-y-0 scale-100 opacity-100' : '-translate-y-3 scale-95 pointer-events-none opacity-0'}`}>
+        {[
+          ['Product', '#product'],
+          ['How it works', '#how-it-works'],
+          ['OpenTelemetry', '#open-telemetry'],
+          ['Developers', '#developers'],
+        ].map(([label, href]) => (
+          <a key={href} href={href} onClick={() => setMenuOpen(false)} className="flex items-center justify-between rounded-xl px-4 py-3 text-sm text-white/65 transition-colors hover:bg-white/[0.05] hover:text-white">
+            {label}
+            <ChevronRight className="h-4 w-4 text-white/20" />
+          </a>
+        ))}
+        <div className="mt-2 border-t border-white/[0.07] pt-2">
+          <Link to="/auth/sign-in" onClick={() => setMenuOpen(false)} className="block rounded-xl px-4 py-3 text-sm text-white/65">Sign in</Link>
+          <Link to="/auth/sign-up" onClick={() => setMenuOpen(false)} className="mt-1 flex items-center justify-between rounded-xl bg-[#8BD125] px-4 py-3 text-sm font-semibold text-[#182012]">
+            Get started <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </div>
+
       <main>
         <section className="relative overflow-hidden border-b border-white/[0.07]">
+          <AnimatedBackdrop />
           <div className="pointer-events-none absolute inset-x-0 top-0 h-[520px] bg-[radial-gradient(circle_at_50%_0%,rgba(139,209,37,0.12),transparent_58%)]" />
           <div className="relative mx-auto max-w-7xl px-5 pb-20 pt-24 text-center lg:px-8 lg:pb-28 lg:pt-32">
             <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-[#8BD125]/25 bg-[#8BD125]/[0.06] px-3.5 py-1.5 text-xs font-medium text-[#B5E66A]">
@@ -199,17 +237,17 @@ function Home() {
           </div>
         </section>
 
-        <section id="how-it-works" className="border-b border-white/[0.07] bg-[#F7FAF4] text-[#182012]">
+        <section id="how-it-works" className="border-b border-white/[0.07] bg-[#0D120C] text-white">
           <div className="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-28">
             <div className="max-w-2xl">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#16931F]">How it works</p>
               <h2 className="mt-4 text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">One signal. One investigation.</h2>
-              <p className="mt-5 max-w-xl leading-7 text-[#182012]/55">
+              <p className="mt-5 max-w-xl leading-7 text-white/45">
                 The workflow stays close to the way engineers actually debug production systems.
               </p>
             </div>
 
-            <div className="mt-14 grid overflow-hidden rounded-2xl border border-[#D8E1D4] bg-white md:grid-cols-3">
+            <div className="mt-14 grid overflow-hidden rounded-2xl border border-white/10 bg-[#111711] md:grid-cols-3">
               <Step number="01" icon={Terminal} title="Send telemetry" text="Use OpenTelemetry to send traces, logs and request context into your project." />
               <Step number="02" icon={Activity} title="Detect the signal" text="SoonWhy surfaces latency, error and performance changes from real application telemetry." />
               <Step number="03" icon={BrainCircuit} title="Investigate why" text="Follow the request, dominant span and dependency to the evidence behind the bottleneck." />
@@ -257,7 +295,7 @@ function Home() {
           </div>
         </section>
 
-        <section className="border-b border-white/[0.07] bg-[#111711]">
+        <section className="border-b border-white/[0.07] bg-[#080B07]">
           <div className="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-28">
             <div className="grid gap-14 lg:grid-cols-[0.7fr_1.3fr]">
               <div>
@@ -297,7 +335,7 @@ function Home() {
         </section>
 
         <section className="relative overflow-hidden bg-[#8BD125] text-[#182012]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_50%,rgba(255,255,255,0.28),transparent_40%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_50%,rgba(255,255,255,0.2),transparent_36%)]" />
           <div className="relative mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 px-5 py-20 lg:flex-row lg:items-center lg:px-8 lg:py-24">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#182012]/55">Ready when you are</p>
@@ -329,6 +367,17 @@ function Home() {
           </div>
         </div>
       </footer>
+    </div>
+  );
+}
+
+function AnimatedBackdrop() {
+  return (
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div className="absolute -left-32 top-[-10rem] h-[32rem] w-[32rem] rounded-full bg-[#8BD125]/10 blur-[110px] animate-[float-orb_12s_ease-in-out_infinite]" />
+      <div className="absolute right-[-10rem] top-16 h-[28rem] w-[28rem] rounded-full bg-[#C9E7EB]/[0.06] blur-[110px] animate-[float-orb-reverse_15s_ease-in-out_infinite]" />
+      <div className="absolute inset-0 opacity-[0.16] [background-image:linear-gradient(rgba(139,209,37,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(139,209,37,0.12)_1px,transparent_1px)] [background-size:72px_72px] [mask-image:radial-gradient(ellipse_at_center,black_15%,transparent_72%)] animate-[grid-drift_18s_linear_infinite]" />
+      <div className="absolute left-1/2 top-[42%] h-px w-[70vw] -translate-x-1/2 bg-gradient-to-r from-transparent via-[#8BD125]/25 to-transparent animate-[scan-line_7s_ease-in-out_infinite]" />
     </div>
   );
 }
@@ -368,13 +417,13 @@ function Evidence({ label, value }: { label: string; value: string }) {
 
 function Step({ number, icon: Icon, title, text }: { number: string; icon: typeof Terminal; title: string; text: string }) {
   return (
-    <div className="border-b border-[#D8E1D4] p-7 last:border-b-0 md:border-b-0 md:border-r md:last:border-r-0">
+    <div className="border-b border-white/10 p-7 last:border-b-0 md:border-b-0 md:border-r md:last:border-r-0">
       <div className="flex items-center justify-between">
-        <span className="font-mono text-xs text-[#16931F]">{number}</span>
-        <Icon className="h-5 w-5 text-[#16931F]" />
+        <span className="font-mono text-xs text-[#8BD125]">{number}</span>
+        <Icon className="h-5 w-5 text-[#8BD125]" />
       </div>
       <h3 className="mt-12 text-lg font-semibold">{title}</h3>
-      <p className="mt-3 text-sm leading-6 text-[#182012]/55">{text}</p>
+      <p className="mt-3 text-sm leading-6 text-white/40">{text}</p>
     </div>
   );
 }
