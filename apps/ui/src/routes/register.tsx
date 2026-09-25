@@ -24,13 +24,13 @@ function SignUp() {
 
   return <div className="auth-page"><div className="auth-orbit auth-orbit-one" /><div className="auth-orbit auth-orbit-two" /><div className="auth-content">
     <Link to="/" className="auth-brand"><span className="auth-brand-mark">S</span><span>SoonWhy</span></Link>
-    <div className="auth-panel"><div className="auth-kicker">INTELLIGENT OBSERVABILITY</div><h1 className="display-font auth-title">Start investigating</h1><p className="auth-subtitle">Instrument your systems. Connect the evidence. Know why they are slow.</p><div className="mt-8">
+    <div className="auth-panel"><h1 className="display-font auth-title">Create your account</h1><div className="mt-8">
       <SocialButtons />
       <div className="auth-divider"><span>or continue with email</span></div>
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {error && <div role="alert" className="auth-error">{error}</div>}
         <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" className="auth-input" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@company.com" /></div>
-        <div className="space-y-2"><Label htmlFor="password">Password</Label><div className="relative"><Input id="password" className="auth-input pr-11" type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} /><button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(v => !v)} className="auth-password-toggle">{showPassword ? <EyeOff /> : <Eye />}</button></div><p className="auth-hint">Use at least 8 characters.</p></div>
+        <div className="space-y-2"><Label htmlFor="password">Password</Label><div className="relative"><Input id="password" className="auth-input pr-11" type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} /><button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(v => !v)} className="auth-password-toggle">{showPassword ? <EyeOff /> : <Eye />}</button></div></div>
         <Button type="submit" className="h-11 w-full bg-[#8BD125] text-[#182012] hover:bg-[#9be33c]" disabled={pending}>{pending ? 'Creating account...' : <>Create account <ArrowRight /></>}</Button>
       </form>
     </div><p className="auth-switch">Already have an account? <Link to="/login">Sign in</Link></p></div>
