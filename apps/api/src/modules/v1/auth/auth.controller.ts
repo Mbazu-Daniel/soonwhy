@@ -65,7 +65,7 @@ export class AuthController {
       body: {
         email: parsed.email,
         password: parsed.password,
-        name: parsed.email.split('@')[0],
+        name: parsed.email.split('@')[0] ?? parsed.email,
       },
     });
   }
