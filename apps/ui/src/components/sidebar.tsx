@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Server,
   AlertTriangle,
+  BrainCircuit,
   ScrollText,
   Settings,
   ArrowLeft,
@@ -14,6 +15,7 @@ const navItems = [
   { to: '/dashboard', label: 'Overview', icon: LayoutDashboard, exact: true },
   { to: '/dashboard/services', label: 'Services', icon: Server },
   { to: '/dashboard/errors', label: 'Errors', icon: AlertTriangle },
+  { to: '/dashboard/detections', label: 'Detections', icon: BrainCircuit },
   { to: '/dashboard/logs', label: 'Logs', icon: ScrollText },
   { to: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
