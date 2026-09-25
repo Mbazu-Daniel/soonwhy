@@ -1,5 +1,6 @@
 import { generateId } from '../generate-id';
 import { pgTable, text, timestamp, boolean } from 'drizzle-orm/pg-core';
+import { organizations } from './organizations';
 
 export const users = pgTable('users', {
   id: text('id').primaryKey().$defaultFn(() => generateId()),
