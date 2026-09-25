@@ -35,7 +35,7 @@ const OrganizationIndexRoute = OrganizationIndexRouteImport.update({ id: '/$orga
 const DetectionsRoute = DetectionsRouteImport.update({ id: '/$organizationSlug/detections', path: '/detections', getParentRoute: () => OrganizationSlugRoute } as any)
 const ErrorsRoute = ErrorsRouteImport.update({ id: '/$organizationSlug/errors', path: '/errors', getParentRoute: () => OrganizationSlugRoute } as any)
 const InvestigationsRoute = InvestigationsRouteImport.update({ id: '/$organizationSlug/investigations', path: '/investigations', getParentRoute: () => OrganizationSlugRoute } as any)
-const InvestigationDetailRoute = InvestigationDetailRouteImport.update({ id: '/$organizationSlug/investigations/$investigationId', path: '/investigations/$investigationId', getParentRoute: () => OrganizationSlugRoute } as any)
+const InvestigationDetailRoute = InvestigationDetailRouteImport.update({ id: '/$organizationSlug/investigations/$investigationId', path: '/$investigationId', getParentRoute: () => InvestigationsRoute } as any)
 const LogsRoute = LogsRouteImport.update({ id: '/$organizationSlug/logs', path: '/logs', getParentRoute: () => OrganizationSlugRoute } as any)
 const ServicesRoute = ServicesRouteImport.update({ id: '/$organizationSlug/services', path: '/services', getParentRoute: () => OrganizationSlugRoute } as any)
 const ServiceDetailRoute = ServiceDetailRouteImport.update({ id: '/$organizationSlug/service/$serviceId', path: '/service/$serviceId', getParentRoute: () => OrganizationSlugRoute } as any)
@@ -55,9 +55,9 @@ export interface FileRouteTypes { fileRoutesByFullPath: FileRoutesByFullPath; fu
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute; OrganizationSlugRoute: typeof OrganizationSlugRouteWithChildren; LoginRoute: typeof LoginRoute; OnboardingRoute: typeof OnboardingRoute; OrganizationsRoute: typeof OrganizationsRoute; RegisterRoute: typeof RegisterRoute; AuthCallbackRoute: typeof AuthCallbackRoute;
 }
+const InvestigationsRouteWithChildren = InvestigationsRoute._addFileChildren({ InvestigationDetailRoute });
 const OrganizationSlugRouteChildren = { OrganizationIndexRoute, DashboardRoute, DetectionsRoute, ErrorsRoute, InvestigationsRoute: InvestigationsRouteWithChildren, LogsRoute, ServicesRoute, ServiceDetailRoute, SettingsRoute, AIRoute, TracesRoute, TraceDetailRoute };
 const OrganizationSlugRouteWithChildren = OrganizationSlugRoute._addFileChildren(OrganizationSlugRouteChildren);
-const InvestigationsRouteWithChildren = InvestigationsRoute._addFileChildren({ InvestigationDetailRoute });
 const rootRouteChildren: RootRouteChildren = { IndexRoute, OrganizationSlugRoute: OrganizationSlugRouteWithChildren, LoginRoute, OnboardingRoute, OrganizationsRoute, RegisterRoute, AuthCallbackRoute };
 export const routeTree = rootRouteImport._addFileChildren(rootRouteChildren)._addFileTypes<FileRouteTypes>();
 
