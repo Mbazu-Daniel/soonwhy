@@ -78,6 +78,26 @@ services:
       timeout: 5s
       retries: 20
 
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8-alpine
+    ports:
+      - "8123:8123"
+      - "9100:9000"
+    environment:
+      CLICKHOUSE_DB: soonwhy
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8123/ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   api:
     build: {context: ., target: api}
     environment:
@@ -87,11 +107,14 @@ services:
       NATS_URL: nats://nats:4222
       FRONTEND_URL: http://localhost:3000
       PORT: 3001
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_DB: soonwhy
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
       quickwit: {condition: service_healthy}
       nats: {condition: service_healthy}
+      clickhouse: {condition: service_healthy}
     ports: ["3001:3001"]
     command: ["sh", "-c", "pnpm --filter @soonwhy/backend db:push && pnpm --filter @soonwhy/backend start:prod"]
 
@@ -101,11 +124,14 @@ services:
       NATS_URL: nats://nats:4222
       QUICKWIT_URL: http://quickwit:7280
       REDIS_URL: redis://redis:6379
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_DB: soonwhy
       PORT: 3002
     depends_on:
       nats: {condition: service_healthy}
       redis: {condition: service_healthy}
       quickwit: {condition: service_healthy}
+      clickhouse: {condition: service_healthy}
     ports: ["3002:3002"]
 
   cron:
@@ -135,3 +161,4 @@ volumes:
   nats-data:
   minio-data:
   quickwit-data:
+  clickhouse-data:
