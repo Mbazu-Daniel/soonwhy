@@ -4,13 +4,16 @@ import { cn } from '~/lib/utils';
 import { useSidebar } from '~/lib/sidebar-context';
 import { useProject } from '~/lib/project-context';
 import { api } from '~/lib/api';
-import { AlertTriangle, ArrowLeft, BrainCircuit, ChevronRight, GitBranch, LayoutDashboard, ScrollText, Server, Settings, FolderKanban, Plus } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, BrainCircuit, ChevronRight, GitBranch, LayoutDashboard, ScrollText, Server, Settings, FolderKanban, Plus, Network, Rocket, Target } from 'lucide-react';
 
 interface Project { id: string; name: string; slug: string; }
 
 const navItems = [
   { to: '/$organizationSlug/dashboard', label: 'Overview', icon: LayoutDashboard, exact: true },
   { to: '/$organizationSlug/services', label: 'Services', icon: Server },
+  { to: '/$organizationSlug/service-map', label: 'Service map', icon: Network },
+  { to: '/$organizationSlug/deployments', label: 'Deployments', icon: Rocket },
+  { to: '/$organizationSlug/operations', label: 'Operations', icon: Target },
   { to: '/$organizationSlug/detections', label: 'Detections', icon: BrainCircuit },
   { to: '/$organizationSlug/investigations', label: 'Investigations', icon: FolderKanban },
   { to: '/$organizationSlug/ai', label: 'AI Agent', icon: BrainCircuit },
