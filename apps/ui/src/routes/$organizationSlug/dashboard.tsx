@@ -11,6 +11,26 @@ export const Route = createFileRoute('/$organizationSlug/dashboard')({
   component: DashboardOverviewPage,
 });
 
+function AIDashboardSummary() {
+  return (
+    <section className="rounded-2xl border border-[#34451D] bg-[#11170D] p-5 sm:p-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex gap-3">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#ACFC15]/10 text-[#ACFC15]">
+            <BrainCircuit className="h-4 w-4" />
+          </span>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[.14em] text-[#ACFC15]">AI summary</p>
+            <h2 className="mt-1 text-sm font-semibold text-[#F6F6F6]">Your system looks stable, with a few signals worth watching.</h2>
+            <p className="mt-2 max-w-3xl text-xs leading-5 text-[#A9B09F]">SoonWhy can turn connected traces, logs and detections into a short explanation of what changed, why it matters and where to investigate next.</p>
+          </div>
+        </div>
+        <Link to="/$organizationSlug/investigations" params={{ organizationSlug }} className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-[#34451D] px-3 py-2 text-xs font-medium text-[#ACFC15] hover:bg-[#ACFC15]/5">Open AI investigation <ArrowUpRight className="h-3.5 w-3.5"/></Link>
+      </div>
+    </section>
+  );
+}
+
 function DashboardOverviewPage() {
   const { organizationSlug } = Route.useParams();
   const { projectId } = useProject();
@@ -50,6 +70,8 @@ function DashboardOverviewPage() {
             Last 24 hours
           </div>
         </header>
+
+        <AIDashboardSummary />
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Metric label="Health score" value={String(score)} suffix="/100" icon={Gauge} tone="dark" detail={health} />
