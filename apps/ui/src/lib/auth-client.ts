@@ -18,11 +18,18 @@ export interface AuthResult {
   error?: { message: string; status: number };
 }
 
+export interface AuthProviders {
+  emailAndPassword: boolean;
+  google: boolean;
+  github: boolean;
+}
+
 export async function signIn(email: string, password: string): Promise<AuthResult> {
   try {
     const res = await fetch(`${API_BASE}${API_PREFIX}/auth/sign-in`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ email, password }),
     });
     const data = await res.json();
@@ -33,12 +40,13 @@ export async function signIn(email: string, password: string): Promise<AuthResul
   }
 }
 
-export async function signUp(email: string, password: string, name: string): Promise<AuthResult> {
+export async function signUp(email: string, password: string): Promise<AuthResult> {
   try {
     const res = await fetch(`${API_BASE}${API_PREFIX}/auth/sign-up`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, name }),
+      credentials: 'include',
+      body: JSON.stringify({ email, password }),
     });
     const data = await res.json();
     if (!res.ok) return { error: { message: data.message || 'Sign up failed', status: res.status } };
@@ -48,21 +56,45 @@ export async function signUp(email: string, password: string, name: string): Pro
   }
 }
 
-export async function signOut(token: string): Promise<void> {
+export async function getAuthProviders(): Promise<AuthProviders> {
+  const fallback: AuthProviders = { emailAndPassword: true, google: false, github: false };
+
+  try {
+    const res = await fetch(`${API_BASE}${API_PREFIX}/auth/providers`, {
+      credentials: 'include',
+    });
+    if (!res.ok) return fallback;
+    return { ...fallback, ...(await res.json()) };
+  } catch {
+    return fallback;
+  }
+}
+
+export function getSocialSignInUrl(provider: 'google' | 'github', callbackPath = '/auth/callback'): string {
+  const callbackURL = typeof window !== 'undefined'
+    ? new URL(callbackPath, window.location.origin).toString()
+    : callbackPath;
+
+  return `${API_BASE}${API_PREFIX}/auth/social/${provider}?callbackURL=${encodeURIComponent(callbackURL)}`;
+}
+
+export async function signOut(token?: string): Promise<void> {
   try {
     await fetch(`${API_BASE}${API_PREFIX}/auth/sign-out`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
   } catch {
     // Sign out is best-effort — clear local state regardless
   }
 }
 
-export async function getSession(token: string): Promise<AuthResult> {
+export async function getSession(token?: string): Promise<AuthResult> {
   try {
     const res = await fetch(`${API_BASE}${API_PREFIX}/auth/session`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
     const data = await res.json();
     if (!res.ok) return { error: { message: data.message || 'Session expired', status: res.status } };
