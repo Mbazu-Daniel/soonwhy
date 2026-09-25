@@ -61,12 +61,12 @@ function OrganizationDashboardLayout() {
 
   return (
     <SidebarProvider>
-      <div className="dashboard-shell flex min-h-dvh flex-col bg-[#F7FAF4]">
+      <div className="dashboard-shell flex min-h-dvh flex-col bg-[#040405]">
         <a href="#main-content" className="skip-link">Skip to main content</a>
         <TopBar />
         <div className="flex min-h-0 w-full flex-1">
           <Sidebar />
-          <main id="main-content" tabIndex={-1} className="min-h-0 w-full min-w-0 flex-1 overflow-y-auto bg-[#F7FAF4]">
+          <main id="main-content" tabIndex={-1} className="min-h-0 w-full min-w-0 flex-1 overflow-y-auto bg-[#040405]">
             <Outlet />
           </main>
         </div>
@@ -78,10 +78,10 @@ function OrganizationDashboardLayout() {
 
 function DashboardLoading() {
   return (
-    <div className="min-h-screen bg-[#F7FAF4]">
-      <header className="h-16 border-b border-[#DBE5D7] bg-white" />
+    <div className="min-h-screen bg-[#040405]">
+      <header className="h-16 border-b border-[#242426] bg-[#0B0B0C]" />
       <div className="flex min-h-[calc(100vh-4rem)]">
-        <aside className="hidden w-64 border-r border-[#DBE5D7] bg-white lg:block" />
+        <aside className="hidden w-64 border-r border-[#242426] bg-[#0B0B0C] lg:block" />
         <main className="flex-1 p-6 sm:p-8">
           <div className="mx-auto max-w-[1440px] space-y-6">
             <Skeleton className="h-9 w-48" />
