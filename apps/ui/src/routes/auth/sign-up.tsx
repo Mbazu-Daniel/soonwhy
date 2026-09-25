@@ -27,7 +27,7 @@ function SignUp() {
       setError(result.error.message);
       return;
     }
-    navigate({ to: '/auth/sign-in', search: { created: '1' } as never });
+    navigate({ to: '/auth/sign-in' });
   }
 
   return (
