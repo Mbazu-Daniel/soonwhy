@@ -6,6 +6,7 @@ import { Skeleton } from '~/components/ui/skeleton';
 import { HealthScore } from '~/components/health-score';
 import { MetricCard } from '~/components/metric-cards';
 import { api } from '~/lib/api';
+import { QueryErrorState } from '~/components/query-error-state';
 import { useProject } from '~/lib/project-context';
 
 export const Route = createFileRoute('/dashboard/')({
@@ -27,7 +28,7 @@ interface OverviewData {
 function DashboardOverview() {
   const { projectId } = useProject();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['dashboard-overview', projectId],
     queryFn: () => api.get<OverviewData>(`/dashboard/overview?projectId=${projectId}`),
     enabled: !!projectId,
@@ -49,6 +50,7 @@ function DashboardOverview() {
     );
   }
 
+  if (isError) return <QueryErrorState onRetry={() => void refetch()} />;
   if (isLoading) return <OverviewSkeleton />;
 
   const score = data?.score ?? 0;
