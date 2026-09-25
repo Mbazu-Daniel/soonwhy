@@ -4,6 +4,15 @@ import type { ParsedLogRecord, ParsedMetricPoint, ParsedSpan, TenantContext } fr
 
 export type { TenantContext };
 
+const SENSITIVE_ATTRIBUTE_PATTERN =
+  /authorization|cookie|set-cookie|password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|credit[_-]?card|card[_-]?number|cvv|request\.body|response\.body/i;
+
+const SENSITIVE_TEXT_PATTERNS = [
+  /(authorization\s*[:=]\s*bearer\s+)[^\s,;]+/gi,
+  /((?:password|passwd|token|api[_-]?key|access[_-]?key|secret|client[_-]?secret|private[_-]?key)\s*[:=]\s*)[^\s,;]+/gi,
+  /((?:cookie|set-cookie)\s*[:=]\s*)[^\n]+/gi,
+];
+
 function telemetryTimestamp(isoOrMs: string | number): string {
   const date =
     typeof isoOrMs === 'number'
@@ -36,6 +45,34 @@ function metricValue(point: ParsedMetricPoint): number {
   return 0;
 }
 
+function safeLogAttributes(attributes: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(attributes).filter(([key]) => !SENSITIVE_ATTRIBUTE_PATTERN.test(key)),
+  );
+}
+
+function sanitizeSensitiveText(value: string): string {
+  return SENSITIVE_TEXT_PATTERNS.reduce(
+    (text, pattern) => text.replace(pattern, '$1[REDACTED]'),
+    value,
+  );
+}
+
+function sanitizeRequestUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+
+  try {
+    if (/^https?:\/\//i.test(trimmed)) {
+      return new URL(trimmed).pathname || '/';
+    }
+  } catch {
+    // Fall back to stripping the query/hash from malformed URLs.
+  }
+
+  return trimmed.split(/[?#]/, 1)[0] || '/';
+}
+
 export function mapSpanToTraceRow(span: ParsedSpan, tenant: TenantContext) {
   return {
     id: randomUUID(),
@@ -43,12 +80,67 @@ export function mapSpanToTraceRow(span: ParsedSpan, tenant: TenantContext) {
     org_id: tenant.organizationId,
     project_id: tenant.projectId,
     service: span.resource.serviceName || '',
+    serviceVersion: span.resource.serviceVersion || '',
+    environment: span.resource.environment || '',
+    region: span.resource.region || '',
     traceId: span.traceId,
     spanId: span.spanId,
     parentSpanId: span.parentSpanId || '',
     name: span.name || '',
     duration: span.durationMs,
+    spanKind: span.kind,
+    statusCode: span.statusCode,
+    statusMessage: span.statusMessage || '',
+    dependencyType: getDependencyType(span),
+    dependencyName: getDependencyName(span),
   };
+}
+
+function getDependencyType(span: ParsedSpan): string {
+  if (span.kind !== 3) return '';
+
+  if (
+    span.attributes['db.system.name'] ||
+    span.attributes['db.system'] ||
+    span.attributes.db_system
+  ) {
+    return 'database';
+  }
+
+  if (
+    span.attributes['rpc.system'] ||
+    span.attributes['rpc.service.name'] ||
+    span.attributes['rpc.service']
+  ) {
+    return 'rpc';
+  }
+
+  if (
+    span.attributes['http.request.method'] ||
+    span.attributes['http.method'] ||
+    span.attributes['url.full'] ||
+    span.attributes['http.url']
+  ) {
+    return 'http';
+  }
+
+  return 'service';
+}
+
+function getDependencyName(span: ParsedSpan): string {
+  if (span.kind !== 3) return '';
+
+  return String(
+    span.attributes['db.system.name'] ??
+      span.attributes['db.system'] ??
+      span.attributes['server.address'] ??
+      span.attributes['network.peer.address'] ??
+      span.attributes['rpc.service.name'] ??
+      span.attributes['rpc.service'] ??
+      span.resource.serviceName ??
+      span.name ??
+      '',
+  );
 }
 
 export function mapSpanToRequestRow(span: ParsedSpan, tenant: TenantContext) {
@@ -60,11 +152,17 @@ export function mapSpanToRequestRow(span: ParsedSpan, tenant: TenantContext) {
         span.attributes['http.method'] ??
         '',
     ) || '';
+  const route =
+    String(
+      span.attributes['http.route'] ??
+        span.attributes['url.template'] ??
+        '',
+    ) || '';
   const url =
     String(
       span.attributes['url.path'] ??
         span.attributes['http.target'] ??
-        span.attributes['http.route'] ??
+        route ??
         span.attributes['http.url'] ??
         span.name ??
         '',
@@ -83,18 +181,25 @@ export function mapSpanToRequestRow(span: ParsedSpan, tenant: TenantContext) {
     org_id: tenant.organizationId,
     project_id: tenant.projectId,
     service: span.resource.serviceName || '',
+    serviceVersion: span.resource.serviceVersion || '',
+    environment: span.resource.environment || '',
+    region: span.resource.region || '',
+    traceId: span.traceId,
+    spanId: span.spanId,
+    parentSpanId: span.parentSpanId || '',
     method,
-    url,
+    route,
+    url: sanitizeRequestUrl(url),
     statusCode: Number.isFinite(statusCode) ? statusCode : 0,
     duration: span.durationMs,
     userAgent: String(span.attributes['user_agent.original'] ?? ''),
-    ip: String(span.attributes['client.address'] ?? span.attributes['net.peer.ip'] ?? ''),
   };
 }
 
 export function mapLogToRow(record: ParsedLogRecord, tenant: TenantContext) {
+  const safeAttributes = safeLogAttributes(record.attributes);
   const attrs: Record<string, unknown> = {
-    ...record.attributes,
+    ...safeAttributes,
     ...(record.traceId ? { traceId: record.traceId } : {}),
     ...(record.spanId ? { spanId: record.spanId } : {}),
     ...(record.resource.serviceVersion
@@ -114,10 +219,15 @@ export function mapLogToRow(record: ParsedLogRecord, tenant: TenantContext) {
     org_id: tenant.organizationId,
     project_id: tenant.projectId,
     service: record.resource.serviceName || '',
+    serviceVersion: record.resource.serviceVersion || '',
+    environment: record.resource.environment || '',
+    region: record.resource.region || '',
+    traceId: record.traceId || '',
+    spanId: record.spanId || '',
     level: record.severityLevel,
-    message: record.message,
+    message: sanitizeSensitiveText(record.message),
     attributes: attrs,
-    stackTrace: String(record.attributes['exception.stacktrace'] ?? ''),
+    stackTrace: sanitizeSensitiveText(String(safeAttributes['exception.stacktrace'] ?? '')),
   };
 }
 
@@ -128,6 +238,9 @@ export function mapMetricToRow(point: ParsedMetricPoint, tenant: TenantContext) 
     org_id: tenant.organizationId,
     project_id: tenant.projectId,
     service: point.resource.serviceName || '',
+    serviceVersion: point.resource.serviceVersion || '',
+    environment: point.resource.environment || '',
+    region: point.resource.region || '',
     name: point.metricName,
     value: metricValue(point),
     unit: mapMetricUnit(point.metricUnit),

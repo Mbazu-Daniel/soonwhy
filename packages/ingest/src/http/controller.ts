@@ -25,10 +25,15 @@ import { parseMetricsPayload } from '../parse/metrics';
 import { decodeProtobufPayload, encodePartialSuccess } from '../parse/protobuf';
 
 type Signal = 'trace' | 'log' | 'metric';
+type ParsedPayload = Record<string, unknown>;
 
 const SIGNAL_META: Record<
   Signal,
-  { rejectedField: string; label: string; parse: (p: any) => { items: unknown[]; rejected: number } }
+  {
+    rejectedField: string;
+    label: string;
+    parse: (p: ParsedPayload) => { items: unknown[]; rejected: number };
+  }
 > = {
   trace: {
     rejectedField: 'rejectedSpans',
@@ -137,7 +142,7 @@ export class IngestController {
       if (error instanceof UnauthorizedException) throw error;
       this.logger.error(`OTLP ${signal} failed`, error as Error);
       this.metrics.recordError();
-      return this.sendError(res, 400, error instanceof Error ? error.message : 'Bad request');
+      return this.sendError(res, 400, `Invalid OTLP ${signal} request`);
     }
   }
 
