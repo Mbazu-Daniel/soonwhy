@@ -68,6 +68,15 @@ Critical states use an accessible red token and are paired with icons/labels. Do
 
 ## Phase D — in progress
 
+### Completed in this phase
+- Command palette with Cmd/Ctrl+K and mobile access.
+- Accessible saved-view naming dialog instead of browser prompts.
+- Retryable error states across Phase B/C data views.
+- Route tree synchronized with all Phase B/C routes.
+- Responsive fixes for dense logs and trace detail layouts.
+- Removed non-functional time-range and notification controls until their backend/state contracts exist.
+- Removed hardcoded telemetry-connected claims where the current API does not provide telemetry health.
+
 ### Navigation productivity
 - Command palette available from the top bar and `⌘K` / `Ctrl+K`.
 - Keyboard-first navigation across core observability surfaces.
@@ -78,8 +87,11 @@ Critical states use an accessible red token and are paired with icons/labels. Do
 - Saved routes can be reopened from the command palette.
 - Saved views can be removed without affecting telemetry or backend state.
 
-### Remaining polish
-- Complete empty/loading/error-state audit.
-- Responsive and keyboard QA across every Phase A-C route.
-- Contrast and visual regression audit.
-- Performance pass and bundle/render profiling.
+### Remaining production gate
+- Run the full CI cycle on the latest Phase D commit and resolve any lint, type, test or build regressions.
+- Browser-level QA at mobile, tablet and desktop breakpoints.
+- Keyboard-only QA for navigation, dialogs, tables, filters and share actions.
+- WCAG AA contrast verification against rendered states, including focus, critical and disabled states.
+- Visual regression review against the agreed SoonWhy design system.
+- Performance pass: route payloads, query churn, search/filter debounce and long-list rendering.
+- Final PR review and merge readiness check.
