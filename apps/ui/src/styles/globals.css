@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme inline {
@@ -30,16 +31,16 @@
 }
 
 html {
-  background: #f7faf4;
+  background: #080b07;
   scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
-  background: #f7faf4;
-  color: #182012;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-feature-settings: "cv11", "ss01";
+  background: #080b07;
+  color: #ffffff;
+  font-family: "Sora", ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "ss01";
   -webkit-font-smoothing: antialiased;
 }
 
@@ -118,5 +119,37 @@ pre {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+}
+
+
+@keyframes float-orb {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(7vw, 5vh, 0) scale(1.08); }
+}
+
+@keyframes float-orb-reverse {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-6vw, 7vh, 0) scale(0.94); }
+}
+
+@keyframes grid-drift {
+  0% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(36px, 24px, 0); }
+  100% { transform: translate3d(72px, 48px, 0); }
+}
+
+@keyframes scan-line {
+  0%, 100% { opacity: 0; transform: translate(-50%, -20px); }
+  25%, 75% { opacity: 1; }
+  50% { transform: translate(-50%, 40px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-page *,
+  .landing-page *::before,
+  .landing-page *::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
   }
 }
