@@ -8,7 +8,7 @@ import { CommandPalette } from '~/components/command-palette';
 import { api } from '~/lib/api';
 import { signOut, clearSession, getSessionToken } from '~/lib/auth-client';
 import { useProject } from '~/lib/project-context';
-import { Bell, ChevronDown, Clock3, LogOut, Menu } from 'lucide-react';
+import { ChevronDown, LogOut, Menu } from 'lucide-react';
 import { useSidebar } from '~/lib/sidebar-context';
 
 interface Project { id: string; name: string; slug: string; }
@@ -48,8 +48,6 @@ export function TopBar() {
       </div>
       <div className="flex items-center gap-1.5 sm:gap-2">
         <CommandPalette />
-        <Button variant="ghost" size="icon" aria-label="Time range" title="Time range"><Clock3 className="h-4 w-4" /></Button>
-        <Button variant="ghost" size="icon" aria-label="Notifications" title="Notifications"><Bell className="h-4 w-4" /></Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild><Button variant="ghost" className="flex items-center gap-2 pl-2" aria-label="User menu"><Avatar className="h-8 w-8"><AvatarFallback className="bg-[#C9E7EB] text-[#182012] font-semibold">{userInitial}</AvatarFallback></Avatar><span className="hidden lg:block max-w-28 truncate text-sm font-medium">{userName}</span><ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /></Button></DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
