@@ -54,6 +54,38 @@ function DashboardOverview() {
   if (isError) return <QueryErrorState onRetry={() => void refetch()} />;
   if (isLoading) return <OverviewSkeleton />;
 
+  if (data && data.totalRequests === 0) {
+    return (
+      <div className="mx-auto max-w-3xl py-10">
+        <Card className="border-[#DBE5D7] bg-white shadow-sm">
+          <CardContent className="p-8 sm:p-10">
+            <div className="grid h-12 w-12 place-items-center rounded-xl bg-[#C9E7EB]">
+              <Activity className="h-5 w-5" />
+            </div>
+            <p className="mt-6 text-xs font-semibold uppercase tracking-[0.14em] text-[#16931F]">Project ready</p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight">Waiting for your first telemetry</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+              Your project is connected, but SoonWhy has not observed a request yet. Send a request with the project API key to activate this dashboard.
+            </p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <EmptyStep number="1" title="Instrument" detail="Add the SoonWhy SDK to your service." />
+              <EmptyStep number="2" title="Send traffic" detail="Run your service and make a request." />
+              <EmptyStep number="3" title="Come back" detail="SoonWhy will populate these views from observed telemetry." />
+            </div>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <button type="button" onClick={() => window.location.assign('/onboarding')} className="rounded-lg bg-[#182012] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#182012]/90">
+                Open setup
+              </button>
+              <button type="button" onClick={() => void refetch()} className="rounded-lg border border-[#DBE5D7] px-4 py-2.5 text-sm font-medium hover:bg-[#F7FAF4]">
+                Check again
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const score = data?.score ?? 0;
   const errorRate = data?.errorRate ?? 0;
   const requestRate = data?.requestRate ?? 0;
@@ -174,6 +206,16 @@ function DashboardOverview() {
           </CardContent>
         </Card>
       </section>
+    </div>
+  );
+}
+
+function EmptyStep({ number, title, detail }: { number: string; title: string; detail: string }) {
+  return (
+    <div className="rounded-xl border border-[#DBE5D7] bg-[#F7FAF4] p-4">
+      <span className="grid h-7 w-7 place-items-center rounded-full bg-white text-xs font-semibold">{number}</span>
+      <p className="mt-3 text-sm font-semibold">{title}</p>
+      <p className="mt-1 text-xs leading-5 text-muted-foreground">{detail}</p>
     </div>
   );
 }
