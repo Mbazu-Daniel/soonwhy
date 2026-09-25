@@ -79,7 +79,7 @@ function SettingsPage() {
         <TelemetryCard projectId={projectId} />
       </div>
 
-      <Card className="border-border bg-card shadow-none">
+      <Card className="border-[#242426] bg-[#0B0B0C] shadow-none">
         <CardHeader>
           <CardTitle>Project</CardTitle>
         </CardHeader>
@@ -90,7 +90,7 @@ function SettingsPage() {
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Project ID</p>
-            <code className="mt-1 block break-all rounded-md bg-muted px-3 py-2 font-mono text-xs">{projectId}</code>
+            <code className="mt-1 block break-all rounded-md bg-[#151517] px-3 py-2 font-mono text-xs">{projectId}</code>
           </div>
           {project?.slug && (
             <div>
@@ -122,7 +122,7 @@ function TelemetryCard({ projectId }: { projectId: string }) {
 
   if (isError) {
     return (
-      <Card className="border-red-200 bg-card shadow-none md:col-span-3">
+      <Card className="border-red-200 bg-[#0B0B0C] shadow-none md:col-span-3">
         <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="font-medium">Telemetry status unavailable</p>
@@ -158,7 +158,7 @@ function TelemetryCard({ projectId }: { projectId: string }) {
 
 function StatusMetric({ icon: Icon, label, value, detail }: { icon: typeof Activity; label: string; value: string; detail?: string }) {
   return (
-    <Card className="border-border bg-card shadow-none">
+    <Card className="border-[#242426] bg-[#0B0B0C] shadow-none">
       <CardContent className="p-5">
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">{label}</span>
@@ -202,7 +202,7 @@ function ApiKeySettings({ projectId, queryClient }: { projectId: string; queryCl
   }
 
   return (
-    <Card className="border-border bg-card shadow-none">
+    <Card className="border-[#242426] bg-[#0B0B0C] shadow-none">
       <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <CardTitle>Ingestion API keys</CardTitle>
@@ -231,14 +231,14 @@ function ApiKeySettings({ projectId, queryClient }: { projectId: string; queryCl
 
         {keys.isError && <QueryErrorState onRetry={() => void keys.refetch()} />}
         {!keys.isLoading && !keys.isError && !keys.data?.length && (
-          <div className="rounded-lg border border-dashed border-border bg-muted p-6 text-center">
+          <div className="rounded-lg border border-dashed border-[#242426] bg-[#151517] p-6 text-center">
             <KeyRound className="mx-auto h-6 w-6 text-[#16931F]" />
             <p className="mt-2 text-sm font-medium">No ingestion keys yet</p>
             <p className="mt-1 text-xs text-muted-foreground">Create one to connect an application to this project.</p>
           </div>
         )}
         {keys.data?.map((key) => (
-          <div key={key.id} className="flex flex-col gap-3 rounded-lg border border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div key={key.id} className="flex flex-col gap-3 rounded-lg border border-[#242426] p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <p className="font-medium">{key.name}</p>
               <p className="mt-1 font-mono text-xs text-muted-foreground">{key.prefix}••••••••</p>
@@ -265,7 +265,7 @@ function ApiKeySettings({ projectId, queryClient }: { projectId: string; queryCl
 
 function SetupGuidance() {
   return (
-    <Card className="border-border bg-muted shadow-none">
+    <Card className="border-[#242426] bg-[#151517] shadow-none">
       <CardHeader><CardTitle>Setup checklist</CardTitle></CardHeader>
       <CardContent className="space-y-4 text-sm">
         <ChecklistItem title="Create an ingestion key" detail="Keep the raw key in your application secret manager." />
