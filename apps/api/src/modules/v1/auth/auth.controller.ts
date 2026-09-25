@@ -61,13 +61,10 @@ export class AuthController {
   @Post('sign-up')
   async signUp(@Body() body: unknown) {
     const parsed = signUpSchema.parse(body);
-    const name = nameFromEmail(parsed.email);
-
     return auth.api.signUpEmail({
       body: {
         email: parsed.email,
         password: parsed.password,
-        name,
       },
     });
   }
