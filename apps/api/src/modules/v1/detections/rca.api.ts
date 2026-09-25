@@ -37,14 +37,15 @@ export class RcaApiService {
     }
 
     try {
-      const analysis = await this.orchestrator.analyze(projectId, bottleneck);
+      const result = await this.orchestrator.analyze(projectId, bottleneck);
       const evidence = buildRcaEvidence(projectId, bottleneck);
       return this.persistence.persist({
         orgId,
         projectId,
         findingId,
         evidence,
-        analysis,
+        analysis: result.analysis,
+        usage: result.usage,
         provider: process.env.SOONWHY_RCA_PROVIDER ?? 'openai-compatible',
         model: process.env.SOONWHY_RCA_MODEL ?? 'unknown',
         promptVersion: RCA_PROMPT_VERSION,

@@ -38,6 +38,20 @@ export interface RcaAnalysis {
   limitations: string[];
 }
 
+export interface RcaUsage {
+  requestDurationMs: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+  estimatedCostUsd?: number;
+  retries: number;
+}
+
+export interface RcaProviderResult {
+  analysis: RcaAnalysis;
+  usage: RcaUsage;
+}
+
 export interface RcaProvider {
-  analyze(input: RcaEvidence): Promise<RcaAnalysis>;
+  analyze(input: RcaEvidence): Promise<RcaProviderResult>;
 }
