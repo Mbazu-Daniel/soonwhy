@@ -9,6 +9,7 @@ import { Card, CardContent } from '~/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
 import { Skeleton } from '~/components/ui/skeleton';
 import { api } from '~/lib/api';
+import { QueryErrorState } from '~/components/query-error-state';
 
 export const Route = createFileRoute('/organizations')({
   component: Organizations,
@@ -23,7 +24,7 @@ interface Organization {
 
 function CreateOrgDialog() {
   const navigate = useNavigate();
-  const { setOrgId } = useProject();
+  const { setOrgId, clearProjectId } = useProject();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
@@ -102,15 +103,18 @@ function Organizations() {
   const navigate = useNavigate();
   const { setOrgId } = useProject();
 
-  const { data: orgs, isLoading } = useQuery({
+  const { data: orgs, isLoading, isError, refetch } = useQuery({
     queryKey: ['organizations'],
     queryFn: () => api.get<Organization[]>('/organizations'),
   });
 
   function selectOrg(org: Organization) {
     setOrgId(org.id);
+    clearProjectId();
     navigate({ to: '/onboarding' });
   }
+
+  if (isError) return <QueryErrorState onRetry={() => void refetch()} />;
 
   return (
     <div className="min-h-screen bg-background">
