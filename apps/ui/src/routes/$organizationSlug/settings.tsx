@@ -115,7 +115,7 @@ function SettingsPage() {
 function TelemetryCard({ projectId }: { projectId: string }) {
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['telemetry-status', projectId],
-    queryFn: () => api.get<TelemetryStatus>(`/$organizationSlug/dashboard/telemetry-status?projectId=${encodeURIComponent(projectId)}`),
+    queryFn: () => api.get<TelemetryStatus>(`/telemetry-status?projectId=${encodeURIComponent(projectId)}`),
     enabled: !!projectId,
     refetchInterval: 15_000,
   });
