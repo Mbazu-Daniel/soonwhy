@@ -10,10 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as OrganizationsRouteImport } from './routes/organizations'
-import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardDetectionsRouteImport } from './routes/dashboard/detections'
 import { Route as DashboardErrorsRouteImport } from './routes/dashboard/errors'
@@ -32,6 +33,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -42,14 +48,14 @@ const OrganizationsRoute = OrganizationsRouteImport.update({
   path: '/organizations',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardIndexRoute = DashboardIndexRouteImport.update({
@@ -117,10 +123,11 @@ const DashboardTraceTraceIdRoute = DashboardTraceTraceIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/organizations': typeof OrganizationsRoute
-  '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/dashboard/detections': typeof DashboardDetectionsRoute
   '/dashboard/errors': typeof DashboardErrorsRoute
   '/dashboard/investigations': typeof DashboardInvestigationsRouteWithChildren
@@ -136,10 +143,11 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/organizations': typeof OrganizationsRoute
-  '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/dashboard/detections': typeof DashboardDetectionsRoute
   '/dashboard/errors': typeof DashboardErrorsRoute
   '/dashboard/investigations': typeof DashboardInvestigationsRouteWithChildren
@@ -156,10 +164,11 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/organizations': typeof OrganizationsRoute
-  '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/dashboard/detections': typeof DashboardDetectionsRoute
   '/dashboard/errors': typeof DashboardErrorsRoute
   '/dashboard/investigations': typeof DashboardInvestigationsRouteWithChildren
@@ -177,10 +186,11 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/login'
     | '/onboarding'
     | '/organizations'
-    | '/login'
     | '/register'
+    | '/auth/callback'
     | '/dashboard/detections'
     | '/dashboard/errors'
     | '/dashboard/investigations'
@@ -196,10 +206,11 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/login'
     | '/onboarding'
     | '/organizations'
-    | '/login'
     | '/register'
+    | '/auth/callback'
     | '/dashboard/detections'
     | '/dashboard/errors'
     | '/dashboard/investigations'
@@ -215,10 +226,11 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/login'
     | '/onboarding'
     | '/organizations'
-    | '/login'
     | '/register'
+    | '/auth/callback'
     | '/dashboard/detections'
     | '/dashboard/errors'
     | '/dashboard/investigations'
@@ -235,10 +247,11 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
   OrganizationsRoute: typeof OrganizationsRoute
-  AuthSignInRoute: typeof AuthSignInRoute
-  AuthSignUpRoute: typeof AuthSignUpRoute
+  RegisterRoute: typeof RegisterRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
   DashboardDetectionsRoute: typeof DashboardDetectionsRoute
   DashboardErrorsRoute: typeof DashboardErrorsRoute
   DashboardInvestigationsRoute: typeof DashboardInvestigationsRouteWithChildren
@@ -261,6 +274,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/onboarding': {
       id: '/onboarding'
       path: '/onboarding'
@@ -275,18 +295,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrganizationsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/register': {
       id: '/register'
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard/': {
@@ -393,10 +413,11 @@ const DashboardInvestigationsRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
   OrganizationsRoute: OrganizationsRoute,
-  LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
   DashboardDetectionsRoute: DashboardDetectionsRoute,
   DashboardErrorsRoute: DashboardErrorsRoute,
   DashboardInvestigationsRoute: DashboardInvestigationsRouteWithChildren,

@@ -65,6 +65,7 @@ export class AuthController {
       body: {
         email: parsed.email,
         password: parsed.password,
+        name: parsed.email.split('@')[0],
       },
     });
   }
@@ -101,18 +102,4 @@ function authHeaders(headers: Record<string, string>): Record<string, string> {
   if (headers.cookie) result.cookie = headers.cookie;
 
   return result;
-}
-
-function nameFromEmail(email: string): string {
-  const localPart = email.split('@')[0] ?? email;
-  const words = localPart
-    .replace(/[._-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .split(' ')
-    .filter(Boolean);
-
-  return words.length
-    ? words.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
-    : 'SoonWhy User';
 }
