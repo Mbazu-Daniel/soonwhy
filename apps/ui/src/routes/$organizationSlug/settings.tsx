@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Activity, CheckCircle2, Copy, KeyRound, Loader2, ShieldAlert, Trash2, Wifi, XCircle, Plus, Users, Layers3, CreditCard } from 'lucide-react';
+import { Activity, CheckCircle2, Copy, KeyRound, Loader2, ShieldAlert, Trash2, Wifi, XCircle, Plus, Users, Layers3, CreditCard, UserMinus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
@@ -108,6 +108,7 @@ function SettingsPage() {
 
       <ApiKeySettings projectId={projectId} queryClient={queryClient} />
       <PlatformControls projectId={projectId} orgId={orgId} />
+      <OrganizationMembers orgId={orgId} />
       <SetupGuidance />
     </div>
   );
@@ -279,6 +280,37 @@ function PlatformControls({ projectId, orgId }: { projectId: string; orgId: stri
     <Card className="border-[#242426] bg-[#0B0B0C] shadow-none"><CardHeader><CardTitle className="flex items-center gap-2 text-base"><Layers3 className="h-4 w-4 text-[#ACFC15]" />Environments</CardTitle></CardHeader><CardContent className="space-y-3"><div className="space-y-2"><Input placeholder="Environment name" value={environmentName} onChange={(e) => setEnvironmentName(e.target.value)} /><Input placeholder="production" value={environmentSlug} onChange={(e) => setEnvironmentSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} /></div><Button size="sm" onClick={() => createEnvironment.mutate()} disabled={!environmentName.trim() || !environmentSlug.trim() || createEnvironment.isPending}><Plus className="mr-2 h-3.5 w-3.5" />Add environment</Button><div className="space-y-1 border-t border-[#242426] pt-3">{environments.data?.map((environment) => <div key={environment.id} className="flex items-center justify-between text-xs"><span>{environment.name}</span><span className="rounded-full border border-[#242426] px-2 py-0.5 text-[#989898]">{environment.kind}</span></div>)}</div></CardContent></Card>
     <Card className="border-[#242426] bg-[#0B0B0C] shadow-none"><CardHeader><CardTitle className="flex items-center gap-2 text-base"><CreditCard className="h-4 w-4 text-[#ACFC15]" />Usage & billing</CardTitle></CardHeader><CardContent><p className="text-xs text-[#989898]">Current plan</p><p className="mt-1 text-lg font-semibold">{billing.data?.subscription?.plan?.name ?? 'No subscription'}</p><div className="mt-4 space-y-2">{billing.data?.usage?.slice(0, 4).map((item) => { const quota = billing.data?.quotas?.find((q) => q.metric === item.metric)?.limit; return <div key={item.metric} className="flex items-center justify-between text-xs"><span className="text-[#989898]">{item.metric}</span><span className="font-mono">{item.quantity.toLocaleString()}{quota != null ? ` / ${quota.toLocaleString()}` : ''}</span></div>; })}</div><p className="mt-4 text-[11px] text-[#6E6E70]">Billing data is already organization-scoped. This surface makes the existing API visible in the product.</p></CardContent></Card>
   </section>;
+}
+
+function OrganizationMembers({ orgId }: { orgId: string | null }) {
+  const members = useQuery({
+    queryKey: ['organization-members', orgId],
+    queryFn: () => api.get<Array<{ id: string; userId: string; role: string; user: { id: string; name: string | null; email: string } }>>(`/organization/${orgId}/members`),
+    enabled: !!orgId,
+  });
+  const remove = useMutation({
+    mutationFn: (userId: string) => api.delete(`/organization/${orgId}/members/${encodeURIComponent(userId)}`),
+    onSuccess: () => void members.refetch(),
+  });
+
+  return (
+    <Card className="border-[#242426] bg-[#0B0B0C] shadow-none">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base"><Users className="h-4 w-4 text-[#ACFC15]" />Organization members</CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        {members.isLoading ? <div className="p-5 text-sm text-[#989898]">Loading members…</div> :
+          members.isError ? <div className="p-5"><QueryErrorState onRetry={() => void members.refetch()} /></div> :
+          !members.data?.length ? <div className="p-8 text-center text-sm text-[#989898]">No members found.</div> :
+          <div className="divide-y divide-[#242426]">{members.data.map(member => <div key={member.id} className="flex items-center gap-4 p-4">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary text-xs font-semibold">{(member.user.name ?? member.user.email).slice(0,1).toUpperCase()}</div>
+            <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{member.user.name ?? member.user.email}</p><p className="truncate text-xs text-[#989898]">{member.user.email}</p></div>
+            <Badge variant="outline">{member.role}</Badge>
+            {member.role !== 'owner' && <Button variant="ghost" size="sm" className="text-[#8A1C13]" onClick={() => remove.mutate(member.userId)} disabled={remove.isPending}><UserMinus className="mr-2 h-3.5 w-3.5" />Remove</Button>}
+          </div>)}</div>}
+      </CardContent>
+    </Card>
+  );
 }
 
 function SetupGuidance() {
