@@ -13,7 +13,7 @@ export interface RcaEvidenceItem {
   context?: DetectionEvidence['context'];
 }
 
-export interface RcaEvidence extends Record<string, unknown> {
+export interface RcaEvidence {
   projectId: string;
   serviceName: string;
   severity: DetectionFinding['severity'];
@@ -50,6 +50,7 @@ export interface RcaUsage {
 export interface RcaProviderResult {
   analysis: RcaAnalysis;
   usage: RcaUsage;
+  promptVersion: string;
 }
 
 export interface RcaProvider {

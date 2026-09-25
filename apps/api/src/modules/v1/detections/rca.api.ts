@@ -3,7 +3,6 @@ import { RcaAnalysisRepository } from './rca.repository';
 import { RcaPersistenceService } from './rca.persistence';
 import { RcaOrchestrator } from './rca.orchestrator';
 import { buildRcaEvidence } from './rca.evidence';
-import { RCA_PROMPT_VERSION } from './rca.prompt';
 import type { CorrelatedBottleneck } from './detection.correlation';
 
 @Injectable()
@@ -45,10 +44,10 @@ export class RcaApiService {
         findingId,
         evidence,
         analysis: result.analysis,
-        usage: result.usage,
         provider: process.env.SOONWHY_RCA_PROVIDER ?? 'openai-compatible',
         model: process.env.SOONWHY_RCA_MODEL ?? 'unknown',
-        promptVersion: RCA_PROMPT_VERSION,
+        promptVersion: result.promptVersion,
+        usage: result.usage,
       });
     } catch (error) {
       if (error instanceof Error && error.message === 'RCA provider is not configured') {

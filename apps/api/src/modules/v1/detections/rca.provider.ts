@@ -1,5 +1,5 @@
 import { RcaAnalysisSchema } from './rca.validation';
-import { buildRcaPrompt } from './rca.prompt';
+import { buildRcaPrompt, RCA_PROMPT_VERSION } from './rca.prompt';
 import type { RcaEvidence, RcaProvider, RcaProviderResult } from './rca.types';
 
 export interface OpenAiCompatibleRcaProviderConfig {
@@ -11,6 +11,7 @@ export interface OpenAiCompatibleRcaProviderConfig {
   maxRetries?: number;
   inputCostPerMillionTokensUsd?: number;
   outputCostPerMillionTokensUsd?: number;
+  promptVersion?: string;
 }
 
 interface OpenAiUsage {
@@ -24,24 +25,19 @@ interface ChatCompletionResponse {
   usage?: OpenAiUsage;
 }
 
-class RcaProviderRequestError extends Error {
-  constructor(readonly status: number, message: string) {
-    super(message);
-    this.name = 'RcaProviderRequestError';
-  }
-}
-
 export class OpenAiCompatibleRcaProvider implements RcaProvider {
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
   private readonly maxPromptCharacters: number;
   private readonly maxRetries: number;
+  private readonly promptVersion: string;
 
   constructor(private readonly config: OpenAiCompatibleRcaProviderConfig) {
     this.baseUrl = (config.baseUrl ?? 'https://api.openai.com/v1').replace(/\/$/, '');
     this.timeoutMs = config.timeoutMs ?? 30_000;
     this.maxPromptCharacters = config.maxPromptCharacters ?? 30_000;
     this.maxRetries = config.maxRetries ?? 1;
+    this.promptVersion = config.promptVersion ?? RCA_PROMPT_VERSION;
 
     if (this.maxRetries < 0) throw new Error('RCA provider max retries cannot be negative');
     if (!config.apiKey.trim()) throw new Error('RCA provider API key is required');
@@ -49,7 +45,7 @@ export class OpenAiCompatibleRcaProvider implements RcaProvider {
   }
 
   async analyze(input: RcaEvidence): Promise<RcaProviderResult> {
-    const prompt = buildRcaPrompt(input);
+    const prompt = buildRcaPrompt(input, this.promptVersion);
     if (prompt.length > this.maxPromptCharacters) {
       throw new Error('RCA evidence exceeds the provider prompt size limit');
     }
@@ -81,6 +77,7 @@ export class OpenAiCompatibleRcaProvider implements RcaProvider {
 
         return {
           analysis,
+          promptVersion: this.promptVersion,
           usage: {
             requestDurationMs: Date.now() - startedAt,
             inputTokens,
@@ -149,6 +146,13 @@ export class OpenAiCompatibleRcaProvider implements RcaProvider {
     if (inputRate === undefined || outputRate === undefined) return undefined;
     return (inputTokens / 1_000_000) * inputRate
       + (outputTokens / 1_000_000) * outputRate;
+  }
+}
+
+class RcaProviderRequestError extends Error {
+  constructor(readonly status: number, message: string) {
+    super(message);
+    this.name = 'RcaProviderRequestError';
   }
 }
 

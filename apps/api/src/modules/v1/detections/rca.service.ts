@@ -12,7 +12,11 @@ export class RcaService {
   ): Promise<RcaProviderResult> {
     const evidence = buildRcaEvidence(projectId, bottleneck);
     const result = await this.provider.analyze(evidence);
-    const analysis = validateRcaAnalysis(result.analysis, evidence);
-    return { analysis, usage: result.usage };
+
+    return {
+      analysis: validateRcaAnalysis(result.analysis, evidence),
+      usage: result.usage,
+      promptVersion: result.promptVersion,
+    };
   }
 }

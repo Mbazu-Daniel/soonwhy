@@ -7,10 +7,10 @@ export interface PersistRcaAnalysisInput {
   findingId: string;
   evidence: RcaEvidence;
   analysis: RcaAnalysis;
-  usage: RcaUsage;
   provider: string;
   model: string;
   promptVersion: string;
+  usage: RcaUsage;
 }
 
 export class RcaPersistenceService {
