@@ -6,13 +6,17 @@ import {
   Check,
   ChevronRight,
   CircleDot,
+  Code2,
+  Database,
   GitBranch,
   Layers3,
   Search,
+  Server,
   ShieldCheck,
   Terminal,
   Timer,
   Waypoints,
+  Zap,
 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 
@@ -20,225 +24,260 @@ export const Route = createFileRoute('/')({
   component: Home,
 });
 
-const capabilities = [
-  ['Detect', 'Find latency, error and performance anomalies from real telemetry.'],
-  ['Correlate', 'Connect the request, trace, span, service and surrounding evidence.'],
-  ['Explain', 'Turn a detection into a reasoned investigation instead of another dashboard.'],
-  ['Act', 'Keep the evidence attached to the finding so engineers can move from signal to fix.'],
-] as const;
-
-const workflow = [
+const features = [
   {
-    number: '01',
-    icon: Activity,
-    title: 'Send OpenTelemetry',
-    text: 'Instrument your services and send traces, logs and request telemetry into the project.',
-  },
-  {
-    number: '02',
     icon: Search,
-    title: 'Watch the system',
-    text: 'SoonWhy builds service and trace context from the telemetry your applications already emit.',
+    title: 'Detect what changed',
+    text: 'Find latency, error and performance anomalies from the telemetry your applications already emit.',
   },
   {
-    number: '03',
-    icon: BrainCircuit,
-    title: 'Investigate the signal',
-    text: 'Detections preserve the evidence and relationships engineers need to understand the bottleneck.',
+    icon: Waypoints,
+    title: 'Follow the evidence',
+    text: 'Move from request to trace, span and dependency without losing the context between them.',
   },
+  {
+    icon: BrainCircuit,
+    title: 'Understand why',
+    text: 'Turn a signal into an evidence-backed bottleneck investigation instead of another dashboard.',
+  },
+  {
+    icon: Zap,
+    title: 'Move to a fix',
+    text: 'Keep the source telemetry and relationships attached to the finding so the next action is clear.',
+  },
+];
+
+const investigationSteps = [
+  { label: 'Request', detail: 'POST /checkout', icon: Activity },
+  { label: 'Trace', detail: '4f8c...91a2', icon: GitBranch },
+  { label: 'Dominant span', detail: 'payments.authorize', icon: Timer },
+  { label: 'Dependency', detail: 'payments-api', icon: Server },
+  { label: 'Finding', detail: 'Latency bottleneck', icon: BrainCircuit },
 ];
 
 function Home() {
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#F7FAF4] text-[#182012]">
-      <header className="sticky top-0 z-40 border-b border-[#DDE6D9] bg-[#F7FAF4]/90 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 lg:px-8">
+    <div className="min-h-screen overflow-x-hidden bg-[#0B0F0A] text-white selection:bg-[#8BD125] selection:text-[#182012]">
+      <header className="sticky top-0 z-50 border-b border-white/[0.07] bg-[#0B0F0A]/85 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 lg:px-8">
           <Link to="/" className="flex items-center gap-2.5 font-semibold tracking-tight">
-            <span className="grid h-8 w-8 place-items-center rounded-md bg-[#182012] text-sm font-bold text-[#8BD125]">S</span>
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#8BD125] text-sm font-black text-[#182012]">S</span>
             SoonWhy
           </Link>
-          <nav className="hidden items-center gap-6 text-sm text-[#182012]/65 md:flex">
-            <a href="#product" className="hover:text-[#182012]">Product</a>
-            <a href="#how-it-works" className="hover:text-[#182012]">How it works</a>
-            <a href="#open-telemetry" className="hover:text-[#182012]">OpenTelemetry</a>
-            <Link to="/auth/sign-in" className="hover:text-[#182012]">Sign in</Link>
+
+          <nav className="hidden items-center gap-7 text-sm text-white/55 md:flex">
+            <a href="#product" className="transition-colors hover:text-white">Product</a>
+            <a href="#how-it-works" className="transition-colors hover:text-white">How it works</a>
+            <a href="#open-telemetry" className="transition-colors hover:text-white">OpenTelemetry</a>
+            <a href="#developers" className="transition-colors hover:text-white">Developers</a>
           </nav>
-          <Button asChild size="sm" className="bg-[#182012] text-white hover:bg-[#182012]/90">
-            <Link to="/auth/sign-up">Start free <ArrowRight /></Link>
-          </Button>
+
+          <div className="flex items-center gap-2">
+            <Button asChild variant="ghost" size="sm" className="hidden text-white/70 hover:bg-white/5 hover:text-white sm:inline-flex">
+              <Link to="/auth/sign-in">Sign in</Link>
+            </Button>
+            <Button asChild size="sm" className="bg-[#8BD125] font-semibold text-[#182012] hover:bg-[#9BE43A]">
+              <Link to="/auth/sign-up">Get started <ArrowRight /></Link>
+            </Button>
+          </div>
         </div>
       </header>
 
       <main>
-        <section className="border-b border-[#DDE6D9]">
-          <div className="mx-auto grid max-w-6xl gap-14 px-5 pb-20 pt-20 lg:grid-cols-[1.05fr_.95fr] lg:items-center lg:px-8 lg:pb-28 lg:pt-28">
-            <div>
-              <div className="inline-flex items-center gap-2 border border-[#C9D8C5] bg-white px-3 py-1.5 text-xs font-semibold text-[#16931F]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#16931F]" />
-                OpenTelemetry-native intelligent observability
-              </div>
-              <h1 className="mt-7 max-w-3xl text-5xl font-semibold leading-[1.02] tracking-[-0.055em] sm:text-6xl lg:text-[4.5rem]">
-                Know <span className="text-[#16931F]">why</span> your system is slow.
-              </h1>
-              <p className="mt-7 max-w-xl text-lg leading-8 text-[#182012]/65">
-                SoonWhy turns traces, errors, logs and service context into evidence-backed performance investigations.
-                Find the bottleneck, understand the relationship, and see what changed.
-              </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Button asChild size="lg" className="bg-[#182012] text-white hover:bg-[#182012]/90">
-                  <Link to="/auth/sign-up">Create your workspace <ArrowRight /></Link>
-                </Button>
-                <Button asChild size="lg" variant="outline" className="border-[#BFD0B9] bg-white">
-                  <Link to="/auth/sign-in">Open dashboard</Link>
-                </Button>
-              </div>
-              <p className="mt-5 text-xs text-[#182012]/45">Built around OpenTelemetry. No new agent required.</p>
+        <section className="relative overflow-hidden border-b border-white/[0.07]">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[520px] bg-[radial-gradient(circle_at_50%_0%,rgba(139,209,37,0.12),transparent_58%)]" />
+          <div className="relative mx-auto max-w-7xl px-5 pb-20 pt-24 text-center lg:px-8 lg:pb-28 lg:pt-32">
+            <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-[#8BD125]/25 bg-[#8BD125]/[0.06] px-3.5 py-1.5 text-xs font-medium text-[#B5E66A]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#8BD125] shadow-[0_0_12px_rgba(139,209,37,0.8)]" />
+              OpenTelemetry-native intelligent observability
             </div>
 
-            <div className="relative">
-              <div className="absolute -inset-8 bg-[#C9E7EB]/30 blur-3xl" aria-hidden="true" />
-              <div className="relative overflow-hidden border border-[#2A3524] bg-[#182012] shadow-[0_20px_60px_rgba(24,32,18,0.16)]">
-                <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 text-xs text-white/55">
-                  <span>investigation / checkout-api</span>
-                  <span className="flex items-center gap-1.5 text-[#8BD125]"><CircleDot className="h-3 w-3" /> live</span>
+            <h1 className="mx-auto mt-8 max-w-5xl text-6xl font-semibold leading-[0.95] tracking-[-0.065em] sm:text-7xl lg:text-[6.6rem]">
+              Know why your
+              <br />
+              <span className="text-[#8BD125]">system is slow.</span>
+            </h1>
+
+            <p className="mx-auto mt-7 max-w-2xl text-base leading-7 text-white/55 sm:text-lg">
+              SoonWhy connects traces, logs, errors and service context to find the bottleneck and explain the evidence behind it.
+            </p>
+
+            <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
+              <Button asChild size="lg" className="h-12 bg-[#8BD125] px-6 font-semibold text-[#182012] hover:bg-[#9BE43A]">
+                <Link to="/auth/sign-up">Start investigating <ArrowRight /></Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="h-12 border-white/15 bg-white/[0.03] px-6 text-white hover:bg-white/[0.07] hover:text-white">
+                <a href="#how-it-works">See how it works</a>
+              </Button>
+            </div>
+
+            <p className="mt-5 text-xs text-white/30">Start with OpenTelemetry. Keep your existing instrumentation.</p>
+
+            <div className="mx-auto mt-16 max-w-5xl overflow-hidden rounded-2xl border border-white/10 bg-[#111711] text-left shadow-[0_30px_100px_rgba(0,0,0,0.45)]">
+              <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
                 </div>
-                <div className="space-y-5 p-5">
-                  <div>
-                    <div className="flex items-center justify-between text-xs text-white/45">
-                      <span>LATENCY P95</span><span>2.84s</span>
+                <span className="font-mono text-[11px] text-white/30">soonwhy / investigation</span>
+                <span className="flex items-center gap-1.5 text-[11px] text-[#8BD125]">
+                  <CircleDot className="h-3 w-3" /> live telemetry
+                </span>
+              </div>
+
+              <div className="grid lg:grid-cols-[1fr_300px]">
+                <div className="border-b border-white/10 p-5 lg:border-b-0 lg:border-r lg:p-7">
+                  <div className="flex items-start justify-between gap-5">
+                    <div>
+                      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/30">Investigation</p>
+                      <h2 className="mt-2 text-xl font-semibold">checkout-api</h2>
+                      <p className="mt-1 font-mono text-xs text-white/35">POST /checkout · trace 4f8c...91a2</p>
                     </div>
-                    <div className="mt-2 h-1.5 bg-white/10"><div className="h-full w-[82%] bg-[#8BD125]" /></div>
+                    <span className="rounded-full border border-[#8BD125]/20 bg-[#8BD125]/[0.07] px-2.5 py-1 text-[10px] font-medium text-[#B5E66A]">DETECTED</span>
                   </div>
-                  <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 border border-white/10 p-3">
-                    <GitBranch className="h-4 w-4 text-[#8BD125]" />
-                    <div><p className="text-sm text-white">checkout-api</p><p className="text-xs text-white/40">POST /checkout</p></div>
-                    <span className="text-xs text-[#8BD125]">+61%</span>
+
+                  <div className="mt-7 grid gap-3 sm:grid-cols-3">
+                    <Metric label="Latency p95" value="2.84s" change="+61%" />
+                    <Metric label="Error rate" value="4.2%" change="+2.1%" />
+                    <Metric label="Requests" value="18.4k" change="24h" />
                   </div>
-                  <div className="space-y-2">
-                    <SignalRow label="checkout-api" width="91%" value="2.41s" />
-                    <SignalRow label="payments-client" width="68%" value="1.76s" />
-                    <SignalRow label="postgres" width="38%" value="0.83s" />
+
+                  <div className="mt-7 space-y-3">
+                    <Signal label="checkout-api" value="2.41s" width="91%" />
+                    <Signal label="payments-api" value="1.76s" width="68%" />
+                    <Signal label="postgres" value="0.83s" width="38%" />
                   </div>
-                  <div className="border border-[#8BD125]/25 bg-[#8BD125]/5 p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#8BD125]">Evidence</p>
-                    <p className="mt-2 text-sm leading-6 text-white/80">Dominant span accounts for most request time and correlates with the downstream dependency.</p>
+                </div>
+
+                <div className="bg-black/15 p-5 lg:p-6">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#8BD125]">Evidence</p>
+                  <p className="mt-3 text-sm font-medium leading-6 text-white/85">
+                    payments.authorize is the dominant span in the affected request path.
+                  </p>
+                  <div className="mt-5 space-y-3">
+                    <Evidence label="Dominant span" value="payments.authorize" />
+                    <Evidence label="Dependency" value="payments-api" />
+                    <Evidence label="Duration" value="1.76s · 62%" />
+                  </div>
+                  <div className="mt-6 border-l border-[#8BD125]/60 pl-3 text-xs leading-5 text-white/45">
+                    Correlated with elevated downstream latency in the same trace window.
                   </div>
                 </div>
               </div>
-              <p className="relative mt-3 text-center text-xs text-[#182012]/40">A product surface, not a decorative dashboard mockup.</p>
             </div>
           </div>
         </section>
 
-        <section id="product" className="border-b border-[#DDE6D9] bg-white">
-          <div className="mx-auto max-w-6xl px-5 py-20 lg:px-8 lg:py-24">
-            <div className="grid gap-12 lg:grid-cols-[.75fr_1.25fr]">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[.16em] text-[#16931F]">What SoonWhy does</p>
-                <h2 className="mt-3 max-w-md text-3xl font-semibold tracking-[-.035em] sm:text-4xl">From a noisy signal to a useful explanation.</h2>
-                <p className="mt-5 max-w-md leading-7 text-[#182012]/60">
-                  Traditional observability helps you find the graph. SoonWhy is designed to help you follow the evidence through it.
+        <section id="product" className="border-b border-white/[0.07]">
+          <div className="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-28">
+            <div className="flex flex-col justify-between gap-7 md:flex-row md:items-end">
+              <div className="max-w-2xl">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8BD125]">First-class investigation</p>
+                <h2 className="mt-4 text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">From signal to explanation.</h2>
+                <p className="mt-5 max-w-xl text-base leading-7 text-white/45">
+                  Observability gives you the data. SoonWhy keeps the relationships together so you can understand what is happening and why.
                 </p>
               </div>
-              <div className="grid border-t border-[#DDE6D9] sm:grid-cols-2">
-                {capabilities.map(([title, text], index) => (
-                  <div key={title} className="border-b border-[#DDE6D9] py-6 sm:pr-8">
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-xs text-[#16931F]">0{index + 1}</span>
-                      <h3 className="font-semibold">{title}</h3>
-                    </div>
-                    <p className="mt-3 text-sm leading-6 text-[#182012]/60">{text}</p>
-                  </div>
-                ))}
-              </div>
+              <Link to="/auth/sign-up" className="inline-flex items-center gap-2 text-sm font-medium text-[#B5E66A] hover:text-[#D0F49A]">
+                Start with a project <ChevronRight className="h-4 w-4" />
+              </Link>
             </div>
-          </div>
-        </section>
 
-        <section id="how-it-works" className="border-b border-[#DDE6D9]">
-          <div className="mx-auto max-w-6xl px-5 py-20 lg:px-8 lg:py-24">
-            <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[.16em] text-[#16931F]">How it works</p>
-                <h2 className="mt-3 text-3xl font-semibold tracking-[-.035em] sm:text-4xl">Keep the workflow close to the engineer.</h2>
-              </div>
-              <Link to="/auth/sign-up" className="inline-flex items-center gap-1 text-sm font-semibold text-[#16931F] hover:underline">Start with a project <ChevronRight className="h-4 w-4" /></Link>
-            </div>
-            <div className="mt-12 grid border-y border-[#DDE6D9] md:grid-cols-3">
-              {workflow.map(({ number, icon: Icon, title, text }) => (
-                <div key={number} className="border-b border-[#DDE6D9] p-7 md:border-b-0 md:border-r last:border-r-0">
+            <div className="mt-14 grid overflow-hidden rounded-2xl border border-white/10 bg-[#111711] md:grid-cols-2 lg:grid-cols-4">
+              {features.map(({ icon: Icon, title, text }, index) => (
+                <div key={title} className="border-b border-white/10 p-7 md:border-r md:last:border-r-0 lg:border-b-0">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs text-[#16931F]">{number}</span>
-                    <Icon className="h-5 w-5 text-[#16931F]" />
+                    <Icon className="h-5 w-5 text-[#8BD125]" />
+                    <span className="font-mono text-[10px] text-white/25">0{index + 1}</span>
                   </div>
                   <h3 className="mt-10 text-lg font-semibold">{title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-[#182012]/60">{text}</p>
+                  <p className="mt-3 text-sm leading-6 text-white/40">{text}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        <section id="open-telemetry" className="border-b border-[#DDE6D9] bg-[#182012] text-white">
-          <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 lg:grid-cols-[.9fr_1.1fr] lg:px-8 lg:py-24">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[.16em] text-[#8BD125]">OpenTelemetry first</p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-[-.035em] sm:text-4xl">Bring the telemetry you already have.</h2>
-              <p className="mt-5 max-w-lg leading-7 text-white/60">
-                SoonWhy is built around OpenTelemetry so instrumentation stays with your applications while investigation happens in one place.
+        <section id="how-it-works" className="border-b border-white/[0.07] bg-[#F7FAF4] text-[#182012]">
+          <div className="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-28">
+            <div className="max-w-2xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#16931F]">How it works</p>
+              <h2 className="mt-4 text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">One signal. One investigation.</h2>
+              <p className="mt-5 max-w-xl leading-7 text-[#182012]/55">
+                The workflow stays close to the way engineers actually debug production systems.
               </p>
-              <div className="mt-8 space-y-3 text-sm text-white/70">
-                <CheckLine text="Trace-aware request investigations" />
-                <CheckLine text="Service and dependency context" />
-                <CheckLine text="Evidence linked back to source telemetry" />
-                <CheckLine text="Project-scoped ingestion and access" />
-              </div>
             </div>
-            <div className="border border-white/10 bg-black/20">
-              <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3 font-mono text-xs text-white/45">
-                <Terminal className="h-3.5 w-3.5" /> your application
+
+            <div className="mt-14 grid overflow-hidden rounded-2xl border border-[#D8E1D4] bg-white md:grid-cols-3">
+              <Step number="01" icon={Terminal} title="Send telemetry" text="Use OpenTelemetry to send traces, logs and request context into your project." />
+              <Step number="02" icon={Activity} title="Detect the signal" text="SoonWhy surfaces latency, error and performance changes from real application telemetry." />
+              <Step number="03" icon={BrainCircuit} title="Investigate why" text="Follow the request, dominant span and dependency to the evidence behind the bottleneck." />
+            </div>
+          </div>
+        </section>
+
+        <section id="open-telemetry" className="border-b border-white/[0.07]">
+          <div className="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-28">
+            <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8BD125]">OpenTelemetry first</p>
+                <h2 className="mt-4 text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">Use the instrumentation you already have.</h2>
+                <p className="mt-5 max-w-lg leading-7 text-white/45">
+                  SoonWhy sits on top of OpenTelemetry instead of asking you to replace your application instrumentation.
+                </p>
+                <div className="mt-8 space-y-3 text-sm text-white/60">
+                  <CheckLine text="OTLP-native telemetry flow" />
+                  <CheckLine text="Trace-aware request investigations" />
+                  <CheckLine text="Service and dependency context" />
+                  <CheckLine text="Evidence linked to source telemetry" />
+                </div>
               </div>
-              <div className="space-y-5 p-5 font-mono text-xs leading-6">
-                <CodeLine dim="$ npm install @soonwhy/sdk" />
-                <CodeLine dim="$ export SOONWHY_API_KEY=..." />
-                <CodeLine dim="$ npm run start" />
-                <div className="border-l border-[#8BD125] pl-4 text-white/55">
-                  <p><span className="text-[#8BD125]">→</span> telemetry received</p>
-                  <p><span className="text-[#8BD125]">→</span> trace indexed</p>
-                  <p><span className="text-[#8BD125]">→</span> investigation ready</p>
+
+              <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#111711]">
+                <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+                  <div className="flex items-center gap-2 text-xs text-white/40">
+                    <Terminal className="h-4 w-4" /> quick start
+                  </div>
+                  <span className="rounded-full bg-[#8BD125]/10 px-2 py-1 font-mono text-[10px] text-[#B5E66A]">NODE</span>
+                </div>
+                <div className="p-5 font-mono text-xs leading-7 sm:p-7">
+                  <p className="text-white/35">$ npm install @soonwhy/sdk</p>
+                  <p className="mt-2 text-white/35">$ export SOONWHY_API_KEY=...</p>
+                  <p className="mt-2 text-white/35">$ npm run start</p>
+                  <div className="mt-6 space-y-1 border-l border-[#8BD125]/50 pl-4 text-white/45">
+                    <p><span className="text-[#8BD125]">→</span> telemetry received</p>
+                    <p><span className="text-[#8BD125]">→</span> trace indexed</p>
+                    <p><span className="text-[#8BD125]">→</span> signal detected</p>
+                    <p><span className="text-[#8BD125]">→</span> investigation ready</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="border-b border-[#DDE6D9] bg-white">
-          <div className="mx-auto max-w-6xl px-5 py-20 lg:px-8 lg:py-24">
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              <MiniFeature icon={Waypoints} title="Trace context" text="Move from request to dominant span and downstream dependency." />
-              <MiniFeature icon={Timer} title="Performance" text="Surface latency, error and bottleneck signals from real telemetry." />
-              <MiniFeature icon={Layers3} title="Evidence" text="Keep source IDs and telemetry context attached to findings." />
-              <MiniFeature icon={ShieldCheck} title="Project isolation" text="Keep organization and project telemetry scoped to the right workspace." />
-            </div>
-          </div>
-        </section>
-
-        <section className="border-b border-[#DDE6D9]">
-          <div className="mx-auto max-w-6xl px-5 py-20 lg:px-8 lg:py-24">
-            <div className="grid gap-10 lg:grid-cols-[1fr_1.3fr] lg:items-center">
+        <section className="border-b border-white/[0.07] bg-[#111711]">
+          <div className="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-28">
+            <div className="grid gap-14 lg:grid-cols-[0.7fr_1.3fr]">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[.16em] text-[#16931F]">Built for investigation</p>
-                <h2 className="mt-3 text-3xl font-semibold tracking-[-.035em] sm:text-4xl">Your telemetry should tell a story.</h2>
-                <p className="mt-5 leading-7 text-[#182012]/60">
-                  A request starts the story. Its trace provides structure. Spans reveal where time went. Dependencies add context. SoonWhy keeps those relationships visible while you investigate.
-                </p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8BD125]">It just works</p>
+                <h2 className="mt-4 text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">The path from request to root cause.</h2>
               </div>
-              <div className="border border-[#DDE6D9] bg-white">
-                {['Request', 'Trace', 'Dominant span', 'Dependency', 'Evidence-backed finding'].map((item, index) => (
-                  <div key={item} className="flex items-center gap-4 border-b border-[#DDE6D9] p-4 last:border-b-0">
-                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#E9F4E5] font-mono text-xs text-[#16931F]">{index + 1}</span>
-                    <span className="text-sm font-medium">{item}</span>
-                    {index < 4 && <ArrowRight className="ml-auto h-4 w-4 text-[#16931F]" />}
+
+              <div className="divide-y divide-white/10 overflow-hidden rounded-2xl border border-white/10">
+                {investigationSteps.map(({ label, detail, icon: Icon }, index) => (
+                  <div key={label} className="flex items-center gap-4 p-5 sm:p-6">
+                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[#8BD125]/[0.08] text-[#8BD125]">
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold">{label}</p>
+                      <p className="mt-1 truncate font-mono text-xs text-white/35">{detail}</p>
+                    </div>
+                    {index < investigationSteps.length - 1 && (
+                      <ArrowRight className="ml-auto hidden h-4 w-4 text-white/20 sm:block" />
+                    )}
                   </div>
                 ))}
               </div>
@@ -246,57 +285,117 @@ function Home() {
           </div>
         </section>
 
-        <section className="bg-[#EAF4E7]">
-          <div className="mx-auto max-w-6xl px-5 py-20 text-center lg:px-8 lg:py-24">
-            <p className="text-xs font-semibold uppercase tracking-[.16em] text-[#16931F]">Ready when you are</p>
-            <h2 className="mx-auto mt-3 max-w-2xl text-4xl font-semibold tracking-[-.045em] sm:text-5xl">Stop asking what broke. Start asking why.</h2>
-            <p className="mx-auto mt-5 max-w-xl leading-7 text-[#182012]/60">Create a project, connect OpenTelemetry, and investigate your first real signal.</p>
-            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-              <Button asChild size="lg" className="bg-[#182012] text-white hover:bg-[#182012]/90">
-                <Link to="/auth/sign-up">Create your workspace <ArrowRight /></Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="border-[#BFD0B9] bg-white">
-                <Link to="/auth/sign-in">Sign in</Link>
-              </Button>
+        <section id="developers" className="border-b border-white/[0.07]">
+          <div className="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-28">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              <DeveloperFeature icon={Code2} title="Developer first" text="A workflow designed around engineers investigating real production signals." />
+              <DeveloperFeature icon={Database} title="Real telemetry" text="No invented charts. Empty states stay honest until your project has data." />
+              <DeveloperFeature icon={Layers3} title="Project context" text="Keep telemetry, investigations and access scoped to the right project." />
+              <DeveloperFeature icon={ShieldCheck} title="Evidence attached" text="Source IDs and relationships remain visible throughout the investigation." />
             </div>
+          </div>
+        </section>
+
+        <section className="relative overflow-hidden bg-[#8BD125] text-[#182012]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_50%,rgba(255,255,255,0.28),transparent_40%)]" />
+          <div className="relative mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 px-5 py-20 lg:flex-row lg:items-center lg:px-8 lg:py-24">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#182012]/55">Ready when you are</p>
+              <h2 className="mt-3 max-w-3xl text-4xl font-semibold tracking-[-0.05em] sm:text-5xl">Know why your system is slow.</h2>
+              <p className="mt-4 max-w-xl leading-7 text-[#182012]/65">Create a project, connect OpenTelemetry, and investigate your first real signal.</p>
+            </div>
+            <Button asChild size="lg" className="h-12 shrink-0 bg-[#182012] px-6 text-white hover:bg-[#25311E]">
+              <Link to="/auth/sign-up">Start investigating <ArrowRight /></Link>
+            </Button>
           </div>
         </section>
       </main>
 
-      <footer className="bg-[#182012] text-white/55">
-        <div className="mx-auto flex max-w-6xl flex-col gap-5 px-5 py-8 text-sm sm:flex-row sm:items-center sm:justify-between lg:px-8">
-          <div className="flex items-center gap-2 text-white"><span className="grid h-7 w-7 place-items-center rounded-md bg-[#8BD125] text-xs font-bold text-[#182012]">S</span> SoonWhy</div>
-          <div className="flex items-center gap-5"><Link to="/auth/sign-in" className="hover:text-white">Sign in</Link><Link to="/auth/sign-up" className="hover:text-white">Get started</Link></div>
+      <footer className="bg-[#080B07] text-white/45">
+        <div className="mx-auto flex max-w-7xl flex-col gap-7 px-5 py-10 lg:px-8">
+          <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
+            <Link to="/" className="flex items-center gap-2 font-semibold text-white">
+              <span className="grid h-7 w-7 place-items-center rounded-md bg-[#8BD125] text-xs font-black text-[#182012]">S</span>
+              SoonWhy
+            </Link>
+            <div className="flex items-center gap-6 text-sm">
+              <Link to="/auth/sign-in" className="hover:text-white">Sign in</Link>
+              <Link to="/auth/sign-up" className="hover:text-white">Get started</Link>
+            </div>
+          </div>
+          <div className="flex flex-col justify-between gap-2 border-t border-white/[0.07] pt-6 text-xs sm:flex-row">
+            <span>OpenTelemetry-native intelligent observability.</span>
+            <span>Built for engineers who need to know why.</span>
+          </div>
         </div>
       </footer>
     </div>
   );
 }
 
-function SignalRow({ label, width, value }: { label: string; width: string; value: string }) {
+function Metric({ label, value, change }: { label: string; value: string; change: string }) {
   return (
-    <div className="grid grid-cols-[120px_1fr_44px] items-center gap-3 text-xs">
-      <span className="truncate text-white/50">{label}</span>
-      <div className="h-1 bg-white/10"><div className="h-full bg-[#8BD125]" style={{ width }} /></div>
-      <span className="text-right text-white/60">{value}</span>
+    <div className="rounded-lg border border-white/10 bg-black/10 p-3">
+      <p className="text-[10px] uppercase tracking-[0.12em] text-white/30">{label}</p>
+      <div className="mt-2 flex items-end justify-between gap-2">
+        <span className="text-lg font-semibold">{value}</span>
+        <span className="font-mono text-[10px] text-[#8BD125]">{change}</span>
+      </div>
+    </div>
+  );
+}
+
+function Signal({ label, value, width }: { label: string; value: string; width: string }) {
+  return (
+    <div className="grid grid-cols-[110px_1fr_45px] items-center gap-3 text-xs">
+      <span className="truncate text-white/40">{label}</span>
+      <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
+        <div className="h-full rounded-full bg-[#8BD125]" style={{ width }} />
+      </div>
+      <span className="text-right font-mono text-white/45">{value}</span>
+    </div>
+  );
+}
+
+function Evidence({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-white/[0.07] pb-3 text-xs last:border-0 last:pb-0">
+      <span className="text-white/30">{label}</span>
+      <span className="text-right text-white/65">{value}</span>
+    </div>
+  );
+}
+
+function Step({ number, icon: Icon, title, text }: { number: string; icon: typeof Terminal; title: string; text: string }) {
+  return (
+    <div className="border-b border-[#D8E1D4] p-7 last:border-b-0 md:border-b-0 md:border-r md:last:border-r-0">
+      <div className="flex items-center justify-between">
+        <span className="font-mono text-xs text-[#16931F]">{number}</span>
+        <Icon className="h-5 w-5 text-[#16931F]" />
+      </div>
+      <h3 className="mt-12 text-lg font-semibold">{title}</h3>
+      <p className="mt-3 text-sm leading-6 text-[#182012]/55">{text}</p>
     </div>
   );
 }
 
 function CheckLine({ text }: { text: string }) {
-  return <div className="flex items-center gap-3"><Check className="h-4 w-4 shrink-0 text-[#8BD125]" />{text}</div>;
-}
-
-function CodeLine({ dim }: { dim: string }) {
-  return <div><span className="text-white/70">{dim}</span></div>;
-}
-
-function MiniFeature({ icon: Icon, title, text }: { icon: typeof Activity; title: string; text: string }) {
   return (
-    <div className="border-t border-[#DDE6D9] pt-5">
-      <Icon className="h-5 w-5 text-[#16931F]" />
-      <h3 className="mt-4 font-semibold">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-[#182012]/55">{text}</p>
+    <div className="flex items-center gap-3">
+      <Check className="h-4 w-4 shrink-0 text-[#8BD125]" />
+      <span>{text}</span>
     </div>
   );
 }
+
+function DeveloperFeature({ icon: Icon, title, text }: { icon: typeof Code2; title: string; text: string }) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-[#111711] p-6">
+      <Icon className="h-5 w-5 text-[#8BD125]" />
+      <h3 className="mt-5 font-semibold">{title}</h3>
+      <p className="mt-2 text-sm leading-6 text-white/40">{text}</p>
+    </div>
+  );
+}
+
+export default Home;
