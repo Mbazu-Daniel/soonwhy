@@ -6,7 +6,7 @@ Soonwhy — 10-Phase Build Plan
 Phase	Name	Main Goal
 0	Product Foundation	Lock the product and engineering specification
 1	Platform Foundation	Monorepo, auth, tenancy, projects, environments
-2	SDK & Ingestion	@soonwhy/sdk + telemetry pipeline
+2	SDK & Ingestion	Soonwhy telemetry SDK + telemetry pipeline
 3	Mission Control	The first useful developer experience
 4	Observability Core	Logs, metrics, traces, APIs
 5	Developer Intelligence	Prisma, Redis, BullMQ, Cron
@@ -104,7 +104,7 @@ This is the most important phase.
 
 Build:
 
-npm install @soonwhy/sdk
+The SDK is planned for Phase 2 and is not currently published from this repository.
 
 Then:
 

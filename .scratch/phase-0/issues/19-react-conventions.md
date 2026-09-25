@@ -4,23 +4,23 @@
 
 **Blocked by:** 18 (needs TypeScript conventions)
 
-**Status:** ready-for-agent
+ **Status: done**
 
-- [ ] Component patterns:
+- [x] Component patterns:
   - Functional components only (no class components)
   - Props interface naming: `ComponentNameProps`
   - Default exports for pages, named exports for components
-- [ ] Hooks conventions:
+- [x] Hooks conventions:
   - Custom hooks prefix with `use`
   - Extract logic into hooks, keep components thin
-- [ ] State management:
+- [x] State management:
   - Local state for UI state
   - TanStack Query for server state
   - No Redux/Zustand (keep it simple)
-- [ ] shadcn/ui usage:
+- [x] shadcn/ui usage:
   - Import from `@/components/ui`
   - Extend with custom variants, don't modify source
-- [ ] Tailwind conventions:
+- [x] Tailwind conventions:
   - Use design tokens (colors, spacing)
   - No inline styles
   - Responsive design patterns

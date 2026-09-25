@@ -6,7 +6,7 @@
 Raw data emitted by applications. In Soonwhy, telemetry includes logs, metrics, traces, and API monitoring data.
 
 ### Ingestion
-The process of receiving telemetry from SDKs and storing it for processing.
+The process of receiving telemetry from OpenTelemetry-compatible sources and storing it for processing.
 
 ### Mission Control
 The primary dashboard where developers see their application's health, telemetry, and AI insights.
@@ -26,16 +26,13 @@ A value (0-1) representing how certain the AI is about its conclusion. Below 0.7
 Top-level tenant. Owns projects and billing.
 
 ### Project
-A monitored application. Contains environments.
-
-### Environment
-A deployment target (production, staging, development).
+A monitored application owned by an organization. Soonwhy currently treats deployment/environment as telemetry metadata rather than a separate CRUD entity.
 
 ### Service
 A component within a project (e.g., "api", "worker", "scheduler").
 
 ### API Key
-Credentials for SDK authentication. Scoped to a project + environment.
+Credentials for telemetry ingestion. Scoped to a project and therefore indirectly to its organization.
 
 ## Telemetry Signals
 
@@ -71,13 +68,20 @@ Mechanism preventing the AI from making claims not backed by telemetry evidence.
 ## Infrastructure
 
 ### Hot Storage
-Telemetry data in self-hosted ClickHouse (on Dokploy) for fast analytical queries (0-7 days).
+Telemetry data in self-hosted ClickHouse for fast analytical queries.
 
 ### Cold Storage
-Archived telemetry in R2 + Parquet for cost-efficient long-term retention (7+ days).
+Archived telemetry in R2 + Parquet for cost-efficient long-term retention.
 
 ### Event Bus
 NATS JetStream for async communication between API and workers.
 
 ### Parquet
 Columnar file format for efficient analytical queries on archived telemetry.
+
+
+## Telemetry storage
+
+Quickwit is the primary telemetry search/index layer. Its splits are stored directly in S3-compatible object storage such as Cloudflare R2. NATS JetStream remains the ingestion boundary between OTLP parsing and indexing.
+
+Postgres remains the source of truth for SaaS state. ClickHouse is no longer part of the primary telemetry write path and is being removed from telemetry read paths as those modules migrate.

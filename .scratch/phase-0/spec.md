@@ -1,6 +1,6 @@
 # Phase 0: Product Foundation — Task Breakdown
 
-Status: ready-for-agent
+Status: in-progress — engineering foundation done (NestJS + ClickHouse + NATS + Better Auth + TanStack Start, `apps/api`/`apps/ui`/`apps/sdk` structure, `common/` infra, `find*`→`get*`), docs in `docs/` still need completion. Updated 2026-09-05.
 
 ## Problem Statement
 
@@ -99,39 +99,23 @@ TelemetryEvent {
 }
 ```
 
-### File Structure (Target)
+### File Structure (Actual 2026-09-05 — `packages/` cleaned, `apps/` is source)
 
 ```
 soonwhy/
 ├── apps/
-│   ├── web/                    # TanStack Start
-│   └── docs/                   # Documentation site
-├── packages/
-│   ├── ui/                     # Shared React components
-│   ├── types/                  # Shared TypeScript types
-│   └── config/                 # Shared configs (tsconfig, eslint)
-├── services/
-│   ├── api/                    # NestJS API
-│   ├── ingestion/              # Ingestion worker
-│   ├── processor/              # Telemetry processor
-│   ├── ai/                     # AI analysis worker
-│   ├── scheduler/              # Cron/scheduled tasks
-│   └── notifications/          # Notification worker
-├── sdks/
-│   └── node/                   # @soonwhy/sdk
-├── cli/                        # soonwhy CLI
-├── infrastructure/
-│   ├── docker/                 # Docker Compose files
-│   └── terraform/              # IaC (later)
-├── database/
-│   └── migrations/             # Drizzle migrations
-├── artifacts/                  # Product/architecture docs
+│   ├── api/                    # NestJS API (src/common/{clickhouse,nats,redis,db,data-archival}, src/modules/v1/{auth,organizations,projects,services,api-keys,ingestion,dashboard,health}, src/shared)
+│   ├── ui/                     # TanStack Start (src/components/ui, src/lib, src/routes, src/shared) — moved from packages/frontend
+│   └── sdk/                    # @soonwhy/sdk (src/client.ts, src/auto/{http,db}) — moved from packages/sdk
+├── tsconfig/                   # base.json, nestjs.json — moved from packages/tsconfig
+├── shared/ (now in apps)       # apps/api/src/shared + apps/ui/src/shared — moved from packages/shared
 ├── docs/
 │   ├── adr/                    # Architecture Decision Records
 │   ├── agents/                 # Agent skill configs
 │   ├── architecture/           # Architecture documentation
 │   └── engineering/            # Engineering standards
-└── .scratch/                   # Issue tracker
+└── .scratch/                   # Issue tracker (phase-0, phase-2, phase-3)
+└── packages/                   # cleaned — only .gitkeep (was packages/frontend, shared, sdk, tsconfig, backend)
 ```
 
 ## Testing Decisions

@@ -1,50 +1,27 @@
-# ADR-0002: ClickHouse (Self-Hosted on Dokploy) for Hot Data, R2 + Parquet for Cold
+# ADR-0002: Quickwit indexes on object storage
 
 ## Status
 
 Accepted
 
-## Context
-
-Soonwhy needs to store telemetry data for querying. The AI needs fast access to recent data for root-cause analysis, while historical data needs cost-efficient storage.
-
 ## Decision
 
-- **Hot data (0-7 days)**: Self-hosted ClickHouse on Dokploy for fast analytical queries
-- **Cold data (7+ days)**: Cloudflare R2 + Parquet for cost-efficient archival
+Soonwhy uses Quickwit as the primary telemetry indexing and search layer. Quickwit index splits and metastore are stored on S3-compatible object storage such as Cloudflare R2.
+
+The telemetry path is:
+
+OpenTelemetry -> OTLP ingestion -> NATS JetStream -> Quickwit -> object storage -> search and analysis.
+
+Postgres remains the source of truth for SaaS resources. ClickHouse is not part of the telemetry storage path.
+
+## Why
+
+- Object storage was a core requirement from the beginning.
+- Quickwit separates durable storage from stateless indexing and search workloads.
+- Logs and traces are first-class search workloads.
+- NATS keeps ingestion durable and decoupled from indexing.
+- The same storage model can be used for local MinIO development and R2 production.
 
 ## Consequences
 
-### Positive
-- ClickHouse is purpose-built for time-series analytics (10-100x faster than PostgreSQL for aggregations)
-- Self-hosted on Dokploy = full control, no vendor lock-in
-- Single VPS deployment with Docker Compose (low operational complexity)
-- Full SQL flexibility (JOINs, window functions, CTEs — no pipe model limits)
-- Cost-efficient: ~$20-50/mo VPS handles 50GB/day ingestion
-- Parquet provides columnar analytics for historical analysis
-
-### Negative
-- Two storage systems to maintain
-- Need to implement data migration from ClickHouse to R2
-- Parquet is not queryable in real-time
-- Self-hosted requires backup strategy
-
-### Mitigation
-- Workers handle migration from ClickHouse to R2 on schedule
-- Query abstraction layer hides storage complexity from application
-- For historical analysis, load Parquet into DuckDB on-demand
-- ClickHouse has built-in BACKUP/RESTORE commands
-
-## Alternatives Considered
-- **TimescaleDB**: PostgreSQL extension, but 10-100x slower for analytical queries at scale
-- **Tinybird**: Managed ClickHouse, but vendor lock-in and higher costs at scale
-- **ClickHouse Cloud**: Managed, but adds cost without significant benefit for MVP
-- **R2 only**: Too slow for ad-hoc queries
-- **PostgreSQL only**: Expensive at scale for archival data
-
-## Deployment
-
-Self-hosted on Dokploy via Docker Compose:
-- Official ClickHouse Docker image
-- Named volume for data persistence
-- Monitoring via ClickHouse system tables
+Quickwit index configuration and object-storage credentials must be provisioned for each environment. Telemetry APIs must apply organization and project filters to every query. Analytical features that need joins or complex computation should operate on Quickwit query results or on derived analysis datasets rather than reintroducing a second primary telemetry database.

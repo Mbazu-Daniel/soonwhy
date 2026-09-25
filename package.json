@@ -3,19 +3,20 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm --filter './packages/*' dev",
-    "build": "pnpm --filter './packages/*' build",
-    "test": "vitest",
+    "dev": "pnpm --filter @soonwhy/shared build && pnpm --filter './apps/*' --filter './packages/{cron,ingest}' dev",
+    "build": "pnpm --filter @soonwhy/shared build && pnpm --filter @soonwhy/sdk build && pnpm --filter './apps/*' --filter './packages/{cron,ingest}' build",
+    "test": "pnpm --filter @soonwhy/shared build && vitest",
     "lint": "oxlint",
     "format": "oxfmt",
+    "verify:migrations": "node scripts/verify-migrations.mjs",
     "prepare": "husky"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.2",
     "@commitlint/config-conventional": "^21.2.2",
     "husky": "^9.1.7",
-    "oxfmt": "^0.1.0",
-    "oxlint": "^0.16.0",
+    "oxfmt": "^0.11.0",
+    "oxlint": "^1.80.0",
     "vitest": "^3.2.0"
   }
 }

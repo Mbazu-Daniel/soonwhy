@@ -12,4 +12,4 @@ Run typechecking regularly, single test files regularly, and the full test suite
 
 Once done, use /code-review to review the work.
 
-Commit your work to the current branch.
+Commit your work to the current branch. If you need a new branch, name it from the capability (e.g. `feat/clickhouse-client`), never from a phase/epic, `.scratch/` path, or framework label. Commit subjects must describe the change the same way — see AGENTS.md and the git-hygiene skill.

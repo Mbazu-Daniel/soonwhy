@@ -3,9 +3,11 @@ name: git-hygiene
 description: >
   Prevents AI agents from poisoning git history. Hardcodes author/committer,
   blocks third-party attribution trailers (Co-authored-by: Cursor, factory-droid,
-  etc.), wires pre-commit/commit-msg hooks. Use when: setting up a repo for
-  AI-assisted development, reviewing commits for attribution pollution, or
-  configuring git hooks to enforce clean history.
+  etc.), wires pre-commit/commit-msg hooks. Requires branch and commit names
+  that describe the code change — not phase/epic/scratch labels. Use when:
+  setting up a repo for AI-assisted development, reviewing commits for
+  attribution pollution, naming branches/commits, or configuring git hooks to
+  enforce clean history.
 ---
 
 # Git Hygiene
@@ -195,11 +197,30 @@ git config user.name
 git config user.email
 ```
 
+## Branch and commit naming
+
+Name branches and commits from **what the code changes**, not from planning metadata.
+
+Scratch dirs like `.scratch/phase-1/` or `.scratch/phase-2/issues/02-…` are local org only. Do **not** put `phase-1`, `phase-2`, epic numbers, or raw ticket filenames into:
+
+- branch names
+- commit subjects (or PR titles)
+
+| Bad | Good |
+| --- | --- |
+| `phase-2` / `phase2-clickhouse` | `feat/clickhouse-client` |
+| `feat: phase 2 issue 02` | `feat: add ClickHouse client` |
+| `feat/nestjs-clickhouse-module` | `feat/clickhouse-client` |
+| `02-clickhouse-module` (ticket file alone) | `feat/clickhouse-client` |
+
+Derive the slug from the capability or bug fixed — not the framework wrapper, phase, or ticket filename. Conventional commits (`feat`/`fix`/…) still apply; the subject must describe the change.
+
 ## Agent Checklist
 
 When an agent makes a commit, verify:
 
 - [ ] No `Co-authored-by:` trailers in commit message
+- [ ] Branch name and commit subject describe the code change (not phase/epic/scratch labels)
 - [ ] `git config user.name` matches expected developer
 - [ ] `git config user.email` matches expected developer
 - [ ] `.githooks/commit-msg` is executable
