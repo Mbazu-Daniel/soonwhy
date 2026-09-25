@@ -27,6 +27,12 @@ function SignIn() {
       return;
     }
     if (result.data?.session.token) setSessionToken(result.data.session.token);
+    const returnPath = typeof window !== 'undefined' ? localStorage.getItem('soonwhy:return-path') : null;
+    if (returnPath && returnPath.startsWith('/')) {
+      localStorage.removeItem('soonwhy:return-path');
+      navigate({ to: returnPath as '/' });
+      return;
+    }
     navigate({ to: '/organizations' });
   }
 
