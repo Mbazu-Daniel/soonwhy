@@ -13,26 +13,27 @@ The visual language takes inspiration from modern observability products and the
 3. **Progressive density** — overview pages summarize; detail pages expose telemetry, traces, correlations, and evidence.
 4. **Fast scanning** — strong hierarchy, compact metadata, monospace values, consistent status treatments.
 5. **Safe actions** — destructive or high-impact operations require clear confirmation and never rely on color alone.
-6. **Accessible by default** — visible focus, semantic controls, keyboard navigation, and WCAG AA contrast.
+6. **Accessible by default** — visible focus, semantic controls, keyboard navigation, reduced-motion support, and WCAG AA contrast.
 
 ## Color tokens
 
 | Token | Hex | Role |
 |---|---|---|
-| Primary | `#8BD125` | Primary actions, selected controls, positive signal |
+| Primary | `#8BD125` | Primary actions and selected controls |
 | Ink | `#182012` | Main text, navigation, high-contrast UI |
 | Surface | `#F7FAF4` | App background and quiet surfaces |
 | Accent | `#16931F` | Secondary positive state, links, active indicators |
-| Highlight | `#C9E7EB` | Investigation context, information highlights, selected data regions |
+| Highlight | `#C9E7EB` | Investigation context and information highlights |
 
-Primary buttons use `#8BD125` with `#182012` text. Avoid white text on the primary green. For dark emphasis surfaces use `#182012` and the light surface token for text.
+Primary buttons use `#8BD125` with `#182012` text. Avoid white text on the primary green. For dark emphasis surfaces use `#182012` with `#F7FAF4` text. Critical states use a separate accessible red token and never rely on the requested green palette to communicate failure.
 
 ## Layout
 
-- Desktop application shell: persistent 248px navigation rail + fluid content canvas.
-- Top bar: 64px, project selector, time range, environment, global search, user menu.
-- Content max width: 1440px with 24px outer padding and 20px internal card rhythm.
+- Desktop application shell: 240px persistent navigation rail + fluid content canvas.
+- Top bar: 64px, project selector, time range, global search, notifications and user menu.
+- Content max width: 1440px with responsive 16–24px outer padding and 16–20px card rhythm.
 - Mobile: navigation becomes a drawer; cards collapse to one column; dense tables gain horizontal scrolling.
+- Main content has a keyboard-accessible skip link and a focusable landmark.
 
 ## Information architecture
 
@@ -54,17 +55,20 @@ Primary buttons use `#8BD125` with `#182012` text. Avoid white text on the prima
 - Every status has an icon/label in addition to color.
 - Hover states reveal context, not essential information.
 - Tables support row focus, keyboard activation, column alignment and persistent filters.
-- Detection cards expose the confidence, evidence count, affected scope and next action without opening the detail page.
+- Detection cards expose confidence, evidence count, affected scope and next action without opening the detail page.
 - URL state should own investigation filters and time ranges where practical so views can be shared.
+- Motion is functional and respects `prefers-reduced-motion`.
 
 ## Implementation sequence
 
-### Phase A — visual foundation
+### Phase A — visual foundation — complete
 
-- Replace generic shadcn defaults with the SoonWhy token system.
-- Establish typography, borders, radii, shadows, focus rings and status tokens.
-- Redesign the application shell and navigation.
-- Rework overview into a signal-first dashboard.
+- SoonWhy color/token system.
+- Typography, borders, radii, shadows, focus rings and status tokens.
+- Responsive application shell and navigation.
+- Signal-first overview dashboard.
+- Loading and no-project states.
+- Keyboard skip navigation and reduced-motion support.
 
 ### Phase B — observability workflows
 
@@ -83,7 +87,7 @@ Primary buttons use `#8BD125` with `#182012` text. Avoid white text on the prima
 ### Phase D — polish
 
 - Command palette.
-- Empty/loading/error states.
+- Empty/loading/error states across every workflow.
 - Responsive QA.
 - Keyboard navigation and contrast audit.
 - Performance pass and visual regression coverage.
