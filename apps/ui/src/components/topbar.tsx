@@ -33,14 +33,14 @@ export function TopBar() {
   const userInitial = userName.charAt(0).toUpperCase();
 
   return (
-    <header className="flex min-h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-3 py-2 sm:px-4 lg:px-6">
+    <header className="flex min-h-16 shrink-0 items-center justify-between gap-3 border-b border-[#242426] bg-[#040405] px-3 py-2 sm:px-4 lg:px-6">
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
         <Button variant="ghost" size="icon" className="shrink-0 lg:hidden" onClick={toggle} aria-label="Toggle sidebar"><Menu className="h-5 w-5" /></Button>
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <span className="hidden text-xs font-medium text-muted-foreground md:block">Project</span>
+          <span className="hidden text-xs font-medium text-[#989898] md:block">Project</span>
           {projects && projects.length > 0 ? (
             <Select value={projectId || ''} onValueChange={setProjectId}>
-              <SelectTrigger data-tour="project-selector" className="h-9 w-full max-w-72 border-border bg-secondary sm:w-64"><SelectValue placeholder="Select project" /></SelectTrigger>
+              <SelectTrigger data-tour="project-selector" className="h-9 w-full max-w-72 border-[#242426] bg-[#151517] sm:w-64"><SelectValue placeholder="Select project" /></SelectTrigger>
               <SelectContent>{projects.map((project) => <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>)}</SelectContent>
             </Select>
           ) : <span className="truncate text-sm font-semibold">No project selected</span>}
@@ -49,9 +49,9 @@ export function TopBar() {
       <div className="flex items-center gap-1.5 sm:gap-2">
         <CommandPalette />
         <DropdownMenu>
-          <DropdownMenuTrigger asChild><Button variant="ghost" className="flex items-center gap-2 pl-2" aria-label="User menu"><Avatar className="h-8 w-8"><AvatarFallback className="bg-[#C9E7EB] text-[#182012] font-semibold">{userInitial}</AvatarFallback></Avatar><span className="hidden lg:block max-w-28 truncate text-sm font-medium">{userName}</span><ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /></Button></DropdownMenuTrigger>
+          <DropdownMenuTrigger asChild><Button variant="ghost" className="flex items-center gap-2 pl-2" aria-label="User menu"><Avatar className="h-8 w-8"><AvatarFallback className="bg-[#415312] text-[#F6F6F6] font-semibold">{userInitial}</AvatarFallback></Avatar><span className="hidden lg:block max-w-28 truncate text-sm font-medium">{userName}</span><ChevronDown className="h-3.5 w-3.5 text-[#989898]" /></Button></DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            {session?.user && <><div className="px-2 py-2"><p className="font-medium text-sm truncate">{session.user.name || session.user.email}</p>{session.user.name && <p className="text-xs text-muted-foreground truncate">{session.user.email}</p>}</div><DropdownMenuSeparator /></>}
+            {session?.user && <><div className="px-2 py-2"><p className="font-medium text-sm truncate">{session.user.name || session.user.email}</p>{session.user.name && <p className="text-xs text-[#989898] truncate">{session.user.email}</p>}</div><DropdownMenuSeparator /></>}
             <DropdownMenuItem onClick={handleSignOut}><LogOut className="h-4 w-4 mr-2" />Sign out</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
