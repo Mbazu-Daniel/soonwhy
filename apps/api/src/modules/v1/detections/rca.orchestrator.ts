@@ -5,7 +5,7 @@ import type { RcaAnalysis } from './rca.types';
 
 @Injectable()
 export class RcaOrchestrator {
-  constructor(private readonly rcaService: RcaService) {}
+  constructor(private readonly rcaService: Pick<RcaService, 'analyze'>) {}
 
   async analyze(projectId: string, bottleneck: CorrelatedBottleneck): Promise<RcaAnalysis> {
     return this.rcaService.analyze(projectId, bottleneck);
