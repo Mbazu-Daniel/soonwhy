@@ -10,8 +10,14 @@ import { RCA_PROVIDER } from './rca.tokens';
       useFactory: () => {
         const apiKey = process.env.SOONWHY_RCA_API_KEY;
         const model = process.env.SOONWHY_RCA_MODEL;
+
         if (!apiKey || !model) return new DisabledRcaProvider();
-        return new OpenAiCompatibleRcaProvider({ apiKey, model, baseUrl: process.env.SOONWHY_RCA_BASE_URL });
+
+        return new OpenAiCompatibleRcaProvider({
+          apiKey,
+          model,
+          baseUrl: process.env.SOONWHY_RCA_BASE_URL,
+        });
       },
     },
     {

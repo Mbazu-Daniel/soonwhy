@@ -11,11 +11,7 @@ export interface OpenAiCompatibleRcaProviderConfig {
 }
 
 interface ChatCompletionResponse {
-  choices?: Array<{
-    message?: {
-      content?: string | null;
-    };
-  }>;
+  choices?: Array<{ message?: { content?: string | null } }>;
 }
 
 export class OpenAiCompatibleRcaProvider implements RcaProvider {
@@ -28,18 +24,12 @@ export class OpenAiCompatibleRcaProvider implements RcaProvider {
     this.timeoutMs = config.timeoutMs ?? 30_000;
     this.maxPromptCharacters = config.maxPromptCharacters ?? 30_000;
 
-    if (!config.apiKey.trim()) {
-      throw new Error('RCA provider API key is required');
-    }
-
-    if (!config.model.trim()) {
-      throw new Error('RCA provider model is required');
-    }
+    if (!config.apiKey.trim()) throw new Error('RCA provider API key is required');
+    if (!config.model.trim()) throw new Error('RCA provider model is required');
   }
 
   async analyze(input: RcaEvidence) {
     const prompt = buildRcaPrompt(input);
-
     if (prompt.length > this.maxPromptCharacters) {
       throw new Error('RCA evidence exceeds the provider prompt size limit');
     }
@@ -58,12 +48,7 @@ export class OpenAiCompatibleRcaProvider implements RcaProvider {
           model: this.config.model,
           temperature: 0,
           response_format: { type: 'json_object' },
-          messages: [
-            {
-              role: 'user',
-              content: prompt,
-            },
-          ],
+          messages: [{ role: 'user', content: prompt }],
         }),
         signal: controller.signal,
       });
@@ -75,10 +60,7 @@ export class OpenAiCompatibleRcaProvider implements RcaProvider {
 
       const payload = (await response.json()) as ChatCompletionResponse;
       const content = payload.choices?.[0]?.message?.content;
-
-      if (!content) {
-        throw new Error('RCA provider returned an empty response');
-      }
+      if (!content) throw new Error('RCA provider returned an empty response');
 
       let parsedJson: unknown;
       try {
@@ -92,18 +74,13 @@ export class OpenAiCompatibleRcaProvider implements RcaProvider {
       if (error instanceof DOMException && error.name === 'AbortError') {
         throw new Error('RCA provider request timed out');
       }
-
-      if (error instanceof Error) {
-        throw error;
-      }
-
+      if (error instanceof Error) throw error;
       throw new Error('RCA provider request failed');
     } finally {
       clearTimeout(timeout);
     }
   }
 }
-
 
 export class DisabledRcaProvider implements RcaProvider {
   async analyze(): Promise<never> {
