@@ -5,13 +5,38 @@ import argon2 from 'argon2';
 import { db } from '../db';
 import * as schema from '../db/schema';
 
-const githubEnabled = !!(
-  process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET
+export const githubEnabled = Boolean(
+  process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET,
 );
 
-const googleEnabled = !!(
-  process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+export const googleEnabled = Boolean(
+  process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET,
 );
+
+function organizationNameFromEmail(email: string): string {
+  const localPart = email.split('@')[0] ?? email;
+  const words = localPart
+    .replace(/[._-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .filter(Boolean);
+
+  return words.length
+    ? words.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+    : 'My Organization';
+}
+
+function organizationSlugFromEmail(email: string, userId: string): string {
+  const localPart = email.split('@')[0] ?? 'organization';
+  const base = localPart
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48);
+
+  return `${base || 'organization'}-${userId.slice(-8)}`;
+}
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -21,6 +46,7 @@ export const auth = betterAuth({
       account: schema.accounts,
       session: schema.sessions,
       organization: schema.organizations,
+      member: schema.members,
     },
   }),
   advanced: {
@@ -57,11 +83,46 @@ export const auth = betterAuth({
     }),
   },
   plugins: [
-    organization(),
+    organization({
+      schema: {
+        organization: {
+          modelName: 'organizations',
+        },
+        member: {
+          modelName: 'members',
+        },
+      },
+    }),
   ],
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => ({
+          data: {
+            ...user,
+            name: user.name?.trim() || organizationNameFromEmail(user.email),
+          },
+        }),
+        after: async (user) => {
+          await auth.api.createOrganization({
+            body: {
+              name: organizationNameFromEmail(user.email),
+              slug: organizationSlugFromEmail(user.email, user.id),
+              userId: user.id,
+              keepCurrentActiveOrganization: true,
+            },
+          });
+        },
+      },
+    },
+  },
   trustedOrigins: [
     process.env.FRONTEND_URL || 'http://localhost:3000',
   ],
   baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3001',
-  secret: process.env.BETTER_AUTH_SECRET ?? (() => { throw new Error('BETTER_AUTH_SECRET env var is required'); })(),
+  secret:
+    process.env.BETTER_AUTH_SECRET ??
+    (() => {
+      throw new Error('BETTER_AUTH_SECRET env var is required');
+    })(),
 });
