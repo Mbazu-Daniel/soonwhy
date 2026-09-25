@@ -4,7 +4,7 @@ import { ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
-import { AuthDivider, SocialButtons } from '~/components/auth/social-buttons';
+import { SocialButtons } from '~/components/auth/social-buttons';
 import { signIn, setSessionToken } from '~/lib/auth-client';
 
 export const Route = createFileRoute('/auth/sign-in')({ component: SignIn });
@@ -40,7 +40,6 @@ function SignIn() {
   return (
     <AuthShell title="Welcome back" subtitle="Sign in to continue investigating your systems.">
       <SocialButtons />
-      <AuthDivider />
       <form onSubmit={handleSubmit} className="space-y-5">
         {error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">{error}</div>}
         <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@company.com" /></div>
