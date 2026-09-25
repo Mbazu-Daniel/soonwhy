@@ -127,8 +127,8 @@ function DashboardOverviewPage() {
               <div className="grid grid-cols-2 gap-px bg-[#EEF2EA]">
                 <QuickLink href="/$organizationSlug/services" params={{ organizationSlug }} icon={Server} label="Services" />
                 <QuickLink href="/$organizationSlug/traces" params={{ organizationSlug }} icon={GitBranch} label="Traces" />
-                <QuickLink href="/$organizationSlug/dashboard/logs" params={{ organizationSlug }} icon={Activity} label="Logs" />
-                <QuickLink href="/$organizationSlug/dashboard/investigations" params={{ organizationSlug }} icon={BrainCircuit} label="Investigate" />
+                <QuickLink href="/$organizationSlug/logs" params={{ organizationSlug }} icon={Activity} label="Logs" />
+                <QuickLink href="/$organizationSlug/investigations" params={{ organizationSlug }} icon={BrainCircuit} label="Investigate" />
               </div>
             </CardContent>
           </Card>
