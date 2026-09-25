@@ -108,8 +108,7 @@ const sdk = initNode({
   }
 
   function setProjectIdFromSelection(id: string) {
-    localStorage.removeItem('project_id');
-    if (id) setProjectId(id);
+    setProjectId(id);
   }
 
   function submitOrganization(event: React.FormEvent) {
