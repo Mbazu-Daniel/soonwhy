@@ -23,6 +23,7 @@ import { Route as InvestigationsRouteImport } from './routes/$organizationSlug/i
 import { Route as LogsRouteImport } from './routes/$organizationSlug/logs'
 import { Route as ServicesRouteImport } from './routes/$organizationSlug/services'
 import { Route as SettingsRouteImport } from './routes/$organizationSlug/settings'
+import { Route as AIRouteImport } from './routes/$organizationSlug/ai'
 import { Route as TracesRouteImport } from './routes/$organizationSlug/traces'
 import { Route as InvestigationDetailRouteImport } from './routes/$organizationSlug/investigations.$investigationId'
 import { Route as ServiceDetailRouteImport } from './routes/$organizationSlug/service.$serviceId'
