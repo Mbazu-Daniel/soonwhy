@@ -106,40 +106,48 @@ The remaining checks are browser-level validation rather than missing product im
 - Browser performance profiling on long telemetry lists.
 - Final PR review before merge.
 
-## Phase E — onboarding foundation complete
+## Phase E — activation and onboarding complete
 
-The first Phase E onboarding slice is implemented on `feat/world-class-observability-ui`.
+The Phase E activation journey is implemented on `feat/world-class-observability-ui`.
 
 - Public landing page with product positioning and primary entry points.
 - Auth UX for sign-up and sign-in with accessible errors, password visibility controls and clear next steps.
-- Organization selection and creation now enter the onboarding flow instead of dropping directly into an empty dashboard.
+- Organization selection and creation enter the onboarding flow and clear stale project context when the organization changes.
 - Project creation/selection is backed by the existing project API.
-- Project API key creation uses the existing tenant-scoped API key endpoint and displays the raw key only at creation time.
-- OpenTelemetry setup includes a real SDK snippet and a first-telemetry verification loop against the dashboard API.
-- First-time dashboard users receive a lightweight persisted product tour.
-- No fabricated telemetry is introduced. Verification reports only data returned by the API.
+- Project API key creation uses the tenant-scoped API key endpoint and displays the raw key only at creation time.
+- Authenticated settings now provide project context and API key management, including create, copy-once, last-used state and revoke actions.
+- Telemetry status now reports real ingestion state, latest telemetry timestamp, latest service and latest trace ID from the request telemetry index.
+- Onboarding verification polls real project telemetry and surfaces retryable verification errors.
+- Services, traces, logs and detections now guide empty projects toward the setup flow instead of leaving users at dead ends.
+- The dashboard keeps a real zero-telemetry activation state and never fabricates data.
+- Session expiry clears tenant/project state and returns the user to sign-in with the original route preserved.
+- Onboarding progress is persisted locally so an interrupted setup can resume.
+- The product tour remains lightweight and secondary to activation. It is not a dependency for the core setup journey.
+- Detailed Node/Python/Go instrumentation documentation remains deferred to Mintlify rather than duplicated inside the product.
 
-The Phase E onboarding journey is:
+The Phase E journey is:
 
-`Landing → Sign up/sign in → Organization → Project → API key + OTel setup → First telemetry verification → Dashboard tour`
+`Landing → Sign up/sign in → Organization → Project → API key + OTel setup → First telemetry verification → Dashboard`
 
-The current tour is intentionally dependency-free. A Driver.js-based anchored tour can replace the presentation layer later without changing onboarding state or backend contracts.
+### Phase E validation gate
 
-### Phase E — next
+The remaining validation is operational/browser QA rather than missing activation functionality:
 
-- Browser QA across mobile/tablet/desktop.
-- Auth/session edge-case coverage.
-- Persisted onboarding completion state on the server when the backend contract exists.
-- OTel setup examples for Node, Python and Go.
-- Contextual setup guidance for users who skip telemetry verification.
-- Driver.js anchored tours when the final dashboard target selectors are stable.
+- Mobile, tablet and desktop onboarding/settings QA.
+- Keyboard-only verification for dialogs, API key actions and setup controls.
+- Expired-session and return-path verification.
+- Confirm stale org/project context cannot survive workspace switching.
+- Full CI on the final Phase E head.
+- Final PR review before merge.
 
-Phase E covers the complete acquisition and activation journey outside the authenticated observability workspace:
+## Phase F — next
 
-- Public landing page.
-- Authentication UX.
-- Organization creation onboarding.
-- Project creation onboarding.
-- OpenTelemetry connection/setup flow.
-- First-telemetry verification.
-- Driver.js product tours and contextual onboarding.
+The next product phase can build on the activated project state rather than adding another setup layer:
+
+- First successful request/trace confirmation as a reusable activation primitive.
+- Service and dependency health derived from real telemetry.
+- Detection-to-evidence workflows on populated projects.
+- Contextual troubleshooting when ingestion is delayed or stale.
+- Operational telemetry freshness and ingestion diagnostics.
+- Production-ready project/team settings once their backend contracts exist.
+
