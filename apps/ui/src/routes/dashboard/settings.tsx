@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Activity, CheckCircle2, Copy, KeyRound, Loader2, RefreshCw, ShieldAlert, Trash2, Wifi, XCircle } from 'lucide-react';
+import { useState } from 'react';
+import { Activity, CheckCircle2, Copy, KeyRound, Loader2, ShieldAlert, Trash2, Wifi, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
-import { Separator } from '~/components/ui/separator';
 import { api } from '~/lib/api';
 import { useProject } from '~/lib/project-context';
 import { QueryErrorState } from '~/components/query-error-state';
@@ -172,7 +172,7 @@ function StatusMetric({ icon: Icon, label, value, detail }: { icon: typeof Activ
 }
 
 function ApiKeySettings({ projectId, queryClient }: { projectId: string; queryClient: ReturnType<typeof useQueryClient> }) {
-  const [name, setName] = useStateValue('Default ingestion key');
+  const [name, setName] = useState('Default ingestion key');
   const [newKey, setNewKey] = useState<ApiKey | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -294,11 +294,6 @@ function formatAge(value: string | null | undefined) {
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
   return `${Math.floor(hours / 24)}d ago`;
-}
-
-function useStateValue(initial: string) {
-  const [value, setValue] = require('react').useState(initial) as [string, (value: string) => void];
-  return [value, setValue] as const;
 }
 
 function GeneralSettings() {
