@@ -66,7 +66,7 @@ function Home() {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 lg:px-8">
           <Link to="/" className="flex items-center gap-2.5 font-semibold tracking-tight">
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#8BD125] text-sm font-black text-[#182012]">S</span>
-            SoonWhy
+            <span className="display-font text-lg">SoonWhy</span>
           </Link>
 
           <nav className="hidden items-center gap-7 text-sm text-white/55 md:flex">
@@ -130,13 +130,11 @@ function Home() {
               OpenTelemetry-native intelligent observability
             </div>
 
-            <h1 className="mx-auto mt-8 max-w-5xl text-6xl font-semibold leading-[0.95] tracking-[-0.065em] sm:text-7xl lg:text-[6.6rem]">
-              Know why your
-              <br />
-              <span className="text-[#8BD125]">system is slow.</span>
+            <h1 className="display-font mx-auto mt-8 max-w-5xl text-6xl leading-[0.9] sm:text-7xl lg:text-[7.1rem]">
+              <CopyReveal words={["Know", "why", "your", "system", "is", "slow."]} accentFrom={3} />
             </h1>
 
-            <p className="mx-auto mt-7 max-w-2xl text-base leading-7 text-white/55 sm:text-lg">
+            <p className="copy-fade mx-auto mt-7 max-w-2xl text-base leading-7 text-white/55 sm:text-lg">
               SoonWhy connects traces, logs, errors and service context to find the bottleneck and explain the evidence behind it.
             </p>
 
@@ -151,7 +149,7 @@ function Home() {
 
             <p className="mt-5 text-xs text-white/30">Start with OpenTelemetry. Keep your existing instrumentation.</p>
 
-            <div className="mx-auto mt-16 max-w-5xl overflow-hidden rounded-2xl border border-white/10 bg-[#111711] text-left shadow-[0_30px_100px_rgba(0,0,0,0.45)]">
+            <div className="hero-product-card mx-auto mt-16 max-w-5xl overflow-hidden rounded-[22px] border border-white/10 bg-[#111711] text-left shadow-[0_30px_100px_rgba(0,0,0,0.45)]">
               <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
@@ -212,7 +210,7 @@ function Home() {
             <div className="flex flex-col justify-between gap-7 md:flex-row md:items-end">
               <div className="max-w-2xl">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8BD125]">First-class investigation</p>
-                <h2 className="mt-4 text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">From signal to explanation.</h2>
+                <h2 className="display-font mt-4 text-4xl sm:text-5xl">From signal to explanation.</h2>
                 <p className="mt-5 max-w-xl text-base leading-7 text-white/45">
                   Observability gives you the data. SoonWhy keeps the relationships together so you can understand what is happening and why.
                 </p>
@@ -241,7 +239,7 @@ function Home() {
           <div className="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-28">
             <div className="max-w-2xl">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#16931F]">How it works</p>
-              <h2 className="mt-4 text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">One signal. One investigation.</h2>
+              <h2 className="display-font mt-4 text-4xl sm:text-5xl">One signal. One investigation.</h2>
               <p className="mt-5 max-w-xl leading-7 text-white/45">
                 The workflow stays close to the way engineers actually debug production systems.
               </p>
@@ -260,7 +258,7 @@ function Home() {
             <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8BD125]">OpenTelemetry first</p>
-                <h2 className="mt-4 text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">Use the instrumentation you already have.</h2>
+                <h2 className="display-font mt-4 text-4xl sm:text-5xl">Use the instrumentation you already have.</h2>
                 <p className="mt-5 max-w-lg leading-7 text-white/45">
                   SoonWhy sits on top of OpenTelemetry instead of asking you to replace your application instrumentation.
                 </p>
@@ -300,7 +298,7 @@ function Home() {
             <div className="grid gap-14 lg:grid-cols-[0.7fr_1.3fr]">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8BD125]">It just works</p>
-                <h2 className="mt-4 text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">The path from request to root cause.</h2>
+                <h2 className="display-font mt-4 text-4xl sm:text-5xl">The path from request to root cause.</h2>
               </div>
 
               <div className="divide-y divide-white/10 overflow-hidden rounded-2xl border border-white/10">
@@ -339,7 +337,7 @@ function Home() {
           <div className="relative mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 px-5 py-20 lg:flex-row lg:items-center lg:px-8 lg:py-24">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#182012]/55">Ready when you are</p>
-              <h2 className="mt-3 max-w-3xl text-4xl font-semibold tracking-[-0.05em] sm:text-5xl">Know why your system is slow.</h2>
+              <h2 className="display-font mt-3 max-w-3xl text-4xl sm:text-5xl">Know why your system is slow.</h2>
               <p className="mt-4 max-w-xl leading-7 text-[#182012]/65">Create a project, connect OpenTelemetry, and investigate your first real signal.</p>
             </div>
             <Button asChild size="lg" className="h-12 shrink-0 bg-[#182012] px-6 text-white hover:bg-[#25311E]">
@@ -354,7 +352,7 @@ function Home() {
           <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
             <Link to="/" className="flex items-center gap-2 font-semibold text-white">
               <span className="grid h-7 w-7 place-items-center rounded-md bg-[#8BD125] text-xs font-black text-[#182012]">S</span>
-              SoonWhy
+              <span className="display-font">SoonWhy</span>
             </Link>
             <div className="flex items-center gap-6 text-sm">
               <Link to="/auth/sign-in" className="hover:text-white">Sign in</Link>
@@ -368,6 +366,23 @@ function Home() {
         </div>
       </footer>
     </div>
+  );
+}
+
+function CopyReveal({ words, accentFrom = -1 }: { words: string[]; accentFrom?: number }) {
+  return (
+    <span className="copy-reveal" aria-label={words.join(' ')}>
+      {words.map((word, index) => (
+        <span
+          key={`${word}-${index}`}
+          className={`copy-reveal-word${index >= accentFrom ? ' accent' : ''}`}
+          style={{ '--copy-index': index } as React.CSSProperties}
+          aria-hidden="true"
+        >
+          {word}
+        </span>
+      ))}
+    </span>
   );
 }
 
