@@ -40,7 +40,7 @@ export function TopBar() {
           <span className="text-xs font-medium text-muted-foreground">Project</span>
           {projects && projects.length > 0 ? (
             <Select value={projectId || ''} onValueChange={setProjectId}>
-              <SelectTrigger className="h-9 w-52 bg-[#F7FAF4] border-[#DBE5D7]"><SelectValue placeholder="Select project" /></SelectTrigger>
+              <SelectTrigger data-tour="project-selector" className="h-9 w-52 bg-[#F7FAF4] border-[#DBE5D7]"><SelectValue placeholder="Select project" /></SelectTrigger>
               <SelectContent>{projects.map((project) => <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>)}</SelectContent>
             </Select>
           ) : <span className="text-sm font-semibold">No project selected</span>}
