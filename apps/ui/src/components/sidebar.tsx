@@ -11,7 +11,7 @@ const navItems = [
   { to: '/$organizationSlug/investigations', label: 'Investigations', icon: ShieldCheck },
   { to: '/$organizationSlug/errors', label: 'Errors', icon: AlertTriangle },
   { to: '/$organizationSlug/logs', label: 'Logs', icon: ScrollText },
-  { to: '/$organizationSlug/dashboard/traces', label: 'Traces', icon: GitBranch },
+  { to: '/$organizationSlug/traces', label: 'Traces', icon: GitBranch },
 ] as const;
 
 export function Sidebar() {
