@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { ArrowRight, Activity, BrainCircuit, GitBranch, ShieldCheck, Terminal } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent } from '~/components/ui/card';
@@ -6,8 +6,6 @@ import { Card, CardContent } from '~/components/ui/card';
 export const Route = createFileRoute('/')({
   component: Home,
 });
-
-function createFileRoute(path: '/') { return { component: Home, path }; }
 
 function Home() {
   return (
