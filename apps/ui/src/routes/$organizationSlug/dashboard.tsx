@@ -45,7 +45,7 @@ function DashboardOverviewPage() {
             <h1 className="mt-2 text-[30px] font-semibold tracking-[-0.04em] text-[#182012]">Good morning, here’s your system.</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[#687462]">A quiet overview of traffic, reliability and the evidence SoonWhy has connected across your services.</p>
           </div>
-          <div className="flex items-center gap-2 rounded-full border border-[#DBE5D7] bg-white px-3 py-2 text-xs text-[#687462] shadow-[0_1px_2px_rgba(24,32,18,.03)]">
+          <div className="flex items-center gap-2 rounded-full border border-[#242426] bg-[#0B0B0C] px-3 py-2 text-xs text-[#687462] shadow-[0_1px_2px_rgba(24,32,18,.03)]">
             <span className="h-2 w-2 rounded-full bg-[#8BD125]" />
             Last 24 hours
           </div>
@@ -59,17 +59,17 @@ function DashboardOverviewPage() {
         </section>
 
         <section className="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,.8fr)]">
-          <Card className="overflow-hidden rounded-2xl border-[#DBE5D7] bg-white shadow-[0_8px_30px_rgba(24,32,18,.04)]">
+          <Card className="overflow-hidden rounded-2xl border-[#242426] bg-[#0B0B0C] shadow-[0_8px_30px_rgba(24,32,18,.04)]">
             <CardContent className="p-0">
-              <div className="flex items-start justify-between border-b border-[#EEF2EA] px-5 py-5 sm:px-6">
+              <div className="flex items-start justify-between border-b border-[#1B1B1D] px-5 py-5 sm:px-6">
                 <div>
                   <h2 className="text-sm font-semibold text-[#182012]">Traffic & latency</h2>
                   <p className="mt-1 text-xs text-[#7A8574]">Request volume and response-time health</p>
                 </div>
-                <button type="button" className="rounded-lg border border-[#DBE5D7] px-3 py-1.5 text-xs text-[#687462]">24h</button>
+                <button type="button" className="rounded-lg border border-[#242426] px-3 py-1.5 text-xs text-[#687462]">24h</button>
               </div>
               <div className="px-5 pb-6 pt-4 sm:px-6">
-                <div className="flex h-[260px] items-end gap-2 border-b border-[#EEF2EA] pb-0">
+                <div className="flex h-[260px] items-end gap-2 border-b border-[#1B1B1D] pb-0">
                   {[36,48,43,62,56,70,64,76,68,82,74,88,80,91,84,96,87,78,86,72,81,67,75,63].map((height, index) => (
                     <div key={index} className="group flex h-full flex-1 items-end">
                       <div className="w-full rounded-t-[5px] bg-[#C9E7EB] transition-colors group-hover:bg-[#8BD125]" style={{ height: `${height}%` }} />
@@ -77,7 +77,7 @@ function DashboardOverviewPage() {
                   ))}
                 </div>
                 <div className="mt-3 flex justify-between text-[10px] text-[#98A292]"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>Now</span></div>
-                <div className="mt-5 grid grid-cols-3 gap-4 border-t border-[#EEF2EA] pt-5">
+                <div className="mt-5 grid grid-cols-3 gap-4 border-t border-[#1B1B1D] pt-5">
                   <Mini label="Requests/sec" value={formatNumber(live.requestRate)} />
                   <Mini label="P99 latency" value={`${live.latencyP99}ms`} />
                   <Mini label="Avg latency" value={`${live.avgLatency}ms`} />
@@ -86,7 +86,7 @@ function DashboardOverviewPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl border-[#DBE5D7] bg-[#182012] text-white shadow-[0_8px_30px_rgba(24,32,18,.08)]">
+          <Card className="rounded-2xl border-[#242426] bg-[#182012] text-white shadow-[0_8px_30px_rgba(24,32,18,.08)]">
             <CardContent className="flex h-full flex-col p-6">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-white/55">System health</span>
@@ -100,7 +100,7 @@ function DashboardOverviewPage() {
                 <p className={`mt-3 text-sm font-medium ${healthTone.replace('text-[#16931F]', 'text-[#8BD125]').replace('text-[#9A6500]', 'text-[#F2C66D]').replace('text-[#8A1C13]', 'text-[#F28B82]')}`}>{health}</p>
               </div>
               <div className="mt-auto pt-10">
-                <div className="h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[#8BD125]" style={{ width: `${Math.min(100, score)}%` }} /></div>
+                <div className="h-2 overflow-hidden rounded-full bg-[#0B0B0C]/10"><div className="h-full rounded-full bg-[#8BD125]" style={{ width: `${Math.min(100, score)}%` }} /></div>
                 <p className="mt-3 text-xs leading-5 text-white/50">Based on latency, error rate and throughput signals from the current project.</p>
               </div>
             </CardContent>
@@ -108,9 +108,9 @@ function DashboardOverviewPage() {
         </section>
 
         <section className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,.85fr)]">
-          <Card className="rounded-2xl border-[#DBE5D7] bg-white shadow-[0_8px_30px_rgba(24,32,18,.04)]">
+          <Card className="rounded-2xl border-[#242426] bg-[#0B0B0C] shadow-[0_8px_30px_rgba(24,32,18,.04)]">
             <CardContent className="p-0">
-              <div className="flex items-center justify-between border-b border-[#EEF2EA] px-5 py-5 sm:px-6">
+              <div className="flex items-center justify-between border-b border-[#1B1B1D] px-5 py-5 sm:px-6">
                 <div><h2 className="text-sm font-semibold">What needs attention</h2><p className="mt-1 text-xs text-[#7A8574]">Signals worth investigating</p></div>
                 <Link to="/$organizationSlug/detections" params={{ organizationSlug }} className="text-xs font-medium text-[#16931F] hover:underline">View all</Link>
               </div>
@@ -121,9 +121,9 @@ function DashboardOverviewPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl border-[#DBE5D7] bg-white shadow-[0_8px_30px_rgba(24,32,18,.04)]">
+          <Card className="rounded-2xl border-[#242426] bg-[#0B0B0C] shadow-[0_8px_30px_rgba(24,32,18,.04)]">
             <CardContent className="p-0">
-              <div className="border-b border-[#EEF2EA] px-5 py-5 sm:px-6"><h2 className="text-sm font-semibold">Explore evidence</h2><p className="mt-1 text-xs text-[#7A8574]">Jump into the signals behind your system</p></div>
+              <div className="border-b border-[#1B1B1D] px-5 py-5 sm:px-6"><h2 className="text-sm font-semibold">Explore evidence</h2><p className="mt-1 text-xs text-[#7A8574]">Jump into the signals behind your system</p></div>
               <div className="grid grid-cols-2 gap-px bg-[#EEF2EA]">
                 <QuickLink href="/$organizationSlug/services" params={{ organizationSlug }} icon={Server} label="Services" />
                 <QuickLink href="/$organizationSlug/traces" params={{ organizationSlug }} icon={GitBranch} label="Traces" />
@@ -139,12 +139,12 @@ function DashboardOverviewPage() {
 }
 
 function Metric({ label, value, suffix, icon: Icon, detail, tone }: { label:string; value:string; suffix?:string; icon:typeof Activity; detail:string; tone?:'dark' }) {
-  return <Card className={tone === 'dark' ? 'rounded-2xl border-[#182012] bg-[#182012] text-white shadow-[0_8px_30px_rgba(24,32,18,.08)]' : 'rounded-2xl border-[#DBE5D7] bg-white shadow-[0_8px_30px_rgba(24,32,18,.04)]'}><CardContent className="p-5"><div className="flex items-center justify-between"><span className={tone === 'dark' ? 'text-xs text-white/55' : 'text-xs text-[#7A8574]'}>{label}</span><Icon className={tone === 'dark' ? 'h-4 w-4 text-[#8BD125]' : 'h-4 w-4 text-[#16931F]'} /></div><div className="mt-5 flex items-baseline gap-1"><span className="text-[28px] font-semibold tracking-[-0.04em]">{value}</span>{suffix&&<span className={tone === 'dark' ? 'text-xs text-white/40' : 'text-xs text-[#98A292]'}>{suffix}</span>}</div><p className={tone === 'dark' ? 'mt-2 text-xs text-white/45' : 'mt-2 text-xs text-[#98A292]'}>{detail}</p></CardContent></Card>;
+  return <Card className={tone === 'dark' ? 'rounded-2xl border-[#182012] bg-[#182012] text-white shadow-[0_8px_30px_rgba(24,32,18,.08)]' : 'rounded-2xl border-[#242426] bg-[#0B0B0C] shadow-[0_8px_30px_rgba(24,32,18,.04)]'}><CardContent className="p-5"><div className="flex items-center justify-between"><span className={tone === 'dark' ? 'text-xs text-white/55' : 'text-xs text-[#7A8574]'}>{label}</span><Icon className={tone === 'dark' ? 'h-4 w-4 text-[#8BD125]' : 'h-4 w-4 text-[#16931F]'} /></div><div className="mt-5 flex items-baseline gap-1"><span className="text-[28px] font-semibold tracking-[-0.04em]">{value}</span>{suffix&&<span className={tone === 'dark' ? 'text-xs text-white/40' : 'text-xs text-[#98A292]'}>{suffix}</span>}</div><p className={tone === 'dark' ? 'mt-2 text-xs text-white/45' : 'mt-2 text-xs text-[#98A292]'}>{detail}</p></CardContent></Card>;
 }
 
 function Mini({ label, value }: { label:string; value:string }) { return <div><p className="text-[10px] uppercase tracking-[.12em] text-[#98A292]">{label}</p><p className="mt-1 text-sm font-semibold text-[#182012]">{value}</p></div>; }
 function Attention({ icon:Icon, title, detail, tone }: { icon:typeof CheckCircle2; title:string; detail:string; tone?:'ok' }) { return <div className="flex items-start gap-3 px-5 py-4 sm:px-6"><span className={tone === 'ok' ? 'grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#EEF7E4] text-[#16931F]' : 'grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#EAF3F4] text-[#26737A]'}><Icon className="h-4 w-4"/></span><div><p className="text-sm font-medium">{title}</p><p className="mt-1 text-xs leading-5 text-[#7A8574]">{detail}</p></div></div>; }
-function QuickLink({ href, params, icon:Icon, label }: { href:'/$organizationSlug/services'|'/$organizationSlug/traces'|'/$organizationSlug/logs'|'/$organizationSlug/investigations'; params:{organizationSlug:string}; icon:typeof Server; label:string }) { return <Link to={href} params={params} className="flex items-center gap-3 bg-white px-5 py-4 text-sm font-medium hover:bg-[#F7FAF4]"><span className="grid h-8 w-8 place-items-center rounded-lg bg-[#F1F5EE] text-[#16931F]"><Icon className="h-4 w-4"/></span>{label}<ArrowUpRight className="ml-auto h-3.5 w-3.5 text-[#98A292]"/></Link>; }
-function EmptyProject(){return <Card className="rounded-2xl border-dashed border-[#DBE5D7] bg-white"><CardContent className="p-12 text-center"><Server className="mx-auto h-6 w-6 text-[#16931F]"/><p className="mt-3 text-sm font-medium">Choose a project</p><p className="mt-1 text-xs text-[#7A8574]">Select a project from the top bar to start exploring telemetry.</p></CardContent></Card>;}
+function QuickLink({ href, params, icon:Icon, label }: { href:'/$organizationSlug/services'|'/$organizationSlug/traces'|'/$organizationSlug/logs'|'/$organizationSlug/investigations'; params:{organizationSlug:string}; icon:typeof Server; label:string }) { return <Link to={href} params={params} className="flex items-center gap-3 bg-[#0B0B0C] px-5 py-4 text-sm font-medium hover:bg-[#F7FAF4]"><span className="grid h-8 w-8 place-items-center rounded-lg bg-[#F1F5EE] text-[#16931F]"><Icon className="h-4 w-4"/></span>{label}<ArrowUpRight className="ml-auto h-3.5 w-3.5 text-[#98A292]"/></Link>; }
+function EmptyProject(){return <Card className="rounded-2xl border-dashed border-[#242426] bg-[#0B0B0C]"><CardContent className="p-12 text-center"><Server className="mx-auto h-6 w-6 text-[#16931F]"/><p className="mt-3 text-sm font-medium">Choose a project</p><p className="mt-1 text-xs text-[#7A8574]">Select a project from the top bar to start exploring telemetry.</p></CardContent></Card>;}
 function OverviewSkeleton(){return <div className="p-6 sm:p-8"><div className="mx-auto max-w-[1480px] space-y-6"><Skeleton className="h-10 w-72"/><Skeleton className="h-4 w-96 max-w-full"/><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[1,2,3,4].map(i=><Skeleton key={i} className="h-32 rounded-2xl"/>)}</div><Skeleton className="h-[390px] rounded-2xl"/></div></div>;}
 function formatNumber(value:number|undefined){return value == null ? '—' : value.toLocaleString();}
