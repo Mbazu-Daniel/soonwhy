@@ -57,8 +57,8 @@ function DashboardOverviewPage() {
   const healthTone = score >= 90 ? 'text-[#ACFC15]' : score >= 70 ? 'text-[#9A6500]' : 'text-[#8A1C13]';
 
   return (
-    <div className="min-h-full px-5 py-6 sm:px-8 sm:py-8 xl:px-10">
-      <div className="mx-auto max-w-[1480px] space-y-6">
+    <div className="min-h-full px-4 py-5 sm:px-6 sm:py-7 xl:px-8">
+      <div className="mx-auto max-w-[1440px] space-y-5">
         <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ACFC15]">Mission control</p>
@@ -81,7 +81,7 @@ function DashboardOverviewPage() {
         </section>
 
         <section className="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,.8fr)]">
-          <Card className="overflow-hidden rounded-2xl border-[#242426] bg-[#0B0B0C] shadow-[0_8px_30px_rgba(24,32,18,.04)]">
+          <Card className="overflow-hidden rounded-xl border-[#242426] bg-[#0B0B0C] shadow-[0_8px_30px_rgba(24,32,18,.04)]">
             <CardContent className="p-0">
               <div className="flex items-start justify-between border-b border-[#1B1B1D] px-5 py-5 sm:px-6">
                 <div>
