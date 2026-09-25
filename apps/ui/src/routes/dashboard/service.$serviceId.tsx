@@ -1,0 +1,20 @@
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
+import { Activity, ArrowLeft, ExternalLink, Users, GitBranch, Database } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
+import { Badge } from '~/components/ui/badge';
+import { Skeleton } from '~/components/ui/skeleton';
+import { api } from '~/lib/api';
+import { useProject } from '~/lib/project-context';
+
+export const Route = createFileRoute('/dashboard/service/$serviceId')({ component: ServiceDetail });
+interface Service { id:string; name:string; slug:string; language:string|null; framework:string|null; repositoryUrl:string|null; repositoryProvider:string|null; repositoryBranch:string|null; owner:{id:string;name:string|null;email:string}|null; team:{id:string;name:string;slug:string}|null; }
+function ServiceDetail() {
+ const { projectId }=useProject(); const {serviceId}=Route.useParams();
+ const {data:service,isLoading}=useQuery({queryKey:['service',projectId,serviceId],queryFn:()=>api.get<Service>(`/services/${serviceId}?projectId=${projectId}`),enabled:!!projectId&&!!serviceId});
+ if(!projectId)return <Card><CardContent className="p-10 text-center"><p className="font-medium">Choose a project</p></CardContent></Card>;
+ if(isLoading)return <div className="space-y-4"><Skeleton className="h-24"/><Skeleton className="h-64"/></div>;
+ if(!service)return <Card><CardContent className="p-10 text-center"><p className="font-medium">Service not found</p><Link to="/dashboard/services" className="mt-2 inline-block text-sm text-[#16931F] underline">Back to services</Link></CardContent></Card>;
+ return <div className="mx-auto max-w-[1200px] space-y-6 pb-10"><Link to="/dashboard/services" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-[#182012]"><ArrowLeft className="h-4 w-4"/>Services</Link><header><div className="flex items-start gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#C9E7EB]"><Activity className="h-5 w-5 text-[#182012]"/></span><div><p className="text-xs font-semibold uppercase tracking-[.14em] text-[#16931F]">Service detail</p><h1 className="mt-1 text-2xl font-semibold">{service.name}</h1><p className="font-mono text-xs text-muted-foreground">{service.slug}</p></div></div></header><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Meta icon={Activity} label="Runtime" value={service.language??'Unknown'} detail={service.framework??'Framework not set'}/><Meta icon={Users} label="Owner" value={service.owner?.name??service.owner?.email??'Unassigned'}/><Meta icon={Users} label="Team" value={service.team?.name??'Unassigned'}/><Meta icon={Database} label="Telemetry" value="Connected" positive/></div><Card className="border-[#DBE5D7] shadow-none"><CardHeader><CardTitle className="text-base">Source context</CardTitle></CardHeader><CardContent className="grid gap-5 md:grid-cols-2"><div><p className="text-xs text-muted-foreground">Repository</p>{service.repositoryUrl?<a href={service.repositoryUrl} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-2 text-sm font-medium text-[#16931F] hover:underline">{service.repositoryProvider??'Repository'}<ExternalLink className="h-3 w-3"/></a>:<p className="mt-1 text-sm">Not linked</p>}</div><div><p className="text-xs text-muted-foreground">Branch</p><p className="mt-1 flex items-center gap-2 font-mono text-sm"><GitBranch className="h-3.5 w-3.5"/>{service.repositoryBranch??'Not configured'}</p></div></CardContent></Card></div>;
+}
+function Meta({icon:Icon,label,value,detail,positive}:{icon:typeof Activity;label:string;value:string;detail?:string;positive?:boolean}){return <Card className="border-[#DBE5D7] shadow-none"><CardContent className="p-4"><div className="flex items-center justify-between"><span className="text-xs text-muted-foreground">{label}</span><Icon className="h-4 w-4 text-[#16931F]"/></div><p className={`mt-2 truncate text-sm font-semibold ${positive?'text-[#16931F]':''}`}>{value}</p>{detail&&<p className="mt-1 text-xs text-muted-foreground">{detail}</p>}</CardContent></Card>}
