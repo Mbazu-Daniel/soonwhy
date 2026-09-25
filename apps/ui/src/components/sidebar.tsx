@@ -59,7 +59,7 @@ export function Sidebar() {
           </nav>
         </div>
 
-        <div className="mt-auto space-y-1 border-t border-[#1B1B1D] p-3">
+        <div className="mt-auto border-t border-[#1B1B1D] p-3"><p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[.15em] text-[#6E6E70]">Project</p><div className="mb-2 rounded-xl border border-[#242426] bg-[#0B0B0C] px-3 py-2"><p className="truncate text-xs font-medium text-[#F6F6F6]">Current project</p><p className="mt-0.5 truncate text-[10px] text-[#6E6E70]">Switch projects from the top bar</p></div><div className="space-y-1">
           <Link to="/$organizationSlug/settings" params={{ organizationSlug: orgSlug }} onClick={close} className={cn('flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium', location.pathname.startsWith(`/${orgSlug}/settings`) ? 'bg-[#151517] text-[#F6F6F6]' : 'text-[#989898] hover:bg-[#151517] hover:text-[#F6F6F6]')}>
             <Settings className="h-[17px] w-[17px]" />
             Setup
@@ -68,6 +68,7 @@ export function Sidebar() {
             <ArrowLeft className="h-[17px] w-[17px]" />
             Workspace
           </Link>
+        </div>
         </div>
       </aside>
     </>
