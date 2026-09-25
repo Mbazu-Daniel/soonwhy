@@ -18,6 +18,14 @@ export interface AuthResult {
   error?: { message: string; status: number };
 }
 
+function withSessionToken(data: AuthResult['data'] & { token?: string }) {
+  if (!data?.token || data.session?.token) return data;
+  return {
+    ...data,
+    session: { token: data.token, id: '', expiresAt: '' },
+  };
+}
+
 export interface AuthProviders {
   emailAndPassword: boolean;
   google: boolean;
@@ -34,7 +42,7 @@ export async function signIn(email: string, password: string): Promise<AuthResul
     });
     const data = await res.json();
     if (!res.ok) return { error: { message: data.message || 'Sign in failed', status: res.status } };
-    return { data };
+    return { data: withSessionToken(data) };
   } catch (err) {
     return { error: { message: err instanceof Error ? err.message : 'Sign in failed', status: 0 } };
   }
@@ -50,7 +58,7 @@ export async function signUp(email: string, password: string): Promise<AuthResul
     });
     const data = await res.json();
     if (!res.ok) return { error: { message: data.message || 'Sign up failed', status: res.status } };
-    return { data };
+    return { data: withSessionToken(data) };
   } catch (err) {
     return { error: { message: err instanceof Error ? err.message : 'Sign up failed', status: 0 } };
   }
@@ -119,6 +127,7 @@ export function clearSession() {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('session_token');
     localStorage.removeItem('org_id');
+    localStorage.removeItem('org_slug');
     localStorage.removeItem('project_id');
   }
 }

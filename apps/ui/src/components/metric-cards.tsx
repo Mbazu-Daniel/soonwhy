@@ -31,7 +31,7 @@ function TrendIcon({ direction }: { direction: Trend['direction'] }) {
 
 export function MetricCard({ label, value, trend, icon: Icon, className }: MetricCardProps) {
   return (
-    <Card className={cn('bg-white', className)}>
+    <Card className={cn('bg-card', className)}>
       <CardContent className="p-4 md:p-5">
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
@@ -45,7 +45,7 @@ export function MetricCard({ label, value, trend, icon: Icon, className }: Metri
             )}
           </div>
           {Icon && (
-            <div className="h-10 w-10 shrink-0 rounded-lg bg-[#EDF3E9] flex items-center justify-center">
+            <div className="h-10 w-10 shrink-0 rounded-lg bg-secondary flex items-center justify-center">
               <Icon className="h-4.5 w-4.5 text-[#16931F]" />
             </div>
           )}
@@ -62,7 +62,7 @@ interface StatusCodeBreakdownProps {
 
 export function StatusCodeBreakdown({ codes, className }: StatusCodeBreakdownProps) {
   return (
-    <Card className={cn('bg-white', className)}>
+    <Card className={cn('bg-card', className)}>
       <CardContent className="p-4 space-y-3">
         <p className="text-sm font-medium">Status Codes</p>
         {codes.map((code) => (
@@ -88,7 +88,7 @@ interface LatencyDistributionProps {
 
 export function LatencyDistribution({ p50, p95, p99, className }: LatencyDistributionProps) {
   return (
-    <Card className={cn('bg-white', className)}>
+    <Card className={cn('bg-card', className)}>
       <CardContent className="p-4 space-y-3">
         <p className="text-sm font-medium">Latency Distribution</p>
         {[

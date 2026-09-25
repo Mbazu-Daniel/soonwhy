@@ -26,6 +26,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       } else if (typeof exResponse === 'object') {
         body = { ...body, ...exResponse, status };
       }
+    } else if (isApiError(exception)) {
+      status = exception.statusCode;
+      body.status = status;
+      body.title = exception.message;
+      body.detail = exception.body?.message ?? exception.message;
     } else if (exception instanceof Error) {
       this.logger.error(`Unhandled error: ${exception.message}`, exception.stack);
       body.detail = process.env.NODE_ENV === 'production'
@@ -35,4 +40,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     response.status(status).json(body);
   }
+}
+
+function isApiError(exception: unknown): exception is Error & {
+  statusCode: number;
+  body?: { message?: string };
+} {
+  return (
+    exception instanceof Error &&
+    'statusCode' in exception &&
+    typeof exception.statusCode === 'number'
+  );
 }

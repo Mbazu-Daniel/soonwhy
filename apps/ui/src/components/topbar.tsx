@@ -26,24 +26,24 @@ export function TopBar() {
   async function handleSignOut() {
     if (token) await signOut(token);
     clearSession();
-    navigate({ to: '/auth/sign-in' });
+    navigate({ to: '/login' });
   }
 
   const userName = session?.user?.name || session?.user?.email || 'U';
   const userInitial = userName.charAt(0).toUpperCase();
 
   return (
-    <header className="h-16 shrink-0 border-b bg-white flex items-center justify-between px-4 lg:px-6">
-      <div className="flex items-center gap-3 min-w-0">
-        <Button variant="ghost" size="icon" className="lg:hidden" onClick={toggle} aria-label="Toggle sidebar"><Menu className="h-5 w-5" /></Button>
-        <div className="hidden sm:flex items-center gap-2">
-          <span className="text-xs font-medium text-muted-foreground">Project</span>
+    <header className="flex min-h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-3 py-2 sm:px-4 lg:px-6">
+      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+        <Button variant="ghost" size="icon" className="shrink-0 lg:hidden" onClick={toggle} aria-label="Toggle sidebar"><Menu className="h-5 w-5" /></Button>
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <span className="hidden text-xs font-medium text-muted-foreground md:block">Project</span>
           {projects && projects.length > 0 ? (
             <Select value={projectId || ''} onValueChange={setProjectId}>
-              <SelectTrigger data-tour="project-selector" className="h-9 w-52 bg-[#F7FAF4] border-[#DBE5D7]"><SelectValue placeholder="Select project" /></SelectTrigger>
+              <SelectTrigger data-tour="project-selector" className="h-9 w-full max-w-72 border-border bg-secondary sm:w-64"><SelectValue placeholder="Select project" /></SelectTrigger>
               <SelectContent>{projects.map((project) => <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>)}</SelectContent>
             </Select>
-          ) : <span className="text-sm font-semibold">No project selected</span>}
+          ) : <span className="truncate text-sm font-semibold">No project selected</span>}
         </div>
       </div>
       <div className="flex items-center gap-1.5 sm:gap-2">

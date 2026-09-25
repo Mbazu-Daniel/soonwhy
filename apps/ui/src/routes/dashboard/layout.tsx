@@ -7,6 +7,8 @@ import { Toaster } from '~/components/ui/sonner';
 import { Skeleton } from '~/components/ui/skeleton';
 import { SidebarProvider } from '~/lib/sidebar-context';
 import { getSessionToken, clearSession } from '~/lib/auth-client';
+import { firstOrganization } from '~/lib/open-organization';
+import { useProject } from '~/lib/project-context';
 import { api } from '~/lib/api';
 
 export const Route = createFileRoute('/dashboard/layout')({
@@ -15,6 +17,7 @@ export const Route = createFileRoute('/dashboard/layout')({
 
 function DashboardLayout() {
   const navigate = useNavigate();
+  const { setOrganization } = useProject();
   const [checking, setChecking] = useState(true);
   const token = getSessionToken();
 
@@ -30,29 +33,36 @@ function DashboardLayout() {
 
     if (!token || !session) {
       clearSession();
-      navigate({ to: '/auth/sign-in' });
+      navigate({ to: '/login' });
       return;
     }
 
     const orgId = localStorage.getItem('org_id');
     if (!orgId) {
-      navigate({ to: '/organizations' });
+      void firstOrganization().then((organization) => {
+        if (!organization) {
+          navigate({ to: '/organizations' });
+          return;
+        }
+        setOrganization(organization);
+        navigate({ to: '/$organizationSlug', params: { organizationSlug: organization.slug } });
+      });
       return;
     }
 
     setChecking(false);
-  }, [token, session, sessionLoading, navigate]);
+  }, [token, session, sessionLoading, navigate, setOrganization]);
 
   if (checking) return <DashboardLoading />;
 
   return (
     <SidebarProvider>
-      <div className="dashboard-shell min-h-screen flex flex-col">
+      <div className="dashboard-shell flex min-h-dvh flex-col">
         <a href="#main-content" className="skip-link">Skip to main content</a>
         <TopBar />
-        <div className="flex min-h-0 flex-1">
+        <div className="flex min-h-0 w-full flex-1">
           <Sidebar />
-          <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 overflow-y-auto bg-[#080B07] p-4 sm:p-5 lg:p-6">
+          <main id="main-content" tabIndex={-1} className="min-h-0 w-full min-w-0 flex-1 overflow-y-auto bg-background px-5 py-6 sm:px-8 lg:px-14 lg:py-8 xl:px-20 2xl:px-28">
             <Outlet />
           </main>
         </div>
@@ -76,7 +86,7 @@ function DashboardLoading() {
           </div>
         </aside>
         <main className="min-w-0 flex-1 p-4 sm:p-6">
-          <div className="mx-auto max-w-[1440px] space-y-6">
+          <div className="mx-auto w-full space-y-6">
             <div className="space-y-2"><Skeleton className="h-3 w-24" /><Skeleton className="h-8 w-48" /><Skeleton className="h-4 w-80 max-w-full" /></div>
             <div className="grid gap-4 xl:grid-cols-[300px_1fr]"><Skeleton className="h-48" /><Skeleton className="h-48" /></div>
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">{[1, 2, 3, 4].map((item) => <Skeleton key={item} className="h-28" />)}</div>

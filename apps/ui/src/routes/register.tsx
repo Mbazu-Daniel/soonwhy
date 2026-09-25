@@ -6,20 +6,29 @@ import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { SocialButtons } from '~/components/auth/social-buttons';
 import { setSessionToken, signUp } from '~/lib/auth-client';
+import { OrganizationForm } from '~/components/auth/organization-form';
 
 export const Route = createFileRoute('/register')({ component: SignUp });
 
 function SignUp() {
   const navigate = useNavigate();
   const [email, setEmail] = useState(''); const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false); const [error, setError] = useState(''); const [pending, setPending] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);   const [error, setError] = useState(''); const [pending, setPending] = useState(false);
+  const [needsOrganization, setNeedsOrganization] = useState(false);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault(); setError(''); setPending(true);
     const result = await signUp(email.trim(), password); setPending(false);
     if (result.error) { setError(result.error.message); return; }
-    if (result.data?.session.token) { setSessionToken(result.data.session.token); navigate({ to: '/organizations' }); return; }
+    if (result.data?.session.token) { setSessionToken(result.data.session.token); setNeedsOrganization(true); return; }
     navigate({ to: '/login' });
+  }
+
+  if (needsOrganization) {
+    return <div className="auth-page"><div className="auth-orbit auth-orbit-one" /><div className="auth-orbit auth-orbit-two" /><div className="auth-content">
+      <Link to="/" className="auth-brand"><span className="auth-brand-mark">S</span><span>SoonWhy</span></Link>
+      <div className="auth-panel"><h1 className="display-font auth-title">Create your organization</h1><p className="auth-subtitle">Enter the organization name and the subdomain for this workspace.</p><div className="mt-8"><OrganizationForm /></div></div>
+    </div></div>;
   }
 
   return <div className="auth-page"><div className="auth-orbit auth-orbit-one" /><div className="auth-orbit auth-orbit-two" /><div className="auth-content">

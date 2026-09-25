@@ -114,12 +114,12 @@ export function CommandPalette() {
 
   return (
     <>
-      <Button variant="outline" onClick={() => setOpen(true)} className="hidden h-9 gap-2 border-[#DBE5D7] bg-[#F7FAF4] font-normal text-muted-foreground md:flex" aria-label="Open command palette">
+      <Button variant="outline" onClick={() => setOpen(true)} className="hidden h-9 gap-2 border-border bg-muted font-normal text-muted-foreground md:flex" aria-label="Open command palette">
         <Search className="h-4 w-4" />
         <span>Jump to workspace</span>
-        <kbd className="ml-3 rounded border bg-white px-1.5 py-0.5 text-[10px]">⌘K</kbd>
+        <kbd className="ml-3 rounded border bg-card px-1.5 py-0.5 text-[10px]">⌘K</kbd>
       </Button>
-      <Button variant="outline" size="icon" onClick={() => setOpen(true)} className="h-9 w-9 border-[#DBE5D7] bg-[#F7FAF4] md:hidden" aria-label="Open command palette">
+      <Button variant="outline" size="icon" onClick={() => setOpen(true)} className="h-9 w-9 border-border bg-muted md:hidden" aria-label="Open command palette">
         <Search className="h-4 w-4" />
       </Button>
 
@@ -130,14 +130,14 @@ export function CommandPalette() {
           <div className="border-b p-3">
             <div className="relative">
               <Command className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#16931F]" aria-hidden="true" />
-              <Input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Jump to a workspace or saved view…" className="h-11 border-0 bg-[#F7FAF4] pl-9 shadow-none focus-visible:ring-0" aria-label="Search workspaces and saved views" />
+              <Input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Jump to a workspace or saved view…" className="h-11 border-0 bg-muted pl-9 shadow-none focus-visible:ring-0" aria-label="Search workspaces and saved views" />
             </div>
           </div>
           <div className="max-h-[55vh] overflow-auto p-2">
             {items.navigation.length > 0 && <section aria-label="Navigation">
               <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Navigate</p>
               {items.navigation.map(({ path, label, icon: Icon }) => (
-                <button key={path} type="button" onClick={() => go(path)} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm hover:bg-[#F7FAF4] focus-visible:bg-[#F7FAF4]">
+                <button key={path} type="button" onClick={() => go(path)} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm hover:bg-muted focus-visible:bg-muted">
                   <Icon className="h-4 w-4 text-[#16931F]" aria-hidden="true" /><span>{label}</span>
                 </button>
               ))}
@@ -150,7 +150,7 @@ export function CommandPalette() {
               {items.saved.length === 0
                 ? <p className="px-3 pb-3 text-xs text-muted-foreground">Save frequently used investigation surfaces here.</p>
                 : items.saved.map((view) => (
-                  <div key={view.id} className="group flex items-center gap-2 rounded-lg px-3 py-2.5 hover:bg-[#F7FAF4]">
+                  <div key={view.id} className="group flex items-center gap-2 rounded-lg px-3 py-2.5 hover:bg-muted">
                     <button type="button" onClick={() => go(view.path)} className="flex min-w-0 flex-1 items-center gap-3 text-left text-sm focus-visible:outline-offset-2">
                       <Star className="h-4 w-4 shrink-0 text-[#16931F]" aria-hidden="true" /><span className="truncate">{view.name}</span>
                     </button>
@@ -161,7 +161,7 @@ export function CommandPalette() {
                 ))}
             </section>
           </div>
-          <div className="border-t bg-[#F7FAF4] px-4 py-2 text-[11px] text-muted-foreground">Press <kbd className="rounded border bg-white px-1">Esc</kbd> to close</div>
+          <div className="border-t bg-muted px-4 py-2 text-[11px] text-muted-foreground">Press <kbd className="rounded border bg-card px-1">Esc</kbd> to close</div>
         </DialogContent>
       </Dialog>
 

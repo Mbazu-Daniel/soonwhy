@@ -1,6 +1,6 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { organization } from 'better-auth/plugins';
+import { bearer, organization } from 'better-auth/plugins';
 import argon2 from 'argon2';
 import { db } from '../db';
 import * as schema from '../db/schema';
@@ -27,17 +27,6 @@ function organizationNameFromEmail(email: string): string {
     : 'My Organization';
 }
 
-function organizationSlugFromEmail(email: string, userId: string): string {
-  const localPart = email.split('@')[0] ?? 'organization';
-  const base = localPart
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 48);
-
-  return `${base || 'organization'}-${userId.slice(-8)}`;
-}
-
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: 'pg',
@@ -47,6 +36,8 @@ export const auth = betterAuth({
       session: schema.sessions,
       organization: schema.organizations,
       member: schema.members,
+      organizations: schema.organizations,
+      members: schema.members,
     },
   }),
   advanced: {
@@ -83,6 +74,7 @@ export const auth = betterAuth({
     }),
   },
   plugins: [
+    bearer(),
     organization({
       schema: {
         organization: {
@@ -103,16 +95,6 @@ export const auth = betterAuth({
             name: user.name?.trim() || organizationNameFromEmail(user.email),
           },
         }),
-        after: async (user) => {
-          await auth.api.createOrganization({
-            body: {
-              name: organizationNameFromEmail(user.email),
-              slug: organizationSlugFromEmail(user.email, user.id),
-              userId: user.id,
-              keepCurrentActiveOrganization: true,
-            },
-          });
-        },
       },
     },
   },

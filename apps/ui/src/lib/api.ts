@@ -44,9 +44,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     if (res.status === 401 && typeof window !== 'undefined') {
       localStorage.removeItem('session_token');
       localStorage.removeItem('org_id');
+      localStorage.removeItem('org_slug');
       localStorage.removeItem('project_id');
       localStorage.setItem('soonwhy:return-path', window.location.pathname + window.location.search);
-      if (!window.location.pathname.startsWith('/auth/')) window.location.assign('/auth/sign-in');
+      const path = window.location.pathname;
+      if (path !== '/login' && path !== '/register') window.location.assign('/login');
     }
 
     throw new ApiError(res.status, body.message || body.detail || 'Request failed');

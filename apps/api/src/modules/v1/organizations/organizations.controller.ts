@@ -4,9 +4,11 @@ import {
   Delete,
   ForbiddenException,
   Get,
+  Headers,
   Param,
   Post,
   Put,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { OrganizationsService } from './organizations.service';
@@ -20,14 +22,23 @@ export class OrganizationsController {
   constructor(private readonly organizationsService: OrganizationsService) {}
 
   @Post()
-  async createOrganization(@CurrentUser() user: AuthUser, @Body() body: unknown) {
+  async createOrganization(
+    @CurrentUser() user: AuthUser | null,
+    @Headers('authorization') authorization: string | undefined,
+    @Body() body: unknown,
+  ) {
+    if (!user) throw new UnauthorizedException('Sign in required');
     const input = CreateOrganizationDto.parse(body);
-    return this.organizationsService.createOrganization(user.id, input);
+    return this.organizationsService.createOrganization(user.id, input, authorization);
   }
 
   @Get()
-  async getOrganizationsForUser(@CurrentUser() user: AuthUser) {
-    return this.organizationsService.getOrganizationsForUser(user.id);
+  async getOrganizationsForUser(
+    @CurrentUser() user: AuthUser | null,
+    @Headers('authorization') authorization: string | undefined,
+  ) {
+    if (!user) throw new UnauthorizedException('Sign in required');
+    return this.organizationsService.getOrganizationsForUser(authorization);
   }
 }
 

@@ -1,8 +1,9 @@
 import { Injectable, NestMiddleware, UnauthorizedException } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
+import { and, eq, sql } from 'drizzle-orm';
 import { auth } from '../config/better-auth.config';
 import { db } from '../db';
-import { sql } from 'drizzle-orm';
+import { members } from '../db/schema/auth';
 import { organizationIdFromUrl } from './organization-path';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -50,11 +51,13 @@ export class TenantContextMiddleware implements NestMiddleware {
         throw new UnauthorizedException('X-Org-Id does not match the organization in the path');
       }
 
-      const member = await authApi.getActiveMember({
-        headers: { authorization: `Bearer ${token}` },
-      });
+      const [member] = await db
+        .select({ role: members.role })
+        .from(members)
+        .where(and(eq(members.userId, session.user.id), eq(members.organizationId, orgId)))
+        .limit(1);
 
-      if (!member || member.organizationId !== orgId) {
+      if (!member) {
         throw new UnauthorizedException('Not a member of this organization');
       }
 

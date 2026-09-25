@@ -6,20 +6,33 @@ import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { SocialButtons } from '~/components/auth/social-buttons';
 import { signIn, setSessionToken } from '~/lib/auth-client';
+import { OrganizationForm } from '~/components/auth/organization-form';
+import { firstOrganization } from '~/lib/open-organization';
+import { useProject } from '~/lib/project-context';
 
 export const Route = createFileRoute('/login')({ component: SignIn });
 
 function SignIn() {
   const navigate = useNavigate();
+  const { setOrganization } = useProject();
   const [email, setEmail] = useState(''); const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false); const [error, setError] = useState(''); const [pending, setPending] = useState(false);
+  const [needsOrganization, setNeedsOrganization] = useState(false);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault(); setError(''); setPending(true);
-    const result = await signIn(email.trim(), password); setPending(false);
-    if (result.error) { setError(result.error.message); return; }
+    const result = await signIn(email.trim(), password);
+    if (result.error) { setPending(false); setError(result.error.message); return; }
     if (result.data?.session.token) setSessionToken(result.data.session.token);
-    navigate({ to: '/organizations' });
+    const organization = await firstOrganization().catch(() => null);
+    setPending(false);
+    if (!organization) { setNeedsOrganization(true); return; }
+    setOrganization(organization);
+    void navigate({ to: '/$organizationSlug', params: { organizationSlug: organization.slug } });
+  }
+
+  if (needsOrganization) {
+    return <AuthShell title="Create your organization" subtitle="Choose the organization name and the subdomain people will open."><OrganizationForm /></AuthShell>;
   }
 
   return <AuthShell title="Sign in to SoonWhy" subtitle="See what changed, where it changed, and why.">

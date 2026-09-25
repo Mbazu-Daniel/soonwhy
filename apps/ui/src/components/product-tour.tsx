@@ -25,7 +25,7 @@ export function ProductTour() {
 
   return (
     <div className="fixed inset-x-4 bottom-4 z-50 sm:left-auto sm:right-6 sm:max-w-sm" role="dialog" aria-label="SoonWhy product tour" aria-modal="false">
-      <div className="rounded-2xl border border-[#C9D8C5] bg-white p-5 shadow-2xl">
+      <div className="rounded-2xl border border-[#C9D8C5] bg-card p-5 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <div><p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#16931F]">Quick tour · {index + 1}/{steps.length}</p><h2 className="mt-2 text-base font-semibold">{current.title}</h2></div>
           <button type="button" onClick={close} className="rounded-md p-1 text-muted-foreground hover:bg-muted" aria-label="Close product tour"><X className="h-4 w-4" /></button>

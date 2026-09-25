@@ -11,7 +11,7 @@ import { useProject } from '~/lib/project-context';
 
 export const Route = createFileRoute('/onboarding')({ component: Onboarding });
 
-interface Organization { id: string; name: string; slug: string; }
+interface Organization { id: string; name: string; slug: string; organization?: Organization; }
 interface Project { id: string; name: string; slug: string; description?: string | null; }
 interface ApiKey { id: string; name: string; prefix: string; key: string; }
 
@@ -20,11 +20,11 @@ const steps = ['Organization', 'Project', 'Connect', 'Verify'];
 function Onboarding() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { orgId, projectId, setOrgId, setProjectId, clearProjectId } = useProject();
+  const { orgId, orgSlug: workspaceSlug, projectId, setOrganization, setProjectId, clearProjectId } = useProject();
   const [step, setStep] = useState(() => {
-    if (typeof window === 'undefined') return orgId ? (projectId ? 2 : 1) : 0;
+    if (typeof window === 'undefined') return orgId ? 1 : 0;
     const saved = Number(localStorage.getItem('soonwhy:onboarding-step'));
-    return Number.isInteger(saved) && saved >= 0 && saved <= 3 ? saved : (orgId ? (projectId ? 2 : 1) : 0);
+    return saved === 0 || saved === 1 ? saved : (orgId ? 1 : 0);
   });
   const [orgName, setOrgName] = useState('');
   const [orgSlug, setOrgSlug] = useState('');
@@ -52,7 +52,8 @@ function Onboarding() {
   const createOrg = useMutation({
     mutationFn: (input: { name: string; slug: string }) => api.post<Organization>('/organizations', input),
     onSuccess: (org) => {
-      setOrgId(org.id);
+      const created = 'organization' in org && org.organization ? org.organization : org;
+      if (created.id && created.slug) setOrganization(created);
       clearProjectId();
       void queryClient.invalidateQueries({ queryKey: ['organizations'] });
       goToStep(1);
@@ -65,9 +66,9 @@ function Onboarding() {
     mutationFn: (input: { name: string; slug: string }) => api.post<Project>('/projects', input),
     onSuccess: (project) => {
       setProjectId(project.id);
+      localStorage.removeItem('soonwhy:onboarding-step');
       void queryClient.invalidateQueries({ queryKey: ['projects', orgId] });
-      goToStep(2);
-      setError('');
+      void navigate({ to: '/dashboard' });
     },
     onError: (err: Error) => setError(err.message),
   });
@@ -111,7 +112,8 @@ const sdk = initNode({
   }, [apiKey]);
 
   function selectOrganization(id: string) {
-    setOrgId(id);
+    const selected = organizations.data?.find((org) => org.id === id);
+    if (selected) setOrganization(selected);
     clearProjectId();
     goToStep(1);
     setError('');
@@ -146,10 +148,12 @@ const sdk = initNode({
   }
 
   return (
-    <div className="min-h-screen bg-[#F7FAF4] text-[#182012]">
-      <header className="border-b border-[#DBE5D7] bg-white">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4">
-          <Link to="/organizations" className="flex items-center gap-2 text-sm font-semibold"><ArrowLeft className="h-4 w-4" /> Organizations</Link>
+          {workspaceSlug
+            ? <Link to="/$organizationSlug" params={{ organizationSlug: workspaceSlug }} className="flex items-center gap-2 text-sm font-semibold"><ArrowLeft className="h-4 w-4" /> Workspace</Link>
+            : <span className="text-sm font-semibold">Workspace</span>}
           <span className="text-sm font-semibold">SoonWhy setup</span>
           <span className="text-xs text-muted-foreground">{step + 1} of {steps.length}</span>
         </div>
@@ -160,7 +164,7 @@ const sdk = initNode({
           <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
             {steps.map((label, index) => <span key={label} className={index <= step ? 'text-[#16931F]' : ''}>{label}</span>)}
           </div>
-          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#E4EDE0]"><div className="h-full rounded-full bg-[#8BD125] transition-all" style={{ width: progress + '%' }} /></div>
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary"><div className="h-full rounded-full bg-[#8BD125] transition-all" style={{ width: progress + '%' }} /></div>
         </div>
 
         {error && <div role="alert" className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>}
@@ -171,7 +175,7 @@ const sdk = initNode({
               <div className="mb-6 space-y-2">
                 <p className="text-sm font-medium">Use an existing organization</p>
                 {organizations.data.map((org) => (
-                  <button key={org.id} type="button" onClick={() => selectOrganization(org.id)} className="flex w-full items-center justify-between rounded-lg border bg-white p-3 text-left hover:border-[#8BD125]">
+                  <button key={org.id} type="button" onClick={() => selectOrganization(org.id)} className="flex w-full items-center justify-between rounded-lg border border-border bg-card p-3 text-left hover:border-[#8BD125]">
                     <span><span className="block text-sm font-medium">{org.name}</span><span className="text-xs text-muted-foreground">{org.slug}</span></span>
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   </button>
@@ -181,8 +185,8 @@ const sdk = initNode({
             )}
             <form onSubmit={submitOrganization} className="space-y-4">
               <div className="space-y-2"><Label htmlFor="org-name">Organization name</Label><Input id="org-name" value={orgName} onChange={(e) => setOrgName(e.target.value)} placeholder="Acme" required maxLength={100} /></div>
-              <div className="space-y-2"><Label htmlFor="org-slug">Slug</Label><Input id="org-slug" value={orgSlug} onChange={(e) => setOrgSlug(e.target.value)} placeholder="acme" pattern="[a-z0-9-]+" /></div>
-              <Button type="submit" className="w-full bg-[#182012] text-white hover:bg-[#182012]/90" disabled={createOrg.isPending}>{createOrg.isPending ? 'Creating...' : <>Create organization <ArrowRight /></>}</Button>
+              <div className="space-y-2"><Label htmlFor="org-slug">Subdomain</Label><Input id="org-slug" value={orgSlug} onChange={(e) => setOrgSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} placeholder="acme" pattern="[a-z0-9-]+" /></div>
+              <Button type="submit" className="w-full" disabled={createOrg.isPending}>{createOrg.isPending ? 'Creating...' : <>Create organization <ArrowRight /></>}</Button>
             </form>
           </StepCard>
         )}
@@ -193,7 +197,7 @@ const sdk = initNode({
               <div className="mb-6 space-y-2">
                 <p className="text-sm font-medium">Use an existing project</p>
                 {projects.data.map((project) => (
-                  <button key={project.id} type="button" onClick={() => { setProjectId(project.id); goToStep(2); }} className="flex w-full items-center justify-between rounded-lg border bg-white p-3 text-left hover:border-[#8BD125]">
+                  <button key={project.id} type="button" onClick={() => { setProjectId(project.id); localStorage.removeItem('soonwhy:onboarding-step'); void navigate({ to: '/dashboard' }); }} className="flex w-full items-center justify-between rounded-lg border border-border bg-card p-3 text-left hover:border-[#8BD125]">
                     <span><span className="block text-sm font-medium">{project.name}</span><span className="text-xs text-muted-foreground">{project.slug}</span></span>
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   </button>
@@ -204,14 +208,14 @@ const sdk = initNode({
             <form onSubmit={submitProject} className="space-y-4">
               <div className="space-y-2"><Label htmlFor="project-name">Project name</Label><Input id="project-name" value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="Payments API" required maxLength={100} /></div>
               <div className="space-y-2"><Label htmlFor="project-slug">Slug</Label><Input id="project-slug" value={projectSlug} onChange={(e) => setProjectSlug(e.target.value)} placeholder="payments-api" pattern="[a-z0-9-]+" /></div>
-              <Button type="submit" className="w-full bg-[#182012] text-white hover:bg-[#182012]/90" disabled={createProject.isPending}>{createProject.isPending ? 'Creating...' : <>Create project <ArrowRight /></>}</Button>
+              <Button type="submit" className="w-full" disabled={createProject.isPending}>{createProject.isPending ? 'Creating...' : <>Create project <ArrowRight /></>}</Button>
             </form>
           </StepCard>
         )}
 
         {step === 2 && (
           <StepCard icon={Sparkles} title="Connect OpenTelemetry" description="Create a project API key and send your first spans through the SoonWhy SDK.">
-            <div className="rounded-xl border border-[#C9D8C5] bg-[#F7FAF4] p-4 text-sm">
+            <div className="rounded-xl border border-border bg-muted p-4 text-sm">
               <p className="font-medium">Project selected</p>
               <p className="mt-1 text-muted-foreground">{projects.data?.find((project) => project.id === projectId)?.name ?? 'Your project'}</p>
             </div>
@@ -221,10 +225,10 @@ const sdk = initNode({
                 <div className="rounded-xl border bg-[#182012] p-4 text-xs text-white"><code className="break-all">{apiKey.key}</code></div>
                 <pre className="overflow-x-auto rounded-xl bg-[#182012] p-4 text-xs leading-6 text-white"><code>{snippet}</code></pre>
                 <Button type="button" variant="outline" onClick={() => void navigator.clipboard?.writeText(snippet)}><Copy /> Copy setup snippet</Button>
-                <Button type="button" className="ml-2 bg-[#182012] text-white hover:bg-[#182012]/90" onClick={() => goToStep(3)}>I've connected it <ArrowRight /></Button>
+                <Button type="button" onClick={() => goToStep(3)}>I've connected it <ArrowRight /></Button>
               </div>
             ) : (
-              <Button type="button" className="mt-5 w-full bg-[#182012] text-white hover:bg-[#182012]/90" disabled={!canContinueConnect || createKey.isPending} onClick={() => createKey.mutate()}>
+              <Button type="button" className="mt-5 w-full" disabled={!canContinueConnect || createKey.isPending} onClick={() => createKey.mutate()}>
                 {createKey.isPending ? 'Creating API key...' : <>Create ingestion key <ArrowRight /></>}
               </Button>
             )}
@@ -233,7 +237,7 @@ const sdk = initNode({
 
         {step === 3 && (
           <StepCard icon={Check} title={verificationReady ? 'Telemetry received' : 'Waiting for telemetry'} description={verificationReady ? 'SoonWhy has received project telemetry. You can open the dashboard now.' : 'Run the setup snippet in your application. This page checks for telemetry every few seconds.'}>
-            <div className="rounded-xl border bg-white p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               {verification.isFetching && !verificationReady && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Checking for telemetry...</div>}
               {verificationReady ? (
                 <div className="grid gap-4 sm:grid-cols-3">
@@ -253,7 +257,7 @@ const sdk = initNode({
             </div>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-between">
               <Button type="button" variant="ghost" onClick={() => goToStep(2)}><ArrowLeft /> Back to setup</Button>
-              <Button type="button" className="bg-[#182012] text-white hover:bg-[#182012]/90" onClick={finish}>{verificationReady ? 'Open dashboard' : 'Go to dashboard'} <ExternalLink /></Button>
+              <Button type="button" onClick={finish}>{verificationReady ? 'Open dashboard' : 'Go to dashboard'} <ExternalLink /></Button>
             </div>
           </StepCard>
         )}
@@ -264,7 +268,7 @@ const sdk = initNode({
 
 function StepCard({ icon: Icon, title, description, children }: { icon: typeof Server; title: string; description: string; children: React.ReactNode }) {
   return (
-    <Card className="mx-auto max-w-2xl border-[#DBE5D7] bg-white shadow-sm">
+    <Card className="mx-auto max-w-2xl border-border bg-card shadow-sm">
       <CardHeader className="p-6 pb-4 sm:p-8 sm:pb-5"><div className="mb-4 grid h-11 w-11 place-items-center rounded-xl bg-[#C9E7EB]"><Icon className="h-5 w-5" /></div><CardTitle className="text-2xl">{title}</CardTitle><p className="text-sm leading-6 text-muted-foreground">{description}</p></CardHeader>
       <CardContent className="p-6 pt-1 sm:p-8 sm:pt-2">{children}</CardContent>
     </Card>
