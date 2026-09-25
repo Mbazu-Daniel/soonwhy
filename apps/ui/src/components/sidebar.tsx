@@ -5,13 +5,13 @@ import { useProject } from '~/lib/project-context';
 import { AlertTriangle, ArrowLeft, BrainCircuit, ChevronRight, GitBranch, LayoutDashboard, ScrollText, Server, Settings, ShieldCheck } from 'lucide-react';
 
 const navItems = [
-  { path: 'dashboard', label: 'Overview', icon: LayoutDashboard, exact: true },
-  { path: 'dashboard/services', label: 'Services', icon: Server },
-  { path: 'dashboard/detections', label: 'Detections', icon: BrainCircuit },
-  { path: 'dashboard/investigations', label: 'Investigations', icon: ShieldCheck },
-  { path: 'dashboard/errors', label: 'Errors', icon: AlertTriangle },
-  { path: 'dashboard/logs', label: 'Logs', icon: ScrollText },
-  { path: 'dashboard/traces', label: 'Traces', icon: GitBranch },
+  { to: '/$organizationSlug/dashboard', label: 'Overview', icon: LayoutDashboard, exact: true },
+  { to: '/$organizationSlug/dashboard/services', label: 'Services', icon: Server },
+  { to: '/$organizationSlug/dashboard/detections', label: 'Detections', icon: BrainCircuit },
+  { to: '/$organizationSlug/dashboard/investigations', label: 'Investigations', icon: ShieldCheck },
+  { to: '/$organizationSlug/dashboard/errors', label: 'Errors', icon: AlertTriangle },
+  { to: '/$organizationSlug/dashboard/logs', label: 'Logs', icon: ScrollText },
+  { to: '/$organizationSlug/dashboard/traces', label: 'Traces', icon: GitBranch },
 ] as const;
 
 export function Sidebar() {
@@ -20,8 +20,6 @@ export function Sidebar() {
   const { orgSlug } = useProject();
 
   if (!orgSlug) return null;
-
-  const dashboardHref = (path: string) => `/${orgSlug}/${path}`;
 
   return (
     <>
@@ -41,12 +39,13 @@ export function Sidebar() {
           <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[.15em] text-[#98A292]">Monitor</p>
           <nav className="space-y-1">
             {navItems.map((item) => {
-              const href = dashboardHref(item.path);
+              const href = item.to.replace('/$organizationSlug', `/${orgSlug}`);
               const active = item.exact ? location.pathname === href : location.pathname.startsWith(href);
               return (
                 <Link
-                  key={item.path}
-                  to={href as never}
+                  key={item.to}
+                  to={item.to}
+                  params={{ organizationSlug: orgSlug }}
                   onClick={close}
                   className={cn('group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors', active ? 'bg-[#182012] text-white' : 'text-[#687462] hover:bg-[#F1F5EE] hover:text-[#182012]')}
                   aria-current={active ? 'page' : undefined}
@@ -61,7 +60,7 @@ export function Sidebar() {
         </div>
 
         <div className="mt-auto space-y-1 border-t border-[#EEF2EA] p-3">
-          <Link to={dashboardHref('dashboard/settings') as never} onClick={close} className={cn('flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium', location.pathname.startsWith(dashboardHref('dashboard/settings')) ? 'bg-[#F1F5EE] text-[#182012]' : 'text-[#687462] hover:bg-[#F1F5EE] hover:text-[#182012]')}>
+          <Link to="/$organizationSlug/dashboard/settings" params={{ organizationSlug: orgSlug }} onClick={close} className={cn('flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium', location.pathname.startsWith(`/${orgSlug}/dashboard/settings`) ? 'bg-[#F1F5EE] text-[#182012]' : 'text-[#687462] hover:bg-[#F1F5EE] hover:text-[#182012]')}>
             <Settings className="h-[17px] w-[17px]" />
             Setup
           </Link>
