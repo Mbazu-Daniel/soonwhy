@@ -66,11 +66,20 @@ Critical states use an accessible red token and are paired with icons/labels. Do
 - Share action copies the current investigation URL to the clipboard.
 - Shared investigations preserve project/case context through the URL.
 
-## Phase D — polish
+## Phase D — in progress
 
-- Command palette.
-- Saved views.
+### Navigation productivity
+- Command palette available from the top bar and `⌘K` / `Ctrl+K`.
+- Keyboard-first navigation across core observability surfaces.
+- Mobile command-palette trigger.
+
+### Saved views
+- Lightweight saved-view storage scoped to the current browser profile.
+- Saved routes can be reopened from the command palette.
+- Saved views can be removed without affecting telemetry or backend state.
+
+### Remaining polish
 - Complete empty/loading/error-state audit.
-- Responsive and keyboard QA.
+- Responsive and keyboard QA across every Phase A-C route.
 - Contrast and visual regression audit.
-- Performance pass.
+- Performance pass and bundle/render profiling.
