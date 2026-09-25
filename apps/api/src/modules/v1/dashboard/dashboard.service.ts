@@ -96,6 +96,40 @@ export class DashboardService {
     };
   }
 
+  async getTelemetryStatus(orgId: string, projectId: string) {
+    return this.cached(`telemetry-status:${orgId}:${projectId}`, async () => {
+      const result = await this.quickwit.search<{ timestamp?: string; service?: string; traceId?: string }>(
+        QUICKWIT_INDEXES.requests,
+        {
+          query: quickwitTenantQuery(orgId, projectId),
+          startTimestamp: Math.floor((Date.now() - 86_400_000) / 1000),
+          endTimestamp: Math.floor(Date.now() / 1000),
+          maxHits: 1,
+          sortBy: ['timestamp:desc'],
+        },
+      );
+      const latest = result.hits[0]?._source;
+      const lastTelemetryAt = latest?.timestamp ?? null;
+      const lastTelemetryAgeMs = lastTelemetryAt
+        ? Math.max(0, Date.now() - new Date(lastTelemetryAt).getTime())
+        : null;
+      const keyStatus = lastTelemetryAt
+        ? lastTelemetryAgeMs !== null && lastTelemetryAgeMs <= 300_000
+          ? 'healthy'
+          : 'stale'
+        : 'waiting';
+
+      return {
+        status: keyStatus,
+        hasTelemetry: result.num_hits > 0,
+        lastTelemetryAt,
+        lastTelemetryAgeMs,
+        lastService: latest?.service ?? null,
+        lastTraceId: latest?.traceId ?? null,
+      };
+    });
+  }
+
   async getServices(orgId: string, projectId: string) {
     return this.cached(`services:${orgId}:${projectId}`, async () => {
       const result = await this.quickwit.search(QUICKWIT_INDEXES.requests, {
