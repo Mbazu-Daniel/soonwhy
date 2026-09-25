@@ -39,9 +39,20 @@ export class OpenAiCompatibleRcaProvider implements RcaProvider {
     this.maxRetries = config.maxRetries ?? 1;
     this.promptVersion = config.promptVersion ?? RCA_PROMPT_VERSION;
 
-    if (this.maxRetries < 0) throw new Error('RCA provider max retries cannot be negative');
+    if (!Number.isInteger(this.maxRetries) || this.maxRetries < 0) {
+      throw new Error('RCA provider max retries must be a non-negative integer');
+    }
     if (!config.apiKey.trim()) throw new Error('RCA provider API key is required');
     if (!config.model.trim()) throw new Error('RCA provider model is required');
+    if (!Number.isFinite(this.timeoutMs) || this.timeoutMs <= 0) {
+      throw new Error('RCA provider timeout must be greater than zero');
+    }
+    if (!Number.isInteger(this.maxPromptCharacters) || this.maxPromptCharacters <= 0) {
+      throw new Error('RCA provider prompt size limit must be greater than zero');
+    }
+    this.validateBaseUrl(this.baseUrl);
+    this.validateRate(config.inputCostPerMillionTokensUsd, 'input');
+    this.validateRate(config.outputCostPerMillionTokensUsd, 'output');
   }
 
   async analyze(input: RcaEvidence): Promise<RcaProviderResult> {
@@ -115,14 +126,18 @@ export class OpenAiCompatibleRcaProvider implements RcaProvider {
       });
 
       if (!response.ok) {
-        const detail = (await response.text()).slice(0, 500);
+        await response.text();
         throw new RcaProviderRequestError(
           response.status,
-          `RCA provider request failed (${response.status}): ${detail}`,
+          `RCA provider request failed (${response.status})`,
         );
       }
 
-      return (await response.json()) as ChatCompletionResponse;
+      const body = await response.text();
+      if (body.length > this.maxPromptCharacters) {
+        throw new Error('RCA provider response exceeds the configured size limit');
+      }
+      return JSON.parse(body) as ChatCompletionResponse;
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
         throw new RcaProviderRequestError(408, 'RCA provider request timed out');
@@ -131,6 +146,24 @@ export class OpenAiCompatibleRcaProvider implements RcaProvider {
       throw new Error('RCA provider request failed');
     } finally {
       clearTimeout(timeout);
+    }
+  }
+
+  private validateBaseUrl(baseUrl: string): void {
+    let parsed: URL;
+    try {
+      parsed = new URL(baseUrl);
+    } catch {
+      throw new Error('RCA provider base URL is invalid');
+    }
+    if (parsed.protocol !== 'https:' && parsed.hostname !== 'localhost' && parsed.hostname !== '127.0.0.1') {
+      throw new Error('RCA provider base URL must use HTTPS');
+    }
+  }
+
+  private validateRate(rate: number | undefined, name: string): void {
+    if (rate !== undefined && (!Number.isFinite(rate) || rate < 0)) {
+      throw new Error(`RCA provider ${name} token cost must be non-negative`);
     }
   }
 
