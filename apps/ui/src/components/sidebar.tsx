@@ -60,7 +60,7 @@ export function Sidebar() {
         </div>
 
         <div className="mt-auto space-y-1 border-t border-[#EEF2EA] p-3">
-          <Link to="/$organizationSlug/dashboard/settings" params={{ organizationSlug: orgSlug }} onClick={close} className={cn('flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium', location.pathname.startsWith(`/${orgSlug}/dashboard/settings`) ? 'bg-[#F1F5EE] text-[#182012]' : 'text-[#687462] hover:bg-[#F1F5EE] hover:text-[#182012]')}>
+          <Link to="/$organizationSlug/dashboard/settings" params={{ organizationSlug: orgSlug }} onClick={close} className={cn('flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium', location.pathname.startsWith(`/${orgSlug}/settings`) ? 'bg-[#F1F5EE] text-[#182012]' : 'text-[#687462] hover:bg-[#F1F5EE] hover:text-[#182012]')}>
             <Settings className="h-[17px] w-[17px]" />
             Setup
           </Link>
