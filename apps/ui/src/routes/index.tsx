@@ -25,29 +25,6 @@ export const Route = createFileRoute('/')({
   component: Home,
 });
 
-const features = [
-  {
-    icon: Search,
-    title: 'Detect what changed',
-    text: 'Find latency, error and performance anomalies from the telemetry your applications already emit.',
-  },
-  {
-    icon: Waypoints,
-    title: 'Follow the evidence',
-    text: 'Move from request to trace, span and dependency without losing the context between them.',
-  },
-  {
-    icon: BrainCircuit,
-    title: 'Understand why',
-    text: 'Turn a signal into an evidence-backed bottleneck investigation instead of another dashboard.',
-  },
-  {
-    icon: Zap,
-    title: 'Move to a fix',
-    text: 'Keep the source telemetry and relationships attached to the finding so the next action is clear.',
-  },
-];
-
 const investigationSteps = [
   { label: 'Request', detail: 'POST /checkout', icon: Activity },
   { label: 'Trace', detail: '4f8c...91a2', icon: GitBranch },
@@ -71,7 +48,7 @@ function Home() {
 
           <nav className="hidden items-center gap-7 text-sm text-white/55 md:flex">
             <a href="#product" className="group relative transition-colors hover:text-white">Product<span className="absolute -bottom-2 left-0 h-px w-0 bg-[#8BD125] transition-all duration-300 group-hover:w-full" /></a>
-            <a href="#how-it-works" className="transition-colors hover:text-white">How it works</a>
+            <a href="#logging" className="transition-colors hover:text-white">Logging</a>
             <a href="#open-telemetry" className="transition-colors hover:text-white">OpenTelemetry</a>
             <a href="#developers" className="transition-colors hover:text-white">Developers</a>
           </nav>
@@ -115,7 +92,7 @@ function Home() {
         <div className="mt-2 border-t border-white/[0.07] pt-2">
           <Link to="/auth/sign-in" onClick={() => setMenuOpen(false)} className="block rounded-xl px-4 py-3 text-sm text-white/65">Sign in</Link>
           <Link to="/auth/sign-up" onClick={() => setMenuOpen(false)} className="mt-1 flex items-center justify-between rounded-xl bg-[#8BD125] px-4 py-3 text-sm font-semibold text-[#182012]">
-            Get started <ArrowRight className="h-4 w-4" />
+            Start a project <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </div>
