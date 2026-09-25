@@ -1,4 +1,3 @@
-import type { DetectionEvidence } from '../../../common/db/schema/findings';
 import type { DetectionFinding } from './detection.types';
 
 export type RcaConfidence = 'low' | 'medium' | 'high';
@@ -10,10 +9,10 @@ export interface RcaEvidenceItem {
   severity: DetectionFinding['severity'];
   label: string;
   value: number | string;
-  context?: DetectionEvidence['context'];
+  context?: Record<string, unknown>;
 }
 
-export interface RcaEvidence extends Record<string, unknown> {
+export interface RcaEvidence {
   projectId: string;
   serviceName: string;
   severity: DetectionFinding['severity'];
@@ -38,6 +37,21 @@ export interface RcaAnalysis {
   limitations: string[];
 }
 
+export interface RcaUsage {
+  requestDurationMs: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+  estimatedCostUsd?: number;
+  retries: number;
+}
+
+export interface RcaProviderResult {
+  analysis: RcaAnalysis;
+  usage: RcaUsage;
+  promptVersion: string;
+}
+
 export interface RcaProvider {
-  analyze(input: RcaEvidence): Promise<RcaAnalysis>;
+  analyze(input: RcaEvidence): Promise<RcaProviderResult>;
 }

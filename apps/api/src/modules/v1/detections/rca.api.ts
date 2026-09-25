@@ -3,8 +3,12 @@ import { RcaAnalysisRepository } from './rca.repository';
 import { RcaPersistenceService } from './rca.persistence';
 import { RcaOrchestrator } from './rca.orchestrator';
 import { buildRcaEvidence } from './rca.evidence';
-import { RCA_PROMPT_VERSION } from './rca.prompt';
 import type { CorrelatedBottleneck } from './detection.correlation';
+import {
+  DatabaseRcaGovernanceSink,
+  getRcaErrorCode,
+  toRcaUsageFields,
+} from './rca.governance';
 
 @Injectable()
 export class RcaApiService {
@@ -12,6 +16,7 @@ export class RcaApiService {
     private readonly repository: Pick<RcaAnalysisRepository, 'findFinding'>,
     private readonly orchestrator: Pick<RcaOrchestrator, 'analyze'>,
     private readonly persistence: Pick<RcaPersistenceService, 'findLatest' | 'list' | 'persist'>,
+    private readonly governance: DatabaseRcaGovernanceSink,
   ) {}
 
   async getLatest(orgId: string, projectId: string, findingId: string) {
@@ -37,19 +42,41 @@ export class RcaApiService {
     }
 
     try {
-      const analysis = await this.orchestrator.analyze(projectId, bottleneck);
+      const result = await this.orchestrator.analyze(projectId, bottleneck);
       const evidence = buildRcaEvidence(projectId, bottleneck);
-      return this.persistence.persist({
+      const persisted = await this.persistence.persist({
         orgId,
         projectId,
         findingId,
         evidence,
-        analysis,
+        analysis: result.analysis,
         provider: process.env.SOONWHY_RCA_PROVIDER ?? 'openai-compatible',
         model: process.env.SOONWHY_RCA_MODEL ?? 'unknown',
-        promptVersion: RCA_PROMPT_VERSION,
+        promptVersion: result.promptVersion,
+        usage: result.usage,
       });
+      await this.governance.recordSuccess({
+        orgId,
+        projectId,
+        findingId,
+        provider: process.env.SOONWHY_RCA_PROVIDER ?? 'openai-compatible',
+        model: process.env.SOONWHY_RCA_MODEL ?? 'unknown',
+        promptVersion: result.promptVersion,
+        ...toRcaUsageFields(result.usage),
+      });
+      return persisted;
     } catch (error) {
+      await this.governance.recordFailure({
+        orgId,
+        projectId,
+        findingId,
+        provider: process.env.SOONWHY_RCA_PROVIDER ?? 'openai-compatible',
+        model: process.env.SOONWHY_RCA_MODEL ?? 'unknown',
+        promptVersion: process.env.SOONWHY_RCA_PROMPT_VERSION ?? 'unknown',
+        requestDurationMs: 0,
+        retries: 0,
+        errorCode: getRcaErrorCode(error),
+      });
       if (error instanceof Error && error.message === 'RCA provider is not configured') {
         throw new ServiceUnavailableException('RCA provider is not configured');
       }

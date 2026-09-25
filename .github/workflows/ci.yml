@@ -28,9 +28,15 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Lint
         run: pnpm lint
+      - name: Verify migrations
+        run: pnpm verify:migrations
       - name: Test
         run: pnpm test -- --run
       - name: Build
         run: pnpm build
+      - name: Validate Node SDK examples
+        run: |
+          pnpm --dir examples/node install --no-frozen-lockfile --ignore-workspace
+          pnpm --dir examples/node exec tsc -p tsconfig.json --noEmit
       - name: Validate Docker Compose
         run: docker compose config --quiet

@@ -17,13 +17,10 @@ export class ServicesService {
   }
 
   async createService(projectId: string, orgId: string, input: CreateServiceInput) {
-    const existing = await this.servicesRepository.getServiceByProjectAndSlug(
-      projectId,
-      orgId,
-      input.slug,
-    );
+    const existing = await this.servicesRepository.getServiceByProjectAndSlug(projectId, orgId, input.slug);
     if (existing) throw new ConflictException('Service slug already exists in this project');
-    return this.servicesRepository.createService({ projectId, ...input });
+
+    return this.servicesRepository.createService({ projectId, orgId, ...input });
   }
 
   async deleteService(id: string, orgId: string) {

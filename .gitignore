@@ -50,6 +50,3 @@ dist/
 
 # TypeScript incremental build info
 *.tsbuildinfo
-
-doc/
-docs/

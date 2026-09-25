@@ -13,6 +13,12 @@ import { MetricsModule } from './modules/v1/metrics';
 import { RequestsModule } from './modules/v1/requests';
 import { TracesModule } from './modules/v1/traces';
 import { DetectionModule } from './modules/v1/detections';
+import { EnvironmentsModule } from './modules/v1/environments';
+import { TeamsModule } from './modules/v1/teams';
+import { DeploymentsModule } from './modules/v1/deployments';
+import { BusinessOperationsModule } from './modules/v1/business-operations/business-operations.module';
+import { InvestigationModule } from './modules/v1/investigations/investigation.module';
+import { BillingModule } from './modules/v1/billing/billing.module';
 
 @Module({
   imports: [
@@ -30,6 +36,12 @@ import { DetectionModule } from './modules/v1/detections';
     RequestsModule,
     TracesModule,
     DetectionModule,
+    EnvironmentsModule,
+    TeamsModule,
+    DeploymentsModule,
+    BusinessOperationsModule,
+    InvestigationModule,
+    BillingModule,
   ],
 })
 export class AppModule {}

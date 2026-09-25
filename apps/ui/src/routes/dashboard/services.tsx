@@ -13,18 +13,24 @@ export const Route = createFileRoute('/dashboard/services')({
 });
 
 interface Service {
-  service: string;
-  requestCount: number;
-  errorCount: number;
-  avgLatency: number;
+  id: string;
+  name: string;
+  slug: string;
+  language: string | null;
+  framework: string | null;
+  repositoryUrl: string | null;
+  repositoryProvider: string | null;
+  repositoryBranch: string | null;
+  owner: { id: string; name: string | null; email: string } | null;
+  team: { id: string; name: string; slug: string } | null;
 }
 
 function ServiceOverview() {
   const { projectId } = useProject();
 
   const { data: services, isLoading } = useQuery({
-    queryKey: ['dashboard-services', projectId],
-    queryFn: () => api.get<Service[]>(`/dashboard/services?projectId=${projectId}`),
+    queryKey: ['services', projectId],
+    queryFn: () => api.get<Service[]>(`/services?projectId=${projectId}`),
     enabled: !!projectId,
   });
 
@@ -34,17 +40,20 @@ function ServiceOverview() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Services</h2>
+      <div>
+        <h2 className="text-2xl font-bold">Services</h2>
+        <p className="text-sm text-muted-foreground">Application services and their ownership context.</p>
+      </div>
       <Card>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Service</TableHead>
-                <TableHead className="text-right">Requests</TableHead>
-                <TableHead className="text-right">Errors</TableHead>
-                <TableHead className="text-right">Error Rate</TableHead>
-                <TableHead className="text-right">Avg Latency</TableHead>
+                <TableHead>Runtime</TableHead>
+                <TableHead>Repository</TableHead>
+                <TableHead>Owner</TableHead>
+                <TableHead>Team</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -55,18 +64,30 @@ function ServiceOverview() {
               ) : !services || services.length === 0 ? (
                 <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No services found</TableCell></TableRow>
               ) : (
-                services.map((s) => {
-                  const errorRate = s.requestCount > 0 ? Math.round((s.errorCount / s.requestCount) * 10000) / 100 : 0;
-                  return (
-                    <TableRow key={s.service}>
-                      <TableCell className="font-medium">{s.service}</TableCell>
-                      <TableCell className="text-right font-mono text-sm">{s.requestCount.toLocaleString()}</TableCell>
-                      <TableCell className="text-right font-mono text-sm">{s.errorCount.toLocaleString()}</TableCell>
-                      <TableCell className="text-right font-mono text-sm">{errorRate}%</TableCell>
-                      <TableCell className="text-right font-mono text-sm">{Math.round(s.avgLatency)}ms</TableCell>
-                    </TableRow>
-                  );
-                })
+                services.map((service) => (
+                  <TableRow key={service.id}>
+                    <TableCell>
+                      <div className="font-medium">{service.name}</div>
+                      <div className="font-mono text-xs text-muted-foreground">{service.slug}</div>
+                    </TableCell>
+                    <TableCell>
+                      <div>{service.language ?? 'Unknown'}</div>
+                      <div className="text-xs text-muted-foreground">{service.framework ?? 'Framework not set'}</div>
+                    </TableCell>
+                    <TableCell>
+                      {service.repositoryUrl ? (
+                        <a className="text-sm underline underline-offset-4" href={service.repositoryUrl} target="_blank" rel="noreferrer">
+                          {service.repositoryProvider ?? 'Repository'}
+                        </a>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">Not linked</span>
+                      )}
+                      {service.repositoryBranch && <div className="font-mono text-xs text-muted-foreground">{service.repositoryBranch}</div>}
+                    </TableCell>
+                    <TableCell>{service.owner?.name ?? service.owner?.email ?? 'Unassigned'}</TableCell>
+                    <TableCell>{service.team?.name ?? 'Unassigned'}</TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>

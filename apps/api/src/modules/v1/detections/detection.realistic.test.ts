@@ -6,7 +6,12 @@ import type { ProjectsRepository } from '../projects/projects.repository';
 import { DetectionService } from './detection.service';
 import { checkoutRegressionFixture } from './detection.fixtures';
 
-vi.mock('../../../common/db', () => ({ db: { insert: vi.fn() } }));
+vi.mock('../../../common/db', () => ({
+  db: {
+    insert: vi.fn(),
+    update: vi.fn(),
+  },
+}));
 
 describe('DetectionService realistic telemetry scenarios', () => {
   const search = vi.fn();
@@ -36,6 +41,17 @@ describe('DetectionService realistic telemetry scenarios', () => {
           evidence: input.evidence ?? [],
         }]),
       })),
+    } as never));
+
+    vi.mocked(db.update).mockImplementation(() => ({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{
+            id: 'run-1',
+            status: 'completed',
+          }]),
+        }),
+      }),
     } as never));
   });
 

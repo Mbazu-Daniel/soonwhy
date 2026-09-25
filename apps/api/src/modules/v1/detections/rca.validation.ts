@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { RcaAnalysis, RcaEvidence } from './rca.types';
+import { validateRcaQuality } from './rca.quality';
 
 const RcaString = z.string().trim().min(1).max(4_000);
 
@@ -29,6 +30,7 @@ export function validateRcaAnalysis(
     }
   }
 
+  validateRcaQuality(parsed, evidence);
   return parsed;
 }
 
