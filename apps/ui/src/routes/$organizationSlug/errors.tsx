@@ -13,7 +13,7 @@ interface ErrorEntry { fingerprint: string; errorMessage: string; errorType: str
 
 function ErrorOverview() {
   const { projectId } = useProject();
-  const { data: errors, isLoading, isError, refetch } = useQuery({ queryKey: ['dashboard-errors', projectId], queryFn: () => api.get<ErrorEntry[]>(`/$organizationSlug/dashboard/errors?projectId=${projectId}`), enabled: !!projectId });
+  const { data: errors, isLoading, isError, refetch } = useQuery({ queryKey: ['dashboard-errors', projectId], queryFn: () => api.get<ErrorEntry[]>(`/dashboard/errors?projectId=${projectId}`), enabled: !!projectId });
   const totalErrors = errors?.reduce((sum, error) => sum + error.count, 0) ?? 0;
   if (!projectId) return <EmptyProject />;
   if (isError) return <QueryErrorState onRetry={() => void refetch()} />;
