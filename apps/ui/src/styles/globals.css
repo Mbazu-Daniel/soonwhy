@@ -278,3 +278,42 @@ pre {
     transition: none !important;
   }
 }
+
+
+.dashboard-shell > header,
+.dashboard-shell > div > aside,
+.dashboard-shell > div > main > * {
+  --color-background: #080b07;
+}
+
+.dashboard-shell > header,
+.dashboard-shell aside {
+  background: #0d120c !important;
+  border-color: rgba(255,255,255,.08) !important;
+  color: rgba(255,255,255,.9);
+}
+
+.dashboard-shell aside :where(.text-muted-foreground),
+.dashboard-shell > header :where(.text-muted-foreground) {
+  color: rgba(255,255,255,.45) !important;
+}
+
+.dashboard-shell aside :where(.bg-secondary) {
+  background: rgba(255,255,255,.045) !important;
+  color: rgba(255,255,255,.88) !important;
+}
+
+.dashboard-shell aside :where([class*="hover\\:bg-secondary"]):hover {
+  background: rgba(255,255,255,.055) !important;
+  color: #fff !important;
+}
+
+.dashboard-shell > header :where([class*="bg-\\[\\#F7FAF4\\]"]) {
+  background: rgba(255,255,255,.035) !important;
+  border-color: rgba(255,255,255,.09) !important;
+  color: rgba(255,255,255,.85) !important;
+}
+
+.dashboard-shell .font-mono {
+  color: inherit;
+}
