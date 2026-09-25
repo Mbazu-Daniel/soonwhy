@@ -18,16 +18,9 @@ CREATE TABLE IF NOT EXISTS "rca_analyses" (
   "model" text NOT NULL,
   "prompt_version" text NOT NULL,
   "created_at" timestamp DEFAULT now() NOT NULL,
-  CONSTRAINT "rca_analyses_org_id_organizations_id_fk"
-    FOREIGN KEY ("org_id") REFERENCES "public"."organizations"("id") ON DELETE cascade,
-  CONSTRAINT "rca_analyses_project_id_projects_id_fk"
-    FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade,
-  CONSTRAINT "rca_analyses_finding_id_findings_id_fk"
-    FOREIGN KEY ("finding_id") REFERENCES "public"."findings"("id") ON DELETE cascade
+  CONSTRAINT "rca_analyses_org_id_organizations_id_fk" FOREIGN KEY ("org_id") REFERENCES "public"."organizations"("id") ON DELETE cascade,
+  CONSTRAINT "rca_analyses_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade,
+  CONSTRAINT "rca_analyses_finding_id_findings_id_fk" FOREIGN KEY ("finding_id") REFERENCES "public"."findings"("id") ON DELETE cascade
 );
-
-CREATE INDEX IF NOT EXISTS "rca_analyses_org_project_finding_idx"
-  ON "rca_analyses" USING btree ("org_id", "project_id", "finding_id");
-
-CREATE INDEX IF NOT EXISTS "rca_analyses_created_at_idx"
-  ON "rca_analyses" USING btree ("created_at");
+CREATE INDEX IF NOT EXISTS "rca_analyses_org_project_finding_idx" ON "rca_analyses" USING btree ("org_id", "project_id", "finding_id");
+CREATE INDEX IF NOT EXISTS "rca_analyses_created_at_idx" ON "rca_analyses" USING btree ("created_at");
