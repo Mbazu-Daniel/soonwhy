@@ -13,7 +13,9 @@ export class LogsService {
     let cursor: { ts: string; id: string } | undefined;
     if (input.cursor) {
       try {
-        const decoded = JSON.parse(Buffer.from(input.cursor, 'base64').toString('utf-8'));
+        const decoded = JSON.parse(
+          Buffer.from(input.cursor, 'base64').toString('utf-8'),
+        );
         cursor = { ts: decoded.ts, id: decoded.id };
       } catch {
         cursor = undefined;
@@ -37,7 +39,10 @@ export class LogsService {
       let attributes: Record<string, unknown> = {};
       if (typeof r.attributes === 'string') {
         try {
-          attributes = JSON.parse(r.attributes || '{}') as Record<string, unknown>;
+          attributes = JSON.parse(r.attributes || '{}') as Record<
+            string,
+            unknown
+          >;
         } catch {
           attributes = {};
         }
