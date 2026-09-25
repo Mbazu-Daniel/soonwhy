@@ -20,6 +20,11 @@ import { Route as DashboardLayoutRouteImport } from './routes/dashboard/layout'
 import { Route as DashboardLogsRouteImport } from './routes/dashboard/logs'
 import { Route as DashboardServicesRouteImport } from './routes/dashboard/services'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
+import { Route as DashboardServiceServiceIdRouteImport } from './routes/dashboard/service.$serviceId'
+import { Route as DashboardTracesRouteImport } from './routes/dashboard/traces'
+import { Route as DashboardTraceTraceIdRouteImport } from './routes/dashboard/trace.$traceId'
+import { Route as DashboardInvestigationsRouteImport } from './routes/dashboard/investigations'
+import { Route as DashboardInvestigationsInvestigationIdRouteImport } from './routes/dashboard/investigations.$investigationId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -76,6 +81,31 @@ const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
   path: '/dashboard/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardServiceServiceIdRoute = DashboardServiceServiceIdRouteImport.update({
+  id: '/dashboard/service/$serviceId',
+  path: '/dashboard/service/$serviceId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardTracesRoute = DashboardTracesRouteImport.update({
+  id: '/dashboard/traces',
+  path: '/dashboard/traces',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardTraceTraceIdRoute = DashboardTraceTraceIdRouteImport.update({
+  id: '/dashboard/trace/$traceId',
+  path: '/dashboard/trace/$traceId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardInvestigationsRoute = DashboardInvestigationsRouteImport.update({
+  id: '/dashboard/investigations',
+  path: '/dashboard/investigations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardInvestigationsInvestigationIdRoute = DashboardInvestigationsInvestigationIdRouteImport.update({
+  id: '/dashboard/investigations/$investigationId',
+  path: '/dashboard/investigations/$investigationId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -88,7 +118,22 @@ export interface FileRoutesByFullPath {
   '/dashboard/logs': typeof DashboardLogsRoute
   '/dashboard/services': typeof DashboardServicesRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/service/$serviceId': typeof DashboardServiceServiceIdRoute
+  '/dashboard/traces': typeof DashboardTracesRoute
+  '/dashboard/trace/$traceId': typeof DashboardTraceTraceIdRoute
+  '/dashboard/investigations': typeof DashboardInvestigationsRoute
+  '/dashboard/investigations/$investigationId': typeof DashboardInvestigationsInvestigationIdRoute
+  '/dashboard/service/$serviceId': typeof DashboardServiceServiceIdRoute
+  '/dashboard/traces': typeof DashboardTracesRoute
+  '/dashboard/trace/$traceId': typeof DashboardTraceTraceIdRoute
+  '/dashboard/investigations': typeof DashboardInvestigationsRoute
+  '/dashboard/investigations/$investigationId': typeof DashboardInvestigationsInvestigationIdRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/service/$serviceId': typeof DashboardServiceServiceIdRoute
+  '/dashboard/traces': typeof DashboardTracesRoute
+  '/dashboard/trace/$traceId': typeof DashboardTraceTraceIdRoute
+  '/dashboard/investigations': typeof DashboardInvestigationsRoute
+  '/dashboard/investigations/$investigationId': typeof DashboardInvestigationsInvestigationIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -170,6 +215,11 @@ export interface RootRouteChildren {
   DashboardServicesRoute: typeof DashboardServicesRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardServiceServiceIdRoute: typeof DashboardServiceServiceIdRoute
+  DashboardTracesRoute: typeof DashboardTracesRoute
+  DashboardTraceTraceIdRoute: typeof DashboardTraceTraceIdRoute
+  DashboardInvestigationsRoute: typeof DashboardInvestigationsRoute
+  DashboardInvestigationsInvestigationIdRoute: typeof DashboardInvestigationsInvestigationIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -266,6 +316,11 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardServicesRoute: DashboardServicesRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
+  DashboardServiceServiceIdRoute: DashboardServiceServiceIdRoute,
+  DashboardTracesRoute: DashboardTracesRoute,
+  DashboardTraceTraceIdRoute: DashboardTraceTraceIdRoute,
+  DashboardInvestigationsRoute: DashboardInvestigationsRoute,
+  DashboardInvestigationsInvestigationIdRoute: DashboardInvestigationsInvestigationIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
