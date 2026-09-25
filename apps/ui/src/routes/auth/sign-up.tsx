@@ -4,7 +4,7 @@ import { ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
-import { AuthDivider, SocialButtons } from '~/components/auth/social-buttons';
+import { SocialButtons } from '~/components/auth/social-buttons';
 import { signUp } from '~/lib/auth-client';
 
 export const Route = createFileRoute('/auth/sign-up')({ component: SignUp });
@@ -46,8 +46,7 @@ function SignUp() {
           <p className="mt-2 text-sm leading-6 text-muted-foreground">Your organization is created automatically when your account is created.</p>
           <div className="mt-7">
             <SocialButtons />
-            <AuthDivider />
-            <form onSubmit={handleSubmit} className="space-y-5">
+                  <form onSubmit={handleSubmit} className="space-y-5">
               {error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">{error}</div>}
               <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@company.com" /></div>
               <div className="space-y-2">
