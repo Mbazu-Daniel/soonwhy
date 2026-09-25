@@ -113,7 +113,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/organizations': typeof OrganizationsRoute
   '/onboarding': typeof OnboardingRoute
-  '/onboarding': typeof OnboardingRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/dashboard/errors': typeof DashboardErrorsRoute
@@ -151,6 +150,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/onboarding': typeof OnboardingRoute
   '/organizations': typeof OrganizationsRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
@@ -172,6 +172,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/organizations'
+    | '/onboarding'
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/dashboard/errors'
@@ -190,6 +191,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/organizations'
+    | '/onboarding'
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/dashboard/errors'
@@ -207,6 +209,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/onboarding'
     | '/organizations'
     | '/auth/sign-in'
     | '/auth/sign-up'
@@ -227,6 +230,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OrganizationsRoute: typeof OrganizationsRoute
+  OnboardingRoute: typeof OnboardingRoute
   AuthSignInRoute: typeof AuthSignInRoute
   AuthSignUpRoute: typeof AuthSignUpRoute
   DashboardErrorsRoute: typeof DashboardErrorsRoute
