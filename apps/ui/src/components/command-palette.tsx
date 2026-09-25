@@ -89,6 +89,7 @@ export function CommandPalette() {
         <span>Search telemetry</span>
         <kbd className="ml-3 rounded border bg-white px-1.5 py-0.5 text-[10px]">⌘K</kbd>
       </Button>
+      <Button variant="outline" size="icon" onClick={() => setOpen(true)} className="md:hidden h-9 w-9 bg-[#F7FAF4] border-[#DBE5D7]" aria-label="Open command palette"><Search className="h-4 w-4" /></Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-xl gap-0 overflow-hidden p-0">
           <DialogTitle className="sr-only">SoonWhy command palette</DialogTitle>
