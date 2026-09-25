@@ -23,13 +23,13 @@ export function Sidebar() {
 
   return (
     <>
-      <div className={open ? 'fixed inset-0 z-40 bg-[#182012]/30 lg:hidden' : 'hidden'} onClick={close} aria-hidden="true" />
-      <aside className={cn('w-64 shrink-0 border-r border-[#DBE5D7] bg-white flex flex-col fixed inset-y-0 left-0 z-50 transition-transform duration-200 lg:static lg:translate-x-0', open ? 'translate-x-0' : '-translate-x-full')} aria-label="Primary navigation">
-        <div className="h-16 border-b border-[#EEF2EA] px-4 flex items-center">
+      <div className={open ? 'fixed inset-0 z-40 bg-[#0B0B0C]/30 lg:hidden' : 'hidden'} onClick={close} aria-hidden="true" />
+      <aside className={cn('w-64 shrink-0 border-r border-[#242426] bg-[#040405] flex flex-col fixed inset-y-0 left-0 z-50 transition-transform duration-200 lg:static lg:translate-x-0', open ? 'translate-x-0' : '-translate-x-full')} aria-label="Primary navigation">
+        <div className="h-16 border-b border-[#1B1B1D] px-4 flex items-center">
           <Link to="/$organizationSlug/dashboard" params={{ organizationSlug: orgSlug }} onClick={close} className="flex w-full items-center gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#182012] text-sm font-bold text-[#8BD125]">S</span>
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#0B0B0C] text-sm font-bold text-[#ACFC15]">S</span>
             <span className="min-w-0">
-              <span className="block text-sm font-semibold tracking-tight text-[#182012]">SoonWhy</span>
+              <span className="block text-sm font-semibold tracking-tight text-[#F6F6F6]">SoonWhy</span>
               <span className="block truncate text-[10px] uppercase tracking-[.12em] text-[#98A292]">Observability</span>
             </span>
           </Link>
@@ -47,24 +47,24 @@ export function Sidebar() {
                   to={item.to}
                   params={{ organizationSlug: orgSlug }}
                   onClick={close}
-                  className={cn('group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors', active ? 'bg-[#182012] text-white' : 'text-[#687462] hover:bg-[#F1F5EE] hover:text-[#182012]')}
+                  className={cn('group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors', active ? 'bg-[#0B0B0C] text-white' : 'text-[#989898] hover:bg-[#151517] hover:text-[#F6F6F6]')}
                   aria-current={active ? 'page' : undefined}
                 >
-                  <item.icon className={cn('h-[17px] w-[17px] shrink-0', active ? 'text-[#8BD125]' : 'text-[#7A8574]')} />
+                  <item.icon className={cn('h-[17px] w-[17px] shrink-0', active ? 'text-[#ACFC15]' : 'text-[#6E6E70]')} />
                   <span className="flex-1">{item.label}</span>
-                  {active && <ChevronRight className="h-3.5 w-3.5 text-[#8BD125]" />}
+                  {active && <ChevronRight className="h-3.5 w-3.5 text-[#ACFC15]" />}
                 </Link>
               );
             })}
           </nav>
         </div>
 
-        <div className="mt-auto space-y-1 border-t border-[#EEF2EA] p-3">
-          <Link to="/$organizationSlug/settings" params={{ organizationSlug: orgSlug }} onClick={close} className={cn('flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium', location.pathname.startsWith(`/${orgSlug}/settings`) ? 'bg-[#F1F5EE] text-[#182012]' : 'text-[#687462] hover:bg-[#F1F5EE] hover:text-[#182012]')}>
+        <div className="mt-auto space-y-1 border-t border-[#1B1B1D] p-3">
+          <Link to="/$organizationSlug/settings" params={{ organizationSlug: orgSlug }} onClick={close} className={cn('flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium', location.pathname.startsWith(`/${orgSlug}/settings`) ? 'bg-[#151517] text-[#F6F6F6]' : 'text-[#989898] hover:bg-[#151517] hover:text-[#F6F6F6]')}>
             <Settings className="h-[17px] w-[17px]" />
             Setup
           </Link>
-          <Link to="/$organizationSlug" params={{ organizationSlug: orgSlug }} onClick={close} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-[#687462] hover:bg-[#F1F5EE] hover:text-[#182012]">
+          <Link to="/$organizationSlug" params={{ organizationSlug: orgSlug }} onClick={close} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-[#989898] hover:bg-[#151517] hover:text-[#F6F6F6]">
             <ArrowLeft className="h-[17px] w-[17px]" />
             Workspace
           </Link>
