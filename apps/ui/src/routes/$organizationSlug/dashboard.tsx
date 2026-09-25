@@ -46,7 +46,7 @@ function DashboardOverviewPage() {
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[#989898]">A quiet overview of traffic, reliability and the evidence SoonWhy has connected across your services.</p>
           </div>
           <div className="flex items-center gap-2 rounded-full border border-[#242426] bg-[#0B0B0C] px-3 py-2 text-xs text-[#989898] shadow-[0_1px_2px_rgba(24,32,18,.03)]">
-            <span className="h-2 w-2 rounded-full bg-[#8BD125]" />
+            <span className="h-2 w-2 rounded-full bg-[#ACFC15]" />
             Last 24 hours
           </div>
         </header>
@@ -72,7 +72,7 @@ function DashboardOverviewPage() {
                 <div className="flex h-[260px] items-end gap-2 border-b border-[#1B1B1D] pb-0">
                   {[36,48,43,62,56,70,64,76,68,82,74,88,80,91,84,96,87,78,86,72,81,67,75,63].map((height, index) => (
                     <div key={index} className="group flex h-full flex-1 items-end">
-                      <div className="w-full rounded-t-[5px] bg-[#C9E7EB] transition-colors group-hover:bg-[#8BD125]" style={{ height: `${height}%` }} />
+                      <div className="w-full rounded-t-[5px] bg-[#415312] transition-colors group-hover:bg-[#ACFC15]" style={{ height: `${height}%` }} />
                     </div>
                   ))}
                 </div>
@@ -100,7 +100,7 @@ function DashboardOverviewPage() {
                 <p className={`mt-3 text-sm font-medium ${healthTone.replace('text-[#ACFC15]', 'text-[#8BD125]').replace('text-[#9A6500]', 'text-[#F2C66D]').replace('text-[#8A1C13]', 'text-[#F28B82]')}`}>{health}</p>
               </div>
               <div className="mt-auto pt-10">
-                <div className="h-2 overflow-hidden rounded-full bg-[#0B0B0C]/10"><div className="h-full rounded-full bg-[#8BD125]" style={{ width: `${Math.min(100, score)}%` }} /></div>
+                <div className="h-2 overflow-hidden rounded-full bg-[#0B0B0C]/10"><div className="h-full rounded-full bg-[#ACFC15]" style={{ width: `${Math.min(100, score)}%` }} /></div>
                 <p className="mt-3 text-xs leading-5 text-white/50">Based on latency, error rate and throughput signals from the current project.</p>
               </div>
             </CardContent>
@@ -144,7 +144,7 @@ function Metric({ label, value, suffix, icon: Icon, detail, tone }: { label:stri
 
 function Mini({ label, value }: { label:string; value:string }) { return <div><p className="text-[10px] uppercase tracking-[.12em] text-[#6E6E70]">{label}</p><p className="mt-1 text-sm font-semibold text-[#F6F6F6]">{value}</p></div>; }
 function Attention({ icon:Icon, title, detail, tone }: { icon:typeof CheckCircle2; title:string; detail:string; tone?:'ok' }) { return <div className="flex items-start gap-3 px-5 py-4 sm:px-6"><span className={tone === 'ok' ? 'grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#EEF7E4] text-[#ACFC15]' : 'grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#EAF3F4] text-[#26737A]'}><Icon className="h-4 w-4"/></span><div><p className="text-sm font-medium">{title}</p><p className="mt-1 text-xs leading-5 text-[#989898]">{detail}</p></div></div>; }
-function QuickLink({ href, params, icon:Icon, label }: { href:'/$organizationSlug/services'|'/$organizationSlug/traces'|'/$organizationSlug/logs'|'/$organizationSlug/investigations'; params:{organizationSlug:string}; icon:typeof Server; label:string }) { return <Link to={href} params={params} className="flex items-center gap-3 bg-[#0B0B0C] px-5 py-4 text-sm font-medium hover:bg-[#040405]"><span className="grid h-8 w-8 place-items-center rounded-lg bg-[#F1F5EE] text-[#ACFC15]"><Icon className="h-4 w-4"/></span>{label}<ArrowUpRight className="ml-auto h-3.5 w-3.5 text-[#6E6E70]"/></Link>; }
+function QuickLink({ href, params, icon:Icon, label }: { href:'/$organizationSlug/services'|'/$organizationSlug/traces'|'/$organizationSlug/logs'|'/$organizationSlug/investigations'; params:{organizationSlug:string}; icon:typeof Server; label:string }) { return <Link to={href} params={params} className="flex items-center gap-3 bg-[#0B0B0C] px-5 py-4 text-sm font-medium hover:bg-[#040405]"><span className="grid h-8 w-8 place-items-center rounded-lg bg-[#151517] text-[#ACFC15]"><Icon className="h-4 w-4"/></span>{label}<ArrowUpRight className="ml-auto h-3.5 w-3.5 text-[#6E6E70]"/></Link>; }
 function EmptyProject(){return <Card className="rounded-2xl border-dashed border-[#242426] bg-[#0B0B0C]"><CardContent className="p-12 text-center"><Server className="mx-auto h-6 w-6 text-[#ACFC15]"/><p className="mt-3 text-sm font-medium">Choose a project</p><p className="mt-1 text-xs text-[#989898]">Select a project from the top bar to start exploring telemetry.</p></CardContent></Card>;}
 function OverviewSkeleton(){return <div className="p-6 sm:p-8"><div className="mx-auto max-w-[1480px] space-y-6"><Skeleton className="h-10 w-72"/><Skeleton className="h-4 w-96 max-w-full"/><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[1,2,3,4].map(i=><Skeleton key={i} className="h-32 rounded-2xl"/>)}</div><Skeleton className="h-[390px] rounded-2xl"/></div></div>;}
 function formatNumber(value:number|undefined){return value == null ? '—' : value.toLocaleString();}
