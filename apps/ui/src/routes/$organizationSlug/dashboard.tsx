@@ -126,7 +126,7 @@ function DashboardOverviewPage() {
               <div className="border-b border-[#EEF2EA] px-5 py-5 sm:px-6"><h2 className="text-sm font-semibold">Explore evidence</h2><p className="mt-1 text-xs text-[#7A8574]">Jump into the signals behind your system</p></div>
               <div className="grid grid-cols-2 gap-px bg-[#EEF2EA]">
                 <QuickLink href="/$organizationSlug/services" params={{ organizationSlug }} icon={Server} label="Services" />
-                <QuickLink href="/$organizationSlug/dashboard/traces" params={{ organizationSlug }} icon={GitBranch} label="Traces" />
+                <QuickLink href="/$organizationSlug/traces" params={{ organizationSlug }} icon={GitBranch} label="Traces" />
                 <QuickLink href="/$organizationSlug/dashboard/logs" params={{ organizationSlug }} icon={Activity} label="Logs" />
                 <QuickLink href="/$organizationSlug/dashboard/investigations" params={{ organizationSlug }} icon={BrainCircuit} label="Investigate" />
               </div>
