@@ -9,6 +9,7 @@ const navItems = [
   { to: '/$organizationSlug/services', label: 'Services', icon: Server },
   { to: '/$organizationSlug/detections', label: 'Detections', icon: BrainCircuit },
   { to: '/$organizationSlug/investigations', label: 'Investigations', icon: ShieldCheck },
+  { to: '/$organizationSlug/ai', label: 'AI Agent', icon: BrainCircuit },
   { to: '/$organizationSlug/errors', label: 'Errors', icon: AlertTriangle },
   { to: '/$organizationSlug/logs', label: 'Logs', icon: ScrollText },
   { to: '/$organizationSlug/traces', label: 'Traces', icon: GitBranch },
