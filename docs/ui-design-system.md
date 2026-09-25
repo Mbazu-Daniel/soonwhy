@@ -35,39 +35,36 @@ Critical states use an accessible red token and are paired with icons/labels. Do
 
 ## Phase B — complete
 
-### Service workflow
-- Service inventory with runtime, repository, owner and team context.
-- Service detail route with source metadata, ownership and live telemetry context.
-- Recent grouped errors and recent logs on the service detail surface.
+- Service inventory and service detail.
+- Detection queue, evidence and RCA.
+- Error groups and log explorer.
+- Trace explorer and span waterfall.
+- Service-to-error/log and trace-to-span/event correlation.
 
-### Detection workflow
-- Evidence-first detection queue.
-- Finding detail with observed values, thresholds and evidence.
-- RCA generation, history, confidence, provider/model metadata and limitations.
+## Phase C — complete
 
-### Error workflow
-- Error groups with frequency, affected service and last-seen context.
+### Investigation workspace
+- Dedicated investigation index with search and case status.
+- Investigation detail route for an evidence-backed incident/case.
 
-### Log workflow
-- Search and level filtering.
-- Structured attribute expansion.
-- Cursor pagination.
+### Timeline
+- Ordered detection, trace, error, log and deployment events.
+- Explicit timestamps, service context, severity and source identifiers.
+- Timeline remains descriptive and does not turn temporal correlation into causation.
 
-### Trace workflow
-- Trace explorer with trace ID, root operation/service, duration, span count and status.
-- Trace detail waterfall with parent/child visual hierarchy, span timing, status, events and selected attributes.
+### Evidence graph
+- Evidence nodes expose their source labels and values.
+- Correlation context is visually separated from deterministic evidence.
+- Source IDs are preserved for future deep-linking.
 
-### Correlated telemetry
-- Service detail connects errors and recent logs to the service context.
-- Trace detail exposes span events and attributes as investigation evidence.
-- All workflows preserve real API contracts and do not invent telemetry for empty states.
+### Change context
+- Deployment/source-change records appear beside telemetry evidence.
+- Missing change data is explicitly represented rather than fabricated.
 
-## Phase C — investigation workflow
-
-- Investigation timeline.
-- Evidence graph and correlation panels.
-- Deployment/change context.
-- Shareable investigation URLs.
+### Shareable investigations
+- Investigation URLs are stable route-based resources.
+- Share action copies the current investigation URL to the clipboard.
+- Shared investigations preserve project/case context through the URL.
 
 ## Phase D — polish
 
