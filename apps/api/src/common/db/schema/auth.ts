@@ -30,3 +30,11 @@ export const sessions = pgTable('sessions', {
   expiresAt: timestamp('expires_at').notNull(),
   createdAt: timestamp('created_at').defaultNow(),
 });
+
+export const members = pgTable('members', {
+  id: text('id').primaryKey().$defaultFn(() => generateId()),
+  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  organizationId: text('organization_id').references(() => organizations.id, { onDelete: 'cascade' }).notNull(),
+  role: text('role').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
