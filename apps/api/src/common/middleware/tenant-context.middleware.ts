@@ -3,6 +3,7 @@ import { Request, Response, NextFunction } from 'express';
 import { auth } from '../config/better-auth.config';
 import { db } from '../db';
 import { sql } from 'drizzle-orm';
+import { organizationIdFromUrl } from './organization-path';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const authApi = auth.api as any;
@@ -42,9 +43,13 @@ export class TenantContextMiddleware implements NestMiddleware {
 
     req.user = session.user;
 
-    const orgId = req.headers['x-org-id'] as string || req.query.org_id as string;
-
+    const orgId = organizationIdFromUrl(req.originalUrl || req.url);
     if (orgId) {
+      const headerOrg = headerValue(req.headers['x-org-id']);
+      if (headerOrg && headerOrg !== orgId) {
+        throw new UnauthorizedException('X-Org-Id does not match the organization in the path');
+      }
+
       const member = await authApi.getActiveMember({
         headers: { authorization: `Bearer ${token}` },
       });
@@ -63,4 +68,9 @@ export class TenantContextMiddleware implements NestMiddleware {
 
     next();
   }
+}
+
+function headerValue(value: string | string[] | undefined): string | undefined {
+  if (Array.isArray(value)) return value[0];
+  return value;
 }

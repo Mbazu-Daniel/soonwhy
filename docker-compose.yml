@@ -100,7 +100,6 @@ services:
       quickwit: {condition: service_healthy}
       nats: {condition: service_healthy}
     ports: ["3001:3001"]
-    command: ["sh", "-c", "pnpm --filter @soonwhy/backend exec drizzle-kit push --force && pnpm --filter @soonwhy/backend start:prod"]
 
   ingest:
     build: {context: ., target: ingest}

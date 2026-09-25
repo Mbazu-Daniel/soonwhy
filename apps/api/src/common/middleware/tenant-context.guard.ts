@@ -6,7 +6,7 @@ export class TenantGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
 
     if (!request.orgId) {
-      throw new UnauthorizedException('Organization context required. Set X-Org-Id header.');
+      throw new UnauthorizedException('Organization context required.');
     }
 
     return true;
