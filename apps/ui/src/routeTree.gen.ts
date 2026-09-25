@@ -15,6 +15,7 @@ import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardErrorsRouteImport } from './routes/dashboard/errors'
+import { Route as DashboardDetectionsRouteImport } from './routes/dashboard/detections'
 import { Route as DashboardLayoutRouteImport } from './routes/dashboard/layout'
 import { Route as DashboardLogsRouteImport } from './routes/dashboard/logs'
 import { Route as DashboardServicesRouteImport } from './routes/dashboard/services'
@@ -43,6 +44,11 @@ const AuthSignUpRoute = AuthSignUpRouteImport.update({
 const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/dashboard/',
   path: '/dashboard/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardDetectionsRoute = DashboardDetectionsRouteImport.update({
+  id: '/dashboard/detections',
+  path: '/dashboard/detections',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardErrorsRoute = DashboardErrorsRouteImport.update({
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/dashboard/errors': typeof DashboardErrorsRoute
+  '/dashboard/detections': typeof DashboardDetectionsRoute
   '/dashboard/layout': typeof DashboardLayoutRoute
   '/dashboard/logs': typeof DashboardLogsRoute
   '/dashboard/services': typeof DashboardServicesRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/dashboard/errors': typeof DashboardErrorsRoute
+  '/dashboard/detections': typeof DashboardDetectionsRoute
   '/dashboard/layout': typeof DashboardLayoutRoute
   '/dashboard/logs': typeof DashboardLogsRoute
   '/dashboard/services': typeof DashboardServicesRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/dashboard/errors': typeof DashboardErrorsRoute
+  '/dashboard/detections': typeof DashboardDetectionsRoute
   '/dashboard/layout': typeof DashboardLayoutRoute
   '/dashboard/logs': typeof DashboardLogsRoute
   '/dashboard/services': typeof DashboardServicesRoute
@@ -116,6 +125,7 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/dashboard/errors'
+    | '/dashboard/detections'
     | '/dashboard/layout'
     | '/dashboard/logs'
     | '/dashboard/services'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/dashboard/errors'
+    | '/dashboard/detections'
     | '/dashboard/layout'
     | '/dashboard/logs'
     | '/dashboard/services'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/dashboard/errors'
+    | '/dashboard/detections'
     | '/dashboard/layout'
     | '/dashboard/logs'
     | '/dashboard/services'
@@ -197,6 +209,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/detections': {
+      id: '/dashboard/detections'
+      path: '/dashboard/detections'
+      fullPath: '/dashboard/detections'
+      preLoaderRoute: typeof DashboardDetectionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/errors': {
       id: '/dashboard/errors'
       path: '/dashboard/errors'
@@ -241,6 +260,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthSignInRoute: AuthSignInRoute,
   AuthSignUpRoute: AuthSignUpRoute,
   DashboardErrorsRoute: DashboardErrorsRoute,
+  DashboardDetectionsRoute: DashboardDetectionsRoute,
   DashboardLayoutRoute: DashboardLayoutRoute,
   DashboardLogsRoute: DashboardLogsRoute,
   DashboardServicesRoute: DashboardServicesRoute,

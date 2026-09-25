@@ -20,7 +20,7 @@ function sanitizeString(value: string): string {
 }
 
 export function sanitizeRcaValue(value: unknown, key?: string): unknown {
-  if (key && SENSITIVE_KEY.test(key) && (typeof value !== 'object' || value === null)) return '[redacted]';
+  if (key && SENSITIVE_KEY.test(key)) return '[redacted]';
 
   if (typeof value === 'string') return sanitizeString(value);
   if (typeof value === 'number' || typeof value === 'boolean' || value === null) return value;
