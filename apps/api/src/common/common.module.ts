@@ -11,9 +11,9 @@ export class CommonModule implements NestModule {
     consumer
       .apply(TenantContextMiddleware)
       .forRoutes(
-        { path: 'v1/(.*)', method: RequestMethod.ALL },
-        { path: 'organizations(.*)', method: RequestMethod.ALL },
-        { path: 'projects(.*)', method: RequestMethod.ALL },
+        { path: 'v1/{*path}', method: RequestMethod.ALL },
+        { path: 'organizations{/*path}', method: RequestMethod.ALL },
+        { path: 'projects{/*path}', method: RequestMethod.ALL },
       );
   }
 }

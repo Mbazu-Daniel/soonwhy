@@ -8,7 +8,6 @@ WORKDIR /app
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY apps ./apps
 COPY packages ./packages
-COPY tsconfig.json ./tsconfig.json
 RUN pnpm install --frozen-lockfile
 
 FROM base AS api
@@ -26,6 +25,10 @@ RUN pnpm --filter @soonwhy/shared build && pnpm --filter @soonwhy/cron build
 CMD ["pnpm", "--filter", "@soonwhy/cron", "start:prod"]
 
 FROM base AS ui
+ARG VITE_API_URL=http://localhost:3001
+ENV VITE_API_URL=$VITE_API_URL
+ENV HOST=0.0.0.0
+ENV PORT=3000
 RUN pnpm --filter @soonwhy/frontend build
 EXPOSE 3000
 CMD ["pnpm", "--filter", "@soonwhy/frontend", "start"]
