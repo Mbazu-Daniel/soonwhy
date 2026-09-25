@@ -10,7 +10,7 @@ const navItems = [
   { to: '/$organizationSlug/detections', label: 'Detections', icon: BrainCircuit },
   { to: '/$organizationSlug/investigations', label: 'Investigations', icon: ShieldCheck },
   { to: '/$organizationSlug/errors', label: 'Errors', icon: AlertTriangle },
-  { to: '/$organizationSlug/dashboard/logs', label: 'Logs', icon: ScrollText },
+  { to: '/$organizationSlug/logs', label: 'Logs', icon: ScrollText },
   { to: '/$organizationSlug/dashboard/traces', label: 'Traces', icon: GitBranch },
 ] as const;
 
