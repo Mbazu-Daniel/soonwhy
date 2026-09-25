@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import {
   Activity,
   ArrowRight,
@@ -376,7 +376,7 @@ function CopyReveal({ words, accentFrom = -1 }: { words: string[]; accentFrom?: 
         <span
           key={`${word}-${index}`}
           className={`copy-reveal-word${index >= accentFrom ? ' accent' : ''}`}
-          style={{ '--copy-index': index } as React.CSSProperties}
+          style={{ '--copy-index': index } as CSSProperties}
           aria-hidden="true"
         >
           {word}
