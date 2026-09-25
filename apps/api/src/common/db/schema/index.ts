@@ -1,4 +1,4 @@
-export { users, accounts, sessions } from './auth';
+export { users, accounts, sessions, members } from './auth';
 export { organizations } from './organizations';
 export { projects } from './projects';
 export { services } from './services';
