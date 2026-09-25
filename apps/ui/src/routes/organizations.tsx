@@ -22,7 +22,7 @@ function Organizations() {
   useEffect(() => {
     if (!organization) return;
     setOrganization(organization);
-    void navigate({ to: '/$organizationSlug', params: { organizationSlug: organization.slug }, replace: true });
+    void navigate({ to: '/$organizationSlug/dashboard', params: { organizationSlug: organization.slug }, replace: true });
   }, [organization, navigate, setOrganization]);
 
   if (organizations.isLoading || organization) {
