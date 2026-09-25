@@ -13,6 +13,11 @@ export class DashboardController {
     return this.dashboardService.getOverview(org.orgId, projectId);
   }
 
+  @Get('telemetry-status')
+  async getTelemetryStatus(@CurrentOrg() org: OrgContext, @Query('projectId') projectId: string) {
+    return this.dashboardService.getTelemetryStatus(org.orgId, projectId);
+  }
+
   @Get('services')
   async getServices(@CurrentOrg() org: OrgContext, @Query('projectId') projectId: string) {
     return this.dashboardService.getServices(org.orgId, projectId);
