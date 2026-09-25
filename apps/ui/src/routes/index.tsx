@@ -220,15 +220,15 @@ function Home() {
               </Link>
             </div>
 
-            <div className="mt-14 grid overflow-hidden rounded-2xl border border-white/10 bg-[#111711] md:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-14">
               {features.map(({ icon: Icon, title, text }, index) => (
-                <div key={title} className="border-b border-white/10 p-7 md:border-r md:last:border-r-0 lg:border-b-0">
-                  <div className="flex items-center justify-between">
-                    <Icon className="h-5 w-5 text-[#8BD125]" />
+                <div key={title} className="feature-row editorial-line grid gap-6 py-8 md:grid-cols-[72px_1fr_1.15fr] md:items-center">
+                  <div className="flex items-center gap-4">
                     <span className="font-mono text-[10px] text-white/25">0{index + 1}</span>
+                    <Icon className="h-4 w-4 text-[#8BD125]" />
                   </div>
-                  <h3 className="mt-10 text-lg font-semibold">{title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-white/40">{text}</p>
+                  <h3 className="geom-font text-2xl sm:text-3xl">{title}</h3>
+                  <p className="max-w-xl text-sm leading-7 text-white/40">{text}</p>
                 </div>
               ))}
             </div>
@@ -245,7 +245,7 @@ function Home() {
               </p>
             </div>
 
-            <div className="mt-14 grid overflow-hidden rounded-2xl border border-white/10 bg-[#111711] md:grid-cols-3">
+            <div className="mt-14">
               <Step number="01" icon={Terminal} title="Send telemetry" text="Use OpenTelemetry to send traces, logs and request context into your project." />
               <Step number="02" icon={Activity} title="Detect the signal" text="SoonWhy surfaces latency, error and performance changes from real application telemetry." />
               <Step number="03" icon={BrainCircuit} title="Investigate why" text="Follow the request, dominant span and dependency to the evidence behind the bottleneck." />
@@ -323,11 +323,11 @@ function Home() {
 
         <section id="developers" className="border-b border-white/[0.07]">
           <div className="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-28">
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              <DeveloperFeature icon={Code2} title="Developer first" text="A workflow designed around engineers investigating real production signals." />
-              <DeveloperFeature icon={Database} title="Real telemetry" text="No invented charts. Empty states stay honest until your project has data." />
-              <DeveloperFeature icon={Layers3} title="Project context" text="Keep telemetry, investigations and access scoped to the right project." />
-              <DeveloperFeature icon={ShieldCheck} title="Evidence attached" text="Source IDs and relationships remain visible throughout the investigation." />
+            <div className="editorial-line grid gap-8 py-8 sm:grid-cols-2 lg:grid-cols-4">
+              <DeveloperFeature icon={Code2} title="Developer first" text="Built around real production investigation." />
+              <DeveloperFeature icon={Database} title="Real telemetry" text="No invented charts or fabricated signals." />
+              <DeveloperFeature icon={Layers3} title="Project context" text="Telemetry stays attached to the right project." />
+              <DeveloperFeature icon={ShieldCheck} title="Evidence attached" text="Source IDs remain visible through the investigation." />
             </div>
           </div>
         </section>
@@ -432,13 +432,13 @@ function Evidence({ label, value }: { label: string; value: string }) {
 
 function Step({ number, icon: Icon, title, text }: { number: string; icon: typeof Terminal; title: string; text: string }) {
   return (
-    <div className="border-b border-white/10 p-7 last:border-b-0 md:border-b-0 md:border-r md:last:border-r-0">
-      <div className="flex items-center justify-between">
+    <div className="editorial-line grid gap-5 py-7 md:grid-cols-[72px_1fr_1.4fr] md:items-center">
+      <div className="flex items-center justify-between gap-4">
         <span className="font-mono text-xs text-[#8BD125]">{number}</span>
         <Icon className="h-5 w-5 text-[#8BD125]" />
       </div>
-      <h3 className="mt-12 text-lg font-semibold">{title}</h3>
-      <p className="mt-3 text-sm leading-6 text-white/40">{text}</p>
+      <h3 className="geom-font text-2xl">{title}</h3>
+      <p className="max-w-xl text-sm leading-7 text-white/40">{text}</p>
     </div>
   );
 }
@@ -454,9 +454,9 @@ function CheckLine({ text }: { text: string }) {
 
 function DeveloperFeature({ icon: Icon, title, text }: { icon: typeof Code2; title: string; text: string }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-[#111711] p-6">
-      <Icon className="h-5 w-5 text-[#8BD125]" />
-      <h3 className="mt-5 font-semibold">{title}</h3>
+    <div className="feature-row">
+      <Icon className="h-4 w-4 text-[#8BD125]" />
+      <h3 className="geom-font mt-4 text-lg">{title}</h3>
       <p className="mt-2 text-sm leading-6 text-white/40">{text}</p>
     </div>
   );
