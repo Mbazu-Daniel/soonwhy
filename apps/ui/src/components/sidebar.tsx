@@ -2,12 +2,10 @@ import { Link, useLocation } from '@tanstack/react-router';
 import { cn } from '~/lib/utils';
 import { useSidebar } from '~/lib/sidebar-context';
 import {
-  Activity,
   AlertTriangle,
   ArrowLeft,
   BrainCircuit,
   ChevronRight,
-  FileSearch,
   LayoutDashboard,
   ScrollText,
   Server,
@@ -22,39 +20,9 @@ const navItems = [
   { to: '/dashboard/logs', label: 'Logs', icon: ScrollText },
 ];
 
-const workspaceItems = [
-  { to: '/dashboard/traces', label: 'Traces', icon: Activity },
-  { to: '/dashboard/investigations', label: 'Investigations', icon: FileSearch },
-];
-
 export function Sidebar() {
   const location = useLocation();
   const { open, close } = useSidebar();
-
-  const isActive = (to: string, exact = false) =>
-    exact ? location.pathname === to : location.pathname.startsWith(to);
-
-  const renderItem = (item: (typeof navItems)[number]) => {
-    const active = isActive(item.to, item.exact);
-    return (
-      <Link
-        key={item.to}
-        to={item.to}
-        onClick={close}
-        className={cn(
-          'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-          active
-            ? 'bg-primary text-primary-foreground shadow-sm'
-            : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-        )}
-        aria-current={active ? 'page' : undefined}
-      >
-        <item.icon className="h-[17px] w-[17px] shrink-0" aria-hidden="true" />
-        <span className="flex-1">{item.label}</span>
-        {active && <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />}
-      </Link>
-    );
-  };
 
   return (
     <>
@@ -74,9 +42,7 @@ export function Sidebar() {
       >
         <div className="h-16 px-4 border-b flex items-center">
           <Link to="/organizations" onClick={close} className="group flex items-center gap-2.5 w-full">
-            <span className="h-8 w-8 rounded-lg bg-[#182012] text-[#8BD125] grid place-items-center font-bold text-sm">
-              S
-            </span>
+            <span className="h-8 w-8 rounded-lg bg-[#182012] text-[#8BD125] grid place-items-center font-bold text-sm">S</span>
             <span className="min-w-0">
               <span className="block text-sm font-semibold tracking-tight">SoonWhy</span>
               <span className="block text-[11px] text-muted-foreground truncate">Intelligent observability</span>
@@ -85,17 +51,28 @@ export function Sidebar() {
         </div>
 
         <div className="px-3 pt-5 pb-3">
-          <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Monitor
-          </p>
-          <nav className="space-y-1">{navItems.map(renderItem)}</nav>
-        </div>
-
-        <div className="px-3 py-2">
-          <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Investigate
-          </p>
-          <nav className="space-y-1">{workspaceItems.map(renderItem)}</nav>
+          <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Monitor</p>
+          <nav className="space-y-1">
+            {navItems.map((item) => {
+              const active = item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to);
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={close}
+                  className={cn(
+                    'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                    active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                  )}
+                  aria-current={active ? 'page' : undefined}
+                >
+                  <item.icon className="h-[17px] w-[17px] shrink-0" aria-hidden="true" />
+                  <span className="flex-1">{item.label}</span>
+                  {active && <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
 
         <div className="mt-auto p-3 space-y-2">
@@ -104,9 +81,7 @@ export function Sidebar() {
             onClick={close}
             className={cn(
               'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-              isActive('/dashboard/settings')
-                ? 'bg-secondary text-foreground'
-                : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+              location.pathname.startsWith('/dashboard/settings') ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
             )}
           >
             <Settings className="h-[17px] w-[17px]" aria-hidden="true" />
