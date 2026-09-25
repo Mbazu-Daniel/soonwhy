@@ -53,6 +53,7 @@ function Onboarding() {
     mutationFn: (input: { name: string; slug: string }) => api.post<Organization>('/organizations', input),
     onSuccess: (org) => {
       setOrgId(org.id);
+      clearProjectId();
       void queryClient.invalidateQueries({ queryKey: ['organizations'] });
       goToStep(1);
       setError('');
@@ -135,7 +136,7 @@ const sdk = initNode({
   function continueFromProject() {
     if (!projectId) return setError('Select or create a project first.');
     setError('');
-    setStep(2);
+    goToStep(2);
   }
 
   function finish() {
@@ -239,6 +240,12 @@ const sdk = initNode({
                   <Stat label="Requests" value={verification.data?.totalRequests.toLocaleString() ?? '0'} />
                   <Stat label="Error rate" value={verification.data ? verification.data.errorRate + '%' : '—'} />
                   <Stat label="P95 latency" value={verification.data ? verification.data.latencyP95 + 'ms' : '—'} />
+                </div>
+              ) : verification.isError ? (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">We could not check ingestion right now.</p>
+                  <p className="text-sm text-muted-foreground">Your project and key are still ready. Retry the check or continue to the dashboard.</p>
+                  <Button type="button" variant="outline" onClick={() => void verification.refetch()}>Retry check</Button>
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">No requests have been observed yet. Your API key and project are ready, so you can keep this page open while sending your first request.</p>
