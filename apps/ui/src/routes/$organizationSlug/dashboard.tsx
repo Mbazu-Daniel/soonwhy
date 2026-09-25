@@ -112,7 +112,7 @@ function DashboardOverviewPage() {
             <CardContent className="p-0">
               <div className="flex items-center justify-between border-b border-[#EEF2EA] px-5 py-5 sm:px-6">
                 <div><h2 className="text-sm font-semibold">What needs attention</h2><p className="mt-1 text-xs text-[#7A8574]">Signals worth investigating</p></div>
-                <Link to="/$organizationSlug/dashboard/detections" params={{ organizationSlug }} className="text-xs font-medium text-[#16931F] hover:underline">View all</Link>
+                <Link to="/$organizationSlug/detections" params={{ organizationSlug }} className="text-xs font-medium text-[#16931F] hover:underline">View all</Link>
               </div>
               <div className="divide-y divide-[#EEF2EA]">
                 <Attention icon={CheckCircle2} title="No active findings" detail="SoonWhy will surface evidence-backed bottlenecks here." tone="ok" />
@@ -125,7 +125,7 @@ function DashboardOverviewPage() {
             <CardContent className="p-0">
               <div className="border-b border-[#EEF2EA] px-5 py-5 sm:px-6"><h2 className="text-sm font-semibold">Explore evidence</h2><p className="mt-1 text-xs text-[#7A8574]">Jump into the signals behind your system</p></div>
               <div className="grid grid-cols-2 gap-px bg-[#EEF2EA]">
-                <QuickLink href="/$organizationSlug/dashboard/services" params={{ organizationSlug }} icon={Server} label="Services" />
+                <QuickLink href="/$organizationSlug/services" params={{ organizationSlug }} icon={Server} label="Services" />
                 <QuickLink href="/$organizationSlug/dashboard/traces" params={{ organizationSlug }} icon={GitBranch} label="Traces" />
                 <QuickLink href="/$organizationSlug/dashboard/logs" params={{ organizationSlug }} icon={Activity} label="Logs" />
                 <QuickLink href="/$organizationSlug/dashboard/investigations" params={{ organizationSlug }} icon={BrainCircuit} label="Investigate" />
