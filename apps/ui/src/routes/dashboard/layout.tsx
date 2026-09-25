@@ -48,6 +48,7 @@ function DashboardLayout() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex flex-col bg-background">
+        <a href="#main-content" className="skip-link">Skip to main content</a>
         <TopBar />
         <div className="flex min-h-0 flex-1">
           <Sidebar />
