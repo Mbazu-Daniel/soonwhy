@@ -11,10 +11,21 @@ export function SocialButtons() {
 
   useEffect(() => { void getAuthProviders().then(setProviders); }, []);
 
+  const googleEnabled = providers?.google ?? false;
+  const githubEnabled = providers?.github ?? false;
+
   return (
     <div className="space-y-3">
-      <a href={getSocialSignInUrl('google')} className={`auth-social-button${providers && !providers.google ? ' opacity-50' : ''}`} aria-disabled={providers ? !providers.google : undefined}><GoogleIcon /><span>Continue with Google</span></a>
-      <a href={getSocialSignInUrl('github')} className={`auth-social-button${providers && !providers.github ? ' opacity-50' : ''}`} aria-disabled={providers ? !providers.github : undefined}><Github className="h-5 w-5" aria-hidden="true" /><span>Continue with GitHub</span></a>
+      {googleEnabled ? (
+        <a href={getSocialSignInUrl('google')} className="auth-social-button"><GoogleIcon /><span>Continue with Google</span></a>
+      ) : (
+        <button type="button" disabled className="auth-social-button cursor-not-allowed opacity-50"><GoogleIcon /><span>Continue with Google</span></button>
+      )}
+      {githubEnabled ? (
+        <a href={getSocialSignInUrl('github')} className="auth-social-button"><Github className="h-5 w-5" aria-hidden="true" /><span>Continue with GitHub</span></a>
+      ) : (
+        <button type="button" disabled className="auth-social-button cursor-not-allowed opacity-50"><Github className="h-5 w-5" aria-hidden="true" /><span>Continue with GitHub</span></button>
+      )}
     </div>
   );
 }
