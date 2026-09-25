@@ -68,7 +68,7 @@ function Onboarding() {
       setProjectId(project.id);
       localStorage.removeItem('soonwhy:onboarding-step');
       void queryClient.invalidateQueries({ queryKey: ['projects', orgId] });
-      void navigate({ to: '/dashboard' });
+      void navigate({ to: '/$organizationSlug/dashboard', params: { organizationSlug: workspaceSlug! } });
     },
     onError: (err: Error) => setError(err.message),
   });
@@ -197,7 +197,7 @@ const sdk = initNode({
               <div className="mb-6 space-y-2">
                 <p className="text-sm font-medium">Use an existing project</p>
                 {projects.data.map((project) => (
-                  <button key={project.id} type="button" onClick={() => { setProjectId(project.id); localStorage.removeItem('soonwhy:onboarding-step'); void navigate({ to: '/dashboard' }); }} className="flex w-full items-center justify-between rounded-lg border border-border bg-card p-3 text-left hover:border-[#8BD125]">
+                  <button key={project.id} type="button" onClick={() => { setProjectId(project.id); localStorage.removeItem('soonwhy:onboarding-step'); void navigate({ to: '/$organizationSlug/dashboard', params: { organizationSlug: workspaceSlug! } }); }} className="flex w-full items-center justify-between rounded-lg border border-border bg-card p-3 text-left hover:border-[#8BD125]">
                     <span><span className="block text-sm font-medium">{project.name}</span><span className="text-xs text-muted-foreground">{project.slug}</span></span>
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   </button>
