@@ -44,7 +44,7 @@ export class TracesRepository {
     q?: string;
   }): Promise<TraceListRow[]> {
     const result = await this.quickwit.search<TraceRow>(QUICKWIT_INDEXES.traces, {
-      query: quickwitTenantQuery(params.orgId, params.projectId, params.q ? quickwitTerm('traceId', params.q) : undefined),
+      query: quickwitTenantQuery(params.orgId, params.projectId, params.q ? quickwitTerm('traceId', params.q) : '*'),
       startTimestamp: quickwitTimestamp(params.from),
       endTimestamp: quickwitTimestamp(params.to),
       maxHits: 0,
