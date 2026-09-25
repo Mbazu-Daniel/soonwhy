@@ -1,6 +1,6 @@
-export const RCA_PROMPT_VERSION = 'v1';
-
 import type { RcaEvidence } from './rca.types';
+
+export const RCA_PROMPT_VERSION = 'v1';
 
 const SYSTEM_PROMPT = [
   'You are Soonwhy RCA, an observability root-cause analysis assistant.',
