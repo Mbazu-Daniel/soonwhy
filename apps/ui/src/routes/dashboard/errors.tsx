@@ -5,6 +5,7 @@ import { Card, CardContent } from '~/components/ui/card';
 import { Skeleton } from '~/components/ui/skeleton';
 import { Badge } from '~/components/ui/badge';
 import { api } from '~/lib/api';
+import { QueryErrorState } from '~/components/query-error-state';
 import { useProject } from '~/lib/project-context';
 
 export const Route = createFileRoute('/dashboard/errors')({ component: ErrorOverview });
@@ -12,9 +13,10 @@ interface ErrorEntry { fingerprint: string; errorMessage: string; errorType: str
 
 function ErrorOverview() {
   const { projectId } = useProject();
-  const { data: errors, isLoading } = useQuery({ queryKey: ['dashboard-errors', projectId], queryFn: () => api.get<ErrorEntry[]>(`/dashboard/errors?projectId=${projectId}`), enabled: !!projectId });
+  const { data: errors, isLoading, isError, refetch } = useQuery({ queryKey: ['dashboard-errors', projectId], queryFn: () => api.get<ErrorEntry[]>(`/dashboard/errors?projectId=${projectId}`), enabled: !!projectId });
   const totalErrors = errors?.reduce((sum, error) => sum + error.count, 0) ?? 0;
   if (!projectId) return <EmptyProject />;
+  if (isError) return <QueryErrorState onRetry={() => void refetch()} />;
   return <div className="mx-auto max-w-[1440px] space-y-6 pb-10">
     <header><p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#16931F]">Failure signals</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Errors</h1><p className="mt-1 text-sm text-muted-foreground">Grouped application failures, frequency and the services affected.</p></header>
     <div className="grid grid-cols-2 gap-4"><Stat icon={AlertCircle} label="Occurrences · 24h" value={isLoading ? '—' : totalErrors.toLocaleString()} critical /><Stat icon={Layers3} label="Unique fingerprints" value={isLoading ? '—' : (errors?.length ?? 0).toLocaleString()} /></div>

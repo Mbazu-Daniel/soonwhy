@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
+import { useProject } from '~/lib/project-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
@@ -8,6 +9,7 @@ import { Card, CardContent } from '~/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
 import { Skeleton } from '~/components/ui/skeleton';
 import { api } from '~/lib/api';
+import { QueryErrorState } from '~/components/query-error-state';
 
 export const Route = createFileRoute('/organizations')({
   component: Organizations,
@@ -22,6 +24,7 @@ interface Organization {
 
 function CreateOrgDialog() {
   const navigate = useNavigate();
+  const { setOrgId } = useProject();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
@@ -33,11 +36,11 @@ function CreateOrgDialog() {
       api.post<Organization>('/organizations', data),
     onSuccess: (org) => {
       queryClient.invalidateQueries({ queryKey: ['organizations'] });
-      localStorage.setItem('org_id', org.id);
+      setOrgId(org.id);
       setOpen(false);
       setName('');
       setSlug('');
-      navigate({ to: '/dashboard' });
+      navigate({ to: '/onboarding' });
     },
     onError: (err: Error) => {
       setError(err.message);
@@ -98,24 +101,28 @@ function CreateOrgDialog() {
 
 function Organizations() {
   const navigate = useNavigate();
+  const { setOrgId, clearProjectId } = useProject();
 
-  const { data: orgs, isLoading } = useQuery({
+  const { data: orgs, isLoading, isError, refetch } = useQuery({
     queryKey: ['organizations'],
     queryFn: () => api.get<Organization[]>('/organizations'),
   });
 
   function selectOrg(org: Organization) {
-    localStorage.setItem('org_id', org.id);
-    navigate({ to: '/dashboard' });
+    setOrgId(org.id);
+    clearProjectId();
+    navigate({ to: '/onboarding' });
   }
+
+  if (isError) return <QueryErrorState onRetry={() => void refetch()} />;
 
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-16 max-w-2xl">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold">Welcome to SoonWhy</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Choose your workspace</h1>
           <p className="text-muted-foreground mt-2">
-            Select an organization or create a new one to get started.
+            Select an organization to continue setup, or create a new workspace.
           </p>
         </div>
 

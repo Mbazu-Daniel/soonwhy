@@ -4,6 +4,7 @@ interface ProjectContextValue {
   projectId: string | null;
   orgId: string | null;
   setProjectId: (id: string) => void;
+  clearProjectId: () => void;
   setOrgId: (id: string) => void;
 }
 
@@ -22,13 +23,18 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     setProjectIdState(id);
   }, []);
 
+  const clearProjectId = useCallback(() => {
+    localStorage.removeItem('project_id');
+    setProjectIdState(null);
+  }, []);
+
   const setOrgId = useCallback((id: string) => {
     localStorage.setItem('org_id', id);
     setOrgIdState(id);
   }, []);
 
   return (
-    <ProjectContext.Provider value={{ projectId, orgId, setProjectId, setOrgId }}>
+    <ProjectContext.Provider value={{ projectId, orgId, setProjectId, clearProjectId, setOrgId }}>
       {children}
     </ProjectContext.Provider>
   );

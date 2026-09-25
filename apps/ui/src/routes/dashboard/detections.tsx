@@ -6,6 +6,7 @@ import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
 import { Skeleton } from '~/components/ui/skeleton';
 import { api } from '~/lib/api';
+import { QueryErrorState } from '~/components/query-error-state';
 import { useProject } from '~/lib/project-context';
 import { useState } from 'react';
 
@@ -17,12 +18,13 @@ interface RcaAnalysis { id: string; serviceName: string; severity: Severity; sum
 
 function DetectionOverview() {
   const { projectId } = useProject(); const queryClient = useQueryClient(); const [selectedId, setSelectedId] = useState<string | null>(null);
-  const { data: findings, isLoading } = useQuery({ queryKey: ['detections', projectId], queryFn: () => api.get<DetectionFinding[]>(`/projects/${projectId}/detections`), enabled: !!projectId });
+  const { data: findings, isLoading, isError, refetch } = useQuery({ queryKey: ['detections', projectId], queryFn: () => api.get<DetectionFinding[]>(`/projects/${projectId}/detections`), enabled: !!projectId });
   const selected = findings?.find((item) => item.id === selectedId) ?? findings?.[0]; const isBottleneck = selected?.type === 'bottleneck';
   const { data: rca, isLoading: rcaLoading } = useQuery({ queryKey: ['rca', projectId, selected?.id], queryFn: () => api.get<RcaAnalysis>(`/projects/${projectId}/findings/${selected?.id}/rca`), enabled: !!projectId && !!selected?.id && isBottleneck, retry: false });
   const { data: history } = useQuery({ queryKey: ['rca-history', projectId, selected?.id], queryFn: () => api.get<RcaAnalysis[]>(`/projects/${projectId}/findings/${selected?.id}/rca/history`), enabled: !!projectId && !!selected?.id && isBottleneck });
   const generate = useMutation({ mutationFn: (regenerate: boolean) => api.post<RcaAnalysis>(`/projects/${projectId}/findings/${selected?.id}/rca`, { regenerate }), onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['rca', projectId, selected?.id] }); void queryClient.invalidateQueries({ queryKey: ['rca-history', projectId, selected?.id] }); } });
   if (!projectId) return <EmptyProject />;
+  if (isError) return <QueryErrorState onRetry={() => void refetch()} />;
   return <div className="mx-auto max-w-[1440px] space-y-6 pb-10">
     <header><p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#16931F]">Intelligent analysis</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Detections</h1><p className="mt-1 text-sm text-muted-foreground">Find bottlenecks from telemetry evidence, then inspect the reasoning behind each finding.</p></header>
     {isLoading ? <div className="grid gap-4 lg:grid-cols-[360px_1fr]"><Skeleton className="h-[600px]" /><Skeleton className="h-[600px]" /></div> : !findings?.length ? <Card><CardContent className="p-12 text-center"><FileSearch className="mx-auto h-8 w-8 text-[#16931F]" /><p className="mt-3 font-medium">No detections yet</p><p className="mt-1 text-sm text-muted-foreground">Run the detection pipeline to create evidence-backed findings.</p></CardContent></Card> : <div className="grid gap-4 lg:grid-cols-[360px_1fr]">

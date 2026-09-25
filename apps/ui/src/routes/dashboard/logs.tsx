@@ -9,6 +9,7 @@ import { Badge } from '~/components/ui/badge';
 import { Skeleton } from '~/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import { api } from '~/lib/api';
+import { QueryErrorState } from '~/components/query-error-state';
 import { useProject } from '~/lib/project-context';
 
 export const Route = createFileRoute('/dashboard/logs')({ component: LogViewer });
@@ -19,11 +20,11 @@ function parseAttributes(attributes: LogEntry['attributes']) { if (typeof attrib
 function LogRow({ log }: { log: LogEntry }) {
   const [expanded, setExpanded] = useState(false); const fields = parseAttributes(log.attributes); const expandable = Object.keys(fields).length > 0;
   return <article className="border-b border-[#DBE5D7] last:border-0">
-    <button type="button" aria-expanded={expandable ? expanded : undefined} onClick={() => expandable && setExpanded(!expanded)} className="flex w-full items-start gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-[#F7FAF4] focus-visible:bg-[#F7FAF4]">
+    <button type="button" aria-expanded={expandable ? expanded : undefined} onClick={() => expandable && setExpanded(!expanded)} className="flex w-full items-start gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-[#F7FAF4] focus-visible:bg-[#F7FAF4] sm:items-center">
       <span className="grid h-5 w-5 shrink-0 place-items-center">{expandable ? (expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />) : null}</span>
-      <time className="w-40 shrink-0 font-mono text-[11px] text-muted-foreground">{new Date(log.timestamp).toLocaleString()}</time>
+      <time className="w-auto shrink-0 font-mono text-[11px] text-muted-foreground sm:w-40">{new Date(log.timestamp).toLocaleString()}</time>
       <Badge variant="outline" className={`w-14 shrink-0 justify-center text-[10px] uppercase ${LEVEL_TREATMENT[log.level] ?? LEVEL_TREATMENT.debug}`}>{log.level}</Badge>
-      <span className="w-32 shrink-0 truncate text-xs font-medium text-[#16931F]">{log.service}</span><span className="min-w-0 flex-1 truncate">{log.message}</span>
+      <span className="hidden w-32 shrink-0 truncate text-xs font-medium text-[#16931F] sm:block">{log.service}</span><span className="min-w-0 flex-1 truncate">{log.message}</span>
     </button>
     {expanded && <div className="bg-[#F7FAF4] px-12 pb-4"><pre className="overflow-x-auto rounded-lg border border-[#DBE5D7] bg-white p-4 text-xs leading-5">{JSON.stringify(fields, null, 2)}</pre></div>}
   </article>;
@@ -31,11 +32,12 @@ function LogRow({ log }: { log: LogEntry }) {
 
 function LogViewer() {
   const { projectId } = useProject(); const [search, setSearch] = useState(''); const [levelFilter, setLevelFilter] = useState('all'); const [cursor, setCursor] = useState<string>(); const [allLogs, setAllLogs] = useState<LogEntry[]>([]);
-  const { data, isLoading, isFetching } = useQuery({ queryKey: ['logs', projectId, levelFilter, search, cursor], queryFn: () => { const params = new URLSearchParams({ projectId: projectId! }); if (levelFilter !== 'all') params.set('level', levelFilter); if (search) params.set('q', search); if (cursor) params.set('cursor', cursor); params.set('limit', '50'); return api.get<{ data: LogEntry[]; nextCursor?: string }>(`/logs?${params.toString()}`); }, enabled: !!projectId });
+  const { data, isLoading, isFetching, isError, refetch } = useQuery({ queryKey: ['logs', projectId, levelFilter, search, cursor], queryFn: () => { const params = new URLSearchParams({ projectId: projectId! }); if (levelFilter !== 'all') params.set('level', levelFilter); if (search) params.set('q', search); if (cursor) params.set('cursor', cursor); params.set('limit', '50'); return api.get<{ data: LogEntry[]; nextCursor?: string }>(`/logs?${params.toString()}`); }, enabled: !!projectId });
   const logs = data?.data ?? []; const nextCursor = data?.nextCursor; const displayLogs = cursor ? [...allLogs, ...logs] : logs;
   const reset = () => { setSearch(''); setLevelFilter('all'); setCursor(undefined); setAllLogs([]); };
   const filterSearch = (value: string) => { setSearch(value); setCursor(undefined); setAllLogs([]); }; const filterLevel = (value: string) => { setLevelFilter(value); setCursor(undefined); setAllLogs([]); };
   if (!projectId) return <EmptyProject />;
+  if (isError) return <QueryErrorState onRetry={() => void refetch()} />;
   return <div className="mx-auto max-w-[1440px] space-y-6 pb-10">
     <header><p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#16931F]">Telemetry explorer</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Logs</h1><p className="mt-1 text-sm text-muted-foreground">Search raw application events, inspect structured attributes, and narrow the signal.</p></header>
     <Card className="border-[#DBE5D7] bg-white shadow-none"><CardContent className="p-4"><div className="flex flex-col gap-3 lg:flex-row"><div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Search logs" placeholder="Search message, service, or attributes" value={search} onChange={(e) => filterSearch(e.target.value)} className="h-10 border-[#CBD8C7] bg-[#F7FAF4] pl-9" /></div><div className="flex gap-2"><Select value={levelFilter} onValueChange={filterLevel}><SelectTrigger className="w-36"><SlidersHorizontal className="mr-2 h-3.5 w-3.5" /><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All levels</SelectItem><SelectItem value="error">Errors</SelectItem><SelectItem value="warn">Warnings</SelectItem><SelectItem value="info">Info</SelectItem><SelectItem value="debug">Debug</SelectItem></SelectContent></Select><Button variant="outline" onClick={reset} className="border-[#CBD8C7]"><RotateCcw className="mr-2 h-3.5 w-3.5" />Reset</Button></div></div></CardContent></Card>
