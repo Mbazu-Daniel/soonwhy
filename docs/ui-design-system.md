@@ -38,10 +38,10 @@ Primary buttons use `#8BD125` with `#182012` text. Avoid white text on the prima
 ## Information architecture
 
 - **Overview** — service health, request/error/latency trends, active investigations, recent detections.
-- **Services** — service inventory, health, dependencies, throughput and latency.
+- **Services** — service inventory, ownership, runtime and repository context.
 - **Detections** — intelligent bottleneck findings with confidence and evidence.
-- **Errors** — grouped errors, affected services, first/last seen, frequency and trace links.
-- **Logs** — full-text telemetry search, filters, histogram, saved queries and detail drawer.
+- **Errors** — grouped errors, affected services, first/last seen and frequency.
+- **Logs** — full-text telemetry search, level filters, pagination and structured attributes.
 - **Traces** — trace waterfall, span attributes, events and correlated logs.
 - **Investigations** — an evidence timeline that connects detections, deployments, errors, traces and logs.
 - **Settings** — project, ingestion, API keys, members, alerting and preferences.
@@ -58,6 +58,7 @@ Primary buttons use `#8BD125` with `#182012` text. Avoid white text on the prima
 - Detection cards expose confidence, evidence count, affected scope and next action without opening the detail page.
 - URL state should own investigation filters and time ranges where practical so views can be shared.
 - Motion is functional and respects `prefers-reduced-motion`.
+- Do not invent telemetry to fill empty states. Empty states describe the action or data source required to populate the workflow.
 
 ## Implementation sequence
 
@@ -70,12 +71,14 @@ Primary buttons use `#8BD125` with `#182012` text. Avoid white text on the prima
 - Loading and no-project states.
 - Keyboard skip navigation and reduced-motion support.
 
-### Phase B — observability workflows
+### Phase B — observability workflows — foundation complete
 
-- Service inventory and service detail.
-- Detection queue and detection detail.
-- Log explorer with histogram and field filters.
-- Trace detail and correlated logs.
+- Redesigned service inventory with ownership/runtime/repository context.
+- Redesigned detection queue and evidence/RCA detail experience.
+- Redesigned error groups with failure frequency and last-seen context.
+- Redesigned log explorer with search, level filtering, structured attribute inspection and cursor pagination.
+- Preserve existing API contracts and real telemetry data while improving workflow hierarchy.
+- Remaining Phase B work: dedicated service detail, trace detail and correlated telemetry workflows.
 
 ### Phase C — investigation workflow
 
