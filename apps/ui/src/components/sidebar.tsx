@@ -7,9 +7,9 @@ import { AlertTriangle, ArrowLeft, BrainCircuit, ChevronRight, GitBranch, Layout
 const navItems = [
   { to: '/$organizationSlug/dashboard', label: 'Overview', icon: LayoutDashboard, exact: true },
   { to: '/$organizationSlug/services', label: 'Services', icon: Server },
-  { to: '/$organizationSlug/dashboard/detections', label: 'Detections', icon: BrainCircuit },
-  { to: '/$organizationSlug/dashboard/investigations', label: 'Investigations', icon: ShieldCheck },
-  { to: '/$organizationSlug/dashboard/errors', label: 'Errors', icon: AlertTriangle },
+  { to: '/$organizationSlug/detections', label: 'Detections', icon: BrainCircuit },
+  { to: '/$organizationSlug/investigations', label: 'Investigations', icon: ShieldCheck },
+  { to: '/$organizationSlug/errors', label: 'Errors', icon: AlertTriangle },
   { to: '/$organizationSlug/dashboard/logs', label: 'Logs', icon: ScrollText },
   { to: '/$organizationSlug/dashboard/traces', label: 'Traces', icon: GitBranch },
 ] as const;
