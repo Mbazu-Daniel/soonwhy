@@ -25,6 +25,24 @@ export const Route = createFileRoute('/')({
   component: Home,
 });
 
+const features = [
+  {
+    icon: BrainCircuit,
+    title: 'AI root-cause analysis',
+    text: 'Correlate latency, errors, logs, deployments and dependency context into an evidence-backed explanation of what changed and where the bottleneck started.',
+  },
+  {
+    icon: Waypoints,
+    title: 'Evidence stays connected',
+    text: 'Follow one request from trace to span to dependency with the source telemetry attached instead of jumping between disconnected tools.',
+  },
+  {
+    icon: Zap,
+    title: 'From finding to fix',
+    text: 'End with a concrete bottleneck and the evidence behind it, rather than another dashboard you still have to interpret yourself.',
+  },
+];
+
 const investigationSteps = [
   { label: 'Request', detail: 'POST /checkout', icon: Activity },
   { label: 'Trace', detail: '4f8c...91a2', icon: GitBranch },
