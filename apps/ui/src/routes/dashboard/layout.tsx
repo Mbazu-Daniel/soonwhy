@@ -43,43 +43,45 @@ function DashboardLayout() {
     setChecking(false);
   }, [token, session, sessionLoading, navigate]);
 
-  if (checking) {
-    return (
-      <div className="h-screen flex flex-col">
-        <header className="h-14 border-b flex items-center px-4">
-          <Skeleton className="h-6 w-24" />
-        </header>
-        <div className="flex flex-1 overflow-hidden">
-          <aside className="w-60 border-r p-4 space-y-3 hidden lg:block">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} className="h-9 w-full" />
-            ))}
-          </aside>
-          <main className="flex-1 p-6 space-y-4">
-            <Skeleton className="h-40 w-full" />
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-28" />
-              ))}
-            </div>
-          </main>
-        </div>
-      </div>
-    );
-  }
+  if (checking) return <DashboardLoading />;
 
   return (
     <SidebarProvider>
-      <div className="h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col bg-background">
         <TopBar />
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex min-h-0 flex-1">
           <Sidebar />
-          <main className="flex-1 overflow-y-auto p-6">
+          <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 overflow-y-auto bg-background p-4 sm:p-5 lg:p-6">
             <Outlet />
           </main>
         </div>
         <Toaster />
       </div>
     </SidebarProvider>
+  );
+}
+
+function DashboardLoading() {
+  return (
+    <div className="min-h-screen flex flex-col bg-background" aria-busy="true" aria-label="Loading dashboard">
+      <header className="h-16 shrink-0 border-b bg-white flex items-center px-4 sm:px-6">
+        <Skeleton className="h-8 w-28" />
+      </header>
+      <div className="flex flex-1">
+        <aside className="hidden w-60 border-r bg-white p-4 lg:block">
+          <Skeleton className="mb-8 h-9 w-full" />
+          <div className="space-y-2">
+            {[1, 2, 3, 4, 5].map((item) => <Skeleton key={item} className="h-10 w-full" />)}
+          </div>
+        </aside>
+        <main className="min-w-0 flex-1 p-4 sm:p-6">
+          <div className="mx-auto max-w-[1440px] space-y-6">
+            <div className="space-y-2"><Skeleton className="h-3 w-24" /><Skeleton className="h-8 w-48" /><Skeleton className="h-4 w-80 max-w-full" /></div>
+            <div className="grid gap-4 xl:grid-cols-[300px_1fr]"><Skeleton className="h-48" /><Skeleton className="h-48" /></div>
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">{[1, 2, 3, 4].map((item) => <Skeleton key={item} className="h-28" />)}</div>
+          </div>
+        </main>
+      </div>
+    </div>
   );
 }
