@@ -16,7 +16,7 @@ interface SessionUser { user: { id: string; email: string; name: string | null; 
 
 export function TopBar() {
   const navigate = useNavigate();
-  const { projectId, orgId, projectSlug, setProject } = useProject();
+  const { projectId, orgId, setProject } = useProject();
   const token = getSessionToken();
   const { toggle } = useSidebar();
 
