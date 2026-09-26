@@ -106,7 +106,6 @@ function SettingsPage() {\n  const { projectSlug } = Route.useParams();
         </CardContent>
       </Card>
 
-      <ApiKeySettings projectId={projectId} queryClient={queryClient} />
       <SetupGuidance />
     </div>
   );
@@ -171,7 +170,7 @@ function StatusMetric({ icon: Icon, label, value, detail }: { icon: typeof Activ
   );
 }
 
-function ApiKeySettings({ projectId, queryClient }: { projectId: string; queryClient: ReturnType<typeof useQueryClient> }) {
+export function ApiKeySettings({ projectId, queryClient }: { projectId: string; queryClient: ReturnType<typeof useQueryClient> }) {
   const [name, setName] = useState('Default ingestion key');
   const [newKey, setNewKey] = useState<ApiKey | null>(null);
   const [copied, setCopied] = useState(false);
