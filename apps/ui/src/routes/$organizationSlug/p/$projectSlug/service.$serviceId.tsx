@@ -14,7 +14,7 @@ export const Route=createFileRoute('/$organizationSlug/p/$projectSlug/service/$s
 
 interface Service { id:string; name:string; slug:string; language:string|null; framework:string|null; repositoryUrl:string|null; repositoryProvider:string|null; repositoryBranch:string|null; owner:{id:string;name:string|null;email:string}|null; team:{id:string;name:string;slug:string}|null; }
 interface ServiceTelemetry { service:string; requestCount:number; errorCount:number; errorRate:number; p95Latency:number; }
-interface LogEntry { id:string; timestamp:string; level:string; message:string; }
+interface LogEntry { id:string; timestamp:string; level:string; message:string; attributes?:Record<string, unknown>; }
 
 function ServiceDetail(){
   const { organizationSlug, projectSlug, serviceId } = Route.useParams();
@@ -59,6 +59,12 @@ function ServiceDetail(){
       <Card className="border-border shadow-none"><CardHeader><CardTitle className="text-base">Recent errors</CardTitle></CardHeader><CardContent className="p-0">{!serviceErrors.length?<p className="p-6 text-sm text-muted-foreground">No errors recorded in the current result set.</p>:serviceErrors.map((error)=><div key={error.fingerprint} className="flex gap-3 border-t p-4 first:border-0"><AlertTriangle className="h-4 w-4 shrink-0 text-[#8A1C13]"/><div className="min-w-0 flex-1"><p className="truncate text-sm">{error.errorMessage}</p><p className="mt-1 text-xs text-muted-foreground">{error.count} occurrence{error.count===1?'':'s'} · {new Date(error.lastSeen).toLocaleString()}</p></div></div>)}</CardContent></Card>
     </div>
     <Card className="border-border shadow-none"><CardHeader><CardTitle className="text-base">Recent telemetry</CardTitle><p className="text-xs text-muted-foreground">Logs emitted by {service.name} in the selected range.</p></CardHeader><CardContent className="p-0">{!recentLogs.length?<p className="p-6 text-sm text-muted-foreground">No recent logs available.</p>:recentLogs.map(log=><div key={log.id} className="flex items-center gap-3 border-t p-4 first:border-0"><FileText className="h-4 w-4 text-[#16931F]"/><span className="font-mono text-[11px] text-muted-foreground">{new Date(log.timestamp).toLocaleTimeString()}</span><Badge variant="outline">{log.level}</Badge><span className="truncate text-sm">{log.message}</span></div>)}</CardContent></Card>
+    <Card className="border-border shadow-none"><CardHeader><CardTitle className="text-base">Attributes</CardTitle><p className="text-xs text-muted-foreground">Common attributes observed in recent telemetry from {service.name}.</p></CardHeader><CardContent>{(() => {
+      const counts = new Map<string, number>();
+      for (const log of recentLogs) for (const key of Object.keys(log.attributes ?? {})) counts.set(key, (counts.get(key) ?? 0) + 1);
+      const attributes = [...counts.entries()].sort((a,b) => b[1]-a[1]).slice(0, 20);
+      return attributes.length ? <div className="grid gap-2 sm:grid-cols-2">{attributes.map(([key,count]) => <div key={key} className="flex items-center justify-between rounded-lg border p-3"><span className="truncate font-mono text-xs">{key}</span><span className="text-xs text-muted-foreground">{count} event{count === 1 ? '' : 's'}</span></div>)}</div> : <p className="text-sm text-muted-foreground">No attributes are available in the recent telemetry.</p>;
+    })()}</CardContent></Card>
   </div>;
 }
 
