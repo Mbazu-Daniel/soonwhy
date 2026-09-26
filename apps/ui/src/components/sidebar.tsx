@@ -98,7 +98,7 @@ export function Sidebar() {
     close();
   }
 
-  function projectPath(item: (typeof navItems)[number]) {
+  function projectPath(item: (typeof navGroups)[number]['items'][number]) {
     if (!orgSlug || !projectSlug) return '/organizations';
     if (item.to === 'overview') return `/${orgSlug}/p/${projectSlug}/`;
     return `/${orgSlug}/p/${projectSlug}/${item.to}`;
