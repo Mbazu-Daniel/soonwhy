@@ -1,6 +1,7 @@
 export { users, accounts, sessions, members } from './auth';
 export { organizations } from './organizations';
 export { projects } from './projects';
+export { projectSettings } from './project-settings';
 export { services } from './services';
 export { teams } from './teams';
 export { environments } from './environments';
