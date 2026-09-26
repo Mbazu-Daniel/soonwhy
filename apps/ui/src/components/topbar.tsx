@@ -7,8 +7,9 @@ import { CommandPalette } from '~/components/command-palette';
 import { api } from '~/lib/api';
 import { signOut, clearSession, getSessionToken } from '~/lib/auth-client';
 import { useProject } from '~/lib/project-context';
-import { OrganizationMark, useWorkspaces, WorkspaceSelect } from '~/components/workspace-switcher';
-import { ChevronDown, LogOut, Menu, Sun, Moon, Monitor, Bot, Search } from 'lucide-react';
+import { WorkspaceMenu } from '~/components/workspace-switcher';
+import { ChevronDown, LogOut, Menu, PanelLeft, Sun, Moon, Monitor, Bot, Search } from 'lucide-react';
+import { cn } from '~/lib/utils';
 import { useSidebar } from '~/lib/sidebar-context';
 import { useEffect, useState } from 'react';
 
@@ -17,10 +18,8 @@ interface SessionUser { user: { id: string; email: string; name: string | null; 
 export function TopBar() {
   const navigate = useNavigate();
   const { orgSlug } = useProject();
-  const { current } = useWorkspaces();
-  const workspaceName = current?.name ?? orgSlug ?? 'Workspace';
   const token = getSessionToken();
-  const { toggle } = useSidebar();
+  const { toggle, collapsed, toggleCollapsed } = useSidebar();
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
   useEffect(() => {
     const saved = localStorage.getItem('soonwhy-theme') as 'light' | 'dark' | 'system' | null;
@@ -35,11 +34,15 @@ export function TopBar() {
   async function handleSignOut() { if (token) await signOut(token); clearSession(); navigate({ to: '/login' }); }
   const userName = session?.user?.name || session?.user?.email || 'U'; const userInitial = userName.charAt(0).toUpperCase();
 
-  return <header className="flex min-h-16 shrink-0 items-center justify-between gap-3 border-b border-[#242426] bg-[#040405] px-3 py-2 sm:px-4 lg:px-6">
-    <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-      <Button variant="ghost" size="icon" className="shrink-0 lg:hidden" onClick={toggle} aria-label="Toggle sidebar"><Menu className="h-5 w-5" /></Button>
-      <OrganizationMark name={workspaceName} logo={current?.logo} />
-      <WorkspaceSelect id="workspace-switcher" />
+  return <header className="flex h-16 shrink-0 border-b border-[#242426] bg-[#040405]">
+    <div className={cn('hidden items-center gap-2 border-r border-[#242426] px-3 lg:flex', collapsed ? 'w-16 justify-center px-2' : 'w-64')}>
+      <WorkspaceMenu compact={collapsed} />
+      {!collapsed && <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-[#989898] hover:bg-[#151517]" onClick={toggleCollapsed} aria-label="Collapse sidebar"><PanelLeft className="h-4 w-4" /></Button>}
+    </div>
+    <div className="flex min-w-0 flex-1 items-center justify-between gap-3 px-3 sm:px-4 lg:px-6">
+    <div className="flex min-w-0 items-center gap-2 lg:hidden">
+      <Button variant="ghost" size="icon" className="shrink-0" onClick={toggle} aria-label="Toggle sidebar"><Menu className="h-5 w-5" /></Button>
+      <WorkspaceMenu />
     </div>
     <div className="flex items-center gap-1.5 sm:gap-2">
       <CommandPalette />
@@ -56,6 +59,7 @@ export function TopBar() {
           <DropdownMenuSeparator /><DropdownMenuItem onClick={handleSignOut}><LogOut className="mr-2 h-4 w-4" />Sign out</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+    </div>
     </div>
   </header>;
 }
