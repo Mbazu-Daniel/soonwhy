@@ -351,12 +351,48 @@ declare module '@tanstack/react-router' {
 
 interface OrganizationSlugInvestigationsRouteChildren { OrganizationSlugInvestigationsInvestigationIdRoute: typeof OrganizationSlugInvestigationsInvestigationIdRoute }
 const OrganizationSlugInvestigationsRouteWithChildren = OrganizationSlugInvestigationsRoute._addFileChildren(OrganizationSlugInvestigationsRouteChildren)
+
+interface OrganizationSlugRouteChildren {
+  OrganizationSlugAiRoute: typeof OrganizationSlugAiRoute
+  OrganizationSlugApiKeysRoute: typeof OrganizationSlugApiKeysRoute
+  OrganizationSlugDashboardRoute: typeof OrganizationSlugDashboardRoute
+  OrganizationSlugDeploymentsRoute: typeof OrganizationSlugDeploymentsRoute
+  OrganizationSlugDetectionsRoute: typeof OrganizationSlugDetectionsRoute
+  OrganizationSlugErrorsRoute: typeof OrganizationSlugErrorsRoute
+  OrganizationSlugIndexRoute: typeof OrganizationSlugIndexRoute
+  OrganizationSlugInvestigationsRoute: typeof OrganizationSlugInvestigationsRouteWithChildren
+  OrganizationSlugLogsRoute: typeof OrganizationSlugLogsRoute
+  OrganizationSlugOperationsRoute: typeof OrganizationSlugOperationsRoute
+  OrganizationSlugServiceMapRoute: typeof OrganizationSlugServiceMapRoute
+  OrganizationSlugServiceServiceIdRoute: typeof OrganizationSlugServiceServiceIdRoute
+  OrganizationSlugServicesRoute: typeof OrganizationSlugServicesRoute
+  OrganizationSlugSettingsRoute: typeof OrganizationSlugSettingsRoute
+  OrganizationSlugTraceTraceIdRoute: typeof OrganizationSlugTraceTraceIdRoute
+  OrganizationSlugTracesRoute: typeof OrganizationSlugTracesRoute
+}
+const OrganizationSlugRouteWithChildren = OrganizationSlugRoute._addFileChildren(OrganizationSlugRouteChildren)
+
 interface DashboardProjectsProjectSlugInvestigationsRouteChildren { DashboardProjectsProjectSlugInvestigationsInvestigationIdRoute: typeof DashboardProjectsProjectSlugInvestigationsInvestigationIdRoute }
 const DashboardProjectsProjectSlugInvestigationsRouteWithChildren = DashboardProjectsProjectSlugInvestigationsRoute._addFileChildren(DashboardProjectsProjectSlugInvestigationsRouteChildren)
 
+interface DashboardProjectsProjectSlugRouteChildren {
+  DashboardProjectsProjectSlugApiKeysRoute: typeof DashboardProjectsProjectSlugApiKeysRoute
+  DashboardProjectsProjectSlugDetectionsRoute: typeof DashboardProjectsProjectSlugDetectionsRoute
+  DashboardProjectsProjectSlugErrorsRoute: typeof DashboardProjectsProjectSlugErrorsRoute
+  DashboardProjectsProjectSlugIndexRoute: typeof DashboardProjectsProjectSlugIndexRoute
+  DashboardProjectsProjectSlugInvestigationsRoute: typeof DashboardProjectsProjectSlugInvestigationsRouteWithChildren
+  DashboardProjectsProjectSlugLogsRoute: typeof DashboardProjectsProjectSlugLogsRoute
+  DashboardProjectsProjectSlugServiceServiceIdRoute: typeof DashboardProjectsProjectSlugServiceServiceIdRoute
+  DashboardProjectsProjectSlugServicesRoute: typeof DashboardProjectsProjectSlugServicesRoute
+  DashboardProjectsProjectSlugSettingsRoute: typeof DashboardProjectsProjectSlugSettingsRoute
+  DashboardProjectsProjectSlugTraceTraceIdRoute: typeof DashboardProjectsProjectSlugTraceTraceIdRoute
+  DashboardProjectsProjectSlugTracesRoute: typeof DashboardProjectsProjectSlugTracesRoute
+}
+const DashboardProjectsProjectSlugRouteWithChildren = DashboardProjectsProjectSlugRoute._addFileChildren(DashboardProjectsProjectSlugRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  OrganizationSlugRoute: OrganizationSlugRoute,
+  OrganizationSlugRoute: OrganizationSlugRouteWithChildren,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
   OrganizationsRoute: OrganizationsRoute,
@@ -364,7 +400,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthCallbackRoute: AuthCallbackRoute,
   DashboardErrorsRoute: DashboardErrorsRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
-  DashboardProjectsProjectSlugRoute: DashboardProjectsProjectSlugRoute,
+  DashboardProjectsProjectSlugRoute: DashboardProjectsProjectSlugRouteWithChildren,
 }
 export const routeTree = rootRouteImport._addFileChildren(rootRouteChildren)._addFileTypes<FileRouteTypes>()
 
