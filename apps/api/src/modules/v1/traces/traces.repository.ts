@@ -85,7 +85,7 @@ export class TracesRepository {
         quickwitTerm('traceId', params.traceId),
       ),
       maxHits: 10000,
-      sortBy: ['timestamp:asc'],
+      sortBy: ['timestamp'],
     });
 
     return result.hits.flatMap((hit) => (hit._source ? [hit._source] : []));
