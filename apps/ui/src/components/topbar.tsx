@@ -7,6 +7,7 @@ import { CommandPalette } from '~/components/command-palette';
 import { api } from '~/lib/api';
 import { signOut, clearSession, getSessionToken } from '~/lib/auth-client';
 import { useProject } from '~/lib/project-context';
+import { OrganizationMark, useWorkspaces, WorkspaceSelect } from '~/components/workspace-switcher';
 import { ChevronDown, LogOut, Menu, Sun, Moon, Monitor, Bot, Search } from 'lucide-react';
 import { useSidebar } from '~/lib/sidebar-context';
 import { useEffect, useState } from 'react';
@@ -16,6 +17,8 @@ interface SessionUser { user: { id: string; email: string; name: string | null; 
 export function TopBar() {
   const navigate = useNavigate();
   const { orgSlug } = useProject();
+  const { current } = useWorkspaces();
+  const workspaceName = current?.name ?? orgSlug ?? 'Workspace';
   const token = getSessionToken();
   const { toggle } = useSidebar();
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
@@ -35,7 +38,8 @@ export function TopBar() {
   return <header className="flex min-h-16 shrink-0 items-center justify-between gap-3 border-b border-[#242426] bg-[#040405] px-3 py-2 sm:px-4 lg:px-6">
     <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
       <Button variant="ghost" size="icon" className="shrink-0 lg:hidden" onClick={toggle} aria-label="Toggle sidebar"><Menu className="h-5 w-5" /></Button>
-      <div className="min-w-0"><p className="text-[10px] uppercase tracking-[.14em] text-[#6E6E70]">SoonWhy Observability</p><p className="truncate text-sm font-semibold text-[#F6F6F6]">Connected evidence, one investigation surface</p></div>
+      <OrganizationMark name={workspaceName} logo={current?.logo} />
+      <WorkspaceSelect id="workspace-switcher" />
     </div>
     <div className="flex items-center gap-1.5 sm:gap-2">
       <CommandPalette />

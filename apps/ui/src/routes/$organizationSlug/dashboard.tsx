@@ -11,7 +11,7 @@ export const Route = createFileRoute('/$organizationSlug/dashboard')({
   component: DashboardOverviewPage,
 });
 
-function AIDashboardSummary() {
+function AIDashboardSummary({ organizationSlug }: { organizationSlug: string }) {
   return (
     <section className="rounded-2xl border border-[#34451D] bg-[#11170D] p-5 sm:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -71,7 +71,7 @@ function DashboardOverviewPage() {
           </div>
         </header>
 
-        <AIDashboardSummary />
+        <AIDashboardSummary organizationSlug={organizationSlug} />
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Metric label="Health score" value={String(score)} suffix="/100" icon={Gauge} tone="dark" detail={health} />

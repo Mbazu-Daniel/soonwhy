@@ -34,13 +34,7 @@ export function Sidebar() {
     <>
       <div className={open ? 'fixed inset-0 z-40 bg-[#0B0B0C]/30 lg:hidden' : 'hidden'} onClick={close} aria-hidden="true" />
       <aside className={cn('w-64 shrink-0 border-r border-[#242426] bg-[#040405] flex flex-col fixed inset-y-0 left-0 z-50 transition-transform duration-200 lg:static lg:translate-x-0', open ? 'translate-x-0' : '-translate-x-full')} aria-label="Primary navigation">
-        <div className="h-16 border-b border-[#1B1B1D] px-4 flex items-center">
-          <Link to="/$organizationSlug/dashboard" params={{ organizationSlug: orgSlug }} onClick={close} className="flex w-full items-center gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#0B0B0C] text-sm font-bold text-[#ACFC15]">S</span>
-            <span className="min-w-0"><span className="block text-sm font-semibold tracking-tight text-[#F6F6F6]">SoonWhy</span><span className="block truncate text-[10px] uppercase tracking-[.12em] text-[#98A292]">Observability</span></span>
-          </Link>
-        </div>
-        <div className="px-3 pt-6">
+        <div className="px-3 py-4">
           <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[.15em] text-[#98A292]">Monitor</p>
           <nav className="space-y-1">
             {navItems.map((item) => {
