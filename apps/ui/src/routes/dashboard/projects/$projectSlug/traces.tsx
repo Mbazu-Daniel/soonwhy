@@ -41,7 +41,7 @@ function TraceExplorer() {
   if (isError) return <QueryErrorState onRetry={() => void refetch()} />;
 
   return (
-    <div className="mx-auto w-full space-y-6 pb-10">
+    <div className="min-h-full space-y-5 pb-8">
       <header>
         <p className="text-xs font-semibold uppercase tracking-[.14em] text-[#16931F]">
           Distributed telemetry
