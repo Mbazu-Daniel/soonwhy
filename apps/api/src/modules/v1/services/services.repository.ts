@@ -5,7 +5,7 @@ import { projects, services, teams, users } from '../../../common/db/schema';
 
 @Injectable()
 export class ServicesRepository {
-  async getServiceById(id: string, orgId: string) {
+  async getServiceById(id: string, projectId: string, orgId: string) {
     const [result] = await db
       .select({
         service: services,
@@ -16,7 +16,7 @@ export class ServicesRepository {
       .innerJoin(projects, eq(services.projectId, projects.id))
       .leftJoin(users, eq(services.ownerId, users.id))
       .leftJoin(teams, eq(services.teamId, teams.id))
-      .where(and(eq(services.id, id), eq(services.orgId, orgId), eq(projects.orgId, orgId)))
+      .where(and(eq(services.id, id), eq(services.projectId, projectId), eq(services.orgId, orgId), eq(projects.orgId, orgId)))
       .limit(1);
     if (!result) return undefined;
     return { ...result.service, owner: result.owner, team: result.team };

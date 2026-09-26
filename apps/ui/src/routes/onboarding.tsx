@@ -20,7 +20,7 @@ const steps = ['Organization', 'Project', 'Connect', 'Verify'];
 function Onboarding() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { orgId, orgSlug: workspaceSlug, projectId, setOrganization, setProjectId, clearProjectId } = useProject();
+  const { orgId, orgSlug: workspaceSlug, projectId, setOrganization, setProject, clearProjectId } = useProject();
   const [step, setStep] = useState(() => {
     if (typeof window === 'undefined') return orgId ? 1 : 0;
     const saved = Number(localStorage.getItem('soonwhy:onboarding-step'));
@@ -65,16 +65,16 @@ function Onboarding() {
   const createProject = useMutation({
     mutationFn: (input: { name: string; slug: string }) => api.post<Project>('/projects', input),
     onSuccess: (project) => {
-      setProjectId(project.id);
+      setProject(project);
       localStorage.removeItem('soonwhy:onboarding-step');
       void queryClient.invalidateQueries({ queryKey: ['projects', orgId] });
-      void navigate({ to: '/dashboard' });
+      void navigate({ to: '/dashboard/projects/$projectSlug', params: { projectSlug: project.slug } });
     },
     onError: (err: Error) => setError(err.message),
   });
 
   const createKey = useMutation({
-    mutationFn: () => api.post<ApiKey>('/api-keys?projectId=' + encodeURIComponent(projectId ?? ''), { name: 'Default ingestion key' }),
+    mutationFn: () => api.post<ApiKey>(`/projects/${projectId}/api-keys`, { name: 'Default ingestion key' }),
     onSuccess: (key) => {
       setApiKey(key);
       goToStep(3);
@@ -87,7 +87,7 @@ function Onboarding() {
     queryKey: ['onboarding-verification', projectId],
     queryFn: async () => {
       const data = await api.get<{ totalRequests: number; errorRate: number; latencyP95: number }>(
-        '/dashboard/overview?projectId=' + encodeURIComponent(projectId ?? ''),
+        `/projects/${projectId}/dashboard/overview`,
       );
       return data;
     },

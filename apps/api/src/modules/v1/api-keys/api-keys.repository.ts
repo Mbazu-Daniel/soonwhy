@@ -20,12 +20,12 @@ export class ApiKeysRepository {
     });
   }
 
-  async getApiKeyById(id: string, orgId: string) {
+  async getApiKeyById(id: string, projectId: string, orgId: string) {
     const [result] = await db
       .select({ apiKey: apiKeys })
       .from(apiKeys)
       .innerJoin(projects, eq(apiKeys.projectId, projects.id))
-      .where(and(eq(apiKeys.id, id), eq(projects.orgId, orgId)))
+      .where(and(eq(apiKeys.id, id), eq(apiKeys.projectId, projectId), eq(projects.orgId, orgId)))
       .limit(1);
     return result?.apiKey;
   }
