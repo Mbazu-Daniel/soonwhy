@@ -24,6 +24,7 @@ import { Route as TraceDetailRouteImport } from './routes/$organizationSlug/trac
 import { Route as ServiceMapRouteImport } from './routes/$organizationSlug/service-map'
 import { Route as DeploymentsRouteImport } from './routes/$organizationSlug/deployments'
 import { Route as OperationsRouteImport } from './routes/$organizationSlug/operations'
+import { Route as ApiKeysRouteImport } from './routes/$organizationSlug/api-keys'
 
 const IndexRoute = IndexRouteImport.update({ id: '/', path: '/', getParentRoute: () => rootRouteImport } as any)
 const OrganizationSlugRoute = OrganizationSlugRouteImport.update({ id: '/$organizationSlug', path: '/$organizationSlug', getParentRoute: () => rootRouteImport } as any)
@@ -49,10 +50,11 @@ const TraceDetailRoute = TraceDetailRouteImport.update({ id: '/$organizationSlug
 const ServiceMapRoute = ServiceMapRouteImport.update({ id: '/$organizationSlug/service-map', path: '/service-map', getParentRoute: () => OrganizationSlugRoute } as any)
 const DeploymentsRoute = DeploymentsRouteImport.update({ id: '/$organizationSlug/deployments', path: '/deployments', getParentRoute: () => OrganizationSlugRoute } as any)
 const OperationsRoute = OperationsRouteImport.update({ id: '/$organizationSlug/operations', path: '/operations', getParentRoute: () => OrganizationSlugRoute } as any)
+const ApiKeysRoute = ApiKeysRouteImport.update({ id: '/$organizationSlug/api-keys', path: '/api-keys', getParentRoute: () => OrganizationSlugRoute } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute; '/$organizationSlug': typeof OrganizationSlugRoute; '/$organizationSlug/': typeof OrganizationIndexRoute; '/login': typeof LoginRoute; '/onboarding': typeof OnboardingRoute; '/organizations': typeof OrganizationsRoute; '/register': typeof RegisterRoute; '/auth/callback': typeof AuthCallbackRoute;
-  '/$organizationSlug/dashboard': typeof DashboardRoute; '/$organizationSlug/service-map': typeof ServiceMapRoute; '/$organizationSlug/deployments': typeof DeploymentsRoute; '/$organizationSlug/operations': typeof OperationsRoute; '/$organizationSlug/detections': typeof DetectionsRoute; '/$organizationSlug/errors': typeof ErrorsRoute; '/$organizationSlug/investigations': typeof InvestigationsRoute; '/$organizationSlug/investigations/$investigationId': typeof InvestigationDetailRoute; '/$organizationSlug/logs': typeof LogsRoute; '/$organizationSlug/services': typeof ServicesRoute; '/$organizationSlug/service/$serviceId': typeof ServiceDetailRoute; '/$organizationSlug/settings': typeof SettingsRoute; '/$organizationSlug/ai': typeof AIRoute; '/$organizationSlug/traces': typeof TracesRoute; '/$organizationSlug/trace/$traceId': typeof TraceDetailRoute;
+  '/$organizationSlug/dashboard': typeof DashboardRoute; '/$organizationSlug/service-map': typeof ServiceMapRoute; '/$organizationSlug/deployments': typeof DeploymentsRoute; '/$organizationSlug/operations': typeof OperationsRoute; '/$organizationSlug/api-keys': typeof ApiKeysRoute; '/$organizationSlug/detections': typeof DetectionsRoute; '/$organizationSlug/errors': typeof ErrorsRoute; '/$organizationSlug/investigations': typeof InvestigationsRoute; '/$organizationSlug/investigations/$investigationId': typeof InvestigationDetailRoute; '/$organizationSlug/logs': typeof LogsRoute; '/$organizationSlug/services': typeof ServicesRoute; '/$organizationSlug/service/$serviceId': typeof ServiceDetailRoute; '/$organizationSlug/settings': typeof SettingsRoute; '/$organizationSlug/ai': typeof AIRoute; '/$organizationSlug/traces': typeof TracesRoute; '/$organizationSlug/trace/$traceId': typeof TraceDetailRoute;
 }
 export interface FileRoutesByTo extends FileRoutesByFullPath {}
 export interface FileRoutesById extends FileRoutesByFullPath {}
@@ -62,7 +64,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute; OrganizationSlugRoute: typeof OrganizationSlugRouteWithChildren; LoginRoute: typeof LoginRoute; OnboardingRoute: typeof OnboardingRoute; OrganizationsRoute: typeof OrganizationsRoute; RegisterRoute: typeof RegisterRoute; AuthCallbackRoute: typeof AuthCallbackRoute;
 }
 const InvestigationsRouteWithChildren = InvestigationsRoute._addFileChildren({ InvestigationDetailRoute });
-const OrganizationSlugRouteChildren = { OrganizationIndexRoute, DashboardRoute, ServiceMapRoute, DeploymentsRoute, OperationsRoute, DetectionsRoute, ErrorsRoute, InvestigationsRoute: InvestigationsRouteWithChildren, LogsRoute, ServicesRoute, ServiceDetailRoute, SettingsRoute, AIRoute, TracesRoute, TraceDetailRoute };
+const OrganizationSlugRouteChildren = { OrganizationIndexRoute, DashboardRoute, ServiceMapRoute, DeploymentsRoute, OperationsRoute, ApiKeysRoute, DetectionsRoute, ErrorsRoute, InvestigationsRoute: InvestigationsRouteWithChildren, LogsRoute, ServicesRoute, ServiceDetailRoute, SettingsRoute, AIRoute, TracesRoute, TraceDetailRoute };
 const OrganizationSlugRouteWithChildren = OrganizationSlugRoute._addFileChildren(OrganizationSlugRouteChildren);
 const rootRouteChildren: RootRouteChildren = { IndexRoute, OrganizationSlugRoute: OrganizationSlugRouteWithChildren, LoginRoute, OnboardingRoute, OrganizationsRoute, RegisterRoute, AuthCallbackRoute };
 export const routeTree = rootRouteImport._addFileChildren(rootRouteChildren)._addFileTypes<FileRouteTypes>();
