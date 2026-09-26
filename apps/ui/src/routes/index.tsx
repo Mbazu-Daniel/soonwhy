@@ -426,19 +426,6 @@ function Evidence({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Step({ number, icon: Icon, title, text }: { number: string; icon: typeof Terminal; title: string; text: string }) {
-  return (
-    <div className="editorial-line grid gap-5 py-7 md:grid-cols-[72px_1fr_1.4fr] md:items-center">
-      <div className="flex items-center justify-between gap-4">
-        <span className="font-mono text-xs text-[#8BD125]">{number}</span>
-        <Icon className="h-5 w-5 text-[#8BD125]" />
-      </div>
-      <h3 className="geom-font text-2xl">{title}</h3>
-      <p className="max-w-xl text-sm leading-7 text-white/40">{text}</p>
-    </div>
-  );
-}
-
 function InvestigationRow({ number, icon: Icon, title, text }: { number: string; icon: typeof BrainCircuit; title: string; text: string }) {
   return (
     <div className="grid gap-5 border-b border-white/10 py-8 sm:grid-cols-[48px_1fr]">
