@@ -41,7 +41,8 @@ interface TelemetryStatus {
   lastTraceId: string | null;
 }
 
-function SettingsPage() {\n  const { projectSlug } = Route.useParams();
+function SettingsPage() {
+  const { projectSlug } = Route.useParams();
   const { orgId, projectId } = useProject();
   const queryClient = useQueryClient();
 
