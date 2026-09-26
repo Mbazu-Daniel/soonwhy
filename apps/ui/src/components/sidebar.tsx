@@ -4,16 +4,18 @@ import { useState } from 'react';
 import { cn } from '~/lib/utils';
 import { useSidebar } from '~/lib/sidebar-context';
 import { useProject } from '~/lib/project-context';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
-import { AlertTriangle, BrainCircuit, ChevronRight, GitBranch, LayoutDashboard, Plus, ScrollText, Server, ShieldCheck } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '~/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback } from '~/components/ui/avatar';
+import { AlertTriangle, BrainCircuit, Check, ChevronDown, ChevronRight, GitBranch, LayoutDashboard, LogOut, Plus, ScrollText, Server, Settings, ShieldCheck } from 'lucide-react';
 import { api } from '~/lib/api';
+import { signOut, clearSession, getSessionToken } from '~/lib/auth-client';
 
-interface Organization { id: string; name: string; slug: string; }
 interface Project { id: string; name: string; slug: string; }
+interface SessionUser { user: { id: string; email: string; name: string | null }; }
 
 const navItems = [
   { to: '/dashboard', label: 'Overview', icon: LayoutDashboard, exact: true },
@@ -34,21 +36,24 @@ export function Sidebar() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { open, close } = useSidebar();
-  const { orgId, orgSlug, projectId, setProjectId } = useProject();
+  const { orgId, projectId, setProjectId } = useProject();
+  const token = getSessionToken();
   const [createOpen, setCreateOpen] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [projectSlug, setProjectSlug] = useState('');
   const [error, setError] = useState('');
 
-  const organizations = useQuery({
-    queryKey: ['organizations'],
-    queryFn: () => api.get<Organization[]>('/organizations'),
-  });
-
   const projects = useQuery({
     queryKey: ['projects', orgId],
     queryFn: () => api.get<Project[]>('/projects'),
     enabled: !!orgId,
+  });
+
+  const session = useQuery({
+    queryKey: ['session'],
+    queryFn: () => api.get<SessionUser>('/auth/session'),
+    enabled: !!token,
+    retry: false,
   });
 
   const createProject = useMutation({
@@ -60,12 +65,15 @@ export function Sidebar() {
       setError('');
       setCreateOpen(false);
       void queryClient.invalidateQueries({ queryKey: ['projects', orgId] });
-      void navigate({ to: '/dashboard' });
+      void navigate({ to: '/dashboard/projects/$projectSlug', params: { projectSlug: project.slug } });
+      close();
     },
     onError: (err: Error) => setError(err.message),
   });
 
-  const currentOrganization = organizations.data?.find((organization) => organization.id === orgId);
+  const currentProject = projects.data?.find((project) => project.id === projectId);
+  const userName = session.data?.user?.name || session.data?.user?.email || 'User';
+  const userInitial = userName.charAt(0).toUpperCase();
 
   function submitProject(event: React.FormEvent) {
     event.preventDefault();
@@ -79,6 +87,18 @@ export function Sidebar() {
     createProject.mutate({ name, slug });
   }
 
+  async function handleSignOut() {
+    if (token) await signOut(token);
+    clearSession();
+    void navigate({ to: '/login' });
+  }
+
+  function selectProject(project: Project) {
+    setProjectId(project.id);
+    void navigate({ to: '/dashboard/projects/$projectSlug', params: { projectSlug: project.slug } });
+    close();
+  }
+
   return (
     <>
       <div className={open ? 'fixed inset-0 z-40 bg-[#182012]/30 lg:hidden' : 'hidden'} onClick={close} aria-hidden="true" />
@@ -89,30 +109,8 @@ export function Sidebar() {
         )}
         aria-label="Primary navigation"
       >
-        <div className="border-b p-3">
-          <Select
-            value={orgSlug ?? ''}
-            onValueChange={(slug) => {
-              const organization = organizations.data?.find((item) => item.slug === slug);
-              if (organization) {
-                void navigate({ to: '/$organizationSlug', params: { organizationSlug: organization.slug } });
-                close();
-              }
-            }}
-          >
-            <SelectTrigger className="h-10 w-full border-border bg-secondary">
-              <SelectValue placeholder="Select workspace">{currentOrganization?.name ?? 'Select workspace'}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {organizations.data?.map((organization) => (
-                <SelectItem key={organization.id} value={organization.slug}>{organization.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
         <div className="flex-1 overflow-y-auto px-3 pt-5 pb-3">
-          <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Monitor</p>
+          <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Monitor</p>
           <nav data-tour="evidence-navigation" className="space-y-1">
             {navItems.map((item) => {
               const active = item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to);
@@ -137,58 +135,106 @@ export function Sidebar() {
         </div>
 
         <div className="border-t p-3">
-          <div className="mb-2 flex items-center justify-between px-1">
-            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Projects</p>
-            <Dialog open={createOpen} onOpenChange={(next) => { setCreateOpen(next); if (!next) setError(''); }}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Create project">
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create project</DialogTitle>
-                  <DialogDescription>Create a project for this workspace and start sending telemetry to it.</DialogDescription>
-                </DialogHeader>
-                <form onSubmit={submitProject} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="sidebar-project-name">Project name</Label>
-                    <Input id="sidebar-project-name" value={projectName} onChange={(event) => setProjectName(event.target.value)} placeholder="Payments API" required maxLength={100} autoFocus />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="sidebar-project-slug">Slug</Label>
-                    <Input id="sidebar-project-slug" value={projectSlug} onChange={(event) => setProjectSlug(event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} placeholder="payments-api" pattern="[a-z0-9-]+" />
-                  </div>
-                  {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
-                  <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-                    <Button type="submit" disabled={createProject.isPending}>
-                      {createProject.isPending ? 'Creating...' : 'Create project'}
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          {projects.data?.length ? (
-            <Select value={projectId ?? ''} onValueChange={setProjectId}>
-              <SelectTrigger data-tour="project-selector" className="h-10 w-full border-border bg-secondary">
-                <SelectValue placeholder="Select project" />
-              </SelectTrigger>
-              <SelectContent>
-                {projects.data.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-12 w-full justify-start gap-3 px-2">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-secondary text-sm font-semibold">
+                  {currentProject?.name?.charAt(0).toUpperCase() || <Plus className="h-4 w-4" />}
+                </span>
+                <span className="min-w-0 flex-1 text-left">
+                  <span className="block truncate text-sm font-medium">{currentProject?.name || 'Select project'}</span>
+                  <span className="block truncate text-xs text-muted-foreground">Project</span>
+                </span>
+                <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" side="top" className="w-56">
+              <DropdownMenuGroup>
+                {projects.data?.map((project) => (
+                  <DropdownMenuItem key={project.id} onClick={() => selectProject(project)}>
+                    <span className="flex h-6 w-6 items-center justify-center rounded bg-secondary text-xs font-semibold">
+                      {project.name.charAt(0).toUpperCase()}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">{project.name}</span>
+                    {project.id === projectId && <Check className="h-4 w-4" />}
+                  </DropdownMenuItem>
                 ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <Button type="button" variant="outline" className="w-full justify-start gap-2" onClick={() => setCreateOpen(true)}>
-              <Plus className="h-4 w-4" /> Create project
-            </Button>
-          )}
+              </DropdownMenuGroup>
+              {projects.data?.length ? <DropdownMenuSeparator /> : null}
+              <DropdownMenuItem onClick={() => setCreateOpen(true)}>
+                <Plus className="h-4 w-4" />
+                Create project
+              </DropdownMenuItem>
+              {currentProject ? (
+                <DropdownMenuItem onClick={() => void navigate({ to: '/dashboard/projects/$projectSlug/settings', params: { projectSlug: currentProject.slug } })}>
+                  <Settings className="h-4 w-4" />
+                  Project settings
+                </DropdownMenuItem>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="mt-2 h-12 w-full justify-start gap-3 px-2">
+                <Avatar className="h-8 w-8 shrink-0">
+                  <AvatarFallback className="bg-[#C9E7EB] text-[#182012] font-semibold">{userInitial}</AvatarFallback>
+                </Avatar>
+                <span className="min-w-0 flex-1 text-left">
+                  <span className="block truncate text-sm font-medium">{userName}</span>
+                  <span className="block truncate text-xs text-muted-foreground">Account</span>
+                </span>
+                <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" side="top" className="w-56">
+              {session.data?.user && (
+                <>
+                  <div className="px-2 py-2">
+                    <p className="truncate text-sm font-medium">{session.data.user.name || session.data.user.email}</p>
+                    {session.data.user.name && <p className="truncate text-xs text-muted-foreground">{session.data.user.email}</p>}
+                  </div>
+                  <DropdownMenuSeparator />
+                </>
+              )}
+              <DropdownMenuItem onClick={() => void navigate({ to: '/dashboard/projects/$projectSlug/settings', params: { projectSlug: currentProject?.slug || '' } })} disabled={!currentProject}>
+                <Settings className="h-4 w-4" />
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSignOut}>
+                <LogOut className="h-4 w-4" />
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
+
+      <Dialog open={createOpen} onOpenChange={(next) => { setCreateOpen(next); if (!next) setError(''); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create project</DialogTitle>
+            <DialogDescription>Create a project and start sending telemetry to it.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={submitProject} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="sidebar-project-name">Project name</Label>
+              <Input id="sidebar-project-name" value={projectName} onChange={(event) => setProjectName(event.target.value)} placeholder="Payments API" required maxLength={100} autoFocus />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sidebar-project-slug">Slug</Label>
+              <Input id="sidebar-project-slug" value={projectSlug} onChange={(event) => setProjectSlug(event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} placeholder="payments-api" pattern="[a-z0-9-]+" />
+            </div>
+            {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={createProject.isPending}>
+                {createProject.isPending ? 'Creating...' : 'Create project'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
