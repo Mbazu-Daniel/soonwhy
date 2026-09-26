@@ -53,8 +53,8 @@ export class TelemetryBatcher {
     let dropped = 0;
 
     const results = await Promise.all([
-      logs.length ? this.transport.send('logs', toLogsPayload(logs, this.resource, '0.1.0')) : Promise.resolve(true),
-      metrics.length ? this.transport.send('metrics', toMetricsPayload(metrics, this.resource, '0.1.0')) : Promise.resolve(true),
+      logs.length ? this.transport.send('logs', toLogsPayload(logs, this.resource, '0.1.0', this.options)) : Promise.resolve(true),
+      metrics.length ? this.transport.send('metrics', toMetricsPayload(metrics, this.resource, '0.1.0', this.options)) : Promise.resolve(true),
     ]);
 
     if (logs.length) {
