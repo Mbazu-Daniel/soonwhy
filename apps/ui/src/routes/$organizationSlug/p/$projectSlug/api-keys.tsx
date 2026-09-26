@@ -34,15 +34,7 @@ function ApiKeysPage() {
         <Metric icon={Activity} label="Usage" value="Telemetry ingestion" />
       </section>
 
-      <Card className="rounded-2xl border-[#242426] bg-[#0B0B0C] shadow-none">
-        <CardContent className="p-0">
-          <div className="border-b border-[#1B1B1D] px-5 py-5 sm:px-6">
-            <h2 className="text-sm font-semibold text-[#F6F6F6]">Ingestion API keys</h2>
-            <p className="mt-1 text-xs text-[#989898]">Raw keys are shown only once when created.</p>
-          </div>
-          <div className="p-5 sm:p-6"><ApiKeySettings projectId={projectId} queryClient={queryClient} /></div>
-        </CardContent>
-      </Card>
+      <ApiKeySettings projectId={projectId} queryClient={queryClient} />
     </div>
   );
 }
