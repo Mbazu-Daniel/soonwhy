@@ -25,7 +25,7 @@ interface Trace {
 }
 
 function TraceExplorer() {
-  const { projectSlug } = Route.useParams();
+  const { projectSlug, orgSlug } = useProject();
   const { projectId } = useProject();
   const [q, setQ] = useState('');
   const { data, isLoading, isError, refetch } = useQuery({
@@ -100,8 +100,8 @@ function TraceExplorer() {
               {data.map((t) => (
                 <Link
                   key={t.traceId}
-                  to="/dashboard/projects/$projectSlug/trace/$traceId"
-                  params={{ projectSlug, traceId: t.traceId }}
+                  to="/$organizationSlug/p/$projectSlug/trace/$traceId"
+                  params={{ organizationSlug: orgSlug!, projectSlug: projectSlug!, traceId: t.traceId }}
                   className="flex items-center gap-4 p-4 hover:bg-muted focus-visible:bg-muted"
                 >
                   <span className="grid h-8 w-8 place-items-center rounded-lg bg-secondary">
