@@ -38,14 +38,11 @@ export class ProjectsRepository {
   }
 
   async deleteProject(id: string, orgId: string) {
-    await db
-      .delete(projects)
-      .where(and(eq(projects.id, id), eq(projects.orgId, orgId)));
+    await db.delete(projects).where(and(eq(projects.id, id), eq(projects.orgId, orgId)));
   }
-}
 
   async getProjectSettings(id: string, orgId: string) {
-    return db
+    const rows = await db
       .select({
         projectId: projectSettings.projectId,
         redactSensitiveData: projectSettings.redactSensitiveData,
@@ -57,23 +54,35 @@ export class ProjectsRepository {
       })
       .from(projectSettings)
       .innerJoin(projects, eq(projectSettings.projectId, projects.id))
-      .where(and(eq(projectSettings.projectId, id), eq(projects.orgId, orgId)))
-      .then((rows) => rows[0] ?? this.defaultProjectSettings(id));
+      .where(and(eq(projectSettings.projectId, id), eq(projects.orgId, orgId)));
+    return rows[0] ?? this.defaultProjectSettings(id);
   }
 
-  async updateProjectSettings(id: string, orgId: string, data: Record<string, unknown>) {
+  async updateProjectSettings(
+    id: string,
+    orgId: string,
+    data: {
+      redactSensitiveData?: boolean;
+      captureRequestHeaders?: boolean;
+      captureRequestBody?: boolean;
+      captureResponseBody?: boolean;
+      maxAttributeCount?: number;
+      maxAttributeValueLength?: number;
+    },
+  ) {
     const project = await this.getProjectById(id, orgId);
     if (!project) return null;
-    const [settings] = await db
+
+    await db
       .insert(projectSettings)
       .values({ projectId: id })
-      .onConflictDoNothing()
-      .returning();
-    if (!settings) {
-      await db.update(projectSettings).set({ ...data, updatedAt: new Date() }).where(eq(projectSettings.projectId, id));
-    } else if (Object.keys(data).length) {
-      await db.update(projectSettings).set({ ...data, updatedAt: new Date() }).where(eq(projectSettings.projectId, id));
-    }
+      .onConflictDoNothing();
+
+    await db
+      .update(projectSettings)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(projectSettings.projectId, id));
+
     return this.getProjectSettings(id, orgId);
   }
 
@@ -88,3 +97,4 @@ export class ProjectsRepository {
       maxAttributeValueLength: 4096,
     };
   }
+}
