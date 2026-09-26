@@ -17,7 +17,7 @@ export const Route = createFileRoute('/dashboard/projects/$projectSlug')({
 function ProjectDashboardLayout() {
   const { projectSlug } = Route.useParams();
   const navigate = useNavigate();
-  const { orgId, setProjectId } = useProject();
+  const { orgId, setProject } = useProject();
 
   const projects = useQuery({
     queryKey: ['projects', orgId],
@@ -33,10 +33,9 @@ function ProjectDashboardLayout() {
       return;
     }
     if (project) {
-      setProjectId(project.id);
-      localStorage.setItem('project_slug', project.slug);
+      setProject(project);
     }
-  }, [navigate, project, projects.isLoading, setProjectId]);
+  }, [navigate, project, projects.isLoading, setProject]);
 
   if (!project) return null;
 
