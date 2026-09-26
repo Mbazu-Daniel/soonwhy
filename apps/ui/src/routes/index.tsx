@@ -11,7 +11,7 @@ import {
   Database,
   GitBranch,
   Layers3,
-  Search,
+
   Server,
   ShieldCheck,
   Terminal,
