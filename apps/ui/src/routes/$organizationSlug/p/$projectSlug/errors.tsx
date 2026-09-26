@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, Clock3, Layers3 } from 'lucide-react';
 import { TimeRangeControl, telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
 import { useState } from 'react';
+import { keepPreviousData } from '@tanstack/react-query';
 import { Card, CardContent } from '~/components/ui/card';
 import { Skeleton } from '~/components/ui/skeleton';
 import { Badge } from '~/components/ui/badge';
@@ -22,7 +23,8 @@ function ErrorOverview() {
   const { data: errors, isLoading, isError, refetch } = useQuery({ queryKey: ['dashboard-errors', projectId, range, serviceFilter], queryFn: () => api.get<ErrorEntry[]>(`/projects/${projectId}/dashboard/errors?${new URLSearchParams({ ...rangeParams, ...(serviceFilter !== 'all' ? { service: serviceFilter } : {}) }).toString()}`), enabled: !!projectId });
   const totalErrors = errors?.reduce((sum, error) => sum + error.count, 0) ?? 0;
   if (!projectId) return <EmptyProject />;
-  if (isError) return <QueryErrorState onRetry={() => void refetch()} />;
+  const showingStale = isError && !!errors?.length;
+  if (isError && !errors?.length) return <QueryErrorState onRetry={() => void refetch()} />;
   return <div className="min-h-full space-y-5 pb-8">
     <header className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#16931F]">Failure signals</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Errors</h1><p className="mt-1 text-sm text-muted-foreground">Grouped application failures, frequency and the services affected.</p></div><div className="flex flex-wrap gap-2"><TimeRangeControl value={range} onChange={setRange}/><select value={serviceFilter} onChange={(e) => setServiceFilter(e.target.value)} className="h-9 rounded-md border bg-background px-3 text-sm"><option value="all">All services</option>{Array.from(new Set((errors ?? []).map((error) => error.service).filter(Boolean))).sort().map((service) => <option key={service} value={service}>{service}</option>)}</select></div></header>
     <div className="grid grid-cols-2 gap-4"><Stat icon={AlertCircle} label="Occurrences · {range}" value={isLoading ? '—' : totalErrors.toLocaleString()} critical /><Stat icon={Layers3} label="Unique fingerprints" value={isLoading ? '—' : (errors?.length ?? 0).toLocaleString()} /></div>
