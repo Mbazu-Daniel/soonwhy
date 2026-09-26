@@ -82,7 +82,7 @@ export function createOpenTelemetryRuntime(options: ResolvedNodeSdkOptions): OTe
   const sdk = new sdkModule.NodeSDK({
     resource,
     traceExporter: exporter,
-    instrumentations: [instrumentations],
+    instrumentations,
     sampler: createSampler(options),
   });
 
