@@ -50,6 +50,9 @@ export interface SoonwhyOptions extends ResourceOptions {
   registerShutdownHandlers?: boolean;
   fetch?: typeof globalThis.fetch;
   sleep?: (delayMs: number) => Promise<void>;
+  redactSensitiveData?: boolean;
+  maxAttributeCount?: number;
+  maxAttributeValueLength?: number;
 }
 
 export interface FlushResult {
