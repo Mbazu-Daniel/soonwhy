@@ -32,22 +32,22 @@ function ProjectDashboardLayout() {
       void navigate({ to: '/dashboard' });
       return;
     }
-    if (project) {
-      setProject(project);
-    }
+    if (project) setProject(project);
   }, [navigate, project, projects.isLoading, setProject]);
 
   if (!project) return null;
 
   return (
     <SidebarProvider>
-      <div className="dashboard-shell flex min-h-dvh flex-col">
+      <div className="dashboard-shell flex min-h-dvh flex-col bg-[#040405]">
         <a href="#main-content" className="skip-link">Skip to main content</a>
         <TopBar />
         <div className="flex min-h-0 w-full flex-1">
           <Sidebar />
-          <main id="main-content" tabIndex={-1} className="min-h-0 w-full min-w-0 flex-1 overflow-y-auto bg-background px-5 py-6 sm:px-8 lg:px-14 lg:py-8 xl:px-20 2xl:px-28">
-            <Outlet />
+          <main id="main-content" tabIndex={-1} className="min-h-0 w-full min-w-0 flex-1 overflow-y-auto bg-[#040405] px-4 py-5 sm:px-6 sm:py-7 xl:px-8">
+            <div className="mx-auto w-full max-w-[1440px]">
+              <Outlet />
+            </div>
           </main>
         </div>
         <Toaster />
