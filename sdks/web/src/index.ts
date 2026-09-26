@@ -12,6 +12,7 @@ export interface WebSdkOptions {
 
 type WebRecord = Record<string, unknown>;
 type OtlpAttribute = { key: string; value: Record<string, unknown> };
+type ResolvedWebOptions = Required<Pick<WebSdkOptions, 'apiKey' | 'endpoint' | 'batchSize' | 'flushIntervalMs' | 'maxRetries'>> & Pick<WebSdkOptions, 'serviceName' | 'serviceVersion' | 'deploymentEnvironment' | 'attributes'>;
 
 const SDK_VERSION = '0.1.0';
 const DEFAULT_ENDPOINT = 'http://localhost:3002/v1';
@@ -172,7 +173,7 @@ export class SoonwhyWeb {
   }
 }
 
-function toLogsPayload(records: WebRecord[], options: SoonwhyWeb['options']): unknown {
+function toLogsPayload(records: WebRecord[], options: ResolvedWebOptions): unknown {
   return {
     resourceLogs: [
       {
@@ -194,7 +195,15 @@ function toLogsPayload(records: WebRecord[], options: SoonwhyWeb['options']): un
   };
 }
 
-function toMetricsPayload(records: WebRecord[], options: SoonwhyWeb['options']): unknown {
+function toMetricsPayload(records: WebRecord[], options: ResolvedWebOptions): unknown {
+  const groups = new Map<string, WebRecord[]>();
+  for (const record of records) {
+    const name = String(record.name ?? 'soonwhy.metric');
+    const group = groups.get(name);
+    if (group) group.push(record);
+    else groups.set(name, [record]);
+  }
+
   return {
     resourceMetrics: [
       {
@@ -202,63 +211,20 @@ function toMetricsPayload(records: WebRecord[], options: SoonwhyWeb['options']):
         scopeMetrics: [
           {
             scope: { name: '@soonwhy/web', version: SDK_VERSION },
-            metrics: [
-              {
-                name: String(records[0]?.name ?? 'soonwhy.metric'),
-                unit: '',
-                gauge: {
-                  dataPoints: records.map((record) => ({
-                    timeUnixNano: record.timeUnixNano,
-                    asDouble: Number(record.value),
-                    attributes: toAttributes(record.attributes as Record<string, unknown> | undefined),
-                  })),
-                },
+            metrics: [...groups.entries()].map(([name, items]) => ({
+              name,
+              unit: '',
+              gauge: {
+                dataPoints: items.map((record) => ({
+                  timeUnixNano: record.timeUnixNano,
+                  asDouble: Number(record.value),
+                  attributes: toAttributes(record.attributes as Record<string, unknown> | undefined),
+                })),
               },
-            ],
+            })),
           },
         ],
       },
     ],
   };
-}
-
-function toAttributes(
-  attributes?: Record<string, unknown>,
-  options?: Pick<WebSdkOptions, 'serviceName' | 'serviceVersion' | 'deploymentEnvironment' | 'attributes'>,
-): OtlpAttribute[] {
-  const merged = {
-    ...(options?.serviceName ? { 'service.name': options.serviceName } : {}),
-    ...(options?.serviceVersion ? { 'service.version': options.serviceVersion } : {}),
-    ...(options?.deploymentEnvironment
-      ? { 'deployment.environment.name': options.deploymentEnvironment }
-      : {}),
-    ...(options?.attributes ?? {}),
-    ...(attributes ?? {}),
-  };
-
-  return Object.entries(merged).map(([key, value]) => ({
-    key,
-    value: toAnyValue(value),
-  }));
-}
-
-function toAnyValue(value: unknown): Record<string, unknown> {
-  if (typeof value === 'string') return { stringValue: value };
-  if (typeof value === 'boolean') return { boolValue: value };
-  if (typeof value === 'number') {
-    return Number.isInteger(value) ? { intValue: String(value) } : { doubleValue: value };
-  }
-  if (value === null || value === undefined) return { stringValue: String(value ?? '') };
-  if (Array.isArray(value)) return { arrayValue: { values: value.map(toAnyValue) } };
-  if (typeof value === 'object') {
-    return {
-      kvlistValue: {
-        values: Object.entries(value as Record<string, unknown>).map(([key, item]) => ({
-          key,
-          value: toAnyValue(item),
-        })),
-      },
-    };
-  }
-  return { stringValue: String(value) };
 }
