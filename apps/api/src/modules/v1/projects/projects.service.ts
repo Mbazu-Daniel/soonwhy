@@ -31,7 +31,6 @@ export class ProjectsService {
     await this.getProjectById(id, orgId);
     return this.projectsRepository.deleteProject(id, orgId);
   }
-}
 
   async getProjectSettings(id: string, orgId: string) {
     await this.getProjectById(id, orgId);
@@ -42,3 +41,4 @@ export class ProjectsService {
     await this.getProjectById(id, orgId);
     return this.projectsRepository.updateProjectSettings(id, orgId, input);
   }
+}
