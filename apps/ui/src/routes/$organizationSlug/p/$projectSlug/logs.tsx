@@ -92,16 +92,13 @@ function LogViewer() {
   const { projectId } = useProject();
   const [search, setSearch] = useState('');
   const [levelFilter, setLevelFilter] = useState('all');
-  const [serviceFilter, setServiceFilter] = useState(initialService);
-  const [cursor, setCursor] = useState<string>();
+  const routeSearch = Route.useSearch() as { service?: string; traceId?: string; spanId?: string };\n  const initialService = routeSearch.service ?? 'all';\n  const [serviceFilter, setServiceFilter] = useState(initialService);\n  const [cursor, setCursor] = useState<string>();
   const [allLogs, setAllLogs] = useState<LogEntry[]>([]);
   const [range, setRange] = useState<TelemetryRange>('24h');
   const [live, setLive] = useState(false);
   const { organizationSlug, projectSlug } = Route.useParams();
   const rangeParams = telemetryRangeParams(range);
-  const routeSearch = Route.useSearch() as { service?: string; traceId?: string; spanId?: string };
-  const initialService = routeSearch.service ?? 'all';
-  const traceIdFilter = routeSearch.traceId;
+    const traceIdFilter = routeSearch.traceId;
   const spanIdFilter = routeSearch.spanId;
 
   const { data, isLoading, isFetching, isError, refetch } = useQuery({
