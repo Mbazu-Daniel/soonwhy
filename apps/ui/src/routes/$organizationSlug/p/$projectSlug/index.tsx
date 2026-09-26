@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import {
   Activity,
   AlertTriangle,
@@ -72,6 +72,7 @@ function DashboardOverviewPage() {
     queryKey: ['dashboard-overview', projectId, range],
     queryFn: () => api.get<DashboardOverview>(`/projects/${projectId}/dashboard/overview?${new URLSearchParams(rangeParams).toString()}`),
     enabled: !!projectId,
+    placeholderData: keepPreviousData,
   });
 
   if (!projectId) {
@@ -87,6 +88,7 @@ function DashboardOverviewPage() {
   }
 
   const live = data && data.totalRequests > 0 ? data : dashboardOverview;
+  const overviewStale = isLoading === false && !data && !!telemetryStatus?.lastTelemetryAt;
   const score = live.score;
   const health = score >= 90 ? 'Healthy' : score >= 70 ? 'Needs attention' : 'Investigate';
 
@@ -105,7 +107,7 @@ function DashboardOverviewPage() {
         <TimeRangeControl value={range} onChange={setRange} />
       </header>
 
-      {telemetryStatus?.status === 'stale' && (
+      {(telemetryStatus?.status === 'stale' || overviewStale) && (
         <div className="flex items-center justify-between gap-3 rounded-xl border border-[#5A4A1C] bg-[#2A220F] px-4 py-3 text-xs text-[#D8C68A]">
           <span>Telemetry is stale. Showing the last available result while new events are awaited.</span>
           <span className="shrink-0">{telemetryStatus.lastTelemetryAt ? new Date(telemetryStatus.lastTelemetryAt).toLocaleTimeString() : 'Unknown'}</span>
