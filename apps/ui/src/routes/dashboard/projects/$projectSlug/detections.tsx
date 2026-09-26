@@ -16,7 +16,8 @@ type Severity = 'warning' | 'critical';
 interface DetectionFinding { id: string; projectId: string; serviceName: string; type: FindingType; severity: Severity; title: string; description: string; observedValue: number; threshold: number; unit: string; window: { start: string; end: string }; evidence: Array<{ kind: string; label: string; value: number | string; context?: Record<string, unknown> }>; }
 interface RcaAnalysis { id: string; serviceName: string; severity: Severity; summary: string; rootCause: string; contributingFactors: string[]; investigationSteps: string[]; suggestedChanges: string[]; evidenceRefs: string[]; confidence: 'low' | 'medium' | 'high'; limitations: string[]; provider: string; model: string; promptVersion: string; createdAt: string; }
 
-function DetectionOverview() {\n  const { projectSlug } = Route.useParams();
+function DetectionOverview() {
+  const { projectSlug } = Route.useParams();
   const { projectId } = useProject(); const queryClient = useQueryClient(); const [selectedId, setSelectedId] = useState<string | null>(null);
   const { data: findings, isLoading, isError, refetch } = useQuery({ queryKey: ['detections', projectId], queryFn: () => api.get<DetectionFinding[]>(`/projects/${projectId}/detections`), enabled: !!projectId });
   const selected = findings?.find((item) => item.id === selectedId) ?? findings?.[0]; const isBottleneck = selected?.type === 'bottleneck';
