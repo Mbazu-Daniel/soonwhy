@@ -80,8 +80,8 @@ export class InvestigationService {
   }
 
   async start(findingId: string, projectId: string, orgId: string) {
-    const finding = await this.repository.getFinding(findingId, orgId);\n    if (finding.projectId !== projectId) throw new NotFoundException('Finding not found');
-    if (!finding) throw new NotFoundException('Finding not found');
+    const finding = await this.repository.getFinding(findingId, orgId);
+    if (!finding || finding.projectId !== projectId) throw new NotFoundException('Finding not found');
 
     const evidence = finding.evidence as DetectionEvidence[];
     const evidenceRefs = evidence.map((item) => ({
