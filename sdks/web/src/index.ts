@@ -30,8 +30,8 @@ export class SoonwhyWeb {
     const apiKey = options.apiKey.trim();
     if (!apiKey) throw new Error('Soonwhy web apiKey is required');
 
-    const endpoint = (options.endpoint ?? DEFAULT_ENDPOINT).trim().replace(/\\/+$/, '');
-    if (!/^https?:\\/\\//i.test(endpoint)) {
+    const endpoint = (options.endpoint ?? DEFAULT_ENDPOINT).trim().replace(/\/+$/, '');
+    if (!/^https?:\/\//i.test(endpoint)) {
       throw new Error('Soonwhy web endpoint must use http or https');
     }
 
