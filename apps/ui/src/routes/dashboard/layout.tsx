@@ -17,7 +17,7 @@ export const Route = createFileRoute('/dashboard/layout')({
 
 function DashboardLayout() {
   const navigate = useNavigate();
-  const { setOrganization } = useProject();
+  const { orgId, orgSlug, setOrganization } = useProject();
   const [checking, setChecking] = useState(true);
   const token = getSessionToken();
 
@@ -33,25 +33,32 @@ function DashboardLayout() {
 
     if (!token || !session) {
       clearSession();
-      navigate({ to: '/login' });
+      void navigate({ to: '/login' });
       return;
     }
 
-    const orgId = localStorage.getItem('org_id');
-    if (!orgId) {
-      void firstOrganization().then((organization) => {
-        if (!organization) {
-          navigate({ to: '/organizations' });
-          return;
-        }
-        setOrganization(organization);
-        navigate({ to: '/$organizationSlug', params: { organizationSlug: organization.slug } });
-      });
+    if (orgId && orgSlug) {
+      setChecking(false);
       return;
     }
 
-    setChecking(false);
-  }, [token, session, sessionLoading, navigate, setOrganization]);
+    let cancelled = false;
+    void firstOrganization().then((organization) => {
+      if (cancelled) return;
+
+      if (!organization) {
+        void navigate({ to: '/organizations' });
+        return;
+      }
+
+      setOrganization(organization);
+      setChecking(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, session, sessionLoading, navigate, orgId, orgSlug, setOrganization]);
 
   if (checking) return <DashboardLoading />;
 
