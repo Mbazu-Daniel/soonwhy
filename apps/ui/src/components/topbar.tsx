@@ -16,12 +16,19 @@ interface SessionUser { user: { id: string; email: string; name: string | null; 
 
 export function TopBar() {
   const navigate = useNavigate();
-  const { projectId, orgId, setProjectId } = useProject();
+  const { projectId, orgId, projectSlug, setProject } = useProject();
   const token = getSessionToken();
   const { toggle } = useSidebar();
 
   const { data: session } = useQuery({ queryKey: ['session'], queryFn: () => api.get<SessionUser>('/auth/session'), enabled: !!token, retry: false });
   const { data: projects } = useQuery({ queryKey: ['projects', orgId], queryFn: () => api.get<Project[]>('/projects'), enabled: !!orgId });
+
+  function handleProjectChange(id: string) {
+    const project = projects?.find((item) => item.id === id);
+    if (!project) return;
+    setProject(project);
+    void navigate({ to: '/dashboard/projects/$projectSlug', params: { projectSlug: project.slug } });
+  }
 
   async function handleSignOut() {
     if (token) await signOut(token);
@@ -39,7 +46,7 @@ export function TopBar() {
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <span className="hidden text-xs font-medium text-muted-foreground md:block">Project</span>
           {projects && projects.length > 0 ? (
-            <Select value={projectId || ''} onValueChange={setProjectId}>
+            <Select value={projectId || ''} onValueChange={handleProjectChange}>
               <SelectTrigger data-tour="project-selector" className="h-9 w-full max-w-72 border-border bg-secondary sm:w-64"><SelectValue placeholder="Select project" /></SelectTrigger>
               <SelectContent>{projects.map((project) => <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>)}</SelectContent>
             </Select>
