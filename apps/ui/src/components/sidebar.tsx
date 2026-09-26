@@ -11,7 +11,6 @@ import { Label } from '~/components/ui/label';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '~/components/ui/dropdown-menu';
 import { AlertTriangle, BrainCircuit, Check, ChevronDown, ChevronRight, GitBranch, LayoutDashboard, Plus, ScrollText, Server, Settings, ShieldCheck } from 'lucide-react';
 import { api } from '~/lib/api';
-import { getSessionToken } from '~/lib/auth-client';
 
 interface Project { id: string; name: string; slug: string; }
 
