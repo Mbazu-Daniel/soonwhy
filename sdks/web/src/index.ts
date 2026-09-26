@@ -195,6 +195,51 @@ function toLogsPayload(records: WebRecord[], options: ResolvedWebOptions): unkno
   };
 }
 
+function toAttributes(
+  attributes: Record<string, unknown> | undefined,
+  resource?: Pick<
+    ResolvedWebOptions,
+    'serviceName' | 'serviceVersion' | 'deploymentEnvironment'
+  >,
+): OtlpAttribute[] {
+  const values: Record<string, unknown> = { ...(attributes ?? {}) };
+
+  if (resource?.serviceName) values['service.name'] = resource.serviceName;
+  if (resource?.serviceVersion) values['service.version'] = resource.serviceVersion;
+  if (resource?.deploymentEnvironment) {
+    values['deployment.environment.name'] = resource.deploymentEnvironment;
+  }
+
+  return Object.entries(values)
+    .filter(([, value]) => value !== undefined)
+    .map(([key, value]) => ({ key, value: toOtlpValue(value) }));
+}
+
+function toOtlpValue(value: unknown): Record<string, unknown> {
+  if (typeof value === 'string') return { stringValue: value };
+  if (typeof value === 'boolean') return { boolValue: value };
+  if (typeof value === 'number') {
+    return Number.isInteger(value) ? { intValue: String(value) } : { doubleValue: value };
+  }
+  if (Array.isArray(value)) {
+    return {
+      arrayValue: {
+        values: value.filter((item) => item !== undefined).map((item) => toOtlpValue(item)),
+      },
+    };
+  }
+  if (value && typeof value === 'object') {
+    return {
+      kvlistValue: {
+        values: Object.entries(value as Record<string, unknown>)
+          .filter(([, item]) => item !== undefined)
+          .map(([key, item]) => ({ key, value: toOtlpValue(item) })),
+      },
+    };
+  }
+  return { stringValue: String(value ?? '') };
+}
+
 function toMetricsPayload(records: WebRecord[], options: ResolvedWebOptions): unknown {
   const groups = new Map<string, WebRecord[]>();
   for (const record of records) {
