@@ -33,7 +33,7 @@ export function ProjectBreadcrumb() {
 
   const marker = `/p/${projectSlug}`;
   const projectIndex = location.pathname.indexOf(marker);
-  const suffix = projectIndex >= 0 ? location.pathname.slice(projectIndex + marker.length).replace(/^\\//, '') : '';
+  const suffix = projectIndex >= 0 ? location.pathname.slice(projectIndex + marker.length).replace(/^\//, '') : '';
   const label = labels[suffix] ?? 'Monitor';
 
   function selectProject(project: Project) {
