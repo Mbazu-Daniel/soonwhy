@@ -42,8 +42,8 @@ function TraceDetail() {
 
   const selected = data?.spans.find((span) => span.spanId === selectedSpanId) ?? data?.spans[0];
   const logs = useQuery({
-    queryKey: ['trace-logs', projectId, traceId],
-    queryFn: () => api.get<{ data: LogEntry[] }>(`/projects/${projectId}/logs?traceId=${encodeURIComponent(traceId)}&limit=20`),
+    queryKey: ['trace-logs', projectId, traceId, selectedSpanId],
+    queryFn: () => api.get<{ data: LogEntry[] }>(`/projects/${projectId}/logs?traceId=${encodeURIComponent(traceId)}${selectedSpanId ? `&spanId=${encodeURIComponent(selectedSpanId)}` : ''}&limit=20`),
     enabled: !!projectId && !!traceId,
   });
 
@@ -104,7 +104,7 @@ function TraceDetail() {
                 <JsonBlock title="Attributes" value={selected.attributes} /><JsonBlock title="Resource" value={selected.resource} />
               </div> : <p className="text-sm text-muted-foreground">Select a span.</p>}</CardContent></Card>
 
-              <Card className="border-border shadow-none"><CardHeader><CardTitle className="flex items-center gap-2 text-base"><FileText className="h-4 w-4" />Correlated logs</CardTitle></CardHeader><CardContent className="p-0">{logs.isLoading ? <div className="p-4"><Skeleton className="h-20" /></div> : !logs.data?.data?.length ? <p className="p-5 text-sm text-muted-foreground">No logs correlated with this trace.</p> : logs.data.data.slice(0, 8).map((log) => <div key={log.id} className="border-t p-3 first:border-0"><div className="flex items-center gap-2"><Badge variant="outline">{log.level}</Badge><span className="font-mono text-[10px] text-muted-foreground">{new Date(log.timestamp).toLocaleTimeString()}</span></div><p className="mt-1 text-xs">{log.message}</p></div>)}</CardContent></Card>
+              <Card className="border-border shadow-none"><CardHeader><CardTitle className="flex items-center gap-2 text-base"><FileText className="h-4 w-4" />{selectedSpanId ? 'Span logs' : 'Correlated logs'}</CardTitle></CardHeader><CardContent className="p-0">{logs.isLoading ? <div className="p-4"><Skeleton className="h-20" /></div> : !logs.data?.data?.length ? <p className="p-5 text-sm text-muted-foreground">No logs correlated with this span or trace.</p> : logs.data.data.slice(0, 8).map((log) => <div key={log.id} className="border-t p-3 first:border-0"><div className="flex items-center gap-2"><Badge variant="outline">{log.level}</Badge><span className="font-mono text-[10px] text-muted-foreground">{new Date(log.timestamp).toLocaleTimeString()}</span></div><p className="mt-1 text-xs">{log.message}</p></div>)}</CardContent></Card>
 
               <Card className="border-border shadow-none"><CardHeader><CardTitle className="text-base">Trace context</CardTitle></CardHeader><CardContent className="space-y-3 text-xs"><Fact label="Trace ID" value={traceId} /><Fact label="Services" value={services.join(', ')} /><Link to="/$organizationSlug/p/$projectSlug/logs" params={{ organizationSlug, projectSlug }} className="inline-flex items-center gap-1 text-[#16931F] hover:underline"><ExternalLink className="h-3 w-3" />Open logs</Link></CardContent></Card>
             </div>
