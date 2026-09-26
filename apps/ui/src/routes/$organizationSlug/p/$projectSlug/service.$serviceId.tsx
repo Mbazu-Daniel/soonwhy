@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Activity, ArrowLeft, ExternalLink, Users, GitBranch, Database, AlertTriangle, FileText, Clock3 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
@@ -23,14 +23,17 @@ function ServiceDetail(){
   const rangeParams=telemetryRangeParams(range);
   const rangeQuery=new URLSearchParams(rangeParams).toString();
 
-  const {data:service,isLoading,isError,refetch}=useQuery({queryKey:['service',projectId,serviceId],queryFn:()=>api.get<Service>(`/projects/${projectId}/services/${serviceId}`),enabled:!!projectId&&!!serviceId});
-  const {data:telemetry}=useQuery({queryKey:['service-telemetry',projectId,range],queryFn:()=>api.get<ServiceTelemetry[]>(`/projects/${projectId}/dashboard/services?${rangeQuery}`),enabled:!!projectId});
-  const {data:errors}=useQuery({queryKey:['service-errors',projectId,serviceId],queryFn:()=>api.get<Array<{fingerprint:string;errorMessage:string;errorType:string;service:string;count:number;lastSeen:string}>>(`/projects/${projectId}/dashboard/errors`),enabled:!!projectId&&!!serviceId});
-  const {data:logs}=useQuery({queryKey:['service-logs',projectId,serviceId,range],queryFn:()=>api.get<{data:LogEntry[]}>(`/projects/${projectId}/logs?service=${encodeURIComponent(service?.name??'')}&limit=8&${rangeQuery}`),enabled:!!projectId&&!!service?.name});
+  const {data:service,isLoading,isError,refetch}=useQuery({queryKey:['service',projectId,serviceId],queryFn:()=>api.get<Service>(`/projects/${projectId}/services/${serviceId}`),enabled:!!projectId&&!!serviceId,placeholderData:keepPreviousData});
+  const {data:telemetry}=useQuery({queryKey:['service-telemetry',projectId,range],queryFn:()=>api.get<ServiceTelemetry[]>(`/projects/${projectId}/dashboard/services?${rangeQuery}`),enabled:!!projectId,placeholderData:keepPreviousData});
+  const {data:errors}=useQuery({queryKey:['service-errors',projectId,serviceId],queryFn:()=>api.get<Array<{fingerprint:string;errorMessage:string;errorType:string;service:string;count:number;lastSeen:string}>>(`/projects/${projectId}/dashboard/errors?service=${encodeURIComponent(serviceId)}&${rangeQuery}`),enabled:!!projectId&&!!serviceId});
+  const {data:logs}=useQuery({queryKey:['service-logs',projectId,serviceId,range],queryFn:()=>api.get<{data:LogEntry[]}>(`/projects/${projectId}/logs?service=${encodeURIComponent(service?.name??'')}&limit=8&${rangeQuery}`),enabled:!!projectId&&!!service?.name,placeholderData:keepPreviousData});
 
   if(!projectId)return <Empty organizationSlug={organizationSlug} projectSlug={projectSlug}/>;
   if(isError)return <QueryErrorState onRetry={() => void refetch()} />;
   if(isLoading)return <div className="space-y-4"><Skeleton className="h-24"/><Skeleton className="h-64"/></div>;
+  const telemetryStale = !telemetry && !!metrics;
+  const errorsStale = !errors && serviceErrors.length > 0;
+  const logsStale = !logs && recentLogs.length > 0;
   if(!service)return <Empty notFound organizationSlug={organizationSlug} projectSlug={projectSlug}/>;
 
   const metrics=telemetry?.find((item)=>item.service===service.name);
@@ -42,7 +45,7 @@ function ServiceDetail(){
       <Link to="/$organizationSlug/p/$projectSlug/services" params={{ organizationSlug, projectSlug }} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4"/>Services</Link>
       <TimeRangeControl value={range} onChange={setRange}/>
     </div>
-    <header className="flex items-start gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary"><Activity className="h-5 w-5"/></span><div><p className="text-xs font-semibold uppercase tracking-[.14em] text-[#16931F]">Service detail</p><h1 className="mt-1 text-2xl font-semibold">{service.name}</h1><p className="font-mono text-xs text-muted-foreground">{service.slug}</p></div></header>
+    {(telemetryStale || errorsStale || logsStale) && <div className="rounded-xl border border-[#5A4A1C] bg-[#2A220F] px-4 py-3 text-xs text-[#D8C68A]">Some telemetry is temporarily unavailable. Showing the last successful service data.</div>}\n    <header className="flex items-start gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary"><Activity className="h-5 w-5"/></span><div><p className="text-xs font-semibold uppercase tracking-[.14em] text-[#16931F]">Service detail</p><h1 className="mt-1 text-2xl font-semibold">{service.name}</h1><p className="font-mono text-xs text-muted-foreground">{service.slug}</p></div></header>
     <nav className="flex flex-wrap gap-1 rounded-xl border bg-muted/40 p-1" aria-label="Service telemetry">
       <span className="rounded-lg bg-background px-3 py-2 text-xs font-medium shadow-sm">Overview</span>
       <Link to="/$organizationSlug/p/$projectSlug/errors" params={{ organizationSlug, projectSlug }} className="rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-background hover:text-foreground">Errors</Link>
