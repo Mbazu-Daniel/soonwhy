@@ -30,8 +30,8 @@ manifest.version = `0.0.0-snapshot.${timestamp}`;
 writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
 try {
-  execFileSync('pnpm', ['--filter', manifest.name, 'build'], { cwd: root, stdio: 'inherit' });
-  execFileSync('pnpm', ['--filter', manifest.name, 'publish', '--no-git-checks', '--tag', 'snapshot'], {
+  execFileSync('pnpm', ['--dir', packageDir, 'build'], { cwd: root, stdio: 'inherit' });
+  execFileSync('pnpm', ['--dir', packageDir, 'publish', '--no-git-checks', '--tag', 'snapshot'], {
     cwd: root,
     stdio: 'inherit',
   });
