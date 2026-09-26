@@ -163,7 +163,6 @@ function LogViewer() {
   }
 
   if (!projectId) return <EmptyProject />;
-  const showingStale = isError && displayLogs.length > 0;
 
   if (isError && !displayLogs.length) return <QueryErrorState onRetry={() => void refetch()} />;
 
