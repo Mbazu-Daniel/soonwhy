@@ -1,10 +1,42 @@
 import { Injectable } from '@nestjs/common';
+import { QuickwitService } from '@soonwhy/shared';
+import { QUICKWIT_INDEXES } from '@soonwhy/shared';
+import { quickwitTenantQuery } from '../../../common/quickwit/query';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../../../common/db';
 import { projects, services, teams, users } from '../../../common/db/schema';
 
 @Injectable()
 export class ServicesRepository {
+  constructor(private readonly quickwit: QuickwitService) {}
+
+  async getServiceMap(params: { orgId: string; projectId: string }) {
+    const result = await this.quickwit.search<{ service?: string; spanId?: string; parentSpanId?: string | null }>(QUICKWIT_INDEXES.traces, {
+      query: quickwitTenantQuery(params.orgId, params.projectId),
+      maxHits: 10000,
+    });
+    const spans = new Map<string, string>();
+    const nodes = new Map<string, { service: string; requests: number }>();
+    const edges = new Map<string, { source: string; target: string; requests: number }>();
+    for (const hit of result.hits) {
+      const span = hit._source;
+      if (span?.spanId && span.service) spans.set(span.spanId, span.service);
+    }
+    for (const hit of result.hits) {
+      const span = hit._source;
+      if (!span?.service) continue;
+      const node = nodes.get(span.service);
+      nodes.set(span.service, { service: span.service, requests: (node?.requests ?? 0) + 1 });
+      const parent = span.parentSpanId ? spans.get(span.parentSpanId) : undefined;
+      if (parent && parent !== span.service) {
+        const key = parent + '::' + span.service;
+        const edge = edges.get(key);
+        edges.set(key, { source: parent, target: span.service, requests: (edge?.requests ?? 0) + 1 });
+      }
+    }
+    return { nodes: [...nodes.values()].sort((a,b) => b.requests-a.requests), edges: [...edges.values()].sort((a,b) => b.requests-a.requests) };
+  }
+
   async getServiceById(id: string, orgId: string) {
     const [result] = await db
       .select({
