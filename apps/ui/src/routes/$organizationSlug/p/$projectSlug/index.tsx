@@ -22,7 +22,7 @@ export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/')({
   component: DashboardOverviewPage,
 });
 
-function AIDashboardSummary({ projectSlug }: { projectSlug: string }) {
+function AIDashboardSummary({ orgSlug, projectSlug }: { orgSlug: string; projectSlug: string }) {
   return (
     <section className="rounded-2xl border border-[#34451D] bg-[#11170D] p-5 sm:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -98,7 +98,7 @@ function DashboardOverviewPage() {
         </div>
       </header>
 
-      <AIDashboardSummary projectSlug={projectSlug} />
+      <AIDashboardSummary orgSlug={orgSlug!} projectSlug={projectSlug!} />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Metric label="Health score" value={String(score)} suffix="/100" icon={Gauge} tone="dark" detail={health} />
@@ -343,7 +343,7 @@ function QuickLink({
     | '/$organizationSlug/p/$projectSlug/traces'
     | '/$organizationSlug/p/$projectSlug/logs'
     | '/$organizationSlug/p/$projectSlug/investigations';
-  params: { projectSlug: string };
+  params: { organizationSlug: string; projectSlug: string };
   icon: typeof Server;
   label: string;
 }) {
