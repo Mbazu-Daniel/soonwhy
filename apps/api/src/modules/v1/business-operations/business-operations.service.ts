@@ -10,8 +10,8 @@ export class BusinessOperationsService {
     return (await this.repository.list(projectId, orgId)).map(({ operation }) => operation);
   }
 
-  async getById(id: string, projectId: string, orgId: string) {
-    const operation = await this.repository.getById(id, projectId, orgId);
+  async getById(id: string, orgId: string) {
+    const operation = await this.repository.getById(id, orgId);
     if (!operation) throw new NotFoundException('Business operation not found');
     return operation;
   }

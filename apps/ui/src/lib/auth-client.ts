@@ -18,6 +18,31 @@ export interface AuthResult {
   error?: { message: string; status: number };
 }
 
+function authErrorMessage(data: unknown, fallback: string): string {
+  if (!data || typeof data !== 'object') return fallback;
+  const body = data as { message?: unknown; detail?: unknown; title?: unknown };
+
+  for (const value of [body.message, body.detail, body.title]) {
+    if (typeof value !== 'string' || !value.trim()) continue;
+    const text = readableError(value);
+    if (text !== 'Internal Server Error' && text !== 'An unexpected error occurred') return text;
+  }
+
+  return fallback;
+}
+
+function readableError(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('[')) return trimmed;
+
+  try {
+    const issues = JSON.parse(trimmed) as Array<{ message?: string }>;
+    return issues.find((issue) => issue.message)?.message || trimmed;
+  } catch {
+    return trimmed;
+  }
+}
+
 function withSessionToken(data: AuthResult['data'] & { token?: string }) {
   if (!data?.token || data.session?.token) return data;
   return {
@@ -41,7 +66,7 @@ export async function signIn(email: string, password: string): Promise<AuthResul
       body: JSON.stringify({ email, password }),
     });
     const data = await res.json();
-    if (!res.ok) return { error: { message: data.message || 'Sign in failed', status: res.status } };
+    if (!res.ok) return { error: { message: authErrorMessage(data, 'Sign in failed'), status: res.status } };
     return { data: withSessionToken(data) };
   } catch (err) {
     return { error: { message: err instanceof Error ? err.message : 'Sign in failed', status: 0 } };
@@ -57,7 +82,7 @@ export async function signUp(email: string, password: string): Promise<AuthResul
       body: JSON.stringify({ email, password }),
     });
     const data = await res.json();
-    if (!res.ok) return { error: { message: data.message || 'Sign up failed', status: res.status } };
+    if (!res.ok) return { error: { message: authErrorMessage(data, 'Sign up failed'), status: res.status } };
     return { data: withSessionToken(data) };
   } catch (err) {
     return { error: { message: err instanceof Error ? err.message : 'Sign up failed', status: 0 } };
@@ -105,7 +130,7 @@ export async function getSession(token?: string): Promise<AuthResult> {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
     const data = await res.json();
-    if (!res.ok) return { error: { message: data.message || 'Session expired', status: res.status } };
+    if (!res.ok) return { error: { message: authErrorMessage(data, 'Session expired'), status: res.status } };
     return { data };
   } catch {
     return { error: { message: 'Network error', status: 0 } };

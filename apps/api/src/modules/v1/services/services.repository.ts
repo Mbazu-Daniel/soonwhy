@@ -1,17 +1,45 @@
 import { Injectable } from '@nestjs/common';
+import { QuickwitService } from '@soonwhy/shared';
+import { QUICKWIT_INDEXES } from '@soonwhy/shared';
+import { quickwitTenantQuery } from '../../../common/quickwit/query';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../../../common/db';
 import { projects, services, teams, users } from '../../../common/db/schema';
 
 @Injectable()
 export class ServicesRepository {
+  constructor(private readonly quickwit: QuickwitService) {}
+
+  async getServiceMap(params: { orgId: string; projectId: string }) {
+    const result = await this.quickwit.search<{ service?: string; spanId?: string; parentSpanId?: string | null }>(QUICKWIT_INDEXES.traces, {
+      query: quickwitTenantQuery(params.orgId, params.projectId),
+      maxHits: 10000,
+    });
+    const spans = new Map<string, string>();
+    const nodes = new Map<string, { service: string; requests: number }>();
+    const edges = new Map<string, { source: string; target: string; requests: number }>();
+    for (const hit of result.hits) {
+      const span = hit._source;
+      if (span?.spanId && span.service) spans.set(span.spanId, span.service);
+    }
+    for (const hit of result.hits) {
+      const span = hit._source;
+      if (!span?.service) continue;
+      const node = nodes.get(span.service);
+      nodes.set(span.service, { service: span.service, requests: (node?.requests ?? 0) + 1 });
+      const parent = span.parentSpanId ? spans.get(span.parentSpanId) : undefined;
+      if (parent && parent !== span.service) {
+        const key = parent + '::' + span.service;
+        const edge = edges.get(key);
+        edges.set(key, { source: parent, target: span.service, requests: (edge?.requests ?? 0) + 1 });
+      }
+    }
+    return { nodes: [...nodes.values()].sort((a, b) => b.requests - a.requests), edges: [...edges.values()].sort((a, b) => b.requests - a.requests) };
+  }
+
   async getServiceById(id: string, projectId: string, orgId: string) {
     const [result] = await db
-      .select({
-        service: services,
-        owner: { id: users.id, name: users.name, email: users.email },
-        team: { id: teams.id, name: teams.name, slug: teams.slug },
-      })
+      .select({ service: services, owner: { id: users.id, name: users.name, email: users.email }, team: { id: teams.id, name: teams.name, slug: teams.slug } })
       .from(services)
       .innerJoin(projects, eq(services.projectId, projects.id))
       .leftJoin(users, eq(services.ownerId, users.id))
@@ -23,50 +51,24 @@ export class ServicesRepository {
   }
 
   async getServicesByProjectId(projectId: string, orgId: string) {
-    const [project] = await db
-      .select({ id: projects.id })
-      .from(projects)
-      .where(and(eq(projects.id, projectId), eq(projects.orgId, orgId)))
-      .limit(1);
+    const [project] = await db.select({ id: projects.id }).from(projects).where(and(eq(projects.id, projectId), eq(projects.orgId, orgId))).limit(1);
     if (!project) return [];
-
     const rows = await db
-      .select({
-        service: services,
-        owner: { id: users.id, name: users.name, email: users.email },
-        team: { id: teams.id, name: teams.name, slug: teams.slug },
-      })
+      .select({ service: services, owner: { id: users.id, name: users.name, email: users.email }, team: { id: teams.id, name: teams.name, slug: teams.slug } })
       .from(services)
       .leftJoin(users, eq(services.ownerId, users.id))
       .leftJoin(teams, eq(services.teamId, teams.id))
       .where(and(eq(services.projectId, projectId), eq(services.orgId, orgId)));
-
     return rows.map(({ service, owner, team }) => ({ ...service, owner, team }));
   }
 
   async getServiceByProjectAndSlug(projectId: string, orgId: string, slug: string) {
-    const [result] = await db
-      .select({ service: services })
-      .from(services)
-      .innerJoin(projects, eq(services.projectId, projects.id))
-      .where(and(eq(services.projectId, projectId), eq(services.orgId, orgId), eq(projects.orgId, orgId), eq(services.slug, slug)))
-      .limit(1);
+    const [result] = await db.select({ service: services }).from(services).innerJoin(projects, eq(services.projectId, projects.id))
+      .where(and(eq(services.projectId, projectId), eq(services.orgId, orgId), eq(projects.orgId, orgId), eq(services.slug, slug))).limit(1);
     return result?.service;
   }
 
-  async createService(data: {
-    projectId: string;
-    orgId: string;
-    name: string;
-    slug: string;
-    language?: string;
-    framework?: string;
-    repositoryUrl?: string;
-    repositoryProvider?: string;
-    repositoryBranch?: string;
-    ownerId?: string;
-    teamId?: string;
-  }) {
+  async createService(data: { projectId: string; orgId: string; name: string; slug: string; language?: string; framework?: string; repositoryUrl?: string; repositoryProvider?: string; repositoryBranch?: string; ownerId?: string; teamId?: string; }) {
     const [svc] = await db.insert(services).values(data).returning();
     return svc;
   }

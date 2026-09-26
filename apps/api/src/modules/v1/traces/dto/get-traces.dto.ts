@@ -6,6 +6,7 @@ export const getTracesSchema = z.object({
   to: z.string().datetime().optional(),
   limit: z.coerce.number().int().min(1).max(100).optional().default(20),
   cursor: z.string().optional(),
+  q: z.string().max(200).optional(),
 });
 
 export type GetTracesInput = z.infer<typeof getTracesSchema>;

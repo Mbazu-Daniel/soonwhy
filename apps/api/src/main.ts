@@ -1,11 +1,18 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
+import compression from 'compression';
+import helmet from 'helmet';
+import morgan from 'morgan';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.use(helmet());
+  app.use(compression());
+  app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
   app.setGlobalPrefix('api/v1');
 

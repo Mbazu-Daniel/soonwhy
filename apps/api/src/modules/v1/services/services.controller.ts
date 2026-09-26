@@ -10,38 +10,28 @@ export class ServicesController {
   constructor(private readonly servicesService: ServicesService) {}
 
   @Post()
-  async createService(
-    @CurrentOrg() org: OrgContext,
-    @Param('projectId') projectId: string,
-    @Body() body: unknown,
-  ) {
+  async createService(@CurrentOrg() org: OrgContext, @Param('projectId') projectId: string, @Body() body: unknown) {
     const input = CreateServiceDto.parse(body);
     return this.servicesService.createService(projectId, org.orgId, input);
   }
 
+  @Get('map')
+  async getServiceMap(@CurrentOrg() org: OrgContext, @Param('projectId') projectId: string) {
+    return this.servicesService.getServiceMap(projectId, org.orgId);
+  }
+
   @Get()
-  async getServicesForProject(
-    @CurrentOrg() org: OrgContext,
-    @Param('projectId') projectId: string,
-  ) {
+  async getServicesForProject(@CurrentOrg() org: OrgContext, @Param('projectId') projectId: string) {
     return this.servicesService.getServicesForProject(projectId, org.orgId);
   }
 
   @Get(':id')
-  async getServiceById(
-    @CurrentOrg() org: OrgContext,
-    @Param('projectId') projectId: string,
-    @Param('id') id: string,
-  ) {
+  async getServiceById(@CurrentOrg() org: OrgContext, @Param('projectId') projectId: string, @Param('id') id: string) {
     return this.servicesService.getServiceById(id, projectId, org.orgId);
   }
 
   @Delete(':id')
-  async deleteService(
-    @CurrentOrg() org: OrgContext,
-    @Param('projectId') projectId: string,
-    @Param('id') id: string,
-  ) {
+  async deleteService(@CurrentOrg() org: OrgContext, @Param('projectId') projectId: string, @Param('id') id: string) {
     return this.servicesService.deleteService(id, projectId, org.orgId);
   }
 }
