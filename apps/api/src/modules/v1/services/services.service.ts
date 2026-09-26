@@ -24,7 +24,7 @@ export class ServicesService {
   }
 
   async deleteService(id: string, projectId: string, orgId: string) {
-    await this.getServiceById(id, orgId);
+    await this.getServiceById(id, projectId, orgId);
     return this.servicesRepository.deleteService(id);
   }
 }
