@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { QUICKWIT_INDEXES, QuickwitService } from '@soonwhy/shared';
 import { quickwitTerm } from '../../../common/quickwit/query';
 import { TelemetryQueryService } from '../../../common/telemetry';
 
@@ -33,7 +32,7 @@ interface TraceAggregation {
 
 @Injectable()
 export class TracesRepository {
-  constructor(private readonly quickwit: QuickwitService, private readonly telemetryQuery: TelemetryQueryService) {}
+  constructor(private readonly telemetryQuery: TelemetryQueryService) {}
 
   async listTraces(params: {
     orgId: string;
