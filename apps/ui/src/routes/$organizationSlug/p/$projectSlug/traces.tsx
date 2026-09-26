@@ -2,6 +2,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Search, GitBranch, Clock3, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
+import { TimeRangeControl, telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
 import { Card, CardContent } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Skeleton } from '~/components/ui/skeleton';
@@ -28,11 +29,13 @@ function TraceExplorer() {
   const { projectSlug, orgSlug } = useProject();
   const { projectId } = useProject();
   const [q, setQ] = useState('');
+  const [range, setRange] = useState<TelemetryRange>('24h');
+  const rangeParams = telemetryRangeParams(range);
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['traces', projectId, q],
+    queryKey: ['traces', projectId, q, range],
     queryFn: () =>
       api.get<{ data: Trace[]; nextCursor?: string }>(
-        `/projects/${projectId}/traces${q ? `?q=${encodeURIComponent(q)}` : ''}`,
+        `/projects/${projectId}/traces?${new URLSearchParams({ ...(q ? { q } : {}), ...rangeParams }).toString()}`,
       ),
     enabled: !!projectId,
   });
@@ -42,15 +45,14 @@ function TraceExplorer() {
 
   return (
     <div className="min-h-full space-y-5 pb-8">
-      <header>
+      <header className="flex flex-wrap items-end justify-between gap-3"><div>
         <p className="text-xs font-semibold uppercase tracking-[.14em] text-[#16931F]">
           Distributed telemetry
         </p>
         <h1 className="mt-1 text-2xl font-semibold">Traces</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Follow a request across services and inspect its critical path.
-        </p>
-      </header>
+        </p></div><TimeRangeControl value={range} onChange={setRange}/></header>
 
       <Card className="border-border shadow-none">
         <CardContent className="p-4">
