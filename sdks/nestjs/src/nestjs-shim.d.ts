@@ -11,7 +11,7 @@ declare module '@nestjs/common' {
   }
 
   export interface Type<T> extends Function {
-    new (...args: any[]): T;
+    new (...args: never[]): T;
   }
 
   export function Global(): ClassDecorator;
