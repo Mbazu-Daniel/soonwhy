@@ -30,7 +30,8 @@ function LogRow({ log }: { log: LogEntry }) {
   </article>;
 }
 
-function LogViewer() {\n  const { projectSlug } = Route.useParams();
+function LogViewer() {
+  const { projectSlug } = Route.useParams();
   const { projectId } = useProject(); const [search, setSearch] = useState(''); const [levelFilter, setLevelFilter] = useState('all'); const [cursor, setCursor] = useState<string>(); const [allLogs, setAllLogs] = useState<LogEntry[]>([]);
   const { data, isLoading, isFetching, isError, refetch } = useQuery({ queryKey: ['logs', projectId, levelFilter, search, cursor], queryFn: () => { const params = new URLSearchParams(); if (levelFilter !== 'all') params.set('level', levelFilter); if (search) params.set('q', search); if (cursor) params.set('cursor', cursor); params.set('limit', '50'); return api.get<{ data: LogEntry[]; nextCursor?: string }>(`/projects/${projectId}/logs?${params.toString()}`); }, enabled: !!projectId });
   const logs = data?.data ?? []; const nextCursor = data?.nextCursor; const displayLogs = cursor ? [...allLogs, ...logs] : logs;
