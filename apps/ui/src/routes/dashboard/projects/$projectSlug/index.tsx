@@ -42,8 +42,8 @@ function AIDashboardSummary({ projectSlug }: { projectSlug: string }) {
           </div>
         </div>
         <Link
-          to="/dashboard/projects/$projectSlug/investigations"
-          params={{ projectSlug }}
+          to="/$organizationSlug/p/$projectSlug/investigations"
+          params={{ organizationSlug: orgSlug!, projectSlug: projectSlug! }}
           className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-[#34451D] px-3 py-2 text-xs font-medium text-[#ACFC15] hover:bg-[#ACFC15]/5"
         >
           Open AI investigation
@@ -55,7 +55,7 @@ function AIDashboardSummary({ projectSlug }: { projectSlug: string }) {
 }
 
 function DashboardOverviewPage() {
-  const { projectSlug } = Route.useParams();
+  const { projectSlug, orgSlug } = useProject();
   const { projectId } = useProject();
 
   const { data, isLoading } = useQuery({
@@ -185,8 +185,8 @@ function DashboardOverviewPage() {
                 <p className="mt-1 text-xs text-[#989898]">Signals worth investigating</p>
               </div>
               <Link
-                to="/dashboard/projects/$projectSlug/detections"
-                params={{ projectSlug }}
+                to="/$organizationSlug/p/$projectSlug/detections"
+                params={{ organizationSlug: orgSlug!, projectSlug: projectSlug! }}
                 className="text-xs font-medium text-[#ACFC15] hover:underline"
               >
                 View all
@@ -216,26 +216,26 @@ function DashboardOverviewPage() {
             </div>
             <div className="grid grid-cols-2 gap-px bg-[#EEF2EA]">
               <QuickLink
-                to="/dashboard/projects/$projectSlug/services"
-                params={{ projectSlug }}
+                to="/$organizationSlug/p/$projectSlug/services"
+                params={{ organizationSlug: orgSlug!, projectSlug: projectSlug! }}
                 icon={Server}
                 label="Services"
               />
               <QuickLink
-                to="/dashboard/projects/$projectSlug/traces"
-                params={{ projectSlug }}
+                to="/$organizationSlug/p/$projectSlug/traces"
+                params={{ organizationSlug: orgSlug!, projectSlug: projectSlug! }}
                 icon={GitBranch}
                 label="Traces"
               />
               <QuickLink
-                to="/dashboard/projects/$projectSlug/logs"
-                params={{ projectSlug }}
+                to="/$organizationSlug/p/$projectSlug/logs"
+                params={{ organizationSlug: orgSlug!, projectSlug: projectSlug! }}
                 icon={Activity}
                 label="Logs"
               />
               <QuickLink
-                to="/dashboard/projects/$projectSlug/investigations"
-                params={{ projectSlug }}
+                to="/$organizationSlug/p/$projectSlug/investigations"
+                params={{ organizationSlug: orgSlug!, projectSlug: projectSlug! }}
                 icon={BrainCircuit}
                 label="Investigate"
               />
