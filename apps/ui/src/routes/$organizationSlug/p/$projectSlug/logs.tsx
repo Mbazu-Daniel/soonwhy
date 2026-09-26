@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { TimeRangeControl, telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Search, ChevronDown, ChevronRight, SlidersHorizontal, RotateCcw, Download, Bookmark } from 'lucide-react';
@@ -92,19 +93,24 @@ function LogViewer() {
   const [serviceFilter, setServiceFilter] = useState('all');
   const [cursor, setCursor] = useState<string>();
   const [allLogs, setAllLogs] = useState<LogEntry[]>([]);
+  const [range, setRange] = useState<TelemetryRange>('24h');
+  const [live, setLive] = useState(false);
+  const rangeParams = telemetryRangeParams(range);
 
   const { data, isLoading, isFetching, isError, refetch } = useQuery({
-    queryKey: ['logs', projectId, levelFilter, serviceFilter, search, cursor],
+    queryKey: ['logs', projectId, levelFilter, serviceFilter, search, cursor, range, live],
     queryFn: () => {
       const params = new URLSearchParams();
       if (levelFilter !== 'all') params.set('level', levelFilter);
       if (serviceFilter !== 'all') params.set('service', serviceFilter);
       if (search) params.set('q', search);
       if (cursor) params.set('cursor', cursor);
+      Object.entries(rangeParams).forEach(([key, value]) => params.set(key, value));
       params.set('limit', '50');
       return api.get<{ data: LogEntry[]; nextCursor?: string }>(`/projects/${projectId}/logs?${params.toString()}`);
     },
     enabled: !!projectId,
+    refetchInterval: live ? 10000 : false,
   });
 
   const logs = data?.data ?? [];
@@ -152,10 +158,10 @@ function LogViewer() {
 
   return (
     <div className="min-h-full space-y-5 pb-8">
-      <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#16931F]">Telemetry explorer</p>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#16931F]">Telemetry explorer</p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">Logs</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Search every field, narrow the stream, and inspect the context around a log event.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Search every field, narrow the stream, and inspect the context around a log event.</p></div><div className="flex flex-wrap items-center gap-2"><TimeRangeControl value={range} onChange={(value) => { setRange(value); setCursor(undefined); setAllLogs([]); }} /><Button variant={live ? "default" : "outline"} size="sm" onClick={() => setLive((value) => !value)}>{live ? "Live" : "Live mode"}</Button></div>
       </header>
 
       <Card className="border-border bg-card shadow-none">
