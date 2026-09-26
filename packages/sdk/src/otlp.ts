@@ -22,7 +22,7 @@ export function toLogsPayload(
   records: LogInput[],
   resource: ResourceOptions,
   scopeVersion: string,
-  security: SecurityOptions,
+  security: SecurityOptions = { redactSensitiveData: true, maxAttributeCount: 100, maxAttributeValueLength: 4096 },
 ): unknown {
   return {
     resourceLogs: [{
