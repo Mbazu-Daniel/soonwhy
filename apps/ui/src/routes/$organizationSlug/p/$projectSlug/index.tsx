@@ -189,7 +189,7 @@ function DashboardOverviewPage() {
                 params={{ organizationSlug: orgSlug!, projectSlug: projectSlug! }}
                 className="text-xs font-medium text-[#ACFC15] hover:underline"
               >
-                View all
+                View findings
               </Link>
             </div>
             <div className="divide-y divide-[#EEF2EA]">
