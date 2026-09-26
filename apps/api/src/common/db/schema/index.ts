@@ -13,13 +13,5 @@ export { rcaInvocations } from './rca-invocations';
 export { detectionRuns } from './detection-runs';
 export { investigationCases, type InvestigationEvidenceRef } from './investigation-cases';
 export { agentPolicies, agentAuditEvents, type AgentAccessPolicy } from './agent-governance';
-export {
-  billingPlans,
-  billingPlanQuotas,
-  subscriptions,
-  usageEvents,
-  usagePeriods,
-  billingEvents,
-  type UsageMetric,
-  type BillingEventType,
-} from './billing';
+export { billingPlans, billingPlanQuotas, subscriptions, usageEvents, usagePeriods, billingEvents, type UsageMetric, type BillingEventType } from './billing';
+export { aiProviderCredentials } from './ai-provider-credentials';

@@ -4,31 +4,30 @@ import { TenantGuard } from '../../../common/middleware/tenant-context.guard';
 import { InvestigationService } from './investigation.service';
 
 @UseGuards(TenantGuard)
-@Controller('projects/:projectId/investigations')
+@Controller('investigations')
 export class InvestigationController {
   constructor(private readonly service: InvestigationService) {}
 
   @Get()
-  list(@CurrentOrg() org: OrgContext, @Param('projectId') projectId: string) {
+  list(@CurrentOrg() org: OrgContext, @Query('projectId') projectId: string) {
     return this.service.list(projectId, org.orgId);
   }
 
   @Get(':id/graph')
-  graph(@CurrentOrg() org: OrgContext, @Param('projectId') projectId: string, @Param('id') id: string) {
-    return this.service.getGraph(id, projectId, org.orgId);
+  graph(@CurrentOrg() org: OrgContext, @Param('id') id: string) {
+    return this.service.getGraph(id, org.orgId);
   }
 
   @Get(':id')
-  getById(@CurrentOrg() org: OrgContext, @Param('projectId') projectId: string, @Param('id') id: string) {
-    return this.service.getById(id, projectId, org.orgId);
+  getById(@CurrentOrg() org: OrgContext, @Param('id') id: string) {
+    return this.service.getById(id, org.orgId);
   }
 
   @Post()
   start(
     @CurrentOrg() org: OrgContext,
-    @Param('projectId') projectId: string,
     @Query('findingId') findingId: string,
   ) {
-    return this.service.start(findingId, projectId, org.orgId);
+    return this.service.start(findingId, org.orgId);
   }
 }

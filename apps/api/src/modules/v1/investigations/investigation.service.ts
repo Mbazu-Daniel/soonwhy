@@ -21,14 +21,14 @@ export class InvestigationService {
     return (await this.repository.list(projectId, orgId)).map(({ investigation }) => investigation);
   }
 
-  async getById(id: string, projectId: string, orgId: string) {
-    const investigation = await this.repository.getById(id, projectId, orgId);
+  async getById(id: string, orgId: string) {
+    const investigation = await this.repository.getById(id, orgId);
     if (!investigation) throw new NotFoundException('Investigation not found');
     return investigation;
   }
 
-  async getGraph(id: string, projectId: string, orgId: string): Promise<InvestigationGraph> {
-    const investigation = await this.getById(id, projectId, orgId);
+  async getGraph(id: string, orgId: string): Promise<InvestigationGraph> {
+    const investigation = await this.getById(id, orgId);
     const snapshot = investigation.evidenceSnapshot as InvestigationSnapshot;
 
     const finding: InvestigationGraphFindingData = {
@@ -79,9 +79,9 @@ export class InvestigationService {
     };
   }
 
-  async start(findingId: string, projectId: string, orgId: string) {
+  async start(findingId: string, orgId: string) {
     const finding = await this.repository.getFinding(findingId, orgId);
-    if (!finding || finding.projectId !== projectId) throw new NotFoundException('Finding not found');
+    if (!finding) throw new NotFoundException('Finding not found');
 
     const evidence = finding.evidence as DetectionEvidence[];
     const evidenceRefs = evidence.map((item) => ({

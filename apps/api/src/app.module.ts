@@ -20,39 +20,15 @@ import { DeploymentsModule } from './modules/v1/deployments';
 import { BusinessOperationsModule } from './modules/v1/business-operations/business-operations.module';
 import { InvestigationModule } from './modules/v1/investigations/investigation.module';
 import { BillingModule } from './modules/v1/billing/billing.module';
+import { AiModule } from './modules/v1/ai';
 
 const organizationScopedModules = [
-  ApiKeysModule,
-  ServicesModule,
-  ProjectsModule,
-  DashboardModule,
-  LogsModule,
-  MetricsModule,
-  RequestsModule,
-  TracesModule,
-  DetectionModule,
-  EnvironmentsModule,
-  TeamsModule,
-  DeploymentsModule,
-  BusinessOperationsModule,
-  InvestigationModule,
-  BillingModule,
+  ApiKeysModule, ServicesModule, ProjectsModule, DashboardModule, LogsModule, MetricsModule, RequestsModule,
+  TracesModule, DetectionModule, EnvironmentsModule, TeamsModule, DeploymentsModule, BusinessOperationsModule,
+  InvestigationModule, BillingModule, AiModule,
 ];
 
 @Module({
-  imports: [
-    QuickwitModule,
-    CommonModule,
-    RouterModule.register([
-      {
-        path: 'organization/:organizationId',
-        children: organizationScopedModules,
-      },
-    ]),
-    AuthModule,
-    OrganizationsModule,
-    HealthModule,
-    ...organizationScopedModules,
-  ],
+  imports: [QuickwitModule, CommonModule, RouterModule.register([{ path: 'organization/:organizationId', children: organizationScopedModules }]), AuthModule, OrganizationsModule, HealthModule, ...organizationScopedModules],
 })
 export class AppModule {}
