@@ -27,7 +27,7 @@ export class LogsRepository {
     if (params.service) filters.push(quickwitTerm('service', params.service));
     if (params.q) filters.push(quickwitTerm('message', params.q));
     const query = quickwitTenantQuery(params.orgId, params.projectId, filters.length ? filters.join(' AND ') : '*');
-    const result = await this.quickwit.search<RawLogRow>(QUICKWIT_INDEXES.logs, { query, startTimestamp: quickwitTimestamp(params.from), endTimestamp: quickwitTimestamp(params.to), maxHits: params.limit, sortBy: ['timestamp:desc'] });
+    const result = await this.quickwit.search<RawLogRow>(QUICKWIT_INDEXES.logs, { query, startTimestamp: quickwitTimestamp(params.from), endTimestamp: quickwitTimestamp(params.to), maxHits: params.limit, sortBy: ['-timestamp'] });
     return result.hits.flatMap((hit) => (hit._source ? [hit._source] : []));
   }
 }
