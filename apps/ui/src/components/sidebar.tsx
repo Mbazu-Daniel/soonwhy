@@ -9,7 +9,6 @@ import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '~/components/ui/dropdown-menu';
-import { WorkspaceMenu } from '~/components/workspace-switcher';
 import { AlertTriangle, BrainCircuit, Check, ChevronDown, ChevronRight, GitBranch, KeyRound, LayoutDashboard, Plus, ScrollText, Server, Settings, ShieldCheck } from 'lucide-react';
 import { api } from '~/lib/api';
 
@@ -92,9 +91,6 @@ export function Sidebar() {
     <>
       <div className={open ? 'fixed inset-0 z-40 bg-[#182012]/30 lg:hidden' : 'hidden'} onClick={close} aria-hidden="true" />
       <aside className={cn('w-60 border-r border-border bg-card flex flex-col fixed inset-y-0 left-0 z-50 transition-transform duration-200 lg:static lg:translate-x-0', open ? 'translate-x-0' : '-translate-x-full')} aria-label="Primary navigation">
-        <div className="h-16 shrink-0 border-b px-3 flex items-center">
-          <WorkspaceMenu />
-        </div>
         <div className="flex-1 overflow-y-auto px-3 pt-5 pb-3">
           <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Monitor</p>
           <nav data-tour="evidence-navigation" className="space-y-1">
