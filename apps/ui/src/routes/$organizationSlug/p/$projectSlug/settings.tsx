@@ -77,10 +77,10 @@ function SettingsPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6 pb-10">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#16931F]">Project setup</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#16931F]"></p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">Telemetry setup</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Manage ingestion keys, verify telemetry health, and get back to the setup flow.
+          
         </p>
       </header>
 
@@ -146,7 +146,7 @@ function CaptureSettingsCard({ projectId }: { projectId: string }) {
       <CardHeader>
         <CardTitle>Telemetry capture</CardTitle>
         <p className="text-sm text-muted-foreground">
-          These controls are enforced at ingestion. Sensitive data remains redacted by default.
+          
         </p>
       </CardHeader>
       <CardContent className="space-y-5">
