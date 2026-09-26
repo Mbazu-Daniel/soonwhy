@@ -50,6 +50,7 @@ interface LogEntry {
 
 function TraceExplorer() {
   const { projectSlug, orgSlug } = useProject();
+  const { service: serviceFilter } = Route.useSearch() as { service?: string };
   const { projectId } = useProject();
   const [q, setQ] = useState('');
   const [range, setRange] = useState<TelemetryRange>('24h');
@@ -60,7 +61,7 @@ function TraceExplorer() {
     queryKey: ['traces', projectId, q, range],
     queryFn: () =>
       api.get<{ data: Trace[]; nextCursor?: string }>(
-        `/projects/${projectId}/traces?${new URLSearchParams({ ...(q ? { q } : {}), ...rangeParams }).toString()}`,
+        `/projects/${projectId}/traces?${new URLSearchParams({ ...(q ? { q } : {}), ...(serviceFilter ? { service: serviceFilter } : {}), ...rangeParams }).toString()}`,
       ),
     enabled: !!projectId,
   });
@@ -102,7 +103,7 @@ function TraceExplorer() {
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search trace ID, service, or operation"
+              placeholder={serviceFilter ? `Traces for ${serviceFilter}` : "Search trace ID, service, or operation"}
               className="bg-muted pl-9"
               aria-label="Search traces"
             />
