@@ -12,10 +12,10 @@ Verdaccio listens on http://localhost:4873 and can proxy public npm packages tha
 ## Start the registry
 
 ```bash
-pnpm registry:up
+docker compose -f docker-compose.verdaccio.yml up -d
 ```
 
-Open the registry UI at http://localhost:4873.
+Stop it with `docker compose -f docker-compose.verdaccio.yml down` when finished.\n\nOpen the registry UI at http://localhost:4873.
 
 ## Build and publish a local snapshot
 
