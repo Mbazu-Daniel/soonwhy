@@ -399,6 +399,110 @@ export class DetectionService {
     return detected;
   }
 
+  async createFindingFromError(
+    orgId: string,
+    projectId: string,
+    input: { fingerprint: string; service?: string },
+  ): Promise<DetectionFinding> {
+    await this.assertProjectAccess(orgId, projectId);
+
+    const queryParts = [
+      quickwitTenantQuery(orgId, projectId),
+      quickwitTerm('fingerprint', input.fingerprint),
+      input.service ? quickwitTerm('service', input.service) : '',
+      'level:error',
+    ].filter(Boolean);
+    const result = await this.quickwit.search<RequestSource & { fingerprint?: string; message?: string; errorType?: string }>(
+      QUICKWIT_INDEXES.logs,
+      {
+        query: queryParts.join(' AND '),
+        startTimestamp: Math.floor((Date.now() - 86_400_000) / 1000),
+        endTimestamp: Math.floor(Date.now() / 1000),
+        maxHits: 100,
+        sortBy: ['-timestamp'],
+      },
+    );
+
+    if (!result.hits.length) {
+      throw new NotFoundException('Error group not found in telemetry');
+    }
+
+    const sources = result.hits
+      .map((hit) => hit._source)
+      .filter((source): source is RequestSource & { fingerprint?: string; message?: string; errorType?: string } => !!source);
+
+    const firstTimestamp = sources
+      .map((source) => new Date(String(source.timestamp ?? '')).getTime())
+      .filter(Number.isFinite)
+      .reduce((value, timestamp) => Math.min(value, timestamp), Date.now());
+
+    const lastTimestamp = sources
+      .map((source) => new Date(String(source.timestamp ?? '')).getTime())
+      .filter(Number.isFinite)
+      .reduce((value, timestamp) => Math.max(value, timestamp), Date.now());
+
+    const serviceName = String(input.service ?? sources[0]?.service ?? 'unknown');
+    const errorType = String(sources[0]?.errorType ?? 'Error');
+    const message = String(sources[0]?.message ?? input.fingerprint);
+    const traceIds = [...new Set(sources.map((source) => source.traceId).filter((id): id is string => !!id))].slice(0, 20);
+
+    const existing = await db
+      .select()
+      .from(findings)
+      .where(and(
+        eq(findings.orgId, orgId),
+        eq(findings.projectId, projectId),
+        eq(findings.type, 'error_group'),
+        eq(findings.serviceName, serviceName),
+        eq(findings.title, 'Error group: ' + message),
+      ))
+      .limit(1);
+
+    if (existing[0]) return existing[0] as DetectionFinding;
+
+    return this.persistFinding({
+      orgId,
+      projectId,
+      serviceName,
+      type: 'error_group',
+      severity: 'warning',
+      title: 'Error group: ' + message,
+      description:
+        errorType +
+        ' occurred ' +
+        sources.length +
+        ' time' +
+        (sources.length === 1 ? '' : 's') +
+        ' in ' +
+        serviceName +
+        ' during the last 24 hours.',
+      observedValue: sources.length,
+      threshold: 0,
+      unit: ' occurrences',
+      start: new Date(firstTimestamp),
+      end: new Date(lastTimestamp),
+      evidence: [
+        {
+          kind: 'log',
+          label: 'error-group',
+          value: message,
+          context: {
+            fingerprint: input.fingerprint,
+            errorType,
+            occurrences: sources.length,
+            service: serviceName,
+          },
+        },
+        ...traceIds.map((traceId) => ({
+          kind: 'trace' as const,
+          label: 'error-trace',
+          value: traceId,
+          context: { traceId, service: serviceName },
+        })),
+      ],
+    });
+  }
+
   async list(orgId: string, projectId: string, limit = 50) {
     await this.assertProjectAccess(orgId, projectId);
 
