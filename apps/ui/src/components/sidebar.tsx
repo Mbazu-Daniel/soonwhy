@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { cn } from '~/lib/utils';
 import { useSidebar } from '~/lib/sidebar-context';
 import { useProject } from '~/lib/project-context';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '~/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
@@ -38,15 +38,18 @@ const navGroups = [
   },
 ] as const;
 
+function projectSlug(name: string) {
+  return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 100);
+}
+
 export function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { open, close, collapsed } = useSidebar();
-  const { orgId, orgSlug, projectId, projectSlug, setProject } = useProject();
+  const { orgId, orgSlug, projectId, projectSlug: activeProjectSlug, setProject } = useProject();
   const [createOpen, setCreateOpen] = useState(false);
   const [projectName, setProjectName] = useState('');
-  const [projectSlugInput, setProjectSlugInput] = useState('');
   const [error, setError] = useState('');
 
   const projects = useQuery({
@@ -60,7 +63,6 @@ export function Sidebar() {
     onSuccess: (project) => {
       setProject(project);
       setProjectName('');
-      setProjectSlugInput('');
       setError('');
       setCreateOpen(false);
       void queryClient.invalidateQueries({ queryKey: ['projects', orgId] });
@@ -84,7 +86,7 @@ export function Sidebar() {
     event.preventDefault();
     setError('');
     const name = projectName.trim();
-    const slug = projectSlugInput.trim() || name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 100);
+    const slug = projectSlug(name);
     if (!name || !slug) {
       setError('Enter a project name.');
       return;
@@ -99,9 +101,8 @@ export function Sidebar() {
   }
 
   function projectPath(item: (typeof navGroups)[number]['items'][number]) {
-    if (!orgSlug || !projectSlug) return '/organizations';
-    if (item.to === 'overview') return `/${orgSlug}/p/${projectSlug}/`;
-    return `/${orgSlug}/p/${projectSlug}/${item.to}`;
+    if (!orgSlug || !activeProjectSlug) return '/organizations';
+    return item.to === 'overview' ? `/${orgSlug}/p/${activeProjectSlug}/` : `/${orgSlug}/p/${activeProjectSlug}/${item.to}`;
   }
 
   return (
@@ -113,38 +114,7 @@ export function Sidebar() {
         collapsed ? 'lg:w-16' : 'lg:w-60',
         'w-60',
       )} aria-label="Primary navigation">
-        <div className={cn('flex-1 overflow-y-auto pt-5 pb-3', collapsed ? 'px-2' : 'px-3')}>
-          <nav data-tour="evidence-navigation" className="space-y-4">
-            {navGroups.map((group) => (
-              <div key={group.label}>
-                {!collapsed && <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[.14em] text-[#989898]">{group.label}</p>}
-                <div className="space-y-1">
-                  {group.items.map((item) => {
-              const target = projectPath(item);
-              const active = target !== '/organizations' && (item.exact ? location.pathname === target : location.pathname.startsWith(target));
-              return (
-                <Link
-                  key={item.to}
-                  to={orgSlug && projectSlug ? (item.to === 'overview' ? '/$organizationSlug/p/$projectSlug/' : `/$organizationSlug/p/$projectSlug/${item.to}`) : '/organizations'}
-                  params={orgSlug && projectSlug ? { organizationSlug: orgSlug, projectSlug } : undefined}
-                  onClick={close}
-                  title={collapsed ? item.label : undefined}
-                  className={cn('group flex items-center rounded-lg py-2.5 text-sm font-medium transition-colors', collapsed ? 'justify-center px-2' : 'gap-3 px-3', active ? 'bg-[#ACFC15] text-[#182012]' : 'text-[#989898] hover:bg-[#151517] hover:text-[#F6F6F6]')}
-                  aria-current={active ? 'page' : undefined}
-                >
-                  <item.icon className="h-[17px] w-[17px] shrink-0" aria-hidden="true" />
-                  {!collapsed && <span className="flex-1">{item.label}</span>}
-                  {!collapsed && active && <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />}
-                </Link>
-              );
-                  })}
-                </div>
-              </div>
-            ))}
-          </nav>
-        </div>
-
-        <div className={cn('shrink-0 border-t border-[#242426] p-3', collapsed && 'p-2')}>
+        <div className={cn('shrink-0 border-b border-[#242426] p-3', collapsed && 'p-2')}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className={cn('h-12 w-full justify-start text-[#F6F6F6]', collapsed ? 'px-0 justify-center' : 'gap-3 px-2')}>
@@ -153,7 +123,7 @@ export function Sidebar() {
                 {!collapsed && <ChevronDown className="h-4 w-4 shrink-0 text-[#989898]" />}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" side="top" className="w-60 border-[#242426] bg-[#0B0B0C] text-[#F6F6F6]">
+            <DropdownMenuContent align="start" side="bottom" className="w-60 border-[#242426] bg-[#0B0B0C] text-[#F6F6F6]">
               <DropdownMenuGroup>
                 {projects.data?.map((project) => (
                   <DropdownMenuItem key={project.id} onClick={() => selectProject(project)} className="focus:bg-[#151517] focus:text-[#F6F6F6]">
@@ -169,14 +139,37 @@ export function Sidebar() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+
+        <div className={cn('flex-1 overflow-y-auto pt-5 pb-3', collapsed ? 'px-2' : 'px-3')}>
+          <nav className="space-y-4">
+            {navGroups.map((group) => (
+              <div key={group.label}>
+                {!collapsed && <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[.14em] text-[#989898]">{group.label}</p>}
+                <div className="space-y-1">
+                  {group.items.map((item) => {
+                    const target = projectPath(item);
+                    const active = target !== '/organizations' && (item.exact ? location.pathname === target : location.pathname.startsWith(target));
+                    const to = orgSlug && activeProjectSlug ? (item.to === 'overview' ? '/$organizationSlug/p/$projectSlug/' : `/$organizationSlug/p/$projectSlug/${item.to}`) : '/organizations';
+                    return (
+                      <Link key={item.to} to={to as never} params={orgSlug && activeProjectSlug ? { organizationSlug: orgSlug, projectSlug: activeProjectSlug } : undefined} onClick={close} title={collapsed ? item.label : undefined} className={cn('group flex items-center rounded-lg py-2.5 text-sm font-medium transition-colors', collapsed ? 'justify-center px-2' : 'gap-3 px-3', active ? 'bg-[#ACFC15] text-[#182012]' : 'text-[#989898] hover:bg-[#151517] hover:text-[#F6F6F6]')} aria-current={active ? 'page' : undefined}>
+                        <item.icon className="h-[17px] w-[17px] shrink-0" aria-hidden="true" />
+                        {!collapsed && <span className="flex-1">{item.label}</span>}
+                        {!collapsed && active && <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </nav>
+        </div>
       </aside>
 
       <Dialog open={createOpen} onOpenChange={(next) => { setCreateOpen(next); if (!next) setError(''); }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Create project</DialogTitle><DialogDescription>Create a project and start sending telemetry to it.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>Create project</DialogTitle></DialogHeader>
           <form onSubmit={submitProject} className="space-y-4">
             <div className="space-y-2"><Label htmlFor="sidebar-project-name">Project name</Label><Input id="sidebar-project-name" value={projectName} onChange={(event) => setProjectName(event.target.value)} placeholder="Payments API" required maxLength={100} autoFocus /></div>
-            <div className="space-y-2"><Label htmlFor="sidebar-project-slug">Slug</Label><Input id="sidebar-project-slug" value={projectSlugInput} onChange={(event) => setProjectSlugInput(event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} placeholder="payments-api" pattern="[a-z0-9-]+" /></div>
             {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
             <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button><Button type="submit" disabled={createProject.isPending}>{createProject.isPending ? 'Creating...' : 'Create project'}</Button></div>
           </form>
