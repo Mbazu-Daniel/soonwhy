@@ -97,20 +97,9 @@ export function Sidebar() {
     <>
       <div className={open ? 'fixed inset-0 z-40 bg-[#182012]/30 lg:hidden' : 'hidden'} onClick={close} aria-hidden="true" />
 
-      <aside
-        className={cn(
-          'w-60 border-r bg-card flex flex-col fixed inset-y-0 left-0 z-50 transition-transform duration-200 lg:static lg:translate-x-0',
-          open ? 'translate-x-0' : '-translate-x-full',
-        )}
-        aria-label="Primary navigation"
-      >
+      <aside className={cn('w-60 border-r bg-card flex flex-col fixed inset-y-0 left-0 z-50 transition-transform duration-200 lg:static lg:translate-x-0', open ? 'translate-x-0' : '-translate-x-full')} aria-label="Primary navigation">
         <div className="h-16 shrink-0 border-b px-4 flex items-center">
-          <Link
-            to={projectSlug ? '/dashboard/projects/$projectSlug' : '/dashboard'}
-            params={projectSlug ? { projectSlug } : undefined}
-            onClick={close}
-            className="group flex w-full items-center gap-2.5"
-          >
+          <Link to={projectSlug ? '/dashboard/projects/$projectSlug' : '/dashboard'} params={projectSlug ? { projectSlug } : undefined} onClick={close} className="group flex w-full items-center gap-2.5">
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#182012] text-sm font-bold text-[#8BD125]">S</span>
             <span className="min-w-0">
               <span className="block text-sm font-semibold tracking-tight">SoonWhy</span>
@@ -125,17 +114,13 @@ export function Sidebar() {
             {navItems.map((item) => {
               const target = projectSlug ? projectPath(item) : '/dashboard';
               const active = item.exact ? location.pathname === target : location.pathname.startsWith(target);
-
               return (
                 <Link
                   key={item.to}
                   to={projectSlug ? (item.to === 'overview' ? '/dashboard/projects/$projectSlug' : `/dashboard/projects/$projectSlug/${item.to}`) : '/dashboard'}
                   params={projectSlug ? { projectSlug } : undefined}
                   onClick={close}
-                  className={cn(
-                    'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                    active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
-                  )}
+                  className={cn('group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors', active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary hover:text-foreground')}
                   aria-current={active ? 'page' : undefined}
                 >
                   <item.icon className="h-[17px] w-[17px] shrink-0" aria-hidden="true" />
@@ -151,9 +136,7 @@ export function Sidebar() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-12 w-full justify-start gap-3 px-2">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-secondary text-sm font-semibold">
-                  {currentProject?.name?.charAt(0).toUpperCase() || <Plus className="h-4 w-4" />}
-                </span>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-secondary text-sm font-semibold">{currentProject?.name?.charAt(0).toUpperCase() || <Plus className="h-4 w-4" />}</span>
                 <span className="min-w-0 flex-1 text-left">
                   <span className="block truncate text-sm font-medium">{currentProject?.name || 'Select project'}</span>
                   <span className="block truncate text-xs text-muted-foreground">Project</span>
@@ -161,84 +144,35 @@ export function Sidebar() {
                 <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
-
             <DropdownMenuContent align="start" side="top" className="w-60">
               <DropdownMenuGroup>
                 {projects.data?.map((project) => (
                   <DropdownMenuItem key={project.id} onClick={() => selectProject(project)}>
-                    <span className="flex h-6 w-6 items-center justify-center rounded bg-secondary text-xs font-semibold">
-                      {project.name.charAt(0).toUpperCase()}
-                    </span>
+                    <span className="flex h-6 w-6 items-center justify-center rounded bg-secondary text-xs font-semibold">{project.name.charAt(0).toUpperCase()}</span>
                     <span className="min-w-0 flex-1 truncate">{project.name}</span>
                     {project.id === projectId && <Check className="h-4 w-4" />}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuGroup>
-
               {projects.data?.length ? <DropdownMenuSeparator /> : null}
-
-              <DropdownMenuItem onClick={() => setCreateOpen(true)}>
-                <Plus className="h-4 w-4" />
-                Create project
-              </DropdownMenuItem>
-
-              {currentProject ? (
-                <DropdownMenuItem onClick={() => void navigate({ to: '/dashboard/projects/$projectSlug/settings', params: { projectSlug: currentProject.slug } })}>
-                  <Settings className="h-4 w-4" />
-                  Project settings
-                </DropdownMenuItem>
-              ) : null}
+              <DropdownMenuItem onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" />Create project</DropdownMenuItem>
+              {currentProject ? <DropdownMenuItem onClick={() => void navigate({ to: '/dashboard/projects/$projectSlug/settings', params: { projectSlug: currentProject.slug } })}><Settings className="h-4 w-4" />Project settings</DropdownMenuItem> : null}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </aside>
 
-      <Dialog
-        open={createOpen}
-        onOpenChange={(next) => {
-          setCreateOpen(next);
-          if (!next) setError('');
-        }}
-      >
+      <Dialog open={createOpen} onOpenChange={(next) => { setCreateOpen(next); if (!next) setError(''); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create project</DialogTitle>
             <DialogDescription>Create a project and start sending telemetry to it.</DialogDescription>
           </DialogHeader>
-
           <form onSubmit={submitProject} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="sidebar-project-name">Project name</Label>
-              <Input
-                id="sidebar-project-name"
-                value={projectName}
-                onChange={(event) => setProjectName(event.target.value)}
-                placeholder="Payments API"
-                required
-                maxLength={100}
-                autoFocus
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="sidebar-project-slug">Slug</Label>
-              <Input
-                id="sidebar-project-slug"
-                value={projectSlugInput}
-                onChange={(event) => setProjectSlugInput(event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                placeholder="payments-api"
-                pattern="[a-z0-9-]+"
-              />
-            </div>
-
+            <div className="space-y-2"><Label htmlFor="sidebar-project-name">Project name</Label><Input id="sidebar-project-name" value={projectName} onChange={(event) => setProjectName(event.target.value)} placeholder="Payments API" required maxLength={100} autoFocus /></div>
+            <div className="space-y-2"><Label htmlFor="sidebar-project-slug">Slug</Label><Input id="sidebar-project-slug" value={projectSlugInput} onChange={(event) => setProjectSlugInput(event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} placeholder="payments-api" pattern="[a-z0-9-]+" /></div>
             {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={createProject.isPending}>
-                {createProject.isPending ? 'Creating...' : 'Create project'}
-              </Button>
-            </div>
+            <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button><Button type="submit" disabled={createProject.isPending}>{createProject.isPending ? 'Creating...' : 'Create project'}</Button></div>
           </form>
         </DialogContent>
       </Dialog>
