@@ -33,7 +33,7 @@ export function ProjectBreadcrumb() {
 
   const marker = `/p/${projectSlug}`;
   const projectIndex = location.pathname.indexOf(marker);
-  const suffix = projectIndex >= 0 ? location.pathname.slice(projectIndex + marker.length).replace(/^\//, '') : '';
+  const suffix = projectIndex >= 0 ? location.pathname.slice(projectIndex + marker.length).replace(/^\\//, '') : '';
   const label = labels[suffix] ?? 'Monitor';
 
   function selectProject(project: Project) {
@@ -42,27 +42,25 @@ export function ProjectBreadcrumb() {
   }
 
   return (
-    <nav aria-label="Breadcrumb" className="mb-5 flex min-w-0 items-center gap-1.5 text-sm">
-      <span className="truncate text-muted-foreground">{orgSlug}</span>
-      <span className="text-muted-foreground/50">/</span>
+    <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-sm">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button type="button" className="inline-flex max-w-56 items-center gap-1 rounded-md px-1.5 py-1 font-medium hover:bg-secondary">
+          <button type="button" className="inline-flex max-w-56 items-center gap-1 rounded-md px-1.5 py-1 font-medium text-[#F6F6F6] hover:bg-[#151517]">
             <span className="truncate">{projects.data?.find((item) => item.slug === projectSlug)?.name ?? projectSlug}</span>
-            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-[#989898]" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-60">
+        <DropdownMenuContent align="start" className="w-60 border-[#242426] bg-[#0B0B0C] text-[#F6F6F6]">
           {projects.data?.map((project) => (
-            <DropdownMenuItem key={project.id} onSelect={() => selectProject(project)}>
+            <DropdownMenuItem key={project.id} onSelect={() => selectProject(project)} className="focus:bg-[#151517] focus:text-[#F6F6F6]">
               <span className="min-w-0 flex-1 truncate">{project.name}</span>
-              {project.slug === projectSlug && <Check className="h-4 w-4" />}
+              {project.slug === projectSlug && <Check className="h-4 w-4 text-[#ACFC15]" />}
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
-      <span className="text-muted-foreground/50">/</span>
-      <span className="truncate font-medium text-foreground">{label}</span>
+      <span className="text-[#555557]">/</span>
+      <span className="truncate text-[#989898]">{label}</span>
     </nav>
   );
 }
