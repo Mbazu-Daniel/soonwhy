@@ -7,7 +7,7 @@ describe('organizationIdFromUrl', () => {
   });
 
   it('decodes the organization id and ignores the query string', () => {
-    expect(organizationIdFromUrl('/api/v1/organization/org%201/logs?projectId=p')).toBe('org 1');
+    expect(organizationIdFromUrl('/api/v1/organization/org%201/logs?ignored=p')).toBe('org 1');
   });
 
   it('ignores auth, marketing, health, and organization collection routes', () => {

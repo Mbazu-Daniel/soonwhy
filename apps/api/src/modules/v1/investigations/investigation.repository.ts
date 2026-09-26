@@ -18,13 +18,14 @@ export class InvestigationRepository {
       .orderBy(desc(investigationCases.createdAt));
   }
 
-  async getById(id: string, orgId: string) {
+  async getById(id: string, projectId: string, orgId: string) {
     const [row] = await db
       .select({ investigation: investigationCases })
       .from(investigationCases)
       .innerJoin(projects, eq(investigationCases.projectId, projects.id))
       .where(and(
         eq(investigationCases.id, id),
+        eq(investigationCases.projectId, projectId),
         eq(investigationCases.orgId, orgId),
         eq(projects.orgId, orgId),
       ))
