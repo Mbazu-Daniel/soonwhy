@@ -11,9 +11,9 @@ export class TracesController {
 
   @Get()
   async listTraces(@CurrentOrg() org: OrgContext, @Param('projectId') projectId: string, @Query() query: Record<string, unknown>) {
-    const parsed = getTracesSchema.safeParse(query);
+    const parsed = getTracesSchema.safeParse({ ...query, projectId });
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
-    return this.tracesService.listTraces(org.orgId, { ...parsed.data, projectId });
+    return this.tracesService.listTraces(org.orgId, parsed.data);
   }
 
   @Get(':traceId')
