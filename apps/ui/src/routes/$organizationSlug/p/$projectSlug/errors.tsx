@@ -37,7 +37,7 @@ function ProjectErrors() {
   if (isError && !errors) return <QueryErrorState onRetry={() => void refetch()} />;
 
   return <div className="mx-auto w-full space-y-6 pb-10">
-    <header className="flex flex-wrap items-end justify-between gap-4"><div><h1 className="text-2xl font-semibold tracking-tight">Errors</h1></div><TimeRangeControl value={range} onChange={setRange}/></header>
+    <h1 className="sr-only">Errors</h1><div className="flex flex-wrap items-end justify-end gap-4"><TimeRangeControl value={range} onChange={setRange}/></div>
     {isError && errors && <div className="rounded-xl border border-[#5A4A1C] bg-[#2A220F] px-4 py-3 text-xs text-[#D8C68A]">Showing the last successful error data. <button type="button" className="font-medium underline" onClick={() => void refetch()}>Retry</button></div>}
     <Card className="overflow-hidden border-[#242426] bg-[#0B0B0C] shadow-none"><div className="border-b bg-[#151517] px-5 py-4"><p className="text-sm font-semibold">Error groups</p></div><CardContent className="p-0">
       {isLoading && !errors ? <div className="space-y-2 p-5">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16" />)}</div> : !errors?.length ? <div className="p-12 text-center"><AlertCircle className="mx-auto h-8 w-8 text-[#16931F]"/><p className="mt-3 font-medium">No errors found</p><p className="mt-1 text-sm text-[#989898]">No errors in this time range.</p></div> : <div className="divide-y divide-[#DBE5D7]">{errors.map(error => {

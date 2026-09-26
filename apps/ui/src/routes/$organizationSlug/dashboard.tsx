@@ -32,15 +32,13 @@ function DashboardOverviewPage() {
   return (
     <div className="min-h-full w-full">
       <div className="mx-auto max-w-[1440px] space-y-5">
-        <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="text-[30px] font-semibold tracking-[-0.04em] text-[#F6F6F6]">System overview</h1>
-          </div>
+        <h1 className="sr-only">Overview</h1>
+        <div className="flex justify-end">
           <div className="flex items-center gap-2 rounded-full border border-[#242426] bg-[#0B0B0C] px-3 py-2 text-xs text-[#989898] shadow-[0_1px_2px_rgba(24,32,18,.03)]">
             <span className="h-2 w-2 rounded-full bg-[#ACFC15]" />
             Last 24 hours
           </div>
-        </header>
+        </div>
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Metric label="Health score" value={String(score)} suffix="/100" icon={Gauge} tone="dark" detail={health} />

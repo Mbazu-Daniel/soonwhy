@@ -89,14 +89,10 @@ function TraceExplorer() {
 
   return (
     <div className="min-h-full space-y-5 pb-8">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[.14em] text-[#16931F]">Distributed telemetry</p>
-          <h1 className="mt-1 text-2xl font-semibold">Traces</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Follow a request across services and inspect its critical path.</p>
+      <h1 className="sr-only">Traces</h1>
+        <div className="flex justify-end">
+          <TimeRangeControl value={range} onChange={setRange} />
         </div>
-        <TimeRangeControl value={range} onChange={setRange} />
-      </header>
 
       {showingStale && <div className="flex items-center justify-between gap-3 rounded-xl border border-[#5A4A1C] bg-[#2A220F] px-4 py-3 text-xs text-[#D8C68A]"><span>Trace telemetry is temporarily unavailable. Showing the last successful result.</span><button type="button" onClick={() => void refetch()} className="rounded-md border px-2 py-1 hover:bg-background">Retry</button></div>}\n\n      <Card className="border-border shadow-none">
         <CardContent className="p-4">

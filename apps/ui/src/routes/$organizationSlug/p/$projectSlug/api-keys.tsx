@@ -17,10 +17,7 @@ function ApiKeysPage() {
 
   return (
     <div className="min-h-full space-y-5 pb-8">
-      <header>
-        <h1 className="text-[30px] font-semibold tracking-[-0.04em] text-[#F6F6F6]">API keys</h1>
-        <p className="mt-1 text-sm text-[#989898]">Create and revoke ingestion keys.</p>
-      </header>
+      <h1 className="sr-only">API keys</h1>
       <ApiKeySettings projectId={projectId} queryClient={queryClient} />
     </div>
   );

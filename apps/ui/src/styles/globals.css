@@ -246,10 +246,6 @@ pre {
   min-height: 100dvh;
 }
 
-.dashboard-shell main {
-  min-height: calc(100dvh - 4rem);
-}
-
 .dashboard-shell [data-ui="card"] {
   position: relative;
   overflow: hidden;

@@ -68,7 +68,7 @@ function TraceDetail() {
         <button type="button" onClick={copyTraceId} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium">{copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}{copied ? 'Copied' : 'Copy trace ID'}</button>
       </div>
 
-      <header><p className="text-xs font-semibold uppercase tracking-[.14em] text-[#16931F]">Trace inspector</p><h1 className="mt-1 break-all font-mono text-xl font-semibold">{traceId}</h1><p className="mt-1 text-sm text-muted-foreground">{selected?.name ?? 'Distributed trace'} · {selected?.service ?? 'Unknown service'}</p></header>
+      <header><h1 className="break-all font-mono text-xl font-semibold">{traceId}</h1><p className="mt-1 text-sm text-muted-foreground">{selected?.name ?? 'Distributed trace'} · {selected?.service ?? 'Unknown service'}</p></header>
 
       {isLoading ? <div className="space-y-4"><Skeleton className="h-24" /><Skeleton className="h-[520px]" /></div> : !data?.spans.length ? (
         <Card><CardContent className="p-12 text-center"><p className="font-medium">Trace not found</p><p className="mt-1 text-sm text-muted-foreground">The trace may have expired or is not available for this project.</p></CardContent></Card>

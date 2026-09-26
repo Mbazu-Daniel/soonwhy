@@ -1,11 +1,11 @@
 import { createFileRoute, Outlet, useLocation, useNavigate } from '@tanstack/react-router';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Sidebar } from '~/components/sidebar';
 import { TopBar } from '~/components/topbar';
 import { Toaster } from '~/components/ui/sonner';
 import { Skeleton } from '~/components/ui/skeleton';
-import { SidebarProvider, useSidebar } from '~/lib/sidebar-context';
+import { SidebarProvider } from '~/lib/sidebar-context';
 import { getSessionToken, clearSession } from '~/lib/auth-client';
 import { useProject } from '~/lib/project-context';
 import { api } from '~/lib/api';
@@ -59,14 +59,18 @@ function OrganizationDashboardLayout() {
 }
 
 function OrganizationDashboardFrame({ showCreateProject }: { showCreateProject: boolean }) {
-  const { collapsed } = useSidebar();
+  const { pathname } = useLocation();
+  const mainRef = useRef<HTMLElement>(null);
+
+  useEffect(() => { mainRef.current?.scrollTo({ top: 0 }); }, [pathname]);
+
   return (
-    <div className="dashboard-shell flex min-h-dvh flex-col bg-[#040405]">
+    <div className="dashboard-shell flex h-dvh flex-col overflow-hidden bg-[#040405]">
       <a href="#main-content" className="skip-link">Skip to main content</a>
       <TopBar />
-      <div className="min-h-0 w-full flex-1">
+      <div className="flex min-h-0 w-full flex-1">
         <Sidebar />
-        <main id="main-content" tabIndex={-1} className={collapsed ? 'min-h-[calc(100dvh-4rem)] min-w-0 overflow-y-auto bg-[#040405] px-4 py-5 sm:px-6 sm:py-7 xl:px-8 lg:ml-16' : 'min-h-[calc(100dvh-4rem)] min-w-0 overflow-y-auto bg-[#040405] px-4 py-5 sm:px-6 sm:py-7 xl:px-8 lg:ml-60'}>
+        <main ref={mainRef} id="main-content" tabIndex={-1} className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-[#040405] px-4 py-5 sm:px-6 sm:py-7 xl:px-8">
           <Outlet />
         </main>
         <CreateProjectDialog open={showCreateProject} onOpenChange={() => undefined} />

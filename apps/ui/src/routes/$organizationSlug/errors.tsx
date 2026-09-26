@@ -18,7 +18,7 @@ function ErrorOverview() {
   if (!projectId) return <EmptyProject />;
   if (isError) return <QueryErrorState onRetry={() => void refetch()} />;
   return <div className="mx-auto w-full space-y-6 pb-10">
-    <header><h1 className="text-2xl font-semibold tracking-tight">Errors</h1></header>
+    <h1 className="sr-only">Errors</h1>
     <div className="grid grid-cols-2 gap-4"><Stat icon={AlertCircle} label="Occurrences · 24h" value={isLoading ? '—' : totalErrors.toLocaleString()} critical /><Stat icon={Layers3} label="Unique fingerprints" value={isLoading ? '—' : (errors?.length ?? 0).toLocaleString()} /></div>
     <Card className="overflow-hidden border-[#242426] bg-[#0B0B0C] shadow-none"><div className="border-b bg-[#151517] px-5 py-4"><p className="text-sm font-semibold">Error groups</p></div><CardContent className="p-0">
       {isLoading ? <div className="space-y-2 p-5">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16" />)}</div> : !errors?.length ? <div className="p-12 text-center"><div className="mx-auto grid h-10 w-10 place-items-center rounded-lg bg-secondary"><AlertCircle className="h-5 w-5" /></div><p className="mt-3 font-medium">No errors found</p><p className="mt-1 text-sm text-[#989898]">No errors in the current project.</p></div> : <div className="divide-y divide-[#DBE5D7]">{errors.map((error) => <article key={error.fingerprint} className="p-5 transition-colors hover:bg-[#151517]">

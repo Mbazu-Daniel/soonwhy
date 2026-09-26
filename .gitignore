@@ -42,7 +42,7 @@ dist/
 # Turbo
 .turbo/
 
-# Local agent planning / issue tracker
+# Local agent planning / issue tracker (filesystem only, never on GitHub)
 .scratch/
 
 # Local dev binaries and data
@@ -50,10 +50,17 @@ dist/
 
 # TypeScript incremental build info
 *.tsbuildinfo
-docs
-doc
+*.tscheck
+
+# Docs / agent files — filesystem only, never on GitHub (except root README.md)
 *.md
+!/README.md
+docs/
+doc/
+.agents/
+.cursor/
+.codex-plugin/
+.scratch/
 *.pdf
 *.docx
-*.txt 
-!README.md
+*.txt

@@ -94,18 +94,10 @@ function DashboardOverviewPage() {
 
   return (
     <div className="min-h-full space-y-5 pb-8">
-      <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ACFC15]">Mission control</p>
-          <h1 className="mt-2 text-[30px] font-semibold tracking-[-0.04em] text-[#F6F6F6]">
-            Good morning, here’s your system.
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#989898]">
-            A quiet overview of traffic, reliability and the evidence SoonWhy has connected across your services.
-          </p>
-        </div>
+      <h1 className="sr-only">Overview</h1>
+      <div className="flex justify-end">
         <TimeRangeControl value={range} onChange={setRange} />
-      </header>
+      </div>
 
       {(telemetryStatus?.status === 'stale' || overviewStale) && (
         <div className="flex items-center justify-between gap-3 rounded-xl border border-[#5A4A1C] bg-[#2A220F] px-4 py-3 text-xs text-[#D8C68A]">

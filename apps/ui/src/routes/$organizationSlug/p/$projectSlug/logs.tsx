@@ -169,12 +169,11 @@ function LogViewer() {
 
   return (
     <div className="min-h-full space-y-5 pb-8">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#16931F]"></p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Logs</h1>
-        {(traceIdFilter || spanIdFilter) && <p className="mt-1 text-xs text-[#16931F]">Showing correlated telemetry{spanIdFilter ? ' for span ' + spanIdFilter : ''}{traceIdFilter ? ' in trace ' + traceIdFilter : ''}</p>}
-        <p className="mt-1 text-sm text-muted-foreground"></p></div><div className="flex flex-wrap items-center gap-2"><TimeRangeControl value={range} onChange={(value) => { setRange(value); setCursor(undefined); setAllLogs([]); }} /><Button variant={live ? "default" : "outline"} size="sm" onClick={() => setLive((value) => !value)}>{live ? "Live" : "Live mode"}</Button></div>
-      </header>
+      <h1 className="sr-only">Logs</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {(traceIdFilter || spanIdFilter) && <p className="text-xs text-[#16931F]">Showing correlated telemetry{spanIdFilter ? ' for span ' + spanIdFilter : ''}{traceIdFilter ? ' in trace ' + traceIdFilter : ''}</p>}
+        <div className="ml-auto flex flex-wrap items-center gap-2"><TimeRangeControl value={range} onChange={(value) => { setRange(value); setCursor(undefined); setAllLogs([]); }} /><Button variant={live ? "default" : "outline"} size="sm" onClick={() => setLive((value) => !value)}>{live ? "Live" : "Live mode"}</Button></div>
+      </div>
 
       <Card className="border-border bg-card shadow-none">
         <CardContent className="space-y-4 p-4">

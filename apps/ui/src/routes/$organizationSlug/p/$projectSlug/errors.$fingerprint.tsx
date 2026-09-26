@@ -30,7 +30,7 @@ function ErrorDetail(){
 
   return <div className="min-h-full space-y-5 pb-8">
     <Link to="/$organizationSlug/p/$projectSlug/errors" params={{organizationSlug,projectSlug}} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4"/>Errors</Link>
-    <header><p className="text-xs font-semibold uppercase tracking-[.14em] text-[#16931F]">Error detail</p><h1 className="mt-1 text-2xl font-semibold">{error.errorMessage}</h1><p className="mt-1 font-mono text-xs text-muted-foreground">{error.fingerprint}</p></header>
+    <header><h1 className="text-2xl font-semibold">{error.errorMessage}</h1><p className="mt-1 font-mono text-xs text-muted-foreground">{error.fingerprint}</p></header>
     <div className="flex flex-wrap gap-2">
       {error.traceId&&<Link to="/$organizationSlug/p/$projectSlug/trace/$traceId" params={{organizationSlug,projectSlug,traceId:error.traceId}}><Button variant="outline" size="sm"><Search className="mr-2 h-3.5 w-3.5"/>View trace</Button></Link>}
       <Button variant="outline" size="sm" onClick={()=>void finding()} disabled={findingCreated}>{findingCreated?'Finding queued':'Create finding'}</Button>
