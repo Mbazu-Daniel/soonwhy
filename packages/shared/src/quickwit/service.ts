@@ -53,7 +53,7 @@ export class QuickwitService {
       });
       this.logger.log(`Quickwit index created: ${indexId}`);
     } catch (error) {
-      if (error instanceof Error && error.message.includes('index \`' + indexId + '\` already exist')) {
+      if (error instanceof Error && error.message.includes('index `' + indexId + '` already exist')) {
         this.logger.debug(`Quickwit index already exists: ${indexId}`);
         return;
       }
