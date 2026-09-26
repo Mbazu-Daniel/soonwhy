@@ -16,13 +16,16 @@ const ProjectContext = createContext<ProjectContextValue | null>(null);
 
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const [projectId, setProjectIdState] = useState<string | null>(
-    () => typeof window !== 'undefined' ? localStorage.getItem('project_id') : null,
+    () => (typeof window !== 'undefined' ? localStorage.getItem('project_id') : null),
   );
-  const [projectSlug, setProjectSlugState] = useState<string | null>(\n    () => typeof window !== 'undefined' ? localStorage.getItem('project_slug') : null,\n  );\n  const [orgId, setOrgIdState] = useState<string | null>(
-    () => typeof window !== 'undefined' ? localStorage.getItem('org_id') : null,
+  const [projectSlug, setProjectSlugState] = useState<string | null>(
+    () => (typeof window !== 'undefined' ? localStorage.getItem('project_slug') : null),
+  );
+  const [orgId, setOrgIdState] = useState<string | null>(
+    () => (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null),
   );
   const [orgSlug, setOrgSlugState] = useState<string | null>(
-    () => typeof window !== 'undefined' ? localStorage.getItem('org_slug') : null,
+    () => (typeof window !== 'undefined' ? localStorage.getItem('org_slug') : null),
   );
 
   const setProjectId = useCallback((id: string) => {
@@ -57,7 +60,19 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <ProjectContext.Provider value={{ projectId, projectSlug, orgId, orgSlug, setProjectId, setProject, clearProjectId, setOrgId, setOrganization }}>
+    <ProjectContext.Provider
+      value={{
+        projectId,
+        projectSlug,
+        orgId,
+        orgSlug,
+        setProjectId,
+        setProject,
+        clearProjectId,
+        setOrgId,
+        setOrganization,
+      }}
+    >
       {children}
     </ProjectContext.Provider>
   );
