@@ -32,6 +32,16 @@ interface ApiKey {
   key?: string;
 }
 
+interface CaptureSettings {
+  projectId: string;
+  redactSensitiveData: boolean;
+  captureRequestHeaders: boolean;
+  captureRequestBody: boolean;
+  captureResponseBody: boolean;
+  maxAttributeCount: number;
+  maxAttributeValueLength: number;
+}
+
 interface TelemetryStatus {
   status: 'healthy' | 'stale' | 'waiting';
   hasTelemetry: boolean;
@@ -78,6 +88,8 @@ function SettingsPage() {
         <TelemetryCard projectId={projectId} />
       </div>
 
+      <CaptureSettingsCard projectId={projectId} />
+
       <Card className="border-border bg-card shadow-none">
         <CardHeader>
           <CardTitle>Project</CardTitle>
@@ -106,6 +118,126 @@ function SettingsPage() {
       </Card>
 
       <SetupGuidance />
+    </div>
+  );
+}
+
+function CaptureSettingsCard({ projectId }: { projectId: string }) {
+  const queryClient = useQueryClient();
+  const settings = useQuery({
+    queryKey: ['project-capture-settings', projectId],
+    queryFn: () => api.get<CaptureSettings>(`/projects/${projectId}/settings`),
+  });
+  const update = useMutation({
+    mutationFn: (input: Partial<Omit<CaptureSettings, 'projectId'>>) =>
+      api.put<CaptureSettings>(`/projects/${projectId}/settings`, input),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['project-capture-settings', projectId], data);
+    },
+  });
+
+  const data = settings.data;
+  const set = (key: keyof Omit<CaptureSettings, 'projectId'>, value: boolean | number) => {
+    update.mutate({ [key]: value });
+  };
+
+  return (
+    <Card className="border-border bg-card shadow-none">
+      <CardHeader>
+        <CardTitle>Telemetry capture</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          These controls are enforced at ingestion. Sensitive data remains redacted by default.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {settings.isError && <QueryErrorState onRetry={() => void settings.refetch()} />}
+        {data && (
+          <>
+            <SettingToggle
+              label="Redact sensitive data"
+              detail="Remove credentials, cookies, tokens, and similar secrets before telemetry is stored."
+              checked={data.redactSensitiveData}
+              onChange={(value) => set('redactSensitiveData', value)}
+            />
+            <SettingToggle
+              label="Capture request headers"
+              detail="Store HTTP request header attributes when your instrumentation sends them."
+              checked={data.captureRequestHeaders}
+              onChange={(value) => set('captureRequestHeaders', value)}
+            />
+            <SettingToggle
+              label="Capture request bodies"
+              detail="Store request body attributes when your instrumentation sends them."
+              checked={data.captureRequestBody}
+              onChange={(value) => set('captureRequestBody', value)}
+            />
+            <SettingToggle
+              label="Capture response bodies"
+              detail="Store response body attributes when your instrumentation sends them."
+              checked={data.captureResponseBody}
+              onChange={(value) => set('captureResponseBody', value)}
+            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <LimitInput
+                label="Maximum attributes"
+                value={data.maxAttributeCount}
+                min={10}
+                max={1000}
+                onSave={(value) => set('maxAttributeCount', value)}
+              />
+              <LimitInput
+                label="Maximum attribute value length"
+                value={data.maxAttributeValueLength}
+                min={256}
+                max={16384}
+                onSave={(value) => set('maxAttributeValueLength', value)}
+              />
+            </div>
+            {update.isError && <p className="text-sm text-red-700">Could not save capture settings. Try again.</p>}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SettingToggle({ label, detail, checked, onChange }: { label: string; detail: string; checked: boolean; onChange: (value: boolean) => void }) {
+  return (
+    <label className="flex cursor-pointer items-start justify-between gap-4 rounded-xl border border-border p-4">
+      <span>
+        <span className="block text-sm font-medium">{label}</span>
+        <span className="mt-1 block text-xs leading-5 text-muted-foreground">{detail}</span>
+      </span>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="mt-1 h-4 w-4"
+      />
+    </label>
+  );
+}
+
+function LimitInput({ label, value, min, max, onSave }: { label: string; value: number; min: number; max: number; onSave: (value: number) => void }) {
+  const [draft, setDraft] = useState(String(value));
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div className="flex gap-2">
+        <Input
+          type="number"
+          min={min}
+          max={max}
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={() => {
+            const parsed = Number(draft);
+            if (Number.isInteger(parsed) && parsed >= min && parsed <= max) onSave(parsed);
+            else setDraft(String(value));
+          }}
+        />
+      </div>
+      <p className="text-xs text-muted-foreground">{min.toLocaleString()}–{max.toLocaleString()}</p>
     </div>
   );
 }
