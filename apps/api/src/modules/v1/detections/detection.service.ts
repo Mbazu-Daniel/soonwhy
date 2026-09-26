@@ -535,7 +535,7 @@ export class DetectionService {
       startTimestamp,
       endTimestamp,
       maxHits: 5000,
-      sortBy: ['duration:desc'],
+      sortBy: ['-duration'],
     });
 
     const traces = new Map<string, {
