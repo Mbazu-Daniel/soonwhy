@@ -17,7 +17,7 @@ interface DetectionFinding { id: string; projectId: string; serviceName: string;
 interface RcaAnalysis { id: string; serviceName: string; severity: Severity; summary: string; rootCause: string; contributingFactors: string[]; investigationSteps: string[]; suggestedChanges: string[]; evidenceRefs: string[]; confidence: 'low' | 'medium' | 'high'; limitations: string[]; provider: string; model: string; promptVersion: string; createdAt: string; }
 
 function DetectionOverview() {
-  const { projectSlug } = Route.useParams();
+  const { projectSlug, orgSlug } = useProject();
   const { projectId } = useProject(); const queryClient = useQueryClient(); const [selectedId, setSelectedId] = useState<string | null>(null);
   const { data: findings, isLoading, isError, refetch } = useQuery({ queryKey: ['detections', projectId], queryFn: () => api.get<DetectionFinding[]>(`/projects/${projectId}/detections`), enabled: !!projectId });
   const selected = findings?.find((item) => item.id === selectedId) ?? findings?.[0]; const isBottleneck = selected?.type === 'bottleneck';
