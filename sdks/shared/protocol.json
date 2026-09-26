@@ -1,0 +1,1 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://soonwhy.dev/sdk/protocol.json","title":"Soonwhy SDK protocol","type":"object","required":["resource","records"],"properties":{"resource":{"type":"object"},"records":{"type":"array"}}}

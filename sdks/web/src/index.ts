@@ -1,0 +1,11 @@
+export interface WebSdkOptions{apiKey:string;endpoint?:string;serviceName?:string;serviceVersion?:string;deploymentEnvironment?:string;attributes?:Record<string,unknown>;batchSize?:number;flushIntervalMs?:number}
+export class SoonwhyWeb{
+ private readonly options:Required<Pick<WebSdkOptions,'apiKey'|'endpoint'|'batchSize'|'flushIntervalMs'>>;private readonly logs:Array<Record<string,unknown>>=[];private readonly metrics:Array<Record<string,unknown>>=[];private timer:number|undefined;
+ constructor(options:WebSdkOptions){if(!options.apiKey.trim())throw new Error('Soonwhy web apiKey is required');this.options={apiKey:options.apiKey,endpoint:(options.endpoint??'http://localhost:3002/v1').replace(/\/+$/,''),batchSize:options.batchSize??50,flushIntervalMs:options.flushIntervalMs??5000};if(this.options.flushIntervalMs>0)this.timer=window.setInterval(()=>void this.flush(),this.options.flushIntervalMs)}
+ captureLog(message:string,attributes?:Record<string,unknown>):void{this.logs.push({level:'info',message,timestamp:Date.now(),attributes});this.flushIfFull()}
+ captureError(error:unknown,attributes?:Record<string,unknown>):void{this.logs.push({level:'error',message:error instanceof Error?error.message:String(error),timestamp:Date.now(),attributes});this.flushIfFull()}
+ captureMetric(name:string,value:number,attributes?:Record<string,unknown>):void{this.metrics.push({name,value,timestamp:Date.now(),attributes});this.flushIfFull()}
+ async flush():Promise<{sent:number;dropped:number}>{const logs=this.logs.splice(0),metrics=this.metrics.splice(0);let sent=0,dropped=0;for(const [signal,records] of [['logs',logs],['metrics',metrics]] as const){if(!records.length)continue;try{const r=await fetch(this.options.endpoint+'/'+signal,{method:'POST',headers:{authorization:'Bearer '+this.options.apiKey,'content-type':'application/json'},body:JSON.stringify({records}),keepalive:true});if(r.ok)sent+=records.length;else dropped+=records.length}catch{dropped+=records.length}}return{sent,dropped}}
+ async close():Promise<{sent:number;dropped:number}>{if(this.timer!==undefined)window.clearInterval(this.timer);return this.flush()}
+ private flushIfFull():void{if(this.logs.length+this.metrics.length>=this.options.batchSize)void this.flush()}
+}

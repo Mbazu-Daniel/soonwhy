@@ -1,0 +1,1 @@
+declare module '@nestjs/common' { export function Global():ClassDecorator; export function Module(metadata:unknown):ClassDecorator; export interface OnApplicationShutdown{onApplicationShutdown(signal?:string):unknown|Promise<unknown>} }
