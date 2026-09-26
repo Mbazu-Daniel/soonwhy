@@ -31,7 +31,7 @@ function TraceExplorer() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['traces', projectId, q],
     queryFn: () =>
-      api.get<Trace[]>(
+      api.get<{ data: Trace[]; nextCursor?: string }>(
         `/projects/${projectId}/traces${q ? `?q=${encodeURIComponent(q)}` : ''}`,
       ),
     enabled: !!projectId,
@@ -75,7 +75,7 @@ function TraceExplorer() {
                 <Skeleton key={i} className="h-14" />
               ))}
             </div>
-          ) : !data?.length ? (
+          ) : !data?.data?.length ? (
             <div className="p-12 text-center">
               <GitBranch className="mx-auto h-8 w-8 text-[#16931F]" />
               <p className="mt-3 font-medium">
@@ -97,7 +97,7 @@ function TraceExplorer() {
             </div>
           ) : (
             <div className="divide-y divide-[#DBE5D7]">
-              {data.map((t) => (
+              {data.data.map((t) => (
                 <Link
                   key={t.traceId}
                   to="/$organizationSlug/p/$projectSlug/trace/$traceId"
