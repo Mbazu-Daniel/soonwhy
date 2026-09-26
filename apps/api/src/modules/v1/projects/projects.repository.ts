@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../../../common/db';
-import { projects } from '../../../common/db/schema';
+import { projectSettings, projects } from '../../../common/db/schema';
 
 @Injectable()
 export class ProjectsRepository {
@@ -43,3 +43,48 @@ export class ProjectsRepository {
       .where(and(eq(projects.id, id), eq(projects.orgId, orgId)));
   }
 }
+
+  async getProjectSettings(id: string, orgId: string) {
+    return db
+      .select({
+        projectId: projectSettings.projectId,
+        redactSensitiveData: projectSettings.redactSensitiveData,
+        captureRequestHeaders: projectSettings.captureRequestHeaders,
+        captureRequestBody: projectSettings.captureRequestBody,
+        captureResponseBody: projectSettings.captureResponseBody,
+        maxAttributeCount: projectSettings.maxAttributeCount,
+        maxAttributeValueLength: projectSettings.maxAttributeValueLength,
+      })
+      .from(projectSettings)
+      .innerJoin(projects, eq(projectSettings.projectId, projects.id))
+      .where(and(eq(projectSettings.projectId, id), eq(projects.orgId, orgId)))
+      .then((rows) => rows[0] ?? this.defaultProjectSettings(id));
+  }
+
+  async updateProjectSettings(id: string, orgId: string, data: Record<string, unknown>) {
+    const project = await this.getProjectById(id, orgId);
+    if (!project) return null;
+    const [settings] = await db
+      .insert(projectSettings)
+      .values({ projectId: id })
+      .onConflictDoNothing()
+      .returning();
+    if (!settings) {
+      await db.update(projectSettings).set({ ...data, updatedAt: new Date() }).where(eq(projectSettings.projectId, id));
+    } else if (Object.keys(data).length) {
+      await db.update(projectSettings).set({ ...data, updatedAt: new Date() }).where(eq(projectSettings.projectId, id));
+    }
+    return this.getProjectSettings(id, orgId);
+  }
+
+  private defaultProjectSettings(projectId: string) {
+    return {
+      projectId,
+      redactSensitiveData: true,
+      captureRequestHeaders: false,
+      captureRequestBody: false,
+      captureResponseBody: false,
+      maxAttributeCount: 100,
+      maxAttributeValueLength: 4096,
+    };
+  }
