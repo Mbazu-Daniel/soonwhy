@@ -62,6 +62,12 @@ function DashboardOverviewPage() {
   const [range, setRange] = useState<TelemetryRange>('24h');
   const rangeParams = telemetryRangeParams(range);
 
+  const { data: telemetryStatus } = useQuery({
+    queryKey: ['telemetry-status', projectId],
+    queryFn: () => api.get<{ status: 'healthy' | 'stale' | 'waiting'; lastTelemetryAt: string | null }>(`/projects/${projectId}/dashboard/telemetry-status`),
+    enabled: !!projectId,
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard-overview', projectId, range],
     queryFn: () => api.get<DashboardOverview>(`/projects/${projectId}/dashboard/overview?${new URLSearchParams(rangeParams).toString()}`),
@@ -99,6 +105,13 @@ function DashboardOverviewPage() {
         <TimeRangeControl value={range} onChange={setRange} />
       </header>
 
+      {telemetryStatus?.status === 'stale' && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-[#5A4A1C] bg-[#2A220F] px-4 py-3 text-xs text-[#D8C68A]">
+          <span>Telemetry is stale. Showing the last available result while new events are awaited.</span>
+          <span className="shrink-0">{telemetryStatus.lastTelemetryAt ? new Date(telemetryStatus.lastTelemetryAt).toLocaleTimeString() : 'Unknown'}</span>
+        </div>
+      )}
+
       <AIDashboardSummary orgSlug={orgSlug!} projectSlug={projectSlug!} />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -116,9 +129,7 @@ function DashboardOverviewPage() {
                 <h2 className="text-sm font-semibold text-[#F6F6F6]">Traffic & latency</h2>
                 <p className="mt-1 text-xs text-[#989898]">Request volume and response-time health</p>
               </div>
-              <button type="button" className="rounded-lg border border-[#242426] px-3 py-1.5 text-xs text-[#989898]">
-                24h
-              </button>
+              <span className="rounded-lg border border-[#242426] px-3 py-1.5 text-xs text-[#989898]">{range}</span>
             </div>
             <div className="px-5 pb-6 pt-4 sm:px-6">
               <div className="flex h-[260px] items-end gap-2 border-b border-[#1B1B1D]">
