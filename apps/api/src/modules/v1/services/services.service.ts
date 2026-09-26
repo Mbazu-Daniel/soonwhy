@@ -6,8 +6,8 @@ import { CreateServiceInput } from './dto';
 export class ServicesService {
   constructor(private readonly servicesRepository: ServicesRepository) {}
 
-  async getServiceById(id: string, orgId: string) {
-    const svc = await this.servicesRepository.getServiceById(id, orgId);
+  async getServiceById(id: string, projectId: string, orgId: string) {
+    const svc = await this.servicesRepository.getServiceById(id, projectId, orgId);
     if (!svc) throw new NotFoundException('Service not found');
     return svc;
   }
@@ -23,7 +23,7 @@ export class ServicesService {
     return this.servicesRepository.createService({ projectId, orgId, ...input });
   }
 
-  async deleteService(id: string, orgId: string) {
+  async deleteService(id: string, projectId: string, orgId: string) {
     await this.getServiceById(id, orgId);
     return this.servicesRepository.deleteService(id);
   }
