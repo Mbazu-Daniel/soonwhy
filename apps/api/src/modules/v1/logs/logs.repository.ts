@@ -1,6 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { QuickwitService } from '@soonwhy/shared';
-import { QUICKWIT_INDEXES } from '@soonwhy/shared';
 import { quickwitTerm } from '../../../common/quickwit/query';
 import { TelemetryQueryService } from '../../../common/telemetry';
 
@@ -8,7 +6,7 @@ export interface RawLogRow { id: string; timestamp: string; level: string; servi
 
 @Injectable()
 export class LogsRepository {
-  constructor(private readonly quickwit: QuickwitService, private readonly telemetryQuery: TelemetryQueryService) {}
+  constructor(private readonly telemetryQuery: TelemetryQueryService) {}
   async queryHistogram(params: { orgId: string; projectId: string; from: string; to: string; level: string; service: string; q: string; traceId?: string; spanId?: string; }) {
     const filters: string[] = [];
     if (params.level && params.level !== 'all') filters.push(quickwitTerm('level', params.level));
@@ -31,7 +29,7 @@ export class LogsRepository {
     if (params.q) filters.push(quickwitTerm('message', params.q));
     if (params.traceId) filters.push(quickwitTerm('traceId', params.traceId));
     if (params.spanId) filters.push(quickwitTerm('spanId', params.spanId));
-    const query = quickwitTenantQuery(params.orgId, params.projectId, filters.length ? filters.join(' AND ') : '*');
+    const query = { orgId: params.orgId, projectId: params.projectId, from: params.from, to: params.to, filters };
     const result = await this.telemetryQuery.search<RawLogRow>('logs', query, { maxHits: params.limit, sortBy: ['-timestamp'] });
     return result.hits.flatMap((hit) => (hit._source ? [hit._source] : []));
   }
