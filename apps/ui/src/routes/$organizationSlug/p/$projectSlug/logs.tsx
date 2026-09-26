@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { keepPreviousData } from '@tanstack/react-query';
 import { TimeRangeControl, telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
@@ -119,6 +120,7 @@ function LogViewer() {
     },
     enabled: !!projectId,
     refetchInterval: live ? 10000 : false,
+    placeholderData: keepPreviousData,
   });
 
   const logs = data?.data ?? [];
@@ -162,7 +164,9 @@ function LogViewer() {
   }
 
   if (!projectId) return <EmptyProject />;
-  if (isError) return <QueryErrorState onRetry={() => void refetch()} />;
+  const showingStale = isError && displayLogs.length > 0;
+
+  if (isError && !displayLogs.length) return <QueryErrorState onRetry={() => void refetch()} />;
 
   return (
     <div className="min-h-full space-y-5 pb-8">
@@ -243,6 +247,6 @@ function LogViewer() {
   );
 }
 
-function EmptyProject() {
+function StaleNotice({ onRetry }: { onRetry: () => void }) { return <div className="flex items-center justify-between gap-3 rounded-xl border border-[#5A4A1C] bg-[#2A220F] px-4 py-3 text-xs text-[#D8C68A]"><span>Live telemetry is temporarily unavailable. Showing the last successful result.</span><Button variant="outline" size="sm" onClick={onRetry}>Retry</Button></div>; }\n\nfunction EmptyProject() {
   return <Card><CardContent className="p-10 text-center"><p className="font-medium">Choose a project</p><p className="mt-1 text-sm text-muted-foreground">Select a project from the top bar to inspect logs.</p></CardContent></Card>;
 }
