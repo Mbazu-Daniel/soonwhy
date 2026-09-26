@@ -105,7 +105,7 @@ export class DashboardService {
           startTimestamp: Math.floor((Date.now() - 86_400_000) / 1000),
           endTimestamp: Math.floor(Date.now() / 1000),
           maxHits: 1,
-          sortBy: ['timestamp:desc'],
+          sortBy: ['-timestamp'],
         },
       );
       const latest = result.hits[0]?._source;
