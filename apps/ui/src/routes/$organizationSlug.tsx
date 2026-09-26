@@ -66,7 +66,7 @@ function OrganizationDashboardLayout() {
         <TopBar />
         <div className="flex min-h-0 w-full flex-1">
           <Sidebar />
-          <main id="main-content" tabIndex={-1} className="min-h-0 w-full min-w-0 flex-1 overflow-y-auto bg-[#040405]">
+          <main id="main-content" tabIndex={-1} className="min-h-0 w-full min-w-0 flex-1 overflow-y-auto bg-[#040405] px-4 py-5 sm:px-6 sm:py-7 xl:px-8">
             <Outlet />
           </main>
         </div>
