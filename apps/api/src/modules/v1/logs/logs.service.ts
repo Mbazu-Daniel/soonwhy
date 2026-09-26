@@ -24,7 +24,7 @@ export class LogsService {
     const limit = input.limit ?? 50;
     const rows = await this.logsRepository.queryLogs({
       orgId, projectId: input.projectId, from, to, level: input.level || 'all',
-      service: input.service || '', q: input.q || '', limit, cursor,
+      service: input.service || '', q: input.q || '', traceId: input.traceId, limit, cursor,
     });
     const data = rows.map((r) => {
       let attributes: Record<string, unknown> = {};
