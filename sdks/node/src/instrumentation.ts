@@ -10,16 +10,6 @@ interface NodeSdkModule {
   };
 }
 
-interface TraceExporterModule {
-  OTLPTraceExporter: new (options: {
-    url: string;
-    headers: Record<string, string>;
-    timeoutMillis: number;
-  }) => {
-    shutdown(): Promise<void>;
-  };
-}
-
 interface AutoInstrumentationModule {
   getNodeAutoInstrumentations(
     configuration?: Record<string, Record<string, unknown>>,
@@ -42,17 +32,18 @@ export interface OTelRuntime {
     start(): void;
     shutdown(): Promise<void>;
   };
-  exporter: {
-    shutdown(): Promise<void>;
-  };
 }
 
 export function createOpenTelemetryRuntime(options: ResolvedNodeSdkOptions): OTelRuntime {
   const resources = require('@opentelemetry/resources') as ResourceModule;
   const sdkModule = require('@opentelemetry/sdk-node') as NodeSdkModule;
-  const exporterModule = require(
-    '@opentelemetry/exporter-trace-otlp-proto',
-  ) as TraceExporterModule;
+  const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-proto') as {
+    OTLPTraceExporter: new (options: {
+      url: string;
+      headers: Record<string, string>;
+      timeoutMillis: number;
+    }) => unknown;
+  };
   const autoInstrumentationModule = require(
     '@opentelemetry/auto-instrumentations-node',
   ) as AutoInstrumentationModule;
@@ -67,7 +58,7 @@ export function createOpenTelemetryRuntime(options: ResolvedNodeSdkOptions): OTe
     }),
   );
 
-  const exporter = new exporterModule.OTLPTraceExporter({
+  const exporter = new OTLPTraceExporter({
     url: `${options.endpoint}/traces`,
     headers: {
       authorization: `Bearer ${options.apiKey}`,
@@ -86,7 +77,7 @@ export function createOpenTelemetryRuntime(options: ResolvedNodeSdkOptions): OTe
     sampler: createSampler(options),
   });
 
-  return { sdk, exporter };
+  return { sdk };
 }
 
 export function buildInstrumentationConfig(
