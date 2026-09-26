@@ -3,7 +3,7 @@ import { createHash } from 'crypto';
 import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { apiKeys, projects } from '../db/schema';
+import { apiKeys, projectSettings, projects } from '../db/schema';
 
 const client = postgres(process.env.DATABASE_URL!);
 const db = drizzle(client);
@@ -12,6 +12,14 @@ export interface ValidatedApiKey {
   projectId: string;
   organizationId: string;
   scopes: string[];
+  captureSettings: {
+    redactSensitiveData: boolean;
+    captureRequestHeaders: boolean;
+    captureRequestBody: boolean;
+    captureResponseBody: boolean;
+    maxAttributeCount: number;
+    maxAttributeValueLength: number;
+  };
 }
 
 /**
@@ -32,9 +40,16 @@ export class ApiKeysService {
         scopes: apiKeys.scopes,
         expiresAt: apiKeys.expiresAt,
         organizationId: projects.orgId,
+        redactSensitiveData: projectSettings.redactSensitiveData,
+        captureRequestHeaders: projectSettings.captureRequestHeaders,
+        captureRequestBody: projectSettings.captureRequestBody,
+        captureResponseBody: projectSettings.captureResponseBody,
+        maxAttributeCount: projectSettings.maxAttributeCount,
+        maxAttributeValueLength: projectSettings.maxAttributeValueLength,
       })
       .from(apiKeys)
       .innerJoin(projects, eq(apiKeys.projectId, projects.id))
+      .leftJoin(projectSettings, eq(projectSettings.projectId, projects.id))
       .where(eq(apiKeys.keyHash, keyHash));
 
     const key = rows[0];
@@ -45,6 +60,14 @@ export class ApiKeysService {
       projectId: key.projectId,
       organizationId: key.organizationId,
       scopes: key.scopes || [],
+      captureSettings: {
+        redactSensitiveData: key.redactSensitiveData ?? true,
+        captureRequestHeaders: key.captureRequestHeaders ?? false,
+        captureRequestBody: key.captureRequestBody ?? false,
+        captureResponseBody: key.captureResponseBody ?? false,
+        maxAttributeCount: key.maxAttributeCount ?? 100,
+        maxAttributeValueLength: key.maxAttributeValueLength ?? 4096,
+      },
     };
   }
 }
