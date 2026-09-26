@@ -10,7 +10,7 @@ interface SavedView { id: string; name: string; path: string; }
 const NAV_ITEMS = [
   { path: '/dashboard', label: 'Overview', icon: LayoutDashboard },
   { path: '/dashboard/services', label: 'Services', icon: Server },
-  { path: '/dashboard/detections', label: 'Detections', icon: BrainCircuit },
+  { path: '/dashboard/detections', label: 'Findings', icon: BrainCircuit },
   { path: '/dashboard/investigations', label: 'Investigations', icon: ShieldCheck },
   { path: '/dashboard/errors', label: 'Errors', icon: AlertTriangle },
   { path: '/dashboard/logs', label: 'Logs', icon: ScrollText },
@@ -126,7 +126,7 @@ export function CommandPalette() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-xl gap-0 overflow-hidden p-0">
           <DialogTitle className="sr-only">SoonWhy command palette</DialogTitle>
-          <DialogDescription className="sr-only">Navigate between observability surfaces and saved views.</DialogDescription>
+          <DialogDescription className="sr-only">Navigate between telemetry surfaces, findings, investigations and saved views.</DialogDescription>
           <div className="border-b p-3">
             <div className="relative">
               <Command className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#16931F]" aria-hidden="true" />
@@ -148,7 +148,7 @@ export function CommandPalette() {
                 <button type="button" onClick={openSaveDialog} className="text-xs font-medium text-[#16931F] hover:underline focus-visible:outline-offset-2">Save current</button>
               </div>
               {items.saved.length === 0
-                ? <p className="px-3 pb-3 text-xs text-muted-foreground">Save frequently used investigation surfaces here.</p>
+                ? <p className="px-3 pb-3 text-xs text-muted-foreground">Save frequently used telemetry and investigation surfaces here.</p>
                 : items.saved.map((view) => (
                   <div key={view.id} className="group flex items-center gap-2 rounded-lg px-3 py-2.5 hover:bg-muted">
                     <button type="button" onClick={() => go(view.path)} className="flex min-w-0 flex-1 items-center gap-3 text-left text-sm focus-visible:outline-offset-2">
