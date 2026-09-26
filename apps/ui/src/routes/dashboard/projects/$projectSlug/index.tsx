@@ -13,7 +13,8 @@ export const Route = createFileRoute('/dashboard/projects/$projectSlug/')({
   component: DashboardOverviewPage,
 });
 
-function DashboardOverviewPage() {\n  const { projectSlug } = Route.useParams();
+function DashboardOverviewPage() {
+  const { projectSlug } = Route.useParams();
   const { projectId } = useProject();
 
   const { data, isLoading } = useQuery({
