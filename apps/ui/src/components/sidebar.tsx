@@ -9,13 +9,11 @@ import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '~/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '~/components/ui/avatar';
 import { AlertTriangle, BrainCircuit, Check, ChevronDown, ChevronRight, GitBranch, LayoutDashboard, Plus, ScrollText, Server, Settings, ShieldCheck } from 'lucide-react';
 import { api } from '~/lib/api';
-import { signOut, clearSession, getSessionToken } from '~/lib/auth-client';
+import { getSessionToken } from '~/lib/auth-client';
 
 interface Project { id: string; name: string; slug: string; }
-interface SessionUser { user: { id: string; email: string; name: string | null }; }
 
 const navItems = [
   { to: '/dashboard', label: 'Overview', icon: LayoutDashboard, exact: true },
@@ -48,13 +46,6 @@ export function Sidebar() {
     enabled: !!orgId,
   });
 
-  const session = useQuery({
-    queryKey: ['session'],
-    queryFn: () => api.get<SessionUser>('/auth/session'),
-    enabled: !!token,
-    retry: false,
-  });
-
   const createProject = useMutation({
     mutationFn: (input: { name: string; slug: string }) => api.post<Project>('/projects', input),
     onSuccess: (project) => {
@@ -71,9 +62,6 @@ export function Sidebar() {
   });
 
   const currentProject = projects.data?.find((project) => project.id === projectId);
-  const userName = session.data?.user?.name || session.data?.user?.email || 'User';
-  const userInitial = userName.charAt(0).toUpperCase();
-
   function submitProject(event: React.FormEvent) {
     event.preventDefault();
     setError('');
@@ -84,12 +72,6 @@ export function Sidebar() {
       return;
     }
     createProject.mutate({ name, slug });
-  }
-
-  async function handleSignOut() {
-    if (token) await signOut(token);
-    clearSession();
-    void navigate({ to: '/login' });
   }
 
   function selectProject(project: Project) {
@@ -173,39 +155,7 @@ export function Sidebar() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="mt-2 h-12 w-full justify-start gap-3 px-2">
-                <Avatar className="h-8 w-8 shrink-0">
-                  <AvatarFallback className="bg-[#C9E7EB] text-[#182012] font-semibold">{userInitial}</AvatarFallback>
-                </Avatar>
-                <span className="min-w-0 flex-1 text-left">
-                  <span className="block truncate text-sm font-medium">{userName}</span>
-                  <span className="block truncate text-xs text-muted-foreground">Account</span>
-                </span>
-                <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" side="top" className="w-56">
-              {session.data?.user && (
-                <>
-                  <div className="px-2 py-2">
-                    <p className="truncate text-sm font-medium">{session.data.user.name || session.data.user.email}</p>
-                    {session.data.user.name && <p className="truncate text-xs text-muted-foreground">{session.data.user.email}</p>}
-                  </div>
-                  <DropdownMenuSeparator />
-                </>
-              )}
-              <DropdownMenuItem onClick={() => void navigate({ to: '/dashboard/projects/$projectSlug/settings', params: { projectSlug: currentProject?.slug || '' } })} disabled={!currentProject}>
-                <Settings className="h-4 w-4" />
-                Settings
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleSignOut}>
-                <LogOut className="h-4 w-4" />
-                Sign out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+
         </div>
       </aside>
 
