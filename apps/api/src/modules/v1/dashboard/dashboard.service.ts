@@ -212,12 +212,16 @@ export class DashboardService {
     });
   }
 
-  async getErrors(orgId: string, projectId: string, limit = 50) {
-    return this.cached(`errors:${orgId}:${projectId}:${limit}`, async () => {
+  async getErrors(orgId: string, projectId: string, limit = 50, from?: string, to?: string, service?: string) {
+    const range = this.range(from, to);
+    const cacheKey = `errors:${orgId}:${projectId}:${limit}:${range.start}:${range.end}:${service ?? ''}`;
+    return this.cached(cacheKey, async () => {
+      const tenantQuery = quickwitTenantQuery(orgId, projectId);
+      const query = [tenantQuery, 'level:error', service ? `service:\"${service.replace(/\"/g, '\\\"')}\"` : ''].filter(Boolean).join(' AND ');
       const result = await this.quickwit.search(QUICKWIT_INDEXES.logs, {
-        query: quickwitTenantQuery(orgId, projectId, 'level:error'),
-        startTimestamp: Math.floor((Date.now() - 86_400_000) / 1000),
-        endTimestamp: Math.floor(Date.now() / 1000),
+        query,
+        startTimestamp: range.startTimestamp,
+        endTimestamp: range.endTimestamp,
         maxHits: limit,
         sortBy: ['-timestamp'],
       });
