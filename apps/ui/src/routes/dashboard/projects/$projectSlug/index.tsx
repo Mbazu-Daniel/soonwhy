@@ -1,6 +1,17 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Activity, AlertTriangle, ArrowUpRight, BrainCircuit, CheckCircle2, Clock3, Gauge, GitBranch, Server, Zap } from 'lucide-react';
+import {
+  Activity,
+  AlertTriangle,
+  ArrowUpRight,
+  BrainCircuit,
+  CheckCircle2,
+  Clock3,
+  Gauge,
+  GitBranch,
+  Server,
+  Zap,
+} from 'lucide-react';
 import { Card, CardContent } from '~/components/ui/card';
 import { Skeleton } from '~/components/ui/skeleton';
 import { api } from '~/lib/api';
@@ -21,12 +32,22 @@ function AIDashboardSummary({ projectSlug }: { projectSlug: string }) {
           </span>
           <div>
             <p className="text-xs font-semibold uppercase tracking-[.14em] text-[#ACFC15]">AI summary</p>
-            <h2 className="mt-1 text-sm font-semibold text-[#F6F6F6]">Your system looks stable, with a few signals worth watching.</h2>
-            <p className="mt-2 max-w-3xl text-xs leading-5 text-[#A9B09F]">SoonWhy can turn connected traces, logs and detections into a short explanation of what changed, why it matters and where to investigate next.</p>
+            <h2 className="mt-1 text-sm font-semibold text-[#F6F6F6]">
+              Your system looks stable, with a few signals worth watching.
+            </h2>
+            <p className="mt-2 max-w-3xl text-xs leading-5 text-[#A9B09F]">
+              SoonWhy can turn connected traces, logs and detections into a short explanation of what changed,
+              why it matters and where to investigate next.
+            </p>
           </div>
         </div>
-        <Link to="/dashboard/projects/$projectSlug/investigations" params={{ projectSlug }} className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-[#34451D] px-3 py-2 text-xs font-medium text-[#ACFC15] hover:bg-[#ACFC15]/5">
-          Open AI investigation <ArrowUpRight className="h-3.5 w-3.5" />
+        <Link
+          to="/dashboard/projects/$projectSlug/investigations"
+          params={{ projectSlug }}
+          className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-[#34451D] px-3 py-2 text-xs font-medium text-[#ACFC15] hover:bg-[#ACFC15]/5"
+        >
+          Open AI investigation
+          <ArrowUpRight className="h-3.5 w-3.5" />
         </Link>
       </div>
     </section>
@@ -45,13 +66,15 @@ function DashboardOverviewPage() {
 
   if (!projectId) {
     return (
-      <div className="max-w-5xl mx-auto py-10">
+      <div className="min-h-full space-y-5 pb-8">
         <EmptyProject />
       </div>
     );
   }
 
-  if (isLoading) return <OverviewSkeleton />;
+  if (isLoading) {
+    return <OverviewSkeleton />;
+  }
 
   const live = data && data.totalRequests > 0 ? data : dashboardOverview;
   const score = live.score;
@@ -62,8 +85,12 @@ function DashboardOverviewPage() {
       <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ACFC15]">Mission control</p>
-          <h1 className="mt-2 text-[30px] font-semibold tracking-[-0.04em] text-[#F6F6F6]">Good morning, here’s your system.</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#989898]">A quiet overview of traffic, reliability and the evidence SoonWhy has connected across your services.</p>
+          <h1 className="mt-2 text-[30px] font-semibold tracking-[-0.04em] text-[#F6F6F6]">
+            Good morning, here’s your system.
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#989898]">
+            A quiet overview of traffic, reliability and the evidence SoonWhy has connected across your services.
+          </p>
         </div>
         <div className="flex items-center gap-2 rounded-full border border-[#242426] bg-[#0B0B0C] px-3 py-2 text-xs text-[#989898]">
           <span className="h-2 w-2 rounded-full bg-[#ACFC15]" />
@@ -88,17 +115,30 @@ function DashboardOverviewPage() {
                 <h2 className="text-sm font-semibold text-[#F6F6F6]">Traffic & latency</h2>
                 <p className="mt-1 text-xs text-[#989898]">Request volume and response-time health</p>
               </div>
-              <button type="button" className="rounded-lg border border-[#242426] px-3 py-1.5 text-xs text-[#989898]">24h</button>
+              <button type="button" className="rounded-lg border border-[#242426] px-3 py-1.5 text-xs text-[#989898]">
+                24h
+              </button>
             </div>
             <div className="px-5 pb-6 pt-4 sm:px-6">
               <div className="flex h-[260px] items-end gap-2 border-b border-[#1B1B1D]">
-                {[36,48,43,62,56,70,64,76,68,82,74,88,80,91,84,96,87,78,86,72,81,67,75,63].map((height, index) => (
-                  <div key={index} className="group flex h-full flex-1 items-end">
-                    <div className="w-full rounded-t-[5px] bg-[#415312] transition-colors group-hover:bg-[#ACFC15]" style={{ height: `${height}%` }} />
-                  </div>
-                ))}
+                {[36, 48, 43, 62, 56, 70, 64, 76, 68, 82, 74, 88, 80, 91, 84, 96, 87, 78, 86, 72, 81, 67, 75, 63].map(
+                  (height, index) => (
+                    <div key={index} className="group flex h-full flex-1 items-end">
+                      <div
+                        className="w-full rounded-t-[5px] bg-[#415312] transition-colors group-hover:bg-[#ACFC15]"
+                        style={{ height: `${height}%` }}
+                      />
+                    </div>
+                  ),
+                )}
               </div>
-              <div className="mt-3 flex justify-between text-[10px] text-[#6E6E70]"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>Now</span></div>
+              <div className="mt-3 flex justify-between text-[10px] text-[#6E6E70]">
+                <span>00:00</span>
+                <span>06:00</span>
+                <span>12:00</span>
+                <span>18:00</span>
+                <span>Now</span>
+              </div>
               <div className="mt-5 grid grid-cols-3 gap-4 border-t border-[#1B1B1D] pt-5">
                 <Mini label="Requests/sec" value={formatNumber(live.requestRate)} />
                 <Mini label="P99 latency" value={`${live.latencyP99}ms`} />
@@ -122,8 +162,15 @@ function DashboardOverviewPage() {
               <p className="mt-3 text-sm font-medium text-[#8BD125]">{health}</p>
             </div>
             <div className="mt-auto pt-10">
-              <div className="h-2 overflow-hidden rounded-full bg-[#0B0B0C]/10"><div className="h-full rounded-full bg-[#ACFC15]" style={{ width: `${Math.min(100, score)}%` }} /></div>
-              <p className="mt-3 text-xs leading-5 text-white/50">Based on latency, error rate and throughput signals from the current project.</p>
+              <div className="h-2 overflow-hidden rounded-full bg-[#0B0B0C]/10">
+                <div
+                  className="h-full rounded-full bg-[#ACFC15]"
+                  style={{ width: `${Math.min(100, score)}%` }}
+                />
+              </div>
+              <p className="mt-3 text-xs leading-5 text-white/50">
+                Based on latency, error rate and throughput signals from the current project.
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -133,24 +180,65 @@ function DashboardOverviewPage() {
         <Card className="rounded-2xl border-[#242426] bg-[#0B0B0C]">
           <CardContent className="p-0">
             <div className="flex items-center justify-between border-b border-[#1B1B1D] px-5 py-5 sm:px-6">
-              <div><h2 className="text-sm font-semibold">What needs attention</h2><p className="mt-1 text-xs text-[#989898]">Signals worth investigating</p></div>
-              <Link to="/dashboard/projects/$projectSlug/detections" params={{ projectSlug }} className="text-xs font-medium text-[#ACFC15] hover:underline">View all</Link>
+              <div>
+                <h2 className="text-sm font-semibold">What needs attention</h2>
+                <p className="mt-1 text-xs text-[#989898]">Signals worth investigating</p>
+              </div>
+              <Link
+                to="/dashboard/projects/$projectSlug/detections"
+                params={{ projectSlug }}
+                className="text-xs font-medium text-[#ACFC15] hover:underline"
+              >
+                View all
+              </Link>
             </div>
             <div className="divide-y divide-[#EEF2EA]">
-              <Attention icon={CheckCircle2} title="No active findings" detail="SoonWhy will surface evidence-backed bottlenecks here." tone="ok" />
-              <Attention icon={GitBranch} title="Trace evidence connected" detail={`${formatNumber(live.totalRequests)} requests are represented in the current snapshot.`} />
+              <Attention
+                icon={CheckCircle2}
+                title="No active findings"
+                detail="SoonWhy will surface evidence-backed bottlenecks here."
+                tone="ok"
+              />
+              <Attention
+                icon={GitBranch}
+                title="Trace evidence connected"
+                detail={`${formatNumber(live.totalRequests)} requests are represented in the current snapshot.`}
+              />
             </div>
           </CardContent>
         </Card>
 
         <Card className="rounded-2xl border-[#242426] bg-[#0B0B0C]">
           <CardContent className="p-0">
-            <div className="border-b border-[#1B1B1D] px-5 py-5 sm:px-6"><h2 className="text-sm font-semibold">Explore evidence</h2><p className="mt-1 text-xs text-[#989898]">Jump into the signals behind your system</p></div>
+            <div className="border-b border-[#1B1B1D] px-5 py-5 sm:px-6">
+              <h2 className="text-sm font-semibold">Explore evidence</h2>
+              <p className="mt-1 text-xs text-[#989898]">Jump into the signals behind your system</p>
+            </div>
             <div className="grid grid-cols-2 gap-px bg-[#EEF2EA]">
-              <QuickLink href="/dashboard/projects/$projectSlug/services" params={{ projectSlug }} icon={Server} label="Services" />
-              <QuickLink href="/dashboard/projects/$projectSlug/traces" params={{ projectSlug }} icon={GitBranch} label="Traces" />
-              <QuickLink href="/dashboard/projects/$projectSlug/logs" params={{ projectSlug }} icon={Activity} label="Logs" />
-              <QuickLink href="/dashboard/projects/$projectSlug/investigations" params={{ projectSlug }} icon={BrainCircuit} label="Investigate" />
+              <QuickLink
+                to="/dashboard/projects/$projectSlug/services"
+                params={{ projectSlug }}
+                icon={Server}
+                label="Services"
+              />
+              <QuickLink
+                to="/dashboard/projects/$projectSlug/traces"
+                params={{ projectSlug }}
+                icon={GitBranch}
+                label="Traces"
+              />
+              <QuickLink
+                to="/dashboard/projects/$projectSlug/logs"
+                params={{ projectSlug }}
+                icon={Activity}
+                label="Logs"
+              />
+              <QuickLink
+                to="/dashboard/projects/$projectSlug/investigations"
+                params={{ projectSlug }}
+                icon={BrainCircuit}
+                label="Investigate"
+              />
             </div>
           </CardContent>
         </Card>
@@ -159,13 +247,150 @@ function DashboardOverviewPage() {
   );
 }
 
-function Metric({ label, value, suffix, icon: Icon, detail, tone }: { label:string; value:string; suffix?:string; icon:typeof Activity; detail:string; tone?:'dark' }) {
-  return <Card className={tone === 'dark' ? 'rounded-2xl border-[#182012] bg-[#182012] text-white' : 'rounded-2xl border-[#242426] bg-[#0B0B0C]'}><CardContent className="p-5"><div className="flex items-center justify-between"><span className={tone === 'dark' ? 'text-xs text-white/55' : 'text-xs text-[#989898]'}>{label}</span><Icon className={tone === 'dark' ? 'h-4 w-4 text-[#8BD125]' : 'h-4 w-4 text-[#ACFC15]'} /></div><div className="mt-5 flex items-baseline gap-1"><span className="text-[28px] font-semibold tracking-[-0.04em]">{value}</span>{suffix&&<span className={tone === 'dark' ? 'text-xs text-white/40' : 'text-xs text-[#6E6E70]'}>{suffix}</span>}</div><p className={tone === 'dark' ? 'mt-2 text-xs text-white/45' : 'mt-2 text-xs text-[#6E6E70]'}>{detail}</p></CardContent></Card>;
+function Metric({
+  label,
+  value,
+  suffix,
+  icon: Icon,
+  detail,
+  tone,
+}: {
+  label: string;
+  value: string;
+  suffix?: string;
+  icon: typeof Activity;
+  detail: string;
+  tone?: 'dark';
+}) {
+  return (
+    <Card
+      className={
+        tone === 'dark'
+          ? 'rounded-2xl border-[#182012] bg-[#182012] text-white'
+          : 'rounded-2xl border-[#242426] bg-[#0B0B0C]'
+      }
+    >
+      <CardContent className="p-5">
+        <div className="flex items-center justify-between">
+          <span className={tone === 'dark' ? 'text-xs text-white/55' : 'text-xs text-[#989898]'}>
+            {label}
+          </span>
+          <Icon className={tone === 'dark' ? 'h-4 w-4 text-[#8BD125]' : 'h-4 w-4 text-[#ACFC15]'} />
+        </div>
+        <div className="mt-5 flex items-baseline gap-1">
+          <span className="text-[28px] font-semibold tracking-[-0.04em]">{value}</span>
+          {suffix ? (
+            <span className={tone === 'dark' ? 'text-xs text-white/40' : 'text-xs text-[#6E6E70]'}>
+              {suffix}
+            </span>
+          ) : null}
+        </div>
+        <p className={tone === 'dark' ? 'mt-2 text-xs text-white/45' : 'mt-2 text-xs text-[#6E6E70]'}>
+          {detail}
+        </p>
+      </CardContent>
+    </Card>
+  );
 }
 
-function Mini({ label, value }: { label:string; value:string }) { return <div><p className="text-[10px] uppercase tracking-[.12em] text-[#6E6E70]">{label}</p><p className="mt-1 text-sm font-semibold text-[#F6F6F6]">{value}</p></div>; }
-function Attention({ icon:Icon, title, detail, tone }: { icon:typeof CheckCircle2; title:string; detail:string; tone?:'ok' }) { return <div className="flex items-start gap-3 px-5 py-4 sm:px-6"><span className={tone === 'ok' ? 'grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#EEF7E4] text-[#ACFC15]' : 'grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#EAF3F4] text-[#26737A]'}><Icon className="h-4 w-4"/></span><div><p className="text-sm font-medium">{title}</p><p className="mt-1 text-xs leading-5 text-[#989898]">{detail}</p></div></div>; }
-function QuickLink({ href, params, icon:Icon, label }: { href:'/dashboard/projects/$projectSlug/services'|'/dashboard/projects/$projectSlug/traces'|'/dashboard/projects/$projectSlug/logs'|'/dashboard/projects/$projectSlug/investigations'; params:{projectSlug:string}; icon:typeof Server; label:string }) { return <Link to={href} params={params} className="flex items-center gap-3 bg-[#0B0B0C] px-5 py-4 text-sm font-medium hover:bg-[#040405]"><span className="grid h-8 w-8 place-items-center rounded-lg bg-[#151517] text-[#ACFC15]"><Icon className="h-4 w-4"/></span>{label}<ArrowUpRight className="ml-auto h-3.5 w-3.5 text-[#6E6E70]"/></Link>; }
-function EmptyProject(){return <Card className="rounded-2xl border-dashed border-[#242426] bg-[#0B0B0C]"><CardContent className="p-12 text-center"><Server className="mx-auto h-6 w-6 text-[#ACFC15]"/><p className="mt-3 text-sm font-medium">Choose a project</p><p className="mt-1 text-xs text-[#989898]">Select a project from the sidebar to start exploring telemetry.</p></CardContent></Card>;}
-function OverviewSkeleton(){return <div className="space-y-6"><Skeleton className="h-10 w-72"/><Skeleton className="h-4 w-96 max-w-full"/><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[1,2,3,4].map(i=><Skeleton key={i} className="h-32 rounded-2xl"/></div><Skeleton className="h-[390px] rounded-2xl"/></div>;}
-function formatNumber(value:number|undefined){return value == null ? '—' : value.toLocaleString();}
+function Mini({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[10px] uppercase tracking-[.12em] text-[#6E6E70]">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-[#F6F6F6]">{value}</p>
+    </div>
+  );
+}
+
+function Attention({
+  icon: Icon,
+  title,
+  detail,
+  tone,
+}: {
+  icon: typeof CheckCircle2;
+  title: string;
+  detail: string;
+  tone?: 'ok';
+}) {
+  return (
+    <div className="flex items-start gap-3 px-5 py-4 sm:px-6">
+      <span
+        className={
+          tone === 'ok'
+            ? 'grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#EEF7E4] text-[#ACFC15]'
+            : 'grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#EAF3F4] text-[#26737A]'
+        }
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      <div>
+        <p className="text-sm font-medium">{title}</p>
+        <p className="mt-1 text-xs leading-5 text-[#989898]">{detail}</p>
+      </div>
+    </div>
+  );
+}
+
+function QuickLink({
+  to,
+  params,
+  icon: Icon,
+  label,
+}: {
+  to:
+    | '/dashboard/projects/$projectSlug/services'
+    | '/dashboard/projects/$projectSlug/traces'
+    | '/dashboard/projects/$projectSlug/logs'
+    | '/dashboard/projects/$projectSlug/investigations';
+  params: { projectSlug: string };
+  icon: typeof Server;
+  label: string;
+}) {
+  return (
+    <Link
+      to={to}
+      params={params}
+      className="flex items-center gap-3 bg-[#0B0B0C] px-5 py-4 text-sm font-medium hover:bg-[#040405]"
+    >
+      <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#151517] text-[#ACFC15]">
+        <Icon className="h-4 w-4" />
+      </span>
+      {label}
+      <ArrowUpRight className="ml-auto h-3.5 w-3.5 text-[#6E6E70]" />
+    </Link>
+  );
+}
+
+function EmptyProject() {
+  return (
+    <Card className="rounded-2xl border-dashed border-[#242426] bg-[#0B0B0C]">
+      <CardContent className="p-12 text-center">
+        <Server className="mx-auto h-6 w-6 text-[#ACFC15]" />
+        <p className="mt-3 text-sm font-medium">Choose a project</p>
+        <p className="mt-1 text-xs text-[#989898]">
+          Select a project from the sidebar to start exploring telemetry.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function OverviewSkeleton() {
+  return (
+    <div className="space-y-6">
+      <Skeleton className="h-10 w-72" />
+      <Skeleton className="h-4 w-96 max-w-full" />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {[1, 2, 3, 4].map((item) => (
+          <Skeleton key={item} className="h-32 rounded-2xl" />
+        ))}
+      </div>
+      <Skeleton className="h-[390px] rounded-2xl" />
+    </div>
+  );
+}
+
+function formatNumber(value: number | undefined) {
+  return value == null ? '—' : value.toLocaleString();
+}
