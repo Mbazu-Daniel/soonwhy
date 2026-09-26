@@ -10,7 +10,7 @@ interface Project { id: string; name: string; slug: string; }
 const labels: Record<string, string> = {
   '': 'Overview',
   services: 'Services',
-  detections: 'Detections',
+  detections: 'Findings',
   investigations: 'Investigations',
   errors: 'Errors',
   logs: 'Logs',
