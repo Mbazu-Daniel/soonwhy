@@ -14,15 +14,28 @@ import { api } from '~/lib/api';
 
 interface Project { id: string; name: string; slug: string; }
 
-const navItems = [
-  { to: 'overview', label: 'Overview', icon: LayoutDashboard, exact: true },
-  { to: 'services', label: 'Services', icon: Server },
-  { to: 'detections', label: 'Findings', icon: BrainCircuit },
-  { to: 'investigations', label: 'Investigations', icon: ShieldCheck },
-  { to: 'errors', label: 'Errors', icon: AlertTriangle },
-  { to: 'logs', label: 'Logs', icon: ScrollText },
-  { to: 'traces', label: 'Traces', icon: GitBranch },
-  { to: 'api-keys', label: 'API Keys', icon: KeyRound },
+const navGroups = [
+  {
+    label: 'Monitor',
+    items: [
+      { to: 'overview', label: 'Overview', icon: LayoutDashboard, exact: true },
+      { to: 'services', label: 'Services', icon: Server },
+      { to: 'errors', label: 'Errors', icon: AlertTriangle },
+      { to: 'logs', label: 'Logs', icon: ScrollText },
+      { to: 'traces', label: 'Traces', icon: GitBranch },
+    ],
+  },
+  {
+    label: 'Intelligence',
+    items: [
+      { to: 'detections', label: 'Findings', icon: BrainCircuit },
+      { to: 'investigations', label: 'Investigations', icon: ShieldCheck },
+    ],
+  },
+  {
+    label: 'Configuration',
+    items: [{ to: 'api-keys', label: 'API Keys', icon: KeyRound }],
+  },
 ] as const;
 
 export function Sidebar() {
@@ -101,9 +114,12 @@ export function Sidebar() {
         'w-60',
       )} aria-label="Primary navigation">
         <div className={cn('flex-1 overflow-y-auto pt-5 pb-3', collapsed ? 'px-2' : 'px-3')}>
-          {!collapsed && <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[.14em] text-[#989898]">Monitor</p>}
-          <nav data-tour="evidence-navigation" className="space-y-1">
-            {navItems.map((item) => {
+          <nav data-tour="evidence-navigation" className="space-y-4">
+            {navGroups.map((group) => (
+              <div key={group.label}>
+                {!collapsed && <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[.14em] text-[#989898]">{group.label}</p>}
+                <div className="space-y-1">
+                  {group.items.map((item) => {
               const target = projectPath(item);
               const active = target !== '/organizations' && (item.exact ? location.pathname === target : location.pathname.startsWith(target));
               return (
@@ -121,7 +137,10 @@ export function Sidebar() {
                   {!collapsed && active && <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />}
                 </Link>
               );
-            })}
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
         </div>
 
