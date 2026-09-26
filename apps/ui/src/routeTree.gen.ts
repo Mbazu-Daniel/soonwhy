@@ -9,25 +9,45 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as OrganizationSlugRouteImport } from './routes/$organizationSlug'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as OrganizationsRouteImport } from './routes/organizations'
-import { Route as RegisterRouteImport } from './routes/register'
-import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
-import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
-import { Route as DashboardDetectionsRouteImport } from './routes/dashboard/detections'
-import { Route as DashboardErrorsRouteImport } from './routes/dashboard/errors'
-import { Route as DashboardInvestigationsRouteImport } from './routes/dashboard/investigations'
-import { Route as DashboardLayoutRouteImport } from './routes/dashboard/layout'
-import { Route as DashboardLogsRouteImport } from './routes/dashboard/logs'
-import { Route as DashboardServicesRouteImport } from './routes/dashboard/services'
-import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
-import { Route as DashboardTracesRouteImport } from './routes/dashboard/traces'
-import { Route as DashboardInvestigationsInvestigationIdRouteImport } from './routes/dashboard/investigations.$investigationId'
-import { Route as DashboardServiceServiceIdRouteImport } from './routes/dashboard/service.$serviceId'
-import { Route as DashboardTraceTraceIdRouteImport } from './routes/dashboard/trace.$traceId'
+import { Route as IndexRouteImport } from './routes/index.tsx'
+import { Route as OrganizationSlugRouteImport } from './routes/$organizationSlug.tsx'
+import { Route as LoginRouteImport } from './routes/login.tsx'
+import { Route as OnboardingRouteImport } from './routes/onboarding.tsx'
+import { Route as OrganizationsRouteImport } from './routes/organizations.tsx'
+import { Route as RegisterRouteImport } from './routes/register.tsx'
+import { Route as AuthCallbackRouteImport } from './routes/auth/callback.tsx'
+import { Route as DashboardErrorsRouteImport } from './routes/dashboard/errors.tsx'
+import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings.tsx'
+import { Route as DashboardProjectsProjectSlugRouteImport } from './routes/dashboard/projects/$projectSlug/route.tsx'
+import { Route as OrganizationSlugAiRouteImport } from './routes/$organizationSlug/ai.tsx'
+import { Route as OrganizationSlugApiKeysRouteImport } from './routes/$organizationSlug/api-keys.tsx'
+import { Route as OrganizationSlugDashboardRouteImport } from './routes/$organizationSlug/dashboard.tsx'
+import { Route as OrganizationSlugDeploymentsRouteImport } from './routes/$organizationSlug/deployments.tsx'
+import { Route as OrganizationSlugDetectionsRouteImport } from './routes/$organizationSlug/detections.tsx'
+import { Route as OrganizationSlugErrorsRouteImport } from './routes/$organizationSlug/errors.tsx'
+import { Route as OrganizationSlugIndexRouteImport } from './routes/$organizationSlug/index.tsx'
+import { Route as OrganizationSlugInvestigationsRouteImport } from './routes/$organizationSlug/investigations.tsx'
+import { Route as OrganizationSlugLogsRouteImport } from './routes/$organizationSlug/logs.tsx'
+import { Route as OrganizationSlugOperationsRouteImport } from './routes/$organizationSlug/operations.tsx'
+import { Route as OrganizationSlugServiceMapRouteImport } from './routes/$organizationSlug/service-map.tsx'
+import { Route as OrganizationSlugServiceServiceIdRouteImport } from './routes/$organizationSlug/service.$serviceId.tsx'
+import { Route as OrganizationSlugServicesRouteImport } from './routes/$organizationSlug/services.tsx'
+import { Route as OrganizationSlugSettingsRouteImport } from './routes/$organizationSlug/settings.tsx'
+import { Route as OrganizationSlugTraceTraceIdRouteImport } from './routes/$organizationSlug/trace.$traceId.tsx'
+import { Route as OrganizationSlugTracesRouteImport } from './routes/$organizationSlug/traces.tsx'
+import { Route as OrganizationSlugInvestigationsInvestigationIdRouteImport } from './routes/$organizationSlug/investigations.$investigationId.tsx'
+import { Route as DashboardProjectsProjectSlugApiKeysRouteImport } from './routes/dashboard/projects/$projectSlug/api-keys.tsx'
+import { Route as DashboardProjectsProjectSlugDetectionsRouteImport } from './routes/dashboard/projects/$projectSlug/detections.tsx'
+import { Route as DashboardProjectsProjectSlugErrorsRouteImport } from './routes/dashboard/projects/$projectSlug/errors.tsx'
+import { Route as DashboardProjectsProjectSlugIndexRouteImport } from './routes/dashboard/projects/$projectSlug/index.tsx'
+import { Route as DashboardProjectsProjectSlugInvestigationsRouteImport } from './routes/dashboard/projects/$projectSlug/investigations.tsx'
+import { Route as DashboardProjectsProjectSlugLogsRouteImport } from './routes/dashboard/projects/$projectSlug/logs.tsx'
+import { Route as DashboardProjectsProjectSlugServiceServiceIdRouteImport } from './routes/dashboard/projects/$projectSlug/service.$serviceId.tsx'
+import { Route as DashboardProjectsProjectSlugServicesRouteImport } from './routes/dashboard/projects/$projectSlug/services.tsx'
+import { Route as DashboardProjectsProjectSlugSettingsRouteImport } from './routes/dashboard/projects/$projectSlug/settings.tsx'
+import { Route as DashboardProjectsProjectSlugTraceTraceIdRouteImport } from './routes/dashboard/projects/$projectSlug/trace.$traceId.tsx'
+import { Route as DashboardProjectsProjectSlugTracesRouteImport } from './routes/dashboard/projects/$projectSlug/traces.tsx'
+import { Route as DashboardProjectsProjectSlugInvestigationsInvestigationIdRouteImport } from './routes/dashboard/projects/$projectSlug/investigations.$investigationId.tsx'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -64,39 +84,9 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardIndexRoute = DashboardIndexRouteImport.update({
-  id: '/dashboard/',
-  path: '/dashboard/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardDetectionsRoute = DashboardDetectionsRouteImport.update({
-  id: '/dashboard/detections',
-  path: '/dashboard/detections',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DashboardErrorsRoute = DashboardErrorsRouteImport.update({
   id: '/dashboard/errors',
   path: '/dashboard/errors',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardInvestigationsRoute = DashboardInvestigationsRouteImport.update({
-  id: '/dashboard/investigations',
-  path: '/dashboard/investigations',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardLayoutRoute = DashboardLayoutRouteImport.update({
-  id: '/dashboard/layout',
-  path: '/dashboard/layout',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardLogsRoute = DashboardLogsRouteImport.update({
-  id: '/dashboard/logs',
-  path: '/dashboard/logs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardServicesRoute = DashboardServicesRouteImport.update({
-  id: '/dashboard/services',
-  path: '/dashboard/services',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
@@ -104,27 +94,155 @@ const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
   path: '/dashboard/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardTracesRoute = DashboardTracesRouteImport.update({
-  id: '/dashboard/traces',
-  path: '/dashboard/traces',
+const DashboardProjectsProjectSlugRoute = DashboardProjectsProjectSlugRouteImport.update({
+  id: '/dashboard/projects/$projectSlug',
+  path: '/dashboard/projects/$projectSlug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardInvestigationsInvestigationIdRoute =
-  DashboardInvestigationsInvestigationIdRouteImport.update({
-    id: '/$investigationId',
-    path: '/$investigationId',
-    getParentRoute: () => DashboardInvestigationsRoute,
-  } as any)
-const DashboardServiceServiceIdRoute =
-  DashboardServiceServiceIdRouteImport.update({
-    id: '/dashboard/service/$serviceId',
-    path: '/dashboard/service/$serviceId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const DashboardTraceTraceIdRoute = DashboardTraceTraceIdRouteImport.update({
-  id: '/dashboard/trace/$traceId',
-  path: '/dashboard/trace/$traceId',
-  getParentRoute: () => rootRouteImport,
+const OrganizationSlugAiRoute = OrganizationSlugAiRouteImport.update({
+  id: '/ai',
+  path: '/ai',
+  getParentRoute: () => OrganizationSlugRoute,
+} as any)
+const OrganizationSlugApiKeysRoute = OrganizationSlugApiKeysRouteImport.update({
+  id: '/api-keys',
+  path: '/api-keys',
+  getParentRoute: () => OrganizationSlugRoute,
+} as any)
+const OrganizationSlugDashboardRoute = OrganizationSlugDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => OrganizationSlugRoute,
+} as any)
+const OrganizationSlugDeploymentsRoute = OrganizationSlugDeploymentsRouteImport.update({
+  id: '/deployments',
+  path: '/deployments',
+  getParentRoute: () => OrganizationSlugRoute,
+} as any)
+const OrganizationSlugDetectionsRoute = OrganizationSlugDetectionsRouteImport.update({
+  id: '/detections',
+  path: '/detections',
+  getParentRoute: () => OrganizationSlugRoute,
+} as any)
+const OrganizationSlugErrorsRoute = OrganizationSlugErrorsRouteImport.update({
+  id: '/errors',
+  path: '/errors',
+  getParentRoute: () => OrganizationSlugRoute,
+} as any)
+const OrganizationSlugIndexRoute = OrganizationSlugIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OrganizationSlugRoute,
+} as any)
+const OrganizationSlugInvestigationsRoute = OrganizationSlugInvestigationsRouteImport.update({
+  id: '/investigations',
+  path: '/investigations',
+  getParentRoute: () => OrganizationSlugRoute,
+} as any)
+const OrganizationSlugLogsRoute = OrganizationSlugLogsRouteImport.update({
+  id: '/logs',
+  path: '/logs',
+  getParentRoute: () => OrganizationSlugRoute,
+} as any)
+const OrganizationSlugOperationsRoute = OrganizationSlugOperationsRouteImport.update({
+  id: '/operations',
+  path: '/operations',
+  getParentRoute: () => OrganizationSlugRoute,
+} as any)
+const OrganizationSlugServiceMapRoute = OrganizationSlugServiceMapRouteImport.update({
+  id: '/service-map',
+  path: '/service-map',
+  getParentRoute: () => OrganizationSlugRoute,
+} as any)
+const OrganizationSlugServiceServiceIdRoute = OrganizationSlugServiceServiceIdRouteImport.update({
+  id: '/service/$serviceId',
+  path: '/service/$serviceId',
+  getParentRoute: () => OrganizationSlugRoute,
+} as any)
+const OrganizationSlugServicesRoute = OrganizationSlugServicesRouteImport.update({
+  id: '/services',
+  path: '/services',
+  getParentRoute: () => OrganizationSlugRoute,
+} as any)
+const OrganizationSlugSettingsRoute = OrganizationSlugSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => OrganizationSlugRoute,
+} as any)
+const OrganizationSlugTraceTraceIdRoute = OrganizationSlugTraceTraceIdRouteImport.update({
+  id: '/trace/$traceId',
+  path: '/trace/$traceId',
+  getParentRoute: () => OrganizationSlugRoute,
+} as any)
+const OrganizationSlugTracesRoute = OrganizationSlugTracesRouteImport.update({
+  id: '/traces',
+  path: '/traces',
+  getParentRoute: () => OrganizationSlugRoute,
+} as any)
+const OrganizationSlugInvestigationsInvestigationIdRoute = OrganizationSlugInvestigationsInvestigationIdRouteImport.update({
+  id: '/$investigationId',
+  path: '/$investigationId',
+  getParentRoute: () => OrganizationSlugInvestigationsRoute,
+} as any)
+const DashboardProjectsProjectSlugApiKeysRoute = DashboardProjectsProjectSlugApiKeysRouteImport.update({
+  id: '/api-keys',
+  path: '/api-keys',
+  getParentRoute: () => DashboardProjectsProjectSlugRoute,
+} as any)
+const DashboardProjectsProjectSlugDetectionsRoute = DashboardProjectsProjectSlugDetectionsRouteImport.update({
+  id: '/detections',
+  path: '/detections',
+  getParentRoute: () => DashboardProjectsProjectSlugRoute,
+} as any)
+const DashboardProjectsProjectSlugErrorsRoute = DashboardProjectsProjectSlugErrorsRouteImport.update({
+  id: '/errors',
+  path: '/errors',
+  getParentRoute: () => DashboardProjectsProjectSlugRoute,
+} as any)
+const DashboardProjectsProjectSlugIndexRoute = DashboardProjectsProjectSlugIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardProjectsProjectSlugRoute,
+} as any)
+const DashboardProjectsProjectSlugInvestigationsRoute = DashboardProjectsProjectSlugInvestigationsRouteImport.update({
+  id: '/investigations',
+  path: '/investigations',
+  getParentRoute: () => DashboardProjectsProjectSlugRoute,
+} as any)
+const DashboardProjectsProjectSlugLogsRoute = DashboardProjectsProjectSlugLogsRouteImport.update({
+  id: '/logs',
+  path: '/logs',
+  getParentRoute: () => DashboardProjectsProjectSlugRoute,
+} as any)
+const DashboardProjectsProjectSlugServiceServiceIdRoute = DashboardProjectsProjectSlugServiceServiceIdRouteImport.update({
+  id: '/service/$serviceId',
+  path: '/service/$serviceId',
+  getParentRoute: () => DashboardProjectsProjectSlugRoute,
+} as any)
+const DashboardProjectsProjectSlugServicesRoute = DashboardProjectsProjectSlugServicesRouteImport.update({
+  id: '/services',
+  path: '/services',
+  getParentRoute: () => DashboardProjectsProjectSlugRoute,
+} as any)
+const DashboardProjectsProjectSlugSettingsRoute = DashboardProjectsProjectSlugSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => DashboardProjectsProjectSlugRoute,
+} as any)
+const DashboardProjectsProjectSlugTraceTraceIdRoute = DashboardProjectsProjectSlugTraceTraceIdRouteImport.update({
+  id: '/trace/$traceId',
+  path: '/trace/$traceId',
+  getParentRoute: () => DashboardProjectsProjectSlugRoute,
+} as any)
+const DashboardProjectsProjectSlugTracesRoute = DashboardProjectsProjectSlugTracesRouteImport.update({
+  id: '/traces',
+  path: '/traces',
+  getParentRoute: () => DashboardProjectsProjectSlugRoute,
+} as any)
+const DashboardProjectsProjectSlugInvestigationsInvestigationIdRoute = DashboardProjectsProjectSlugInvestigationsInvestigationIdRouteImport.update({
+  id: '/$investigationId',
+  path: '/$investigationId',
+  getParentRoute: () => DashboardProjectsProjectSlugInvestigationsRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -135,128 +253,45 @@ export interface FileRoutesByFullPath {
   '/organizations': typeof OrganizationsRoute
   '/register': typeof RegisterRoute
   '/auth/callback': typeof AuthCallbackRoute
-  '/dashboard/detections': typeof DashboardDetectionsRoute
   '/dashboard/errors': typeof DashboardErrorsRoute
-  '/dashboard/investigations': typeof DashboardInvestigationsRouteWithChildren
-  '/dashboard/layout': typeof DashboardLayoutRoute
-  '/dashboard/logs': typeof DashboardLogsRoute
-  '/dashboard/services': typeof DashboardServicesRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
-  '/dashboard/traces': typeof DashboardTracesRoute
-  '/dashboard/': typeof DashboardIndexRoute
-  '/dashboard/investigations/$investigationId': typeof DashboardInvestigationsInvestigationIdRoute
-  '/dashboard/service/$serviceId': typeof DashboardServiceServiceIdRoute
-  '/dashboard/trace/$traceId': typeof DashboardTraceTraceIdRoute
+  '/dashboard/projects/$projectSlug': typeof DashboardProjectsProjectSlugRoute
+  '/$organizationSlug': typeof OrganizationSlugIndexRoute
+  '/$organizationSlug/ai': typeof OrganizationSlugAiRoute
+  '/$organizationSlug/api-keys': typeof OrganizationSlugApikeysRoute
+  '/$organizationSlug/dashboard': typeof OrganizationSlugDashboardRoute
+  '/$organizationSlug/deployments': typeof OrganizationSlugDeploymentsRoute
+  '/$organizationSlug/detections': typeof OrganizationSlugDetectionsRoute
+  '/$organizationSlug/errors': typeof OrganizationSlugErrorsRoute
+  '/$organizationSlug/': typeof OrganizationSlugIndexRoute
+  '/$organizationSlug/investigations': typeof OrganizationSlugInvestigationsRoute
+  '/$organizationSlug/logs': typeof OrganizationSlugLogsRoute
+  '/$organizationSlug/operations': typeof OrganizationSlugOperationsRoute
+  '/$organizationSlug/service-map': typeof OrganizationSlugServicemapRoute
+  '/$organizationSlug/service/$serviceId': typeof OrganizationSlugServiceServiceIdRoute
+  '/$organizationSlug/services': typeof OrganizationSlugServicesRoute
+  '/$organizationSlug/settings': typeof OrganizationSlugSettingsRoute
+  '/$organizationSlug/trace/$traceId': typeof OrganizationSlugTraceTraceIdRoute
+  '/$organizationSlug/traces': typeof OrganizationSlugTracesRoute
+  '/$organizationSlug/investigations/$investigationId': typeof OrganizationSlugInvestigationsInvestigationIdRoute
+  '/dashboard/projects/$projectSlug': typeof DashboardProjectsProjectSlugRoute
+  '/dashboard/projects/$projectSlug/api-keys': typeof DashboardProjectsProjectSlugApiKeysRoute
+  '/dashboard/projects/$projectSlug/detections': typeof DashboardProjectsProjectSlugDetectionsRoute
+  '/dashboard/projects/$projectSlug/errors': typeof DashboardProjectsProjectSlugErrorsRoute
+  '/dashboard/projects/$projectSlug/': typeof DashboardProjectsProjectSlugRoute
+  '/dashboard/projects/$projectSlug/investigations': typeof DashboardProjectsProjectSlugInvestigationsRoute
+  '/dashboard/projects/$projectSlug/logs': typeof DashboardProjectsProjectSlugLogsRoute
+  '/dashboard/projects/$projectSlug/service/$serviceId': typeof DashboardProjectsProjectSlugServiceServiceIdRoute
+  '/dashboard/projects/$projectSlug/services': typeof DashboardProjectsProjectSlugServicesRoute
+  '/dashboard/projects/$projectSlug/settings': typeof DashboardProjectsProjectSlugSettingsRoute
+  '/dashboard/projects/$projectSlug/trace/$traceId': typeof DashboardProjectsProjectSlugTraceTraceIdRoute
+  '/dashboard/projects/$projectSlug/traces': typeof DashboardProjectsProjectSlugTracesRoute
+  '/dashboard/projects/$projectSlug/investigations/$investigationId': typeof DashboardProjectsProjectSlugInvestigationsInvestigationIdRoute
 }
-export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/$organizationSlug': typeof OrganizationSlugRoute
-  '/login': typeof LoginRoute
-  '/onboarding': typeof OnboardingRoute
-  '/organizations': typeof OrganizationsRoute
-  '/register': typeof RegisterRoute
-  '/auth/callback': typeof AuthCallbackRoute
-  '/dashboard/detections': typeof DashboardDetectionsRoute
-  '/dashboard/errors': typeof DashboardErrorsRoute
-  '/dashboard/investigations': typeof DashboardInvestigationsRouteWithChildren
-  '/dashboard/layout': typeof DashboardLayoutRoute
-  '/dashboard/logs': typeof DashboardLogsRoute
-  '/dashboard/services': typeof DashboardServicesRoute
-  '/dashboard/settings': typeof DashboardSettingsRoute
-  '/dashboard/traces': typeof DashboardTracesRoute
-  '/dashboard': typeof DashboardIndexRoute
-  '/dashboard/investigations/$investigationId': typeof DashboardInvestigationsInvestigationIdRoute
-  '/dashboard/service/$serviceId': typeof DashboardServiceServiceIdRoute
-  '/dashboard/trace/$traceId': typeof DashboardTraceTraceIdRoute
-}
-export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/$organizationSlug': typeof OrganizationSlugRoute
-  '/login': typeof LoginRoute
-  '/onboarding': typeof OnboardingRoute
-  '/organizations': typeof OrganizationsRoute
-  '/register': typeof RegisterRoute
-  '/auth/callback': typeof AuthCallbackRoute
-  '/dashboard/detections': typeof DashboardDetectionsRoute
-  '/dashboard/errors': typeof DashboardErrorsRoute
-  '/dashboard/investigations': typeof DashboardInvestigationsRouteWithChildren
-  '/dashboard/layout': typeof DashboardLayoutRoute
-  '/dashboard/logs': typeof DashboardLogsRoute
-  '/dashboard/services': typeof DashboardServicesRoute
-  '/dashboard/settings': typeof DashboardSettingsRoute
-  '/dashboard/traces': typeof DashboardTracesRoute
-  '/dashboard/': typeof DashboardIndexRoute
-  '/dashboard/investigations/$investigationId': typeof DashboardInvestigationsInvestigationIdRoute
-  '/dashboard/service/$serviceId': typeof DashboardServiceServiceIdRoute
-  '/dashboard/trace/$traceId': typeof DashboardTraceTraceIdRoute
-}
-export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/$organizationSlug'
-    | '/login'
-    | '/onboarding'
-    | '/organizations'
-    | '/register'
-    | '/auth/callback'
-    | '/dashboard/detections'
-    | '/dashboard/errors'
-    | '/dashboard/investigations'
-    | '/dashboard/layout'
-    | '/dashboard/logs'
-    | '/dashboard/services'
-    | '/dashboard/settings'
-    | '/dashboard/traces'
-    | '/dashboard/'
-    | '/dashboard/investigations/$investigationId'
-    | '/dashboard/service/$serviceId'
-    | '/dashboard/trace/$traceId'
-  fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/$organizationSlug'
-    | '/login'
-    | '/onboarding'
-    | '/organizations'
-    | '/register'
-    | '/auth/callback'
-    | '/dashboard/detections'
-    | '/dashboard/errors'
-    | '/dashboard/investigations'
-    | '/dashboard/layout'
-    | '/dashboard/logs'
-    | '/dashboard/services'
-    | '/dashboard/settings'
-    | '/dashboard/traces'
-    | '/dashboard'
-    | '/dashboard/investigations/$investigationId'
-    | '/dashboard/service/$serviceId'
-    | '/dashboard/trace/$traceId'
-  id:
-    | '__root__'
-    | '/'
-    | '/$organizationSlug'
-    | '/login'
-    | '/onboarding'
-    | '/organizations'
-    | '/register'
-    | '/auth/callback'
-    | '/dashboard/detections'
-    | '/dashboard/errors'
-    | '/dashboard/investigations'
-    | '/dashboard/layout'
-    | '/dashboard/logs'
-    | '/dashboard/services'
-    | '/dashboard/settings'
-    | '/dashboard/traces'
-    | '/dashboard/'
-    | '/dashboard/investigations/$investigationId'
-    | '/dashboard/service/$serviceId'
-    | '/dashboard/trace/$traceId'
-  fileRoutesById: FileRoutesById
-}
+export interface FileRoutesByTo extends FileRoutesByFullPath {}
+export interface FileRoutesById extends FileRoutesByFullPath { __root__: typeof rootRouteImport }
+export interface FileRouteTypes { fileRoutesByFullPath: FileRoutesByFullPath; fullPaths: keyof FileRoutesByFullPath; fileRoutesByTo: FileRoutesByTo; to: keyof FileRoutesByTo; id: keyof FileRoutesById; fileRoutesById: FileRoutesById }
+
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OrganizationSlugRoute: typeof OrganizationSlugRoute
@@ -265,171 +300,59 @@ export interface RootRouteChildren {
   OrganizationsRoute: typeof OrganizationsRoute
   RegisterRoute: typeof RegisterRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
-  DashboardDetectionsRoute: typeof DashboardDetectionsRoute
   DashboardErrorsRoute: typeof DashboardErrorsRoute
-  DashboardInvestigationsRoute: typeof DashboardInvestigationsRouteWithChildren
-  DashboardLayoutRoute: typeof DashboardLayoutRoute
-  DashboardLogsRoute: typeof DashboardLogsRoute
-  DashboardServicesRoute: typeof DashboardServicesRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
-  DashboardTracesRoute: typeof DashboardTracesRoute
-  DashboardIndexRoute: typeof DashboardIndexRoute
-  DashboardServiceServiceIdRoute: typeof DashboardServiceServiceIdRoute
-  DashboardTraceTraceIdRoute: typeof DashboardTraceTraceIdRoute
+  DashboardProjectsProjectSlugRoute: typeof DashboardProjectsProjectSlugRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/$organizationSlug': {
-      id: '/$organizationSlug'
-      path: '/$organizationSlug'
-      fullPath: '/$organizationSlug'
-      preLoaderRoute: typeof OrganizationSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/onboarding': {
-      id: '/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof OnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/organizations': {
-      id: '/organizations'
-      path: '/organizations'
-      fullPath: '/organizations'
-      preLoaderRoute: typeof OrganizationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/register': {
-      id: '/register'
-      path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof RegisterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/callback': {
-      id: '/auth/callback'
-      path: '/auth/callback'
-      fullPath: '/auth/callback'
-      preLoaderRoute: typeof AuthCallbackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard/': {
-      id: '/dashboard/'
-      path: '/dashboard'
-      fullPath: '/dashboard/'
-      preLoaderRoute: typeof DashboardIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard/detections': {
-      id: '/dashboard/detections'
-      path: '/dashboard/detections'
-      fullPath: '/dashboard/detections'
-      preLoaderRoute: typeof DashboardDetectionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard/errors': {
-      id: '/dashboard/errors'
-      path: '/dashboard/errors'
-      fullPath: '/dashboard/errors'
-      preLoaderRoute: typeof DashboardErrorsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard/investigations': {
-      id: '/dashboard/investigations'
-      path: '/dashboard/investigations'
-      fullPath: '/dashboard/investigations'
-      preLoaderRoute: typeof DashboardInvestigationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard/layout': {
-      id: '/dashboard/layout'
-      path: '/dashboard/layout'
-      fullPath: '/dashboard/layout'
-      preLoaderRoute: typeof DashboardLayoutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard/logs': {
-      id: '/dashboard/logs'
-      path: '/dashboard/logs'
-      fullPath: '/dashboard/logs'
-      preLoaderRoute: typeof DashboardLogsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard/services': {
-      id: '/dashboard/services'
-      path: '/dashboard/services'
-      fullPath: '/dashboard/services'
-      preLoaderRoute: typeof DashboardServicesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard/settings': {
-      id: '/dashboard/settings'
-      path: '/dashboard/settings'
-      fullPath: '/dashboard/settings'
-      preLoaderRoute: typeof DashboardSettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard/traces': {
-      id: '/dashboard/traces'
-      path: '/dashboard/traces'
-      fullPath: '/dashboard/traces'
-      preLoaderRoute: typeof DashboardTracesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard/investigations/$investigationId': {
-      id: '/dashboard/investigations/$investigationId'
-      path: '/$investigationId'
-      fullPath: '/dashboard/investigations/$investigationId'
-      preLoaderRoute: typeof DashboardInvestigationsInvestigationIdRouteImport
-      parentRoute: typeof DashboardInvestigationsRoute
-    }
-    '/dashboard/service/$serviceId': {
-      id: '/dashboard/service/$serviceId'
-      path: '/dashboard/service/$serviceId'
-      fullPath: '/dashboard/service/$serviceId'
-      preLoaderRoute: typeof DashboardServiceServiceIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard/trace/$traceId': {
-      id: '/dashboard/trace/$traceId'
-      path: '/dashboard/trace/$traceId'
-      fullPath: '/dashboard/trace/$traceId'
-      preLoaderRoute: typeof DashboardTraceTraceIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+    '/': { id: '/'; path: '/'; fullPath: '/'; preLoaderRoute: typeof IndexRouteImport; parentRoute: typeof rootRouteImport }
+    '/$organizationSlug': { id: '/$organizationSlug'; path: '/$organizationSlug'; fullPath: '/$organizationSlug'; preLoaderRoute: typeof OrganizationSlugRouteImport; parentRoute: typeof rootRouteImport }
+    '/login': { id: '/login'; path: '/login'; fullPath: '/login'; preLoaderRoute: typeof LoginRouteImport; parentRoute: typeof rootRouteImport }
+    '/onboarding': { id: '/onboarding'; path: '/onboarding'; fullPath: '/onboarding'; preLoaderRoute: typeof OnboardingRouteImport; parentRoute: typeof rootRouteImport }
+    '/organizations': { id: '/organizations'; path: '/organizations'; fullPath: '/organizations'; preLoaderRoute: typeof OrganizationsRouteImport; parentRoute: typeof rootRouteImport }
+    '/register': { id: '/register'; path: '/register'; fullPath: '/register'; preLoaderRoute: typeof RegisterRouteImport; parentRoute: typeof rootRouteImport }
+    '/auth/callback': { id: '/auth/callback'; path: '/auth/callback'; fullPath: '/auth/callback'; preLoaderRoute: typeof AuthCallbackRouteImport; parentRoute: typeof rootRouteImport }
+    '/dashboard/errors': { id: '/dashboard/errors'; path: '/dashboard/errors'; fullPath: '/dashboard/errors'; preLoaderRoute: typeof DashboardErrorsRouteImport; parentRoute: typeof rootRouteImport }
+    '/dashboard/settings': { id: '/dashboard/settings'; path: '/dashboard/settings'; fullPath: '/dashboard/settings'; preLoaderRoute: typeof DashboardSettingsRouteImport; parentRoute: typeof rootRouteImport }
+    '/dashboard/projects/$projectSlug': { id: '/dashboard/projects/$projectSlug'; path: '/dashboard/projects/$projectSlug'; fullPath: '/dashboard/projects/$projectSlug'; preLoaderRoute: typeof DashboardProjectsProjectSlugRouteImport; parentRoute: typeof rootRouteImport }
+    '/$organizationSlug/ai': { id: '/ai'; path: '/ai'; fullPath: '/$organizationSlug/ai'; preLoaderRoute: typeof OrganizationSlugAiRouteImport; parentRoute: typeof OrganizationSlugRoute }
+    '/$organizationSlug/api-keys': { id: '/api-keys'; path: '/api-keys'; fullPath: '/$organizationSlug/api-keys'; preLoaderRoute: typeof OrganizationSlugApiKeysRouteImport; parentRoute: typeof OrganizationSlugRoute }
+    '/$organizationSlug/dashboard': { id: '/dashboard'; path: '/dashboard'; fullPath: '/$organizationSlug/dashboard'; preLoaderRoute: typeof OrganizationSlugDashboardRouteImport; parentRoute: typeof OrganizationSlugRoute }
+    '/$organizationSlug/deployments': { id: '/deployments'; path: '/deployments'; fullPath: '/$organizationSlug/deployments'; preLoaderRoute: typeof OrganizationSlugDeploymentsRouteImport; parentRoute: typeof OrganizationSlugRoute }
+    '/$organizationSlug/detections': { id: '/detections'; path: '/detections'; fullPath: '/$organizationSlug/detections'; preLoaderRoute: typeof OrganizationSlugDetectionsRouteImport; parentRoute: typeof OrganizationSlugRoute }
+    '/$organizationSlug/errors': { id: '/errors'; path: '/errors'; fullPath: '/$organizationSlug/errors'; preLoaderRoute: typeof OrganizationSlugErrorsRouteImport; parentRoute: typeof OrganizationSlugRoute }
+    '/$organizationSlug/': { id: '/'; path: '/'; fullPath: '/$organizationSlug/'; preLoaderRoute: typeof OrganizationSlugIndexRouteImport; parentRoute: typeof OrganizationSlugRoute }
+    '/$organizationSlug/investigations': { id: '/investigations'; path: '/investigations'; fullPath: '/$organizationSlug/investigations'; preLoaderRoute: typeof OrganizationSlugInvestigationsRouteImport; parentRoute: typeof OrganizationSlugRoute }
+    '/$organizationSlug/logs': { id: '/logs'; path: '/logs'; fullPath: '/$organizationSlug/logs'; preLoaderRoute: typeof OrganizationSlugLogsRouteImport; parentRoute: typeof OrganizationSlugRoute }
+    '/$organizationSlug/operations': { id: '/operations'; path: '/operations'; fullPath: '/$organizationSlug/operations'; preLoaderRoute: typeof OrganizationSlugOperationsRouteImport; parentRoute: typeof OrganizationSlugRoute }
+    '/$organizationSlug/service-map': { id: '/service-map'; path: '/service-map'; fullPath: '/$organizationSlug/service-map'; preLoaderRoute: typeof OrganizationSlugServiceMapRouteImport; parentRoute: typeof OrganizationSlugRoute }
+    '/$organizationSlug/service/$serviceId': { id: '/service/$serviceId'; path: '/service/$serviceId'; fullPath: '/$organizationSlug/service/$serviceId'; preLoaderRoute: typeof OrganizationSlugServiceServiceIdRouteImport; parentRoute: typeof OrganizationSlugRoute }
+    '/$organizationSlug/services': { id: '/services'; path: '/services'; fullPath: '/$organizationSlug/services'; preLoaderRoute: typeof OrganizationSlugServicesRouteImport; parentRoute: typeof OrganizationSlugRoute }
+    '/$organizationSlug/settings': { id: '/settings'; path: '/settings'; fullPath: '/$organizationSlug/settings'; preLoaderRoute: typeof OrganizationSlugSettingsRouteImport; parentRoute: typeof OrganizationSlugRoute }
+    '/$organizationSlug/trace/$traceId': { id: '/trace/$traceId'; path: '/trace/$traceId'; fullPath: '/$organizationSlug/trace/$traceId'; preLoaderRoute: typeof OrganizationSlugTraceTraceIdRouteImport; parentRoute: typeof OrganizationSlugRoute }
+    '/$organizationSlug/traces': { id: '/traces'; path: '/traces'; fullPath: '/$organizationSlug/traces'; preLoaderRoute: typeof OrganizationSlugTracesRouteImport; parentRoute: typeof OrganizationSlugRoute }
+    '/$organizationSlug/$investigationId': { id: '/$investigationId'; path: '/$investigationId'; fullPath: '/$organizationSlug/$investigationId'; preLoaderRoute: typeof OrganizationSlugInvestigationsInvestigationIdRouteImport; parentRoute: typeof OrganizationSlugInvestigationsRoute }
+    '/dashboard/projects/$projectSlug/api-keys': { id: '/api-keys'; path: '/api-keys'; fullPath: '/dashboard/projects/$projectSlug/api-keys'; preLoaderRoute: typeof DashboardProjectsProjectSlugApiKeysRouteImport; parentRoute: typeof DashboardProjectsProjectSlugRoute }
+    '/dashboard/projects/$projectSlug/detections': { id: '/detections'; path: '/detections'; fullPath: '/dashboard/projects/$projectSlug/detections'; preLoaderRoute: typeof DashboardProjectsProjectSlugDetectionsRouteImport; parentRoute: typeof DashboardProjectsProjectSlugRoute }
+    '/dashboard/projects/$projectSlug/errors': { id: '/errors'; path: '/errors'; fullPath: '/dashboard/projects/$projectSlug/errors'; preLoaderRoute: typeof DashboardProjectsProjectSlugErrorsRouteImport; parentRoute: typeof DashboardProjectsProjectSlugRoute }
+    '/dashboard/projects/$projectSlug/': { id: '/'; path: '/'; fullPath: '/dashboard/projects/$projectSlug/'; preLoaderRoute: typeof DashboardProjectsProjectSlugIndexRouteImport; parentRoute: typeof DashboardProjectsProjectSlugRoute }
+    '/dashboard/projects/$projectSlug/investigations': { id: '/investigations'; path: '/investigations'; fullPath: '/dashboard/projects/$projectSlug/investigations'; preLoaderRoute: typeof DashboardProjectsProjectSlugInvestigationsRouteImport; parentRoute: typeof DashboardProjectsProjectSlugRoute }
+    '/dashboard/projects/$projectSlug/logs': { id: '/logs'; path: '/logs'; fullPath: '/dashboard/projects/$projectSlug/logs'; preLoaderRoute: typeof DashboardProjectsProjectSlugLogsRouteImport; parentRoute: typeof DashboardProjectsProjectSlugRoute }
+    '/dashboard/projects/$projectSlug/service/$serviceId': { id: '/service/$serviceId'; path: '/service/$serviceId'; fullPath: '/dashboard/projects/$projectSlug/service/$serviceId'; preLoaderRoute: typeof DashboardProjectsProjectSlugServiceServiceIdRouteImport; parentRoute: typeof DashboardProjectsProjectSlugRoute }
+    '/dashboard/projects/$projectSlug/services': { id: '/services'; path: '/services'; fullPath: '/dashboard/projects/$projectSlug/services'; preLoaderRoute: typeof DashboardProjectsProjectSlugServicesRouteImport; parentRoute: typeof DashboardProjectsProjectSlugRoute }
+    '/dashboard/projects/$projectSlug/settings': { id: '/settings'; path: '/settings'; fullPath: '/dashboard/projects/$projectSlug/settings'; preLoaderRoute: typeof DashboardProjectsProjectSlugSettingsRouteImport; parentRoute: typeof DashboardProjectsProjectSlugRoute }
+    '/dashboard/projects/$projectSlug/trace/$traceId': { id: '/trace/$traceId'; path: '/trace/$traceId'; fullPath: '/dashboard/projects/$projectSlug/trace/$traceId'; preLoaderRoute: typeof DashboardProjectsProjectSlugTraceTraceIdRouteImport; parentRoute: typeof DashboardProjectsProjectSlugRoute }
+    '/dashboard/projects/$projectSlug/traces': { id: '/traces'; path: '/traces'; fullPath: '/dashboard/projects/$projectSlug/traces'; preLoaderRoute: typeof DashboardProjectsProjectSlugTracesRouteImport; parentRoute: typeof DashboardProjectsProjectSlugRoute }
+    '/dashboard/projects/$projectSlug/$investigationId': { id: '/$investigationId'; path: '/$investigationId'; fullPath: '/dashboard/projects/$projectSlug/$investigationId'; preLoaderRoute: typeof DashboardProjectsProjectSlugInvestigationsInvestigationIdRouteImport; parentRoute: typeof DashboardProjectsProjectSlugInvestigationsRoute }
   }
 }
 
-interface DashboardInvestigationsRouteChildren {
-  DashboardInvestigationsInvestigationIdRoute: typeof DashboardInvestigationsInvestigationIdRoute
-}
-
-const DashboardInvestigationsRouteChildren: DashboardInvestigationsRouteChildren =
-  {
-    DashboardInvestigationsInvestigationIdRoute:
-      DashboardInvestigationsInvestigationIdRoute,
-  }
-
-const DashboardInvestigationsRouteWithChildren =
-  DashboardInvestigationsRoute._addFileChildren(
-    DashboardInvestigationsRouteChildren,
-  )
+interface OrganizationSlugInvestigationsRouteChildren { OrganizationSlugInvestigationsInvestigationIdRoute: typeof OrganizationSlugInvestigationsInvestigationIdRoute }
+const OrganizationSlugInvestigationsRouteWithChildren = OrganizationSlugInvestigationsRoute._addFileChildren(OrganizationSlugInvestigationsRouteChildren)
+interface DashboardProjectsProjectSlugInvestigationsRouteChildren { DashboardProjectsProjectSlugInvestigationsInvestigationIdRoute: typeof DashboardProjectsProjectSlugInvestigationsInvestigationIdRoute }
+const DashboardProjectsProjectSlugInvestigationsRouteWithChildren = DashboardProjectsProjectSlugInvestigationsRoute._addFileChildren(DashboardProjectsProjectSlugInvestigationsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -439,21 +362,11 @@ const rootRouteChildren: RootRouteChildren = {
   OrganizationsRoute: OrganizationsRoute,
   RegisterRoute: RegisterRoute,
   AuthCallbackRoute: AuthCallbackRoute,
-  DashboardDetectionsRoute: DashboardDetectionsRoute,
   DashboardErrorsRoute: DashboardErrorsRoute,
-  DashboardInvestigationsRoute: DashboardInvestigationsRouteWithChildren,
-  DashboardLayoutRoute: DashboardLayoutRoute,
-  DashboardLogsRoute: DashboardLogsRoute,
-  DashboardServicesRoute: DashboardServicesRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
-  DashboardTracesRoute: DashboardTracesRoute,
-  DashboardIndexRoute: DashboardIndexRoute,
-  DashboardServiceServiceIdRoute: DashboardServiceServiceIdRoute,
-  DashboardTraceTraceIdRoute: DashboardTraceTraceIdRoute,
+  DashboardProjectsProjectSlugRoute: DashboardProjectsProjectSlugRoute,
 }
-export const routeTree = rootRouteImport
-  ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+export const routeTree = rootRouteImport._addFileChildren(rootRouteChildren)._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
 import type { createStart } from '@tanstack/react-start'
