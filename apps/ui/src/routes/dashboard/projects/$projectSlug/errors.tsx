@@ -18,7 +18,7 @@ function ErrorOverview() {
   const totalErrors = errors?.reduce((sum, error) => sum + error.count, 0) ?? 0;
   if (!projectId) return <EmptyProject />;
   if (isError) return <QueryErrorState onRetry={() => void refetch()} />;
-  return <div className="mx-auto w-full space-y-6 pb-10">
+  return <div className="min-h-full space-y-5 pb-8">
     <header><p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#16931F]">Failure signals</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Errors</h1><p className="mt-1 text-sm text-muted-foreground">Grouped application failures, frequency and the services affected.</p></header>
     <div className="grid grid-cols-2 gap-4"><Stat icon={AlertCircle} label="Occurrences · 24h" value={isLoading ? '—' : totalErrors.toLocaleString()} critical /><Stat icon={Layers3} label="Unique fingerprints" value={isLoading ? '—' : (errors?.length ?? 0).toLocaleString()} /></div>
     <Card className="overflow-hidden border-border bg-card shadow-none"><div className="border-b bg-muted px-5 py-4"><p className="text-sm font-semibold">Error groups</p><p className="mt-1 text-xs text-muted-foreground">One row represents a fingerprinted error group.</p></div><CardContent className="p-0">
