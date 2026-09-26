@@ -9,7 +9,6 @@ import { api } from '~/lib/api';
 import { QueryErrorState } from '~/components/query-error-state';
 import { useProject } from '~/lib/project-context';
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/detections')({ component: DetectionOverview });
 type FindingType = 'latency' | 'error_rate' | 'throughput' | 'dependency_latency' | 'trace_span' | 'bottleneck';
