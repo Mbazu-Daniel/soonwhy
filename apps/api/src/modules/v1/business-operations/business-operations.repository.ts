@@ -24,7 +24,8 @@ export class BusinessOperationsRepository {
       .from(businessOperations)
       .innerJoin(projects, eq(businessOperations.projectId, projects.id))
       .where(and(
-        eq(businessOperations.id, id),\n        eq(businessOperations.projectId, projectId),
+        eq(businessOperations.id, id),
+        eq(businessOperations.projectId, projectId),
         eq(businessOperations.orgId, orgId),
         eq(projects.orgId, orgId),
       ))
