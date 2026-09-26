@@ -225,18 +225,36 @@ export class DashboardService {
         maxHits: limit,
         sortBy: ['-timestamp'],
       });
-      return result.hits.flatMap((hit) => {
+      const groups = new Map<string, {
+        fingerprint: string;
+        errorMessage: string;
+        errorType: string;
+        service: string;
+        count: number;
+        lastSeen: string;
+      }>();
+      for (const hit of result.hits) {
         const source = hit._source as Record<string, unknown> | undefined;
-        if (!source) return [];
-        return [{
-          fingerprint: String(source.fingerprint ?? source.traceId ?? source.message ?? ''),
-          errorMessage: String(source.message ?? ''),
-          errorType: String(source.errorType ?? 'Error'),
-          service: String(source.service ?? ''),
-          count: 1,
-          lastSeen: String(source.timestamp ?? ''),
-        }];
-      });
+        if (!source) continue;
+        const fingerprint = String(source.fingerprint ?? source.traceId ?? source.message ?? '');
+        const timestamp = String(source.timestamp ?? '');
+        const key = fingerprint + '\\0' + String(source.service ?? '');
+        const existing = groups.get(key);
+        if (existing) {
+          existing.count += 1;
+          if (timestamp > existing.lastSeen) existing.lastSeen = timestamp;
+        } else {
+          groups.set(key, {
+            fingerprint,
+            errorMessage: String(source.message ?? ''),
+            errorType: String(source.errorType ?? 'Error'),
+            service: String(source.service ?? ''),
+            count: 1,
+            lastSeen: timestamp,
+          });
+        }
+      }
+      return [...groups.values()].sort((a, b) => b.lastSeen.localeCompare(a.lastSeen)).slice(0, limit);
     });
   }
 }
