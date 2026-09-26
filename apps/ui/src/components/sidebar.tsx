@@ -34,7 +34,7 @@ export function Sidebar() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { open, close } = useSidebar();
-  const { orgId, orgSlug, projectId, setProject } = useProject();
+  const { orgId, orgSlug, projectId, projectSlug, setProject } = useProject();
   const [createOpen, setCreateOpen] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [projectSlugInput, setProjectSlugInput] = useState('');
@@ -55,7 +55,7 @@ export function Sidebar() {
       setError('');
       setCreateOpen(false);
       void queryClient.invalidateQueries({ queryKey: ['projects', orgId] });
-      if (orgSlug) void navigate({ to: '/$organizationSlug/dashboard', params: { organizationSlug: orgSlug } });
+      if (orgSlug) void navigate({ to: '/$organizationSlug/p/$projectSlug/', params: { organizationSlug: orgSlug, projectSlug: project.slug } });
       close();
     },
     onError: (err: Error) => setError(err.message),
@@ -65,14 +65,10 @@ export function Sidebar() {
 
   useEffect(() => {
     if (!projects.data) return;
-
     const selectedProject = projects.data.find((project) => project.id === projectId);
     if (selectedProject) return;
-
     const firstProject = projects.data[0];
-    if (firstProject) {
-      setProject(firstProject);
-    }
+    if (firstProject) setProject(firstProject);
   }, [projectId, projects.data, setProject]);
 
   function submitProject(event: React.FormEvent) {
@@ -89,14 +85,14 @@ export function Sidebar() {
 
   function selectProject(project: Project) {
     setProject(project);
-    if (orgSlug) void navigate({ to: '/$organizationSlug/dashboard', params: { organizationSlug: orgSlug } });
+    if (orgSlug) void navigate({ to: '/$organizationSlug/p/$projectSlug/', params: { organizationSlug: orgSlug, projectSlug: project.slug } });
     close();
   }
 
   function projectPath(item: (typeof navItems)[number]) {
-    if (!orgSlug) return '/organizations';
-    if (item.to === 'overview') return `/${orgSlug}/dashboard`;
-    return `/${orgSlug}/${item.to}`;
+    if (!orgSlug || !projectSlug) return '/organizations';
+    if (item.to === 'overview') return `/${orgSlug}/p/${projectSlug}/`;
+    return `/${orgSlug}/p/${projectSlug}/${item.to}`;
   }
 
   return (
@@ -108,12 +104,12 @@ export function Sidebar() {
           <nav data-tour="evidence-navigation" className="space-y-1">
             {navItems.map((item) => {
               const target = projectPath(item);
-              const active = item.exact ? location.pathname === target : location.pathname.startsWith(target);
+              const active = target !== '/organizations' && (item.exact ? location.pathname === target : location.pathname.startsWith(target));
               return (
                 <Link
                   key={item.to}
-                  to={orgSlug ? (item.to === 'overview' ? '/$organizationSlug/dashboard' : `/$organizationSlug/${item.to}`) : '/organizations'}
-                  params={orgSlug ? { organizationSlug: orgSlug } : undefined}
+                  to={orgSlug && projectSlug ? (item.to === 'overview' ? '/$organizationSlug/p/$projectSlug/' : `/$organizationSlug/p/$projectSlug/${item.to}`) : '/organizations'}
+                  params={orgSlug && projectSlug ? { organizationSlug: orgSlug, projectSlug } : undefined}
                   onClick={close}
                   className={cn('group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors', active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary hover:text-foreground')}
                   aria-current={active ? 'page' : undefined}
@@ -147,7 +143,7 @@ export function Sidebar() {
               </DropdownMenuGroup>
               {projects.data?.length ? <DropdownMenuSeparator /> : null}
               <DropdownMenuItem onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" />Create project</DropdownMenuItem>
-              {currentProject && orgSlug ? <DropdownMenuItem onClick={() => void navigate({ to: '/$organizationSlug/settings', params: { organizationSlug: orgSlug } })}><Settings className="h-4 w-4" />Project settings</DropdownMenuItem> : null}
+              {currentProject && orgSlug ? <DropdownMenuItem onClick={() => void navigate({ to: '/$organizationSlug/p/$projectSlug/settings', params: { organizationSlug: orgSlug, projectSlug: currentProject.slug } })}><Settings className="h-4 w-4" />Project settings</DropdownMenuItem> : null}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
