@@ -32,6 +32,7 @@ export class TracesService {
       limit: input.limit,
       cursor,
       q: input.q,
+      service: input.service,
     });
 
     let nextCursor: string | undefined;
