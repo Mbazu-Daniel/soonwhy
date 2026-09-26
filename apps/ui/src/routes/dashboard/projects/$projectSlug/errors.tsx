@@ -11,7 +11,8 @@ import { useProject } from '~/lib/project-context';
 export const Route = createFileRoute('/dashboard/projects/$projectSlug/errors')({ component: ErrorOverview });
 interface ErrorEntry { fingerprint: string; errorMessage: string; errorType: string; service: string; count: number; lastSeen: string; }
 
-function ErrorOverview() {\n  const { projectSlug } = Route.useParams();
+function ErrorOverview() {
+  const { projectSlug } = Route.useParams();
   const { projectId } = useProject();
   const { data: errors, isLoading, isError, refetch } = useQuery({ queryKey: ['dashboard-errors', projectId], queryFn: () => api.get<ErrorEntry[]>(`/projects/${projectId}/dashboard/errors`), enabled: !!projectId });
   const totalErrors = errors?.reduce((sum, error) => sum + error.count, 0) ?? 0;
