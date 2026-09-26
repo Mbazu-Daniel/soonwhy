@@ -30,12 +30,12 @@ export function TopBar() {
 
   return (
     <header className="relative z-40 flex min-h-16 shrink-0 items-center border-b border-[#242426] bg-[#0B0B0C] px-3 py-2 sm:px-4 lg:px-6">
-      <div className="flex min-w-0 items-center gap-2 lg:w-60 lg:shrink-0">
+      <div className="flex min-w-0 items-center gap-2 lg:shrink-0">
         <Button variant="ghost" size="icon" className="shrink-0 text-[#989898] hover:bg-[#151517] hover:text-[#F6F6F6] lg:hidden" onClick={toggle} aria-label="Open sidebar">
           <Menu className="h-5 w-5" />
         </Button>
-        <div className="hidden min-w-0 flex-1 items-center gap-1 lg:flex">
-          <WorkspaceMenu />
+        <div className={`hidden items-center gap-1 lg:flex ${collapsed ? "w-16" : "w-60"}`}>
+          <WorkspaceMenu compact={collapsed} />
           <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-[#989898] hover:bg-[#151517] hover:text-[#F6F6F6]" onClick={toggleCollapsed} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
             {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
           </Button>
