@@ -19,7 +19,7 @@ export const Route = createFileRoute('/$organizationSlug')({
 function OrganizationDashboardLayout() {
   const navigate = useNavigate();
   const { organizationSlug } = Route.useParams();
-  const { setOrganization } = useProject();
+  const { orgId, setOrganization } = useProject();
   const token = getSessionToken();
 
   const session = useQuery({
@@ -55,7 +55,7 @@ function OrganizationDashboardLayout() {
     setOrganization({ id: organization.id, slug: organization.slug });
   }, [token, session.isLoading, session.data, organizations.isLoading, organizations.data, organization, navigate, setOrganization]);
 
-  if (session.isLoading || organizations.isLoading || !token || !session.data || !organization) {
+  if (session.isLoading || organizations.isLoading || !token || !session.data || !organization || orgId !== organization.id) {
     return <DashboardLoading />;
   }
 
