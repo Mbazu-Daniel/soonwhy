@@ -1,0 +1,19 @@
+---
+title: Node.js
+description: OpenTelemetry instrumentation for Node.js.
+---
+
+# Node.js
+
+`@soonwhy/node` is the core server SDK.
+
+```bash
+pnpm add @soonwhy/node @opentelemetry/api @opentelemetry/auto-instrumentations-node @opentelemetry/exporter-trace-otlp-proto @opentelemetry/resources @opentelemetry/sdk-node @opentelemetry/sdk-trace-base
+```
+
+```ts
+import { initNode } from '@soonwhy/node';
+const sdk = initNode({ apiKey: process.env.SOONWHY_API_KEY!, serviceName: 'payments-api' });
+```
+
+Initialize before importing instrumented modules. See `sdks/node/examples/`.

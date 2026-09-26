@@ -1,0 +1,20 @@
+---
+title: Architecture
+description: How the modular SDK family is structured.
+---
+
+# Architecture
+
+```text
+sdks/
+├── shared/
+├── node/
+├── express/
+├── nestjs/
+├── python/
+├── web/
+├── vite/
+└── nextjs/
+```
+
+Framework adapters stay thin and delegate runtime behavior to a core SDK. The shared protocol provides a common contract for future SDKs.

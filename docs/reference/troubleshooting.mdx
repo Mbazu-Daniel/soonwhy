@@ -1,0 +1,18 @@
+---
+title: Troubleshooting
+description: Diagnose SDK setup and delivery issues.
+---
+
+# Troubleshooting
+
+### Node instrumentation is missing
+Initialize `@soonwhy/node` before importing application modules.
+
+### Browser events are missing
+Call `flush()` during controlled lifecycle events when you cannot wait for the normal interval.
+
+### Python sends nothing
+Check endpoint, API key and network access. `flush()` reports sent and dropped records.
+
+### Framework setup fails
+Ensure the framework peer dependency is installed in the consuming application.

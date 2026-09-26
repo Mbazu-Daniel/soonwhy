@@ -1,0 +1,19 @@
+---
+title: Next.js
+description: Server instrumentation and browser configuration.
+---
+
+# Next.js
+
+```bash
+pnpm add @soonwhy/nextjs
+```
+
+```ts
+import { initNextjs } from '@soonwhy/nextjs';
+export function register() {
+  initNextjs({ apiKey: process.env.SOONWHY_API_KEY!, serviceName: 'nextjs-app' });
+}
+```
+
+Keep server credentials server-only. Use `getBrowserConfig()` for browser configuration when needed.

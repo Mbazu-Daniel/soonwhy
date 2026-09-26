@@ -1,0 +1,21 @@
+---
+title: Web
+description: Browser-safe manual telemetry.
+---
+
+# Web
+
+```bash
+pnpm add @soonwhy/web
+```
+
+```ts
+import { SoonwhyWeb } from '@soonwhy/web';
+const sdk = new SoonwhyWeb({ apiKey: import.meta.env.VITE_SOONWHY_API_KEY, serviceName: 'web-app' });
+sdk.captureLog('Application started');
+sdk.captureMetric('page.loaded', 1);
+```
+
+The client batches logs and metrics and retries transient requests.
+
+<Warning>Do not put a server-side API secret in browser code.</Warning>
