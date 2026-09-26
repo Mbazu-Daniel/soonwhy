@@ -92,17 +92,7 @@ export function Sidebar() {
     <>
       <div className={open ? 'fixed inset-0 z-40 bg-[#182012]/30 lg:hidden' : 'hidden'} onClick={close} aria-hidden="true" />
       <aside className={cn('w-60 border-r border-border bg-card flex flex-col fixed inset-y-0 left-0 z-50 transition-transform duration-200 lg:static lg:translate-x-0', open ? 'translate-x-0' : '-translate-x-full')} aria-label="Primary navigation">
-        <div className="h-16 shrink-0 border-b px-4 flex items-center">
-          <Link to={projectSlug ? '/dashboard/projects/$projectSlug' : '/dashboard'} params={projectSlug ? { projectSlug } : undefined} onClick={close} className="group flex w-full items-center gap-2.5">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#182012] text-sm font-bold text-[#8BD125]">S</span>
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold tracking-tight">SoonWhy</span>
-              <span className="block truncate text-[11px] text-muted-foreground">Intelligent observability</span>
-            </span>
-          </Link>
-        </div>
-        <div className="shrink-0 border-b px-3 py-3">
-          <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Workspace</p>
+        <div className="h-16 shrink-0 border-b px-3 flex items-center">
           <WorkspaceMenu />
         </div>
         <div className="flex-1 overflow-y-auto px-3 pt-5 pb-3">
