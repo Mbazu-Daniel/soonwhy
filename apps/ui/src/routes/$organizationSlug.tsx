@@ -78,7 +78,7 @@ function OrganizationDashboardLayout() {
 
     if (!projects.data.length || !activeProject) return;
 
-    const segment = location.pathname.slice(`/${organizationSlug}`.length).replace(/^\\//, '');
+    const segment = location.pathname.slice(`/${organizationSlug}`.length).replace(/^\//, '');
     const page = segment === 'dashboard' || !segment ? '' : segment.split('/')[0];
     const allowed = new Set(['services', 'detections', 'investigations', 'errors', 'logs', 'traces', 'api-keys', 'settings']);
     const suffix = allowed.has(page) ? page : '';
