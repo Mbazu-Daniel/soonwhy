@@ -94,7 +94,8 @@ function LogViewer() {
   const [levelFilter, setLevelFilter] = useState('all');
   const routeSearch = Route.useSearch() as { service?: string; traceId?: string; spanId?: string };
   const initialService = routeSearch.service ?? 'all';
-  const [serviceFilter, setServiceFilter] = useState(initialService);\n  const [cursor, setCursor] = useState<string>();
+  const [serviceFilter, setServiceFilter] = useState(initialService);
+  const [cursor, setCursor] = useState<string>();
   const [allLogs, setAllLogs] = useState<LogEntry[]>([]);
   const [range, setRange] = useState<TelemetryRange>('24h');
   const [live, setLive] = useState(false);
@@ -245,6 +246,8 @@ function LogViewer() {
   );
 }
 
-function StaleNotice({ onRetry }: { onRetry: () => void }) { return <div className="flex items-center justify-between gap-3 rounded-xl border border-[#5A4A1C] bg-[#2A220F] px-4 py-3 text-xs text-[#D8C68A]"><span>Live telemetry is temporarily unavailable. Showing the last successful result.</span><Button variant="outline" size="sm" onClick={onRetry}>Retry</Button></div>; }\n\nfunction EmptyProject() {
+function StaleNotice({ onRetry }: { onRetry: () => void }) { return <div className="flex items-center justify-between gap-3 rounded-xl border border-[#5A4A1C] bg-[#2A220F] px-4 py-3 text-xs text-[#D8C68A]"><span>Live telemetry is temporarily unavailable. Showing the last successful result.</span><Button variant="outline" size="sm" onClick={onRetry}>Retry</Button></div>; }
+
+function EmptyProject() {
   return <Card><CardContent className="p-10 text-center"><p className="font-medium">Choose a project</p><p className="mt-1 text-sm text-muted-foreground">Select a project from the top bar to inspect logs.</p></CardContent></Card>;
 }
