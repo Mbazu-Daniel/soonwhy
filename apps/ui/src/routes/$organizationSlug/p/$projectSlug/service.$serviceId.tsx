@@ -25,20 +25,20 @@ function ServiceDetail(){
 
   const {data:service,isLoading,isError,refetch}=useQuery({queryKey:['service',projectId,serviceId],queryFn:()=>api.get<Service>(`/projects/${projectId}/services/${serviceId}`),enabled:!!projectId&&!!serviceId,placeholderData:keepPreviousData});
   const {data:telemetry}=useQuery({queryKey:['service-telemetry',projectId,range],queryFn:()=>api.get<ServiceTelemetry[]>(`/projects/${projectId}/dashboard/services?${rangeQuery}`),enabled:!!projectId,placeholderData:keepPreviousData});
-  const {data:errors}=useQuery({queryKey:['service-errors',projectId,serviceId],queryFn:()=>api.get<Array<{fingerprint:string;errorMessage:string;errorType:string;service:string;count:number;lastSeen:string}>>(`/projects/${projectId}/dashboard/errors?service=${encodeURIComponent(serviceId)}&${rangeQuery}`),enabled:!!projectId&&!!serviceId});
+  const {data:errors}=useQuery({queryKey:['service-errors',projectId,serviceId,range,service?.name],queryFn:()=>api.get<Array<{fingerprint:string;errorMessage:string;errorType:string;service:string;count:number;lastSeen:string}>>(`/projects/${projectId}/dashboard/errors?service=${encodeURIComponent(service?.name??'')}&${rangeQuery}`),enabled:!!projectId&&!!service?.name,placeholderData:keepPreviousData});
   const {data:logs}=useQuery({queryKey:['service-logs',projectId,serviceId,range],queryFn:()=>api.get<{data:LogEntry[]}>(`/projects/${projectId}/logs?service=${encodeURIComponent(service?.name??'')}&limit=8&${rangeQuery}`),enabled:!!projectId&&!!service?.name,placeholderData:keepPreviousData});
 
   if(!projectId)return <Empty organizationSlug={organizationSlug} projectSlug={projectSlug}/>;
   if(isError)return <QueryErrorState onRetry={() => void refetch()} />;
   if(isLoading)return <div className="space-y-4"><Skeleton className="h-24"/><Skeleton className="h-64"/></div>;
-  const telemetryStale = !telemetry && !!metrics;
-  const errorsStale = !errors && serviceErrors.length > 0;
-  const logsStale = !logs && recentLogs.length > 0;
   if(!service)return <Empty notFound organizationSlug={organizationSlug} projectSlug={projectSlug}/>;
 
   const metrics=telemetry?.find((item)=>item.service===service.name);
   const recentLogs=logs?.data??[];
   const serviceErrors=errors?.filter((error)=>error.service===service.name).slice(0,5)??[];
+  const telemetryStale = !telemetry && !!metrics;
+  const errorsStale = !errors && serviceErrors.length > 0;
+  const logsStale = !logs && recentLogs.length > 0;
 
   return <div className="min-h-full space-y-5 pb-8">
     <div className="flex flex-wrap items-center justify-between gap-3">
