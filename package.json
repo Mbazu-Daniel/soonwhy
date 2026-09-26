@@ -9,7 +9,11 @@
     "lint": "oxlint",
     "format": "oxfmt",
     "verify:migrations": "node scripts/verify-migrations.mjs",
-    "prepare": "husky"
+    "prepare": "husky",
+    "registry:up": "docker compose up -d verdaccio",
+    "registry:down": "docker compose stop verdaccio",
+    "registry:logs": "docker compose logs -f verdaccio",
+    "publish:local": "node scripts/publish-local.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.2",

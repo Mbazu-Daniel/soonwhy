@@ -20,7 +20,8 @@
             "pages": [
               "architecture",
               "configuration",
-              "telemetry"
+              "telemetry",
+              "local-registry"
             ]
           }
         ]

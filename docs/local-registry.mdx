@@ -1,0 +1,46 @@
+---
+title: Local npm Registry
+description: Publish and consume local Soonwhy packages with Verdaccio.
+---
+
+# Local npm Registry
+
+Soonwhy includes Verdaccio as a local npm registry so SDKs and reusable packages can be built, published, and consumed like real npm libraries without sending development packages to npmjs.
+
+Verdaccio listens on http://localhost:4873 and can proxy public npm packages that are not available locally. citeturn0search0turn0search2
+
+## Start the registry
+
+```bash
+pnpm registry:up
+```
+
+Open the registry UI at http://localhost:4873.
+
+## Build and publish a local snapshot
+
+```bash
+pnpm publish:local --package soonwhy-snapshot-timestamp
+```
+
+The helper assigns a unique version such as `0.0.0-snapshot.20260926T123456Z` before publishing, then restores the workspace manifest.
+
+## Consume it from another project
+
+```bash
+npm install soonwhy-snapshot-timestamp --registry http://localhost:4873
+```
+
+For a project that should always resolve the Soonwhy local packages, use a project-level `.npmrc`:
+
+```ini
+registry=https://registry.npmjs.org/
+@soonwhy:registry=http://localhost:4873/
+```
+
+Scoped registries are supported by npm clients, and package-level `publishConfig.registry` can keep publishing directed to Verdaccio without changing the global npm registry. citeturn0search0turn0search4
+
+## Example package
+
+The repository includes `soonwhy-snapshot-timestamp` under `packages/snapshot-timestamp`. It is intentionally tiny so the local publish/install flow can be tested end to end.
+
