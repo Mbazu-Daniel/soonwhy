@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { cn } from '~/lib/utils';
 import { useSidebar } from '~/lib/sidebar-context';
 import { useProject } from '~/lib/project-context';
@@ -62,6 +62,18 @@ export function Sidebar() {
   });
 
   const currentProject = projects.data?.find((project) => project.id === projectId);
+
+  useEffect(() => {
+    if (!projects.data) return;
+
+    const selectedProject = projects.data.find((project) => project.id === projectId);
+    if (selectedProject) return;
+
+    const firstProject = projects.data[0];
+    if (firstProject) {
+      setProject(firstProject);
+    }
+  }, [projectId, projects.data, setProject]);
 
   function submitProject(event: React.FormEvent) {
     event.preventDefault();
