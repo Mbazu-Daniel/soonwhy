@@ -11,7 +11,7 @@ export class LogsService {
     const { from, to } = chRange(input.from, input.to);
     return this.logsRepository.queryHistogram({
       orgId, projectId: input.projectId, from, to,
-      level: input.level || 'all', service: input.service || '', q: input.q || '',
+      level: input.level || 'all', service: input.service || '', q: input.q || '', traceId: input.traceId, spanId: input.spanId,
     });
   }
 
@@ -24,7 +24,7 @@ export class LogsService {
     const limit = input.limit ?? 50;
     const rows = await this.logsRepository.queryLogs({
       orgId, projectId: input.projectId, from, to, level: input.level || 'all',
-      service: input.service || '', q: input.q || '', traceId: input.traceId, limit, cursor,
+      service: input.service || '', q: input.q || '', traceId: input.traceId, spanId: input.spanId, limit, cursor,
     });
     const data = rows.map((r) => {
       let attributes: Record<string, unknown> = {};
