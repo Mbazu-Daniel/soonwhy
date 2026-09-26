@@ -4,6 +4,7 @@ import { Button } from '~/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '~/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '~/components/ui/avatar';
 import { CommandPalette } from '~/components/command-palette';
+import { WorkspaceMenu } from '~/components/workspace-switcher';
 import { api } from '~/lib/api';
 import { signOut, clearSession, getSessionToken } from '~/lib/auth-client';
 import { LogOut, Menu } from 'lucide-react';
@@ -32,6 +33,7 @@ export function TopBar() {
         <Button variant="ghost" size="icon" className="shrink-0 text-[#989898] hover:bg-[#151517] hover:text-[#F6F6F6] lg:hidden" onClick={toggle} aria-label="Toggle sidebar"><Menu className="h-5 w-5" /></Button>
       </div>
       <div className="flex items-center gap-1.5 sm:gap-2">
+        <WorkspaceMenu compact />
         <CommandPalette />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
