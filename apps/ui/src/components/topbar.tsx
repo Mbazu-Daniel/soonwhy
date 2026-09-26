@@ -27,15 +27,15 @@ export function TopBar() {
   const userInitial = userName.charAt(0).toUpperCase();
 
   return (
-    <header className="flex min-h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-3 py-2 sm:px-4 lg:px-6">
+    <header className="flex min-h-16 shrink-0 items-center justify-between gap-3 border-b border-[#242426] bg-[#0B0B0C] px-3 py-2 sm:px-4 lg:px-6">
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-        <Button variant="ghost" size="icon" className="shrink-0 lg:hidden" onClick={toggle} aria-label="Toggle sidebar"><Menu className="h-5 w-5" /></Button>
+        <Button variant="ghost" size="icon" className="shrink-0 text-[#989898] hover:bg-[#151517] hover:text-[#F6F6F6] lg:hidden" onClick={toggle} aria-label="Toggle sidebar"><Menu className="h-5 w-5" /></Button>
+        <div className="hidden md:block"><CommandPalette /></div>
       </div>
       <div className="flex items-center gap-1.5 sm:gap-2">
-        <CommandPalette />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 pl-2" aria-label="User menu">
+            <Button variant="ghost" className="flex items-center gap-2 pl-2 text-[#F6F6F6]" aria-label="User menu">
               <Avatar className="h-8 w-8"><AvatarFallback className="bg-[#C9E7EB] text-[#182012] font-semibold">{userInitial}</AvatarFallback></Avatar>
               <span className="hidden max-w-28 truncate text-sm font-medium lg:block">{userName}</span>
             </Button>
