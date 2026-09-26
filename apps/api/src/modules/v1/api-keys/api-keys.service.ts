@@ -22,8 +22,8 @@ export class ApiKeysService {
     });
   }
 
-  async deleteApiKey(id: string, orgId: string) {
-    const key = await this.apiKeysRepository.getApiKeyById(id, orgId);
+  async deleteApiKey(id: string, projectId: string, orgId: string) {
+    const key = await this.apiKeysRepository.getApiKeyById(id, projectId, orgId);
     if (!key) throw new NotFoundException('API key not found');
     return this.apiKeysRepository.deleteApiKey(id);
   }
