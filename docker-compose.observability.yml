@@ -25,16 +25,16 @@ services:
       timeout: 5s
       retries: 10
 
-  nats:
-    image: nats:2.11-alpine
-    command: ["-js", "-m", "8222", "-sd", "/data"]
-    ports: ["4222:4222", "8222:8222"]
-    volumes: [nats-data:/data]
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8222/healthz"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+  # nats:
+  #   image: nats:2.11-alpine
+  #   command: ["-js", "-m", "8222", "-sd", "/data"]
+  #   ports: ["4222:4222", "8222:8222"]
+  #   volumes: [nats-data:/data]
+  #   healthcheck:
+  #     test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8222/healthz"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 10
 
   minio:
     image: ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z
@@ -89,7 +89,7 @@ services:
       DATABASE_URL: postgres://soonwhy:soonwhy@postgres:5432/soonwhy
       REDIS_URL: redis://redis:6379
       QUICKWIT_URL: http://quickwit:7280
-      NATS_URL: nats://nats:4222
+      # NATS_URL: nats://nats:4222
       FRONTEND_URL: http://localhost:3000
       BETTER_AUTH_URL: http://localhost:3001
       BETTER_AUTH_SECRET: replace-with-a-long-random-secret
@@ -104,18 +104,18 @@ services:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
       quickwit: {condition: service_healthy}
-      nats: {condition: service_healthy}
+      # nats: {condition: service_healthy}
     ports: ["3001:3001"]
 
   ingest:
     build: {context: ., target: ingest}
     environment:
-      NATS_URL: nats://nats:4222
+      # NATS_URL: nats://nats:4222
       QUICKWIT_URL: http://quickwit:7280
       REDIS_URL: redis://redis:6379
       PORT: 3002
     depends_on:
-      nats: {condition: service_healthy}
+      # nats: {condition: service_healthy}
       redis: {condition: service_healthy}
       quickwit: {condition: service_healthy}
     ports: ["3002:3002"]
@@ -126,12 +126,12 @@ services:
       DATABASE_URL: postgres://soonwhy:soonwhy@postgres:5432/soonwhy
       REDIS_URL: redis://redis:6379
       QUICKWIT_URL: http://quickwit:7280
-      NATS_URL: nats://nats:4222
+      # NATS_URL: nats://nats:4222
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
       quickwit: {condition: service_healthy}
-      nats: {condition: service_healthy}
+      # nats: {condition: service_healthy}
 
   ui:
     build:
@@ -150,6 +150,6 @@ services:
 volumes:
   postgres-data:
   redis-data:
-  nats-data:
+  # nats-data:
   minio-data:
   quickwit-data:
