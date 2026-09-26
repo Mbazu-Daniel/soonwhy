@@ -222,7 +222,7 @@ export class DashboardService {
         query,
         startTimestamp: range.startTimestamp,
         endTimestamp: range.endTimestamp,
-        maxHits: limit,
+        maxHits: Math.min(limit * 20, 1000),
         sortBy: ['-timestamp'],
       });
       const groups = new Map<string, {
