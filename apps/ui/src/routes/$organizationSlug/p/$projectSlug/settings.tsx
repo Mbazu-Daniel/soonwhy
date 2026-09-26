@@ -200,21 +200,21 @@ export function ApiKeySettings({ projectId, queryClient }: { projectId: string; 
   }
 
   return (
-    <Card className="border-border bg-card shadow-none">
-      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <Card className="rounded-2xl border-[#242426] bg-[#0B0B0C] shadow-none">
+      <CardHeader className="flex flex-col gap-3 border-b border-[#1B1B1D] sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <CardTitle>Ingestion API keys</CardTitle>
-          <p className="mt-1 text-sm text-muted-foreground">Raw keys are shown only once when created.</p>
+          <CardTitle className="text-sm text-[#F6F6F6]">Ingestion API keys</CardTitle>
+          <p className="mt-1 text-xs text-[#989898]">Raw keys are shown only once when created.</p>
         </div>
         <div className="flex gap-2">
-          <Input aria-label="API key name" value={name} onChange={(event) => setName(event.target.value)} className="w-52" maxLength={100} />
+          <Input aria-label="API key name" value={name} onChange={(event) => setName(event.target.value)} className="w-52 border-[#242426] bg-[#151517] text-[#F6F6F6]" maxLength={100} />
           <Button onClick={() => create.mutate()} disabled={create.isPending}>
             {create.isPending ? <Loader2 className="animate-spin" /> : <KeyRound />}
             Create key
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 p-5 sm:p-6">
         {newKey?.key && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
             <p className="text-sm font-semibold text-amber-900">Copy this key now</p>
@@ -236,9 +236,9 @@ export function ApiKeySettings({ projectId, queryClient }: { projectId: string; 
           </div>
         )}
         {keys.data?.map((key) => (
-          <div key={key.id} className="flex flex-col gap-3 rounded-lg border border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div key={key.id} className="flex flex-col gap-3 rounded-xl border border-[#242426] bg-[#151517] p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <p className="font-medium">{key.name}</p>
+              <p className="font-medium text-[#F6F6F6]">{key.name}</p>
               <p className="mt-1 font-mono text-xs text-muted-foreground">{key.prefix}••••••••</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 {key.lastUsedAt ? `Last used ${formatAge(key.lastUsedAt)}` : 'Never used'}
