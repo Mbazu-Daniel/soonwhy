@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { CurrentOrg, OrgContext } from '../../../common/decorators/current-org.decorator';
 import { TenantGuard } from '../../../common/middleware/tenant-context.guard';
 import { DetectionService } from './detection.service';
@@ -20,6 +20,19 @@ export class DetectionController {
     @Param('projectId') projectId: string,
   ) {
     return listDetectionRuns(org.orgId, projectId);
+  }
+
+  @Post('from-error')
+  async createFromError(
+    @CurrentOrg() org: OrgContext,
+    @Param('projectId') projectId: string,
+    @Body() body: { fingerprint?: string; service?: string },
+  ) {
+    if (!body.fingerprint) throw new Error('fingerprint is required');
+    return this.detectionService.createFindingFromError(org.orgId, projectId, {
+      fingerprint: body.fingerprint,
+      service: body.service,
+    });
   }
 
   @Get()
