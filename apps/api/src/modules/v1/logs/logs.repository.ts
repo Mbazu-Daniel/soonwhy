@@ -13,6 +13,7 @@ export class LogsRepository {
     if (params.level && params.level !== 'all') filters.push(quickwitTerm('level', params.level));
     if (params.service) filters.push(quickwitTerm('service', params.service));
     if (params.q) filters.push(quickwitTerm('message', params.q));
+    if (params.traceId) filters.push(quickwitTerm('traceId', params.traceId));
     const query = quickwitTenantQuery(params.orgId, params.projectId, filters.length ? filters.join(' AND ') : '*');
     const result = await this.quickwit.search<never>(QUICKWIT_INDEXES.logs, { query, startTimestamp: quickwitTimestamp(params.from), endTimestamp: quickwitTimestamp(params.to), maxHits: 0, aggregations: {
       timeline: { date_histogram: { field: 'timestamp', fixed_interval: '1h', min_doc_count: 0 } },
