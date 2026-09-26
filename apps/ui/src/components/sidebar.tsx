@@ -9,14 +9,11 @@ import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '~/components/ui/dropdown-menu';
+import { WorkspaceMenu } from '~/components/workspace-switcher';
 import { AlertTriangle, BrainCircuit, Check, ChevronDown, ChevronRight, GitBranch, KeyRound, LayoutDashboard, Plus, ScrollText, Server, Settings, ShieldCheck } from 'lucide-react';
 import { api } from '~/lib/api';
 
-interface Project {
-  id: string;
-  name: string;
-  slug: string;
-}
+interface Project { id: string; name: string; slug: string; }
 
 const navItems = [
   { to: 'overview', label: 'Overview', icon: LayoutDashboard, exact: true },
@@ -72,12 +69,10 @@ export function Sidebar() {
     setError('');
     const name = projectName.trim();
     const slug = projectSlugInput.trim() || slugify(name);
-
     if (!name || !slug) {
       setError('Enter a project name.');
       return;
     }
-
     createProject.mutate({ name, slug });
   }
 
@@ -96,8 +91,7 @@ export function Sidebar() {
   return (
     <>
       <div className={open ? 'fixed inset-0 z-40 bg-[#182012]/30 lg:hidden' : 'hidden'} onClick={close} aria-hidden="true" />
-
-      <aside className={cn('w-60 border-r bg-card flex flex-col fixed inset-y-0 left-0 z-50 transition-transform duration-200 lg:static lg:translate-x-0', open ? 'translate-x-0' : '-translate-x-full')} aria-label="Primary navigation">
+      <aside className={cn('w-60 border-r border-border bg-card flex flex-col fixed inset-y-0 left-0 z-50 transition-transform duration-200 lg:static lg:translate-x-0', open ? 'translate-x-0' : '-translate-x-full')} aria-label="Primary navigation">
         <div className="h-16 shrink-0 border-b px-4 flex items-center">
           <Link to={projectSlug ? '/dashboard/projects/$projectSlug' : '/dashboard'} params={projectSlug ? { projectSlug } : undefined} onClick={close} className="group flex w-full items-center gap-2.5">
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#182012] text-sm font-bold text-[#8BD125]">S</span>
@@ -107,7 +101,10 @@ export function Sidebar() {
             </span>
           </Link>
         </div>
-
+        <div className="shrink-0 border-b px-3 py-3">
+          <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Workspace</p>
+          <WorkspaceMenu />
+        </div>
         <div className="flex-1 overflow-y-auto px-3 pt-5 pb-3">
           <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Monitor</p>
           <nav data-tour="evidence-navigation" className="space-y-1">
@@ -115,14 +112,7 @@ export function Sidebar() {
               const target = projectSlug ? projectPath(item) : '/dashboard';
               const active = item.exact ? location.pathname === target : location.pathname.startsWith(target);
               return (
-                <Link
-                  key={item.to}
-                  to={projectSlug ? (item.to === 'overview' ? '/dashboard/projects/$projectSlug' : `/dashboard/projects/$projectSlug/${item.to}`) : '/dashboard'}
-                  params={projectSlug ? { projectSlug } : undefined}
-                  onClick={close}
-                  className={cn('group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors', active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary hover:text-foreground')}
-                  aria-current={active ? 'page' : undefined}
-                >
+                <Link key={item.to} to={projectSlug ? (item.to === 'overview' ? '/dashboard/projects/$projectSlug' : `/dashboard/projects/$projectSlug/${item.to}`) : '/dashboard'} params={projectSlug ? { projectSlug } : undefined} onClick={close} className={cn('group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors', active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary hover:text-foreground')} aria-current={active ? 'page' : undefined}>
                   <item.icon className="h-[17px] w-[17px] shrink-0" aria-hidden="true" />
                   <span className="flex-1">{item.label}</span>
                   {active && <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />}
@@ -131,16 +121,12 @@ export function Sidebar() {
             })}
           </nav>
         </div>
-
         <div className="shrink-0 border-t p-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-12 w-full justify-start gap-3 px-2">
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-secondary text-sm font-semibold">{currentProject?.name?.charAt(0).toUpperCase() || <Plus className="h-4 w-4" />}</span>
-                <span className="min-w-0 flex-1 text-left">
-                  <span className="block truncate text-sm font-medium">{currentProject?.name || 'Select project'}</span>
-                  <span className="block truncate text-xs text-muted-foreground">Project</span>
-                </span>
+                <span className="min-w-0 flex-1 text-left"><span className="block truncate text-sm font-medium">{currentProject?.name || 'Select project'}</span><span className="block truncate text-xs text-muted-foreground">Project</span></span>
                 <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
@@ -161,13 +147,9 @@ export function Sidebar() {
           </DropdownMenu>
         </div>
       </aside>
-
       <Dialog open={createOpen} onOpenChange={(next) => { setCreateOpen(next); if (!next) setError(''); }}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create project</DialogTitle>
-            <DialogDescription>Create a project and start sending telemetry to it.</DialogDescription>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Create project</DialogTitle><DialogDescription>Create a project and start sending telemetry to it.</DialogDescription></DialogHeader>
           <form onSubmit={submitProject} className="space-y-4">
             <div className="space-y-2"><Label htmlFor="sidebar-project-name">Project name</Label><Input id="sidebar-project-name" value={projectName} onChange={(event) => setProjectName(event.target.value)} placeholder="Payments API" required maxLength={100} autoFocus /></div>
             <div className="space-y-2"><Label htmlFor="sidebar-project-slug">Slug</Label><Input id="sidebar-project-slug" value={projectSlugInput} onChange={(event) => setProjectSlugInput(event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} placeholder="payments-api" pattern="[a-z0-9-]+" /></div>
