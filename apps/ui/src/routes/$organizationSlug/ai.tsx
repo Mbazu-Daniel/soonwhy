@@ -24,7 +24,7 @@ export function AIAgentPage() {
   if (isError) return <QueryErrorState onRetry={() => void refetch()} />;
 
   return <div className="mx-auto w-full max-w-5xl space-y-5 px-4 py-5 sm:px-6 sm:py-7">
-    <header><p className="text-xs font-semibold uppercase tracking-[.14em] text-[#ACFC15]">AI agent</p><h1 className="mt-1 text-2xl font-semibold tracking-tight text-[#F6F6F6]">Bring your own AI key.</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-[#989898]">Connect a provider for SoonWhy RCA. The key is encrypted before storage and never returned to the browser.</p></header>
+    <h1 className="sr-only">AI agent</h1>
     <Card className="rounded-xl border-[#242426] bg-[#0B0B0C]"><CardHeader><CardTitle className="flex items-center gap-2"><Bot className="h-4 w-4 text-[#ACFC15]" />Provider</CardTitle></CardHeader><CardContent className="space-y-5">
       <div className="grid gap-2 sm:grid-cols-3">{providers.map((item) => <button key={item.id} type="button" onClick={() => { setProvider(item.id); setModel(item.model); }} className={`rounded-lg border px-3 py-3 text-left text-sm transition-colors ${provider === item.id ? 'border-[#ACFC15] bg-[#ACFC15]/5 text-[#F6F6F6]' : 'border-[#242426] text-[#989898] hover:bg-[#151517]'}`}><span className="block font-medium">{item.label}</span><span className="mt-1 block text-[11px] text-[#6E6E70]">Default {item.model}</span></button>)}</div>
       {data?.configured && <div className="flex items-center gap-2 rounded-lg border border-[#34451D] bg-[#11170D] px-3 py-2 text-xs text-[#ACFC15]"><CheckCircle2 className="h-3.5 w-3.5" />Connected · {data.provider} · {data.model} · key ending in {data.keyHint}</div>}

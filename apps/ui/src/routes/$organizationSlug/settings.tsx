@@ -66,13 +66,7 @@ function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 pb-10">
-      <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#16931F]">Project setup</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Telemetry setup</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Manage ingestion keys, verify telemetry health, and get back to the setup flow.
-        </p>
-      </header>
+      <h1 className="sr-only">Settings</h1>
 
       <div className="grid gap-4 md:grid-cols-3">
         <TelemetryCard projectId={projectId} />

@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { ProjectsRepository } from './projects.repository';
-import { CreateProjectInput, UpdateProjectInput } from './dto';
+import { CreateProjectInput, UpdateProjectInput, UpdateProjectSettingsInput } from './dto';
 
 @Injectable()
 export class ProjectsService {
@@ -30,5 +30,15 @@ export class ProjectsService {
   async deleteProject(id: string, orgId: string) {
     await this.getProjectById(id, orgId);
     return this.projectsRepository.deleteProject(id, orgId);
+  }
+
+  async getProjectSettings(id: string, orgId: string) {
+    await this.getProjectById(id, orgId);
+    return this.projectsRepository.getProjectSettings(id, orgId);
+  }
+
+  async updateProjectSettings(id: string, orgId: string, input: UpdateProjectSettingsInput) {
+    await this.getProjectById(id, orgId);
+    return this.projectsRepository.updateProjectSettings(id, orgId, input);
   }
 }

@@ -1,3 +1,4 @@
+import { sanitizeAttributes, sanitizeMessage, type SecurityOptions } from './security.js';
 import type {
   Attributes,
   ErrorInput,
@@ -21,18 +22,19 @@ export function toLogsPayload(
   records: LogInput[],
   resource: ResourceOptions,
   scopeVersion: string,
+  security: SecurityOptions = { redactSensitiveData: true, maxAttributeCount: 100, maxAttributeValueLength: 4096 },
 ): unknown {
   return {
     resourceLogs: [{
-      resource: { attributes: toAttributes(resource.attributes, resource) },
+      resource: { attributes: toAttributes(resource.attributes, resource, security) },
       scopeLogs: [{
         scope: { name: '@soonwhy/sdk', version: scopeVersion },
         logRecords: records.map((record) => ({
           timeUnixNano: toNano(record.timestamp),
           severityNumber: LEVELS[record.level ?? 'info'],
           severityText: (record.level ?? 'info').toUpperCase(),
-          body: { stringValue: record.message },
-          attributes: toAttributes(record.attributes),
+          body: { stringValue: sanitizeMessage(record.message, security) },
+          attributes: toAttributes(record.attributes, undefined, security),
           ...(record.traceId ? { traceId: record.traceId } : {}),
           ...(record.spanId ? { spanId: record.spanId } : {}),
         })),
@@ -64,6 +66,7 @@ export function toMetricsPayload(
   records: MetricInput[],
   resource: ResourceOptions,
   scopeVersion: string,
+  security: SecurityOptions,
 ): unknown {
   const groups = new Map<string, MetricInput[]>();
   for (const record of records) {
@@ -74,7 +77,7 @@ export function toMetricsPayload(
 
   return {
     resourceMetrics: [{
-      resource: { attributes: toAttributes(resource.attributes, resource) },
+      resource: { attributes: toAttributes(resource.attributes, resource, security) },
       scopeMetrics: [{
         scope: { name: '@soonwhy/sdk', version: scopeVersion },
         metrics: [...groups.entries()].map(([name, items]) => ({
@@ -84,7 +87,7 @@ export function toMetricsPayload(
             dataPoints: items.map((item) => ({
               timeUnixNano: toNano(item.timestamp),
               asDouble: item.value,
-              attributes: toAttributes(item.attributes),
+              attributes: toAttributes(item.attributes, undefined, security),
             })),
           },
         })),
@@ -93,7 +96,7 @@ export function toMetricsPayload(
   };
 }
 
-function toAttributes(attributes?: Attributes, resource?: ResourceOptions): OtlpAttribute[] {
+function toAttributes(attributes?: Attributes, resource?: ResourceOptions, security?: SecurityOptions): OtlpAttribute[] {
   const merged: Attributes = {
     ...(resource?.serviceName ? { 'service.name': resource.serviceName } : {}),
     ...(resource?.serviceVersion ? { 'service.version': resource.serviceVersion } : {}),
@@ -104,7 +107,8 @@ function toAttributes(attributes?: Attributes, resource?: ResourceOptions): Otlp
     ...(attributes ?? {}),
   };
 
-  return Object.entries(merged).map(([key, value]) => ({
+  const sanitized = sanitizeAttributes(merged, security ?? { redactSensitiveData: true, maxAttributeCount: 100, maxAttributeValueLength: 4096 });
+  return Object.entries(sanitized).map(([key, value]) => ({
     key,
     value: toAnyValue(value),
   }));

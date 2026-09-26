@@ -20,8 +20,8 @@ for (const filename of entries) {
 
   const sql = await readFile(path.join(migrationsDir, filename), 'utf8');
   const objectPatterns = [
-    /CREATE\s+(?:UNIQUE\s+)?INDEX(?:\s+IF\s+NOT\s+EXISTS)?\s+["\`]?([a-zA-Z0-9_]+)["\`]?/gi,
-    /ADD\s+CONSTRAINT\s+["\`]?([a-zA-Z0-9_]+)["\`]?/gi,
+    /CREATE\s+(?:UNIQUE\s+)?INDEX(?:\s+IF\s+NOT\s+EXISTS)?\s+["`]?([a-zA-Z0-9_]+)["`]?/gi,
+    /ADD\s+CONSTRAINT\s+["`]?([a-zA-Z0-9_]+)["`]?/gi,
   ];
 
   for (const pattern of objectPatterns) {

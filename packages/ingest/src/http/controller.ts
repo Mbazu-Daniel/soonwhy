@@ -129,7 +129,7 @@ export class IngestController {
 
   private async publish(auth: ValidatedApiKey, signal: Signal, items: unknown[]) {
     for (const item of items) {
-      await this.nats.publish(`ingest.${auth.projectId}.${signal}`, new TextEncoder().encode(JSON.stringify({ ...(item as object), projectId: auth.projectId, organizationId: auth.organizationId })));
+      await this.nats.publish(`ingest.${auth.projectId}.${signal}`, new TextEncoder().encode(JSON.stringify({ ...(item as object), projectId: auth.projectId, organizationId: auth.organizationId, captureSettings: auth.captureSettings })));
       this.metrics.recordPublished(1);
     }
   }

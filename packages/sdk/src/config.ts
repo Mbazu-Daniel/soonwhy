@@ -1,11 +1,12 @@
 import type { SoonwhyOptions } from './types.js';
+import { DEFAULT_SECURITY_OPTIONS, type SecurityOptions } from './security.js';
 
 export const DEFAULT_ENDPOINT = 'http://localhost:3002/v1';
 export const DEFAULT_BATCH_SIZE = 100;
 export const DEFAULT_FLUSH_INTERVAL_MS = 5_000;
 export const DEFAULT_MAX_RETRIES = 3;
 
-export interface ResolvedOptions extends SoonwhyOptions {
+export interface ResolvedOptions extends Omit<SoonwhyOptions, keyof SecurityOptions>, SecurityOptions {
   endpoint: string;
   batchSize: number;
   flushIntervalMs: number;
@@ -47,6 +48,9 @@ export function resolveOptions(options: SoonwhyOptions): ResolvedOptions {
     registerShutdownHandlers: options.registerShutdownHandlers ?? true,
     fetch: options.fetch ?? globalThis.fetch.bind(globalThis),
     sleep: options.sleep ?? ((delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs))),
+    redactSensitiveData: options.redactSensitiveData ?? DEFAULT_SECURITY_OPTIONS.redactSensitiveData,
+    maxAttributeCount: options.maxAttributeCount ?? DEFAULT_SECURITY_OPTIONS.maxAttributeCount,
+    maxAttributeValueLength: options.maxAttributeValueLength ?? DEFAULT_SECURITY_OPTIONS.maxAttributeValueLength,
   };
 }
 

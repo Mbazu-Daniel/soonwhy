@@ -10,7 +10,7 @@ import { api } from '~/lib/api';
 import { useProject } from '~/lib/project-context';
 import { QueryErrorState } from '~/components/query-error-state';
 
-export const Route = createFileRoute('/dashboard/projects/$projectSlug/settings')({
+export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/settings')({
   component: SettingsPage,
 });
 
@@ -32,6 +32,16 @@ interface ApiKey {
   key?: string;
 }
 
+interface CaptureSettings {
+  projectId: string;
+  redactSensitiveData: boolean;
+  captureRequestHeaders: boolean;
+  captureRequestBody: boolean;
+  captureResponseBody: boolean;
+  maxAttributeCount: number;
+  maxAttributeValueLength: number;
+}
+
 interface TelemetryStatus {
   status: 'healthy' | 'stale' | 'waiting';
   hasTelemetry: boolean;
@@ -42,7 +52,7 @@ interface TelemetryStatus {
 }
 
 function SettingsPage() {
-  const { projectSlug } = Route.useParams();
+  const { organizationSlug, projectSlug } = Route.useParams();
   const { orgId, projectId } = useProject();
   const projects = useQuery({
     queryKey: ['projects', orgId],
@@ -66,17 +76,13 @@ function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 pb-10">
-      <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#16931F]">Project setup</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Telemetry setup</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Manage ingestion keys, verify telemetry health, and get back to the setup flow.
-        </p>
-      </header>
+      <h1 className="sr-only">Settings</h1>
 
       <div className="grid gap-4 md:grid-cols-3">
         <TelemetryCard projectId={projectId} />
       </div>
+
+      <CaptureSettingsCard projectId={projectId} />
 
       <Card className="border-border bg-card shadow-none">
         <CardHeader>
@@ -106,6 +112,126 @@ function SettingsPage() {
       </Card>
 
       <SetupGuidance />
+    </div>
+  );
+}
+
+function CaptureSettingsCard({ projectId }: { projectId: string }) {
+  const queryClient = useQueryClient();
+  const settings = useQuery({
+    queryKey: ['project-capture-settings', projectId],
+    queryFn: () => api.get<CaptureSettings>(`/projects/${projectId}/settings`),
+  });
+  const update = useMutation({
+    mutationFn: (input: Partial<Omit<CaptureSettings, 'projectId'>>) =>
+      api.put<CaptureSettings>(`/projects/${projectId}/settings`, input),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['project-capture-settings', projectId], data);
+    },
+  });
+
+  const data = settings.data;
+  const set = (key: keyof Omit<CaptureSettings, 'projectId'>, value: boolean | number) => {
+    update.mutate({ [key]: value });
+  };
+
+  return (
+    <Card className="border-border bg-card shadow-none">
+      <CardHeader>
+        <CardTitle>Telemetry capture</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {settings.isError && <QueryErrorState onRetry={() => void settings.refetch()} />}
+        {data && (
+          <>
+            <SettingToggle
+              label="Redact sensitive data"
+              detail="Remove credentials, cookies, tokens, and similar secrets before telemetry is stored."
+              checked={data.redactSensitiveData}
+              onChange={(value) => set('redactSensitiveData', value)}
+            />
+            <SettingToggle
+              label="Capture request headers"
+              detail="Store HTTP request header attributes when your instrumentation sends them."
+              checked={data.captureRequestHeaders}
+              onChange={(value) => set('captureRequestHeaders', value)}
+            />
+            <SettingToggle
+              label="Capture request bodies"
+              detail="Store request body attributes when your instrumentation sends them."
+              checked={data.captureRequestBody}
+              onChange={(value) => set('captureRequestBody', value)}
+            />
+            <SettingToggle
+              label="Capture response bodies"
+              detail="Store response body attributes when your instrumentation sends them."
+              checked={data.captureResponseBody}
+              onChange={(value) => set('captureResponseBody', value)}
+            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <LimitInput
+                label="Maximum attributes"
+                value={data.maxAttributeCount}
+                min={10}
+                max={1000}
+                onSave={(value) => set('maxAttributeCount', value)}
+              />
+              <LimitInput
+                label="Maximum attribute value length"
+                value={data.maxAttributeValueLength}
+                min={256}
+                max={16384}
+                onSave={(value) => set('maxAttributeValueLength', value)}
+              />
+            </div>
+            {update.isError && <p className="text-sm text-red-700">Could not save capture settings. Try again.</p>}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SettingToggle({ label, detail, checked, onChange }: { label: string; detail: string; checked: boolean; onChange: (value: boolean) => void }) {
+  return (
+    <label className="flex cursor-pointer items-start justify-between gap-4 rounded-xl border border-border p-4">
+      <span>
+        <span className="block text-sm font-medium">{label}</span>
+        <span className="mt-1 block text-xs leading-5 text-muted-foreground">{detail}</span>
+      </span>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="mt-1 h-4 w-4"
+      />
+    </label>
+  );
+}
+
+function LimitInput({ label, value, min, max, onSave }: { label: string; value: number; min: number; max: number; onSave: (value: number) => void }) {
+  const [draft, setDraft] = useState(String(value));
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div className="flex gap-2">
+        <Input
+          type="number"
+          min={min}
+          max={max}
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={() => {
+            const parsed = Number(draft);
+            if (Number.isInteger(parsed) && parsed >= min && parsed <= max) onSave(parsed);
+            else setDraft(String(value));
+          }}
+        />
+      </div>
+      <p className="text-xs text-muted-foreground">{min.toLocaleString()}–{max.toLocaleString()}</p>
     </div>
   );
 }
@@ -200,21 +326,21 @@ export function ApiKeySettings({ projectId, queryClient }: { projectId: string; 
   }
 
   return (
-    <Card className="border-border bg-card shadow-none">
-      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <Card className="rounded-2xl border-[#242426] bg-[#0B0B0C] shadow-none">
+      <CardHeader className="flex flex-col gap-3 border-b border-[#1B1B1D] sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <CardTitle>Ingestion API keys</CardTitle>
-          <p className="mt-1 text-sm text-muted-foreground">Raw keys are shown only once when created.</p>
+          <CardTitle className="text-sm text-[#F6F6F6]">Ingestion API keys</CardTitle>
+          <p className="mt-1 text-xs text-[#989898]">Raw keys are shown only once when created.</p>
         </div>
         <div className="flex gap-2">
-          <Input aria-label="API key name" value={name} onChange={(event) => setName(event.target.value)} className="w-52" maxLength={100} />
+          <Input aria-label="API key name" value={name} onChange={(event) => setName(event.target.value)} className="w-52 border-[#242426] bg-[#151517] text-[#F6F6F6]" maxLength={100} />
           <Button onClick={() => create.mutate()} disabled={create.isPending}>
             {create.isPending ? <Loader2 className="animate-spin" /> : <KeyRound />}
             Create key
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 p-5 sm:p-6">
         {newKey?.key && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
             <p className="text-sm font-semibold text-amber-900">Copy this key now</p>
@@ -236,9 +362,9 @@ export function ApiKeySettings({ projectId, queryClient }: { projectId: string; 
           </div>
         )}
         {keys.data?.map((key) => (
-          <div key={key.id} className="flex flex-col gap-3 rounded-lg border border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div key={key.id} className="flex flex-col gap-3 rounded-xl border border-[#242426] bg-[#151517] p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <p className="font-medium">{key.name}</p>
+              <p className="font-medium text-[#F6F6F6]">{key.name}</p>
               <p className="mt-1 font-mono text-xs text-muted-foreground">{key.prefix}••••••••</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 {key.lastUsedAt ? `Last used ${formatAge(key.lastUsedAt)}` : 'Never used'}

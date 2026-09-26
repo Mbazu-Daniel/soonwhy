@@ -9,7 +9,18 @@ import {
   mapSpanToTraceRow,
 } from '../src/parse/mappers';
 
-const tenant = { projectId: 'proj_1', organizationId: 'org_1' };
+const tenant = {
+  projectId: 'proj_1',
+  organizationId: 'org_1',
+  captureSettings: {
+    redactSensitiveData: true,
+    captureRequestHeaders: false,
+    captureRequestBody: false,
+    captureResponseBody: false,
+    maxAttributeCount: 100,
+    maxAttributeValueLength: 4096,
+  },
+};
 
 describe('OTLP JSON parse + telemetry mappers', () => {
   it('maps log records with canonical service and trace context', () => {

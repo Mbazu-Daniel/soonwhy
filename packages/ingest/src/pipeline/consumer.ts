@@ -121,9 +121,18 @@ export class IngestConsumer implements OnModuleInit {
   }
 
   private tenantFrom(payload: Record<string, unknown>): TenantContext {
+    const rawSettings = payload.captureSettings as Partial<TenantContext['captureSettings']> | undefined;
     return {
       projectId: String(payload.projectId || ''),
       organizationId: String(payload.organizationId || ''),
+      captureSettings: {
+        redactSensitiveData: rawSettings?.redactSensitiveData ?? true,
+        captureRequestHeaders: rawSettings?.captureRequestHeaders ?? false,
+        captureRequestBody: rawSettings?.captureRequestBody ?? false,
+        captureResponseBody: rawSettings?.captureResponseBody ?? false,
+        maxAttributeCount: rawSettings?.maxAttributeCount ?? 100,
+        maxAttributeValueLength: rawSettings?.maxAttributeValueLength ?? 4096,
+      },
     };
   }
 

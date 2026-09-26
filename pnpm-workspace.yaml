@@ -2,6 +2,6 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
-onlyBuiltDependencies:
-  - argon2
-  - esbuild
+allowBuilds:
+  argon2: false
+  esbuild: false

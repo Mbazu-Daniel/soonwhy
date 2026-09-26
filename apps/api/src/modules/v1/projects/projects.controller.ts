@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
-import { CreateProjectDto, UpdateProjectDto } from './dto';
+import { CreateProjectDto, UpdateProjectDto, UpdateProjectSettingsDto } from './dto';
 import { CurrentOrg, OrgContext } from '../../../common/decorators/current-org.decorator';
 import { TenantGuard } from '../../../common/middleware/tenant-context.guard';
 
@@ -18,6 +18,21 @@ export class ProjectsController {
   @Get()
   async getProjectsForOrg(@CurrentOrg() org: OrgContext) {
     return this.projectsService.getProjectsForOrg(org.orgId);
+  }
+
+  @Get(':id/settings')
+  async getProjectSettings(@CurrentOrg() org: OrgContext, @Param('id') id: string) {
+    return this.projectsService.getProjectSettings(id, org.orgId);
+  }
+
+  @Put(':id/settings')
+  async updateProjectSettings(
+    @CurrentOrg() org: OrgContext,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    const input = UpdateProjectSettingsDto.parse(body);
+    return this.projectsService.updateProjectSettings(id, org.orgId, input);
   }
 
   @Get(':id')

@@ -3,4 +3,4 @@
 # Runs existing pre-commit checks
 
 # Run existing pre-commit checks (warns about signing)
-/home/daniel/Documents/projects/soonwhy/.githooks/pre-commit
+"$(git rev-parse --show-toplevel)/.githooks/pre-commit"

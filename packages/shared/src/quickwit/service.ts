@@ -53,7 +53,10 @@ export class QuickwitService {
       });
       this.logger.log(`Quickwit index created: ${indexId}`);
     } catch (error) {
-      if (error instanceof Error && error.message.includes('(409)')) return;
+      if (error instanceof Error && error.message.includes('index `' + indexId + '` already exist')) {
+        this.logger.debug(`Quickwit index already exists: ${indexId}`);
+        return;
+      }
       throw error;
     }
   }
@@ -82,8 +85,8 @@ export class QuickwitService {
           start_offset: input.startOffset ?? 0,
           ...(input.startTimestamp !== undefined ? { start_timestamp: input.startTimestamp } : {}),
           ...(input.endTimestamp !== undefined ? { end_timestamp: input.endTimestamp } : {}),
-          ...(input.sortBy ? { sort_by: input.sortBy } : {}),
-          ...(input.searchField ? { search_field: input.searchField } : {}),
+          ...(input.sortBy?.length ? { sort_by: input.sortBy.join(',') } : {}),
+          ...(input.searchField?.length ? { search_field: input.searchField.join(',') } : {}),
           ...(input.aggregations ? { aggs: input.aggregations } : {}),
         }),
       },

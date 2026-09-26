@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Activity, ArrowRight, Boxes, GitBranch, Network } from 'lucide-react';
+import { ArrowRight, Boxes, Network } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Badge } from '~/components/ui/badge';
 import { Skeleton } from '~/components/ui/skeleton';
@@ -27,10 +27,10 @@ function ServiceMap() {
   if (isError) return <QueryErrorState onRetry={() => void refetch()} />;
 
   return <div className="mx-auto w-full space-y-6 pb-10">
-    <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-      <div><p className="text-xs font-semibold uppercase tracking-[.14em] text-[#16931F]">Runtime topology</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Service map</h1><p className="mt-1 text-sm text-[#989898]">See the services that actually communicate in your traces and follow the busiest dependency paths.</p></div>
-      <Link to="/$organizationSlug/services" params={{ organizationSlug: orgSlug! }} className="text-sm font-medium text-[#16931F] hover:underline">Service inventory</Link>
-    </header>
+    <h1 className="sr-only">Service map</h1>
+      <div className="flex justify-end">
+        <Link to="/$organizationSlug/services" params={{ organizationSlug: orgSlug! }} className="text-sm font-medium text-[#16931F] hover:underline">Service inventory</Link>
+      </div>
 
     {isLoading ? <div className="grid gap-4 lg:grid-cols-[1.3fr_.7fr]"><Skeleton className="h-[560px]" /><Skeleton className="h-[560px]" /></div> :
     !data?.nodes.length ? <Card><CardContent className="p-12 text-center"><Network className="mx-auto h-8 w-8 text-[#16931F]" /><p className="mt-3 font-medium">No service topology yet</p><p className="mt-1 text-sm text-[#989898]">The map is built from parent-child relationships in distributed traces.</p><Link to="/onboarding" className="mt-4 inline-flex text-sm font-medium text-[#16931F] hover:underline">Open setup flow</Link></CardContent></Card> :

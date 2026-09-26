@@ -39,4 +39,6 @@ jobs:
           pnpm --dir examples/node install --no-frozen-lockfile --ignore-workspace
           pnpm --dir examples/node exec tsc -p tsconfig.json --noEmit
       - name: Validate Docker Compose
-        run: docker compose config --quiet
+        run: |
+          docker compose -f docker-compose.local.yml config --quiet
+          docker compose -f docker-compose.observability.yml config --quiet

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { QUICKWIT_INDEXES, QuickwitService } from '@soonwhy/shared';
-import { quickwitTerm, quickwitTenantQuery, quickwitTimestamp } from '../../../common/quickwit/query';
+import { quickwitTerm } from '../../../common/quickwit/query';
+import { TelemetryQueryService } from '../../../common/telemetry';
 
 export interface TraceRow {
   traceId: string;
@@ -32,7 +32,7 @@ interface TraceAggregation {
 
 @Injectable()
 export class TracesRepository {
-  constructor(private readonly quickwit: QuickwitService) {}
+  constructor(private readonly telemetryQuery: TelemetryQueryService) {}
 
   async listTraces(params: {
     orgId: string;
@@ -42,11 +42,15 @@ export class TracesRepository {
     limit: number;
     cursor?: { ts: string; traceId: string };
     q?: string;
+    service?: string;
   }): Promise<TraceListRow[]> {
-    const result = await this.quickwit.search<TraceRow>(QUICKWIT_INDEXES.traces, {
-      query: quickwitTenantQuery(params.orgId, params.projectId, params.q ? quickwitTerm('traceId', params.q) : '*'),
-      startTimestamp: quickwitTimestamp(params.from),
-      endTimestamp: quickwitTimestamp(params.to),
+    const result = await this.telemetryQuery.search<TraceRow>('traces', {
+      orgId: params.orgId, projectId: params.projectId, from: params.from, to: params.to,
+      filters: [
+        ...(params.q ? [quickwitTerm('traceId', params.q)] : []),
+        ...(params.service ? [quickwitTerm('service', params.service)] : []),
+      ],
+    }, {
       maxHits: 0,
       aggregations: {
         traces: {
@@ -78,15 +82,10 @@ export class TracesRepository {
     projectId: string;
     traceId: string;
   }): Promise<TraceRow[]> {
-    const result = await this.quickwit.search<TraceRow>(QUICKWIT_INDEXES.traces, {
-      query: quickwitTenantQuery(
-        params.orgId,
-        params.projectId,
-        quickwitTerm('traceId', params.traceId),
-      ),
-      maxHits: 10000,
-      sortBy: ['timestamp:asc'],
-    });
+    const result = await this.telemetryQuery.search<TraceRow>('traces', {
+      orgId: params.orgId, projectId: params.projectId, from: new Date(Date.now() - 86_400_000).toISOString(), to: new Date().toISOString(),
+      filters: [quickwitTerm('traceId', params.traceId)],
+    }, { maxHits: 10000, sortBy: ['timestamp'] });
 
     return result.hits.flatMap((hit) => (hit._source ? [hit._source] : []));
   }

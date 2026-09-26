@@ -11,7 +11,7 @@ import {
   Database,
   GitBranch,
   Layers3,
-  Search,
+
   Server,
   ShieldCheck,
   Terminal,
@@ -422,19 +422,6 @@ function Evidence({ label, value }: { label: string; value: string }) {
     <div className="flex items-start justify-between gap-4 border-b border-white/[0.07] pb-3 text-xs last:border-0 last:pb-0">
       <span className="text-white/30">{label}</span>
       <span className="text-right text-white/65">{value}</span>
-    </div>
-  );
-}
-
-function Step({ number, icon: Icon, title, text }: { number: string; icon: typeof Terminal; title: string; text: string }) {
-  return (
-    <div className="editorial-line grid gap-5 py-7 md:grid-cols-[72px_1fr_1.4fr] md:items-center">
-      <div className="flex items-center justify-between gap-4">
-        <span className="font-mono text-xs text-[#8BD125]">{number}</span>
-        <Icon className="h-5 w-5 text-[#8BD125]" />
-      </div>
-      <h3 className="geom-font text-2xl">{title}</h3>
-      <p className="max-w-xl text-sm leading-7 text-white/40">{text}</p>
     </div>
   );
 }
