@@ -23,7 +23,7 @@ function OrganizationDashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { organizationSlug } = Route.useParams();
-  const { orgId, setOrganization } = useProject();
+  const { orgId, projectId, setOrganization } = useProject();
   const token = getSessionToken();
 
   const session = useQuery({
@@ -49,7 +49,7 @@ function OrganizationDashboardLayout() {
   });
 
   const isProjectRoute = location.pathname.includes('/p/');
-  const activeProject = projects.data?.find((project) => project.id === useProject().projectId) ?? projects.data?.[0];
+  const activeProject = projects.data?.find((project) => project.id === projectId) ?? projects.data?.[0];
 
   useEffect(() => {
     if (session.isLoading || organizations.isLoading) return;
@@ -79,7 +79,7 @@ function OrganizationDashboardLayout() {
       ? `/${organizationSlug}/p/${activeProject.slug}/${suffix}`
       : `/${organizationSlug}/p/${activeProject.slug}/`;
     void navigate({ to: target as never, replace: true });
-  }, [activeProject, isProjectRoute, location.pathname, navigate, organization, organizationSlug, projects.data, projects.isLoading]);
+  }, [activeProject, isProjectRoute, location.pathname, navigate, organization, organizationSlug, projects.data, projects.isLoading, projectId]);
 
   const showCreateProject = !!organization && !projects.isLoading && projects.data?.length === 0;
 
