@@ -10,7 +10,7 @@ import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '~/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '~/components/ui/avatar';
-import { AlertTriangle, BrainCircuit, Check, ChevronDown, ChevronRight, GitBranch, LayoutDashboard, LogOut, Plus, ScrollText, Server, Settings, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, BrainCircuit, Check, ChevronDown, ChevronRight, GitBranch, LayoutDashboard, Plus, ScrollText, Server, Settings, ShieldCheck } from 'lucide-react';
 import { api } from '~/lib/api';
 import { signOut, clearSession, getSessionToken } from '~/lib/auth-client';
 
@@ -37,7 +37,6 @@ export function Sidebar() {
   const queryClient = useQueryClient();
   const { open, close } = useSidebar();
   const { orgId, projectId, setProjectId } = useProject();
-  const token = getSessionToken();
   const [createOpen, setCreateOpen] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [projectSlug, setProjectSlug] = useState('');
