@@ -3,7 +3,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, FolderKanban } from 'lucide-react';
 import { Button } from '~/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '~/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { api } from '~/lib/api';
@@ -20,7 +20,6 @@ export function CreateProjectDialog({ open, onOpenChange }: { open: boolean; onO
   const queryClient = useQueryClient();
   const { orgId, orgSlug, setProject } = useProject();
   const [name, setName] = useState('');
-  const [slug, setSlug] = useState('');
   const [error, setError] = useState('');
 
   const createProject = useMutation({
@@ -29,7 +28,6 @@ export function CreateProjectDialog({ open, onOpenChange }: { open: boolean; onO
       setProject(project);
       await queryClient.invalidateQueries({ queryKey: ['projects', orgId] });
       setName('');
-      setSlug('');
       setError('');
       onOpenChange(false);
       if (orgSlug) {
@@ -42,7 +40,7 @@ export function CreateProjectDialog({ open, onOpenChange }: { open: boolean; onO
   function submit(event: FormEvent) {
     event.preventDefault();
     const projectName = name.trim();
-    const projectSlug = slug.trim() || slugify(projectName);
+    const projectSlug = slugify(projectName);
     if (!projectName || !projectSlug) {
       setError('Enter a project name.');
       return;
@@ -54,14 +52,10 @@ export function CreateProjectDialog({ open, onOpenChange }: { open: boolean; onO
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Create your first project</DialogTitle>
-          <DialogDescription>Projects keep your telemetry, services, traces, logs and API keys separated.</DialogDescription>
-        </DialogHeader>
+        <DialogHeader><DialogTitle>Create project</DialogTitle></DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary"><FolderKanban className="h-6 w-6" /></div>
           <div className="space-y-2"><Label htmlFor="first-project-name">Project name</Label><Input id="first-project-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Payments API" required maxLength={100} autoFocus /></div>
-          <div className="space-y-2"><Label htmlFor="first-project-slug">Project slug</Label><Input id="first-project-slug" value={slug} onChange={(event) => setSlug(event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} placeholder="payments-api" pattern="[a-z0-9-]+" /></div>
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={createProject.isPending}><Plus className="h-4 w-4" />{createProject.isPending ? 'Creating...' : 'Create project'}</Button>
         </form>
