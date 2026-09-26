@@ -9,8 +9,13 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('overview')
-  async getOverview(@CurrentOrg() org: OrgContext, @Param('projectId') projectId: string) {
-    return this.dashboardService.getOverview(org.orgId, projectId);
+  async getOverview(
+    @CurrentOrg() org: OrgContext,
+    @Param('projectId') projectId: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.dashboardService.getOverview(org.orgId, projectId, from, to);
   }
 
   @Get('telemetry-status')
@@ -19,12 +24,21 @@ export class DashboardController {
   }
 
   @Get('services')
-  async getServices(@CurrentOrg() org: OrgContext, @Param('projectId') projectId: string) {
-    return this.dashboardService.getServices(org.orgId, projectId);
+  async getServices(
+    @CurrentOrg() org: OrgContext,
+    @Param('projectId') projectId: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.dashboardService.getServices(org.orgId, projectId, from, to);
   }
 
   @Get('errors')
-  async getErrors(@CurrentOrg() org: OrgContext, @Param('projectId') projectId: string, @Query('limit') limit?: string) {
+  async getErrors(
+    @CurrentOrg() org: OrgContext,
+    @Param('projectId') projectId: string,
+    @Query('limit') limit?: string,
+  ) {
     return this.dashboardService.getErrors(org.orgId, projectId, limit ? parseInt(limit, 10) : 50);
   }
 }
