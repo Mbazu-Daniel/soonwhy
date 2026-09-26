@@ -20,12 +20,12 @@ function AIDashboardSummary({ organizationSlug }: { organizationSlug: string }) 
             <BrainCircuit className="h-4 w-4" />
           </span>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[.14em] text-[#ACFC15]">AI summary</p>
-            <h2 className="mt-1 text-sm font-semibold text-[#F6F6F6]">Your system looks stable, with a few signals worth watching.</h2>
-            <p className="mt-2 max-w-3xl text-xs leading-5 text-[#A9B09F]">SoonWhy can turn connected traces, logs and detections into a short explanation of what changed, why it matters and where to investigate next.</p>
+            <p className="text-xs font-semibold uppercase tracking-[.14em] text-[#ACFC15]"></p>
+            <h2 className="mt-1 text-sm font-semibold text-[#F6F6F6]">System summary</h2>
+            <p className="mt-2 max-w-3xl text-xs leading-5 text-[#A9B09F]"></p>
           </div>
         </div>
-        <Link to="/$organizationSlug/investigations" params={{ organizationSlug }} className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-[#34451D] px-3 py-2 text-xs font-medium text-[#ACFC15] hover:bg-[#ACFC15]/5">Open AI investigation <ArrowUpRight className="h-3.5 w-3.5"/></Link>
+        <Link to="/$organizationSlug/investigations" params={{ organizationSlug }} className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-[#34451D] px-3 py-2 text-xs font-medium text-[#ACFC15] hover:bg-[#ACFC15]/5">Investigate <ArrowUpRight className="h-3.5 w-3.5"/></Link>
       </div>
     </section>
   );
@@ -57,9 +57,9 @@ function DashboardOverviewPage() {
       <div className="mx-auto max-w-[1440px] space-y-5">
         <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ACFC15]">Mission control</p>
-            <h1 className="mt-2 text-[30px] font-semibold tracking-[-0.04em] text-[#F6F6F6]">Good morning, here’s your system.</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#989898]">A quiet overview of traffic, reliability and the evidence SoonWhy has connected across your services.</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ACFC15]"></p>
+            <h1 className="mt-2 text-[30px] font-semibold tracking-[-0.04em] text-[#F6F6F6]">System overview</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#989898]">Traffic, reliability and service health.</p>
           </div>
           <div className="flex items-center gap-2 rounded-full border border-[#242426] bg-[#0B0B0C] px-3 py-2 text-xs text-[#989898] shadow-[0_1px_2px_rgba(24,32,18,.03)]">
             <span className="h-2 w-2 rounded-full bg-[#ACFC15]" />
@@ -129,19 +129,19 @@ function DashboardOverviewPage() {
           <Card className="rounded-2xl border-[#242426] bg-[#0B0B0C] shadow-[0_8px_30px_rgba(24,32,18,.04)]">
             <CardContent className="p-0">
               <div className="flex items-center justify-between border-b border-[#1B1B1D] px-5 py-5 sm:px-6">
-                <div><h2 className="text-sm font-semibold">What needs attention</h2><p className="mt-1 text-xs text-[#989898]">Signals worth investigating</p></div>
+                <div><h2 className="text-sm font-semibold">Attention</h2><p className="mt-1 text-xs text-[#989898]"></p></div>
                 <Link to="/$organizationSlug/detections" params={{ organizationSlug }} className="text-xs font-medium text-[#ACFC15] hover:underline">View all</Link>
               </div>
               <div className="divide-y divide-[#EEF2EA]">
-                <Attention icon={CheckCircle2} title="No active findings" detail="SoonWhy will surface evidence-backed bottlenecks here." tone="ok" />
-                <Attention icon={GitBranch} title="Trace evidence connected" detail={`${formatNumber(live.totalRequests)} requests are represented in the current snapshot.`} />
+                <Attention icon={CheckCircle2} title="No active findings" detail="" tone="ok" />
+                <Attention icon={GitBranch} title="Trace coverage" detail={`${formatNumber(live.totalRequests)} requests are represented in the current snapshot.`} />
               </div>
             </CardContent>
           </Card>
 
           <Card className="rounded-2xl border-[#242426] bg-[#0B0B0C] shadow-[0_8px_30px_rgba(24,32,18,.04)]">
             <CardContent className="p-0">
-              <div className="border-b border-[#1B1B1D] px-5 py-5 sm:px-6"><h2 className="text-sm font-semibold">Explore evidence</h2><p className="mt-1 text-xs text-[#989898]">Jump into the signals behind your system</p></div>
+              <div className="border-b border-[#1B1B1D] px-5 py-5 sm:px-6"><h2 className="text-sm font-semibold">Explore</h2><p className="mt-1 text-xs text-[#989898]"></p></div>
               <div className="grid grid-cols-2 gap-px bg-[#EEF2EA]">
                 <QuickLink href="/$organizationSlug/services" params={{ organizationSlug }} icon={Server} label="Services" />
                 <QuickLink href="/$organizationSlug/traces" params={{ organizationSlug }} icon={GitBranch} label="Traces" />
