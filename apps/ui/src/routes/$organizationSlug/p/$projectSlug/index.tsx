@@ -36,7 +36,7 @@ function AIDashboardSummary({ orgSlug, projectSlug }: { orgSlug: string; project
               Your system looks stable, with a few signals worth watching.
             </h2>
             <p className="mt-2 max-w-3xl text-xs leading-5 text-[#A9B09F]">
-              SoonWhy can turn connected traces, logs and detections into a short explanation of what changed,
+              SoonWhy can turn connected traces, logs and findings into a short explanation of what changed,
               why it matters and where to investigate next.
             </p>
           </div>
@@ -182,7 +182,7 @@ function DashboardOverviewPage() {
             <div className="flex items-center justify-between border-b border-[#1B1B1D] px-5 py-5 sm:px-6">
               <div>
                 <h2 className="text-sm font-semibold">What needs attention</h2>
-                <p className="mt-1 text-xs text-[#989898]">Signals worth investigating</p>
+                <p className="mt-1 text-xs text-[#989898]">Findings worth investigating</p>
               </div>
               <Link
                 to="/$organizationSlug/p/$projectSlug/detections"
@@ -237,7 +237,7 @@ function DashboardOverviewPage() {
                 to="/$organizationSlug/p/$projectSlug/investigations"
                 params={{ organizationSlug: orgSlug!, projectSlug: projectSlug! }}
                 icon={BrainCircuit}
-                label="Investigate"
+                label="Investigations"
               />
             </div>
           </CardContent>
