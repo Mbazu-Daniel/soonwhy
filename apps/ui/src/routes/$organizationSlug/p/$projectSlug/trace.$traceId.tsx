@@ -101,13 +101,13 @@ function TraceDetail() {
             <Card className="border-border shadow-none">
               <CardHeader className="border-b"><CardTitle className="text-sm">Span events</CardTitle></CardHeader>
               <CardContent className="space-y-3 p-5">
-                {spans.flatMap((span) => span.events.map((event) => ({ ...event, service: span.service, operation: span.operation }))).slice(0, 20).map((event, index) => (
+                {spans.flatMap((span) => (span.events ?? []).map((event) => ({ ...event, service: span.service, operation: span.operation }))).slice(0, 20).map((event, index) => (
                   <div key={`${event.service}-${event.timestamp}-${index}`} className="flex gap-3 text-xs">
                     <Clock3 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                     <div><p className="font-medium">{event.name}</p><p className="mt-0.5 text-muted-foreground">{event.service} · {event.operation} · {new Date(event.timestamp).toLocaleString()}</p></div>
                   </div>
                 ))}
-                {!spans.some((span) => span.events.length) && <p className="text-sm text-muted-foreground">No span events recorded.</p>}
+                {!spans.some((span) => (span.events ?? []).length) && <p className="text-sm text-muted-foreground">No span events recorded.</p>}
               </CardContent>
             </Card>
             <Card className="border-border shadow-none">
