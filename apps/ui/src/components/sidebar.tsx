@@ -17,7 +17,7 @@ interface Project { id: string; name: string; slug: string; }
 const navItems = [
   { to: 'overview', label: 'Overview', icon: LayoutDashboard, exact: true },
   { to: 'services', label: 'Services', icon: Server },
-  { to: 'detections', label: 'Detections', icon: BrainCircuit },
+  { to: 'detections', label: 'Findings', icon: BrainCircuit },
   { to: 'investigations', label: 'Investigations', icon: ShieldCheck },
   { to: 'errors', label: 'Errors', icon: AlertTriangle },
   { to: 'logs', label: 'Logs', icon: ScrollText },
