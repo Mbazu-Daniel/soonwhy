@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { nanoToMs } from './time';
-import type { ParsedLogRecord, ParsedMetricPoint, ParsedSpan, TenantContext } from '../interfaces';
+import type { CaptureSettings, ParsedLogRecord, ParsedMetricPoint, ParsedSpan, TenantContext } from '../interfaces';
 
 export type { TenantContext };
 
@@ -45,13 +45,19 @@ function metricValue(point: ParsedMetricPoint): number {
   return 0;
 }
 
-function safeLogAttributes(attributes: Record<string, unknown>): Record<string, unknown> {
+function safeLogAttributes(attributes: Record<string, unknown>, settings: CaptureSettings): Record<string, unknown> {
   return Object.fromEntries(
-    Object.entries(attributes).filter(([key]) => !SENSITIVE_ATTRIBUTE_PATTERN.test(key)),
+    Object.entries(attributes).filter(([key]) => {
+      if (settings.redactSensitiveData && SENSITIVE_ATTRIBUTE_PATTERN.test(key)) return false;
+      if (!settings.captureRequestHeaders && /^(http\.(request|response)\.header\.|http\.header\.|request\.headers\.|response\.headers\.)/i.test(key)) return false;
+      if (!settings.captureRequestBody && /^(http\.(request|response)\.body|request\.body|response\.body)/i.test(key)) return false;
+      return true;
+    }).slice(0, Math.max(1, settings.maxAttributeCount)),
   );
 }
 
-function sanitizeSensitiveText(value: string): string {
+function sanitizeSensitiveText(value: string, enabled = true): string {
+  if (!enabled) return value;
   return SENSITIVE_TEXT_PATTERNS.reduce(
     (text, pattern) => text.replace(pattern, '$1[REDACTED]'),
     value,
@@ -197,7 +203,8 @@ export function mapSpanToRequestRow(span: ParsedSpan, tenant: TenantContext) {
 }
 
 export function mapLogToRow(record: ParsedLogRecord, tenant: TenantContext) {
-  const safeAttributes = safeLogAttributes(record.attributes);
+  const settings = tenant.captureSettings;
+  const safeAttributes = safeLogAttributes(record.attributes, settings);
   const attrs: Record<string, unknown> = {
     ...safeAttributes,
     ...(record.traceId ? { traceId: record.traceId } : {}),
@@ -225,9 +232,9 @@ export function mapLogToRow(record: ParsedLogRecord, tenant: TenantContext) {
     traceId: record.traceId || '',
     spanId: record.spanId || '',
     level: record.severityLevel,
-    message: sanitizeSensitiveText(record.message),
+    message: sanitizeSensitiveText(record.message, settings.redactSensitiveData).slice(0, settings.maxAttributeValueLength),
     attributes: attrs,
-    stackTrace: sanitizeSensitiveText(String(safeAttributes['exception.stacktrace'] ?? '')),
+    stackTrace: sanitizeSensitiveText(String(safeAttributes['exception.stacktrace'] ?? ''), settings.redactSensitiveData).slice(0, settings.maxAttributeValueLength),
   };
 }
 
