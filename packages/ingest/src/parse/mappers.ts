@@ -47,12 +47,24 @@ function metricValue(point: ParsedMetricPoint): number {
 
 function safeLogAttributes(attributes: Record<string, unknown>, settings: CaptureSettings): Record<string, unknown> {
   return Object.fromEntries(
-    Object.entries(attributes).filter(([key]) => {
-      if (settings.redactSensitiveData && SENSITIVE_ATTRIBUTE_PATTERN.test(key)) return false;
-      if (!settings.captureRequestHeaders && /^(http\.(request|response)\.header\.|http\.header\.|request\.headers\.|response\.headers\.)/i.test(key)) return false;
-      if (!settings.captureRequestBody && /^(http\.(request|response)\.body|request\.body|response\.body)/i.test(key)) return false;
-      return true;
-    }).slice(0, Math.max(1, settings.maxAttributeCount)),
+    Object.entries(attributes)
+      .filter(([key]) => {
+        if (settings.redactSensitiveData && SENSITIVE_ATTRIBUTE_PATTERN.test(key)) return false;
+        if (!settings.captureRequestHeaders && /^(http\.(request|response)\.header\.|http\.header\.|request\.headers\.|response\.headers\.)/i.test(key)) return false;
+        if (!settings.captureRequestBody && /^(http\.(request|response)\.body|request\.body|response\.body)/i.test(key)) return false;
+        return true;
+      })
+      .slice(0, Math.max(1, settings.maxAttributeCount))
+      .map(([key, value]) => [key, limitAttributeValue(value, settings.maxAttributeValueLength)]),
+  );
+}
+
+function limitAttributeValue(value: unknown, maxLength: number, depth = 0): unknown {
+  if (typeof value === 'string') return value.slice(0, maxLength);
+  if (depth >= 6 || value === null || typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.map((item) => limitAttributeValue(item, maxLength, depth + 1));
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [key, limitAttributeValue(item, maxLength, depth + 1)]),
   );
 }
 
