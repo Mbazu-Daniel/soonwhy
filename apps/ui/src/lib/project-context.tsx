@@ -36,7 +36,9 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
   const setProjectId = useCallback((id: string) => {
     localStorage.setItem('project_id', id);
+    localStorage.removeItem('project_slug');
     setProjectIdState(id);
+    setProjectSlugState(null);
   }, []);
 
   const setProject = useCallback((project: Project) => {
@@ -59,11 +61,20 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setOrganization = useCallback((org: { id: string; slug: string }) => {
+    const organizationChanged = org.id !== orgId;
+
     localStorage.setItem('org_id', org.id);
     localStorage.setItem('org_slug', org.slug);
     setOrgIdState(org.id);
     setOrgSlugState(org.slug);
-  }, []);
+
+    if (organizationChanged) {
+      localStorage.removeItem('project_id');
+      localStorage.removeItem('project_slug');
+      setProjectIdState(null);
+      setProjectSlugState(null);
+    }
+  }, [orgId]);
 
   return (
     <ProjectContext.Provider value={{ projectId, projectSlug, orgId, orgSlug, setProjectId, setProject, clearProjectId, setOrgId, setOrganization }}>
