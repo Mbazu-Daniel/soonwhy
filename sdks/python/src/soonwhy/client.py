@@ -77,9 +77,8 @@ class Soonwhy:
         unit: Optional[str] = None,
         **attributes: Any,
     ) -> None:
-        if not isinstance(value, (int, float)) or not isinstance(value, bool):
-            if not isinstance(value, (int, float)):
-                raise ValueError("Soonwhy metric value must be numeric")
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError("Soonwhy metric value must be numeric")
         if isinstance(value, float) and not (-float("inf") < value < float("inf")):
             raise ValueError("Soonwhy metric value must be finite")
 
