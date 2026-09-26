@@ -3,7 +3,7 @@
 # Validates conventional commit format and blocks AI attribution
 
 # Run commitlint (exits if invalid)
-/home/daniel/Documents/projects/soonwhy/node_modules/.bin/commitlint --edit "$1"
+"$(git rev-parse --show-toplevel)/node_modules/.bin/commitlint" --edit "$1"
 
 # Run existing commit-msg checks (blocks AI attribution)
-/home/daniel/Documents/projects/soonwhy/.githooks/commit-msg "$1"
+"$(git rev-parse --show-toplevel)/.githooks/commit-msg" "$1"
