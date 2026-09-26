@@ -42,11 +42,7 @@ function DashboardOverviewPage() {
   });
 
   if (!projectId) {
-    return (
-      <div className="p-6 sm:p-8">
-        <EmptyProject />
-      </div>
-    );
+    return <EmptyProject />;
   }
 
   if (isLoading) return <OverviewSkeleton />;
@@ -57,7 +53,7 @@ function DashboardOverviewPage() {
   const healthTone = score >= 90 ? 'text-[#ACFC15]' : score >= 70 ? 'text-[#9A6500]' : 'text-[#8A1C13]';
 
   return (
-    <div className="min-h-full px-4 py-5 sm:px-6 sm:py-7 xl:px-8">
+    <div className="min-h-full w-full">
       <div className="mx-auto max-w-[1440px] space-y-5">
         <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -168,5 +164,5 @@ function Mini({ label, value }: { label:string; value:string }) { return <div><p
 function Attention({ icon:Icon, title, detail, tone }: { icon:typeof CheckCircle2; title:string; detail:string; tone?:'ok' }) { return <div className="flex items-start gap-3 px-5 py-4 sm:px-6"><span className={tone === 'ok' ? 'grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#EEF7E4] text-[#ACFC15]' : 'grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#EAF3F4] text-[#26737A]'}><Icon className="h-4 w-4"/></span><div><p className="text-sm font-medium">{title}</p><p className="mt-1 text-xs leading-5 text-[#989898]">{detail}</p></div></div>; }
 function QuickLink({ href, params, icon:Icon, label }: { href:'/$organizationSlug/services'|'/$organizationSlug/traces'|'/$organizationSlug/logs'|'/$organizationSlug/investigations'; params:{organizationSlug:string}; icon:typeof Server; label:string }) { return <Link to={href} params={params} className="flex items-center gap-3 bg-[#0B0B0C] px-5 py-4 text-sm font-medium hover:bg-[#040405]"><span className="grid h-8 w-8 place-items-center rounded-lg bg-[#151517] text-[#ACFC15]"><Icon className="h-4 w-4"/></span>{label}<ArrowUpRight className="ml-auto h-3.5 w-3.5 text-[#6E6E70]"/></Link>; }
 function EmptyProject(){return <Card className="rounded-2xl border-dashed border-[#242426] bg-[#0B0B0C]"><CardContent className="p-12 text-center"><Server className="mx-auto h-6 w-6 text-[#ACFC15]"/><p className="mt-3 text-sm font-medium">Choose a project</p><p className="mt-1 text-xs text-[#989898]">Select a project from the top bar to start exploring telemetry.</p></CardContent></Card>;}
-function OverviewSkeleton(){return <div className="p-6 sm:p-8"><div className="mx-auto max-w-[1480px] space-y-6"><Skeleton className="h-10 w-72"/><Skeleton className="h-4 w-96 max-w-full"/><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[1,2,3,4].map(i=><Skeleton key={i} className="h-32 rounded-2xl"/>)}</div><Skeleton className="h-[390px] rounded-2xl"/></div></div>;}
+function OverviewSkeleton(){return <div className="w-full"><div className="mx-auto max-w-[1440px] space-y-6"><Skeleton className="h-10 w-72"/><Skeleton className="h-4 w-96 max-w-full"/><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[1,2,3,4].map(i=><Skeleton key={i} className="h-32 rounded-2xl"/>)}</div><Skeleton className="h-[390px] rounded-2xl"/></div></div>;}
 function formatNumber(value:number|undefined){return value == null ? '—' : value.toLocaleString();}
