@@ -7,7 +7,6 @@ let activeClient: Client | undefined;
 export class Client implements NodeSdk {
   private readonly options: ResolvedNodeSdkOptions;
   private readonly sdk: ReturnType<typeof createOpenTelemetryRuntime>['sdk'];
-  private readonly exporter: ReturnType<typeof createOpenTelemetryRuntime>['exporter'];
   private started = false;
   private shuttingDown: Promise<void> | undefined;
   private readonly shutdownHandlers: Array<() => void> = [];
@@ -16,8 +15,6 @@ export class Client implements NodeSdk {
     this.options = resolveNodeOptions(options);
     const runtime = createOpenTelemetryRuntime(this.options);
     this.sdk = runtime.sdk;
-    this.exporter = runtime.exporter;
-
   }
 
   start(): void {
@@ -49,7 +46,6 @@ export class Client implements NodeSdk {
     try {
       await this.sdk.shutdown();
     } finally {
-      await this.exporter.shutdown();
       if (activeClient === this) activeClient = undefined;
     }
   }
