@@ -38,7 +38,10 @@ export class DashboardController {
     @CurrentOrg() org: OrgContext,
     @Param('projectId') projectId: string,
     @Query('limit') limit?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('service') service?: string,
   ) {
-    return this.dashboardService.getErrors(org.orgId, projectId, limit ? parseInt(limit, 10) : 50);
+    return this.dashboardService.getErrors(org.orgId, projectId, limit ? parseInt(limit, 10) : 50, from, to, service);
   }
 }
