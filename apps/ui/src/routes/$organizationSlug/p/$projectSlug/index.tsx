@@ -17,6 +17,8 @@ import { Skeleton } from '~/components/ui/skeleton';
 import { api } from '~/lib/api';
 import { dashboardOverview, type DashboardOverview } from '~/data/dashboard-overview';
 import { useProject } from '~/lib/project-context';
+import { useState } from 'react';
+import { TimeRangeControl, telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/')({
   component: DashboardOverviewPage,
@@ -57,10 +59,12 @@ function AIDashboardSummary({ orgSlug, projectSlug }: { orgSlug: string; project
 function DashboardOverviewPage() {
   const { projectSlug, orgSlug } = useProject();
   const { projectId } = useProject();
+  const [range, setRange] = useState<TelemetryRange>('24h');
+  const rangeParams = telemetryRangeParams(range);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['dashboard-overview', projectId],
-    queryFn: () => api.get<DashboardOverview>(`/projects/${projectId}/dashboard/overview`),
+    queryKey: ['dashboard-overview', projectId, range],
+    queryFn: () => api.get<DashboardOverview>(`/projects/${projectId}/dashboard/overview?${new URLSearchParams(rangeParams).toString()}`),
     enabled: !!projectId,
   });
 
@@ -92,10 +96,7 @@ function DashboardOverviewPage() {
             A quiet overview of traffic, reliability and the evidence SoonWhy has connected across your services.
           </p>
         </div>
-        <div className="flex items-center gap-2 rounded-full border border-[#242426] bg-[#0B0B0C] px-3 py-2 text-xs text-[#989898]">
-          <span className="h-2 w-2 rounded-full bg-[#ACFC15]" />
-          Last 24 hours
-        </div>
+        <TimeRangeControl value={range} onChange={setRange} />
       </header>
 
       <AIDashboardSummary orgSlug={orgSlug!} projectSlug={projectSlug!} />
