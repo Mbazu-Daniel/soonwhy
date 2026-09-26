@@ -42,9 +42,13 @@ export class TracesRepository {
     limit: number;
     cursor?: { ts: string; traceId: string };
     q?: string;
+    service?: string;
   }): Promise<TraceListRow[]> {
     const result = await this.quickwit.search<TraceRow>(QUICKWIT_INDEXES.traces, {
-      query: quickwitTenantQuery(params.orgId, params.projectId, params.q ? quickwitTerm('traceId', params.q) : '*'),
+      query: quickwitTenantQuery(params.orgId, params.projectId, [
+        ...(params.q ? [quickwitTerm('traceId', params.q)] : []),
+        ...(params.service ? [quickwitTerm('service', params.service)] : []),
+      ].join(' AND ') || '*'),
       startTimestamp: quickwitTimestamp(params.from),
       endTimestamp: quickwitTimestamp(params.to),
       maxHits: 0,
