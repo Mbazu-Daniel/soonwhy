@@ -5,6 +5,24 @@ description: Configure credentials, endpoints and service metadata.
 
 # Configuration
 
-Common options are `apiKey`, `endpoint`, `serviceName`, `serviceVersion`, `deploymentEnvironment`, and `attributes`.
+The SDKs share a small set of configuration concepts, while runtime-specific options stay in their own packages.
 
-Browser applications must use credentials intended for public ingestion. Never expose a server-side secret in frontend code.
+| Option | Node.js | Web | Python |
+|---|---|---|---|
+| apiKey | required | required | required |
+| endpoint | optional | optional | optional |
+| serviceName | required | optional | optional |
+| serviceVersion | optional | optional | optional |
+| Environment metadata | environment, deployment, resourceAttributes | deploymentEnvironment, attributes | SDK-specific |
+| Batching | OpenTelemetry runtime | batchSize, flushIntervalMs | explicit flush |
+| Retries | OpenTelemetry runtime | maxRetries | client-specific |
+
+The default ingestion endpoint is http://localhost:3002/v1.
+
+> Browser credentials must be explicitly intended for public ingestion. Never expose a server-side API secret in frontend code.
+
+## Node.js
+
+The Node SDK also supports timeoutMs, sampling, registerShutdownHandlers, and switches for HTTP, Express, NestJS, PostgreSQL, Redis and ioredis.
+
+Initialize the Node SDK before importing modules that need instrumentation.

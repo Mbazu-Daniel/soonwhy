@@ -5,17 +5,42 @@ description: Browser-safe manual telemetry.
 
 # Web
 
-```bash
-pnpm add @soonwhy/web
-```
+@soonwhy/web is the browser-safe manual SDK. It sends logs and metrics using the Soonwhy OTLP JSON ingestion endpoints.
 
-```ts
-import { SoonwhyWeb } from '@soonwhy/web';
-const sdk = new SoonwhyWeb({ apiKey: import.meta.env.VITE_SOONWHY_API_KEY, serviceName: 'web-app' });
-sdk.captureLog('Application started');
-sdk.captureMetric('page.loaded', 1);
-```
+## Install
 
-The client batches logs and metrics and retries transient requests.
+    pnpm add @soonwhy/web
 
-<Warning>Do not put a server-side API secret in browser code.</Warning>
+## Initialize
+
+    import { SoonwhyWeb } from '@soonwhy/web';
+
+    const sdk = new SoonwhyWeb({
+      apiKey: import.meta.env.VITE_SOONWHY_API_KEY,
+      endpoint: import.meta.env.VITE_SOONWHY_ENDPOINT,
+      serviceName: 'web-app',
+      serviceVersion: '1.0.0',
+      deploymentEnvironment: 'production',
+    });
+
+    sdk.captureLog('Application started');
+    sdk.captureMetric('page.loaded', 1);
+
+## Errors
+
+    window.addEventListener('error', (event) => {
+      sdk.captureError(event.error ?? new Error(event.message));
+    });
+
+## Delivery
+
+The client batches logs and metrics, flushes when the batch is full or the interval expires, and retries failed requests.
+
+Use flush() for controlled lifecycle events:
+
+    await sdk.flush();
+    await sdk.close();
+
+close() stops the background flush timer and sends pending records.
+
+> Only use a browser-safe ingestion credential. A server-side API secret must never be shipped to the browser.

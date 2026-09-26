@@ -5,15 +5,52 @@ description: OpenTelemetry instrumentation for Node.js.
 
 # Node.js
 
-`@soonwhy/node` is the core server SDK.
+@soonwhy/node is the core server SDK. It initializes the OpenTelemetry Node runtime and enables the supported automatic instrumentations.
 
-```bash
-pnpm add @soonwhy/node @opentelemetry/api @opentelemetry/auto-instrumentations-node @opentelemetry/exporter-trace-otlp-proto @opentelemetry/resources @opentelemetry/sdk-node @opentelemetry/sdk-trace-base
-```
+## Install
 
-```ts
-import { initNode } from '@soonwhy/node';
-const sdk = initNode({ apiKey: process.env.SOONWHY_API_KEY!, serviceName: 'payments-api' });
-```
+    pnpm add @soonwhy/node @opentelemetry/api @opentelemetry/auto-instrumentations-node @opentelemetry/exporter-trace-otlp-proto @opentelemetry/resources @opentelemetry/sdk-node @opentelemetry/sdk-trace-base
 
-Initialize before importing instrumented modules. See `sdks/node/examples/`.
+## Initialize
+
+    import { initNode } from '@soonwhy/node';
+
+    const sdk = initNode({
+      apiKey: process.env.SOONWHY_API_KEY!,
+      serviceName: 'payments-api',
+      serviceVersion: '1.0.0',
+      environment: 'production',
+    });
+
+Initialize before importing instrumented application modules so OpenTelemetry can patch them before they are loaded.
+
+## Instrumentation
+
+The SDK currently configures HTTP, Express, NestJS, PostgreSQL, Redis and ioredis. Other auto-instrumentations are disabled by default.
+
+You can selectively disable supported integrations:
+
+    initNode({
+      apiKey: process.env.SOONWHY_API_KEY!,
+      serviceName: 'payments-api',
+      instrumentations: {
+        postgres: false,
+        redis: false,
+      },
+    });
+
+## Sampling
+
+    initNode({
+      apiKey: process.env.SOONWHY_API_KEY!,
+      serviceName: 'payments-api',
+      sampling: { type: 'ratio', ratio: 0.25 },
+    });
+
+Use always_off, always_on, or a ratio between 0 and 1.
+
+## Shutdown
+
+initNode registers SIGINT and SIGTERM handlers by default. If your application owns process lifecycle, set registerShutdownHandlers to false and call sdk.shutdown() yourself.
+
+See sdks/node/examples/ for a minimal integration.

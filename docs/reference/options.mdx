@@ -1,10 +1,46 @@
 ---
 title: Options
-description: Common SDK configuration options.
+description: SDK configuration reference.
 ---
 
 # Options
 
-The SDK family shares `apiKey`, `endpoint`, `serviceName`, `serviceVersion`, `deploymentEnvironment`, and `attributes`.
+## Node.js
 
-Browser SDKs also support batching and retry controls where applicable.
+The Node SDK accepts:
+
+- apiKey
+- endpoint
+- serviceName
+- serviceVersion
+- environment
+- deployment
+- resourceAttributes
+- timeoutMs
+- sampling
+- registerShutdownHandlers
+- instrumentations
+
+Sampling supports always_on, always_off, or ratio with a value from 0 to 1.
+
+Supported instrumentation switches are HTTP, Express, NestJS, PostgreSQL, Redis and ioredis.
+
+## Web
+
+The Web SDK accepts:
+
+- apiKey
+- endpoint
+- serviceName
+- serviceVersion
+- deploymentEnvironment
+- attributes
+- batchSize
+- flushIntervalMs
+- maxRetries
+
+Defaults are a 50-record batch, a 5-second flush interval and 2 retries.
+
+## Python
+
+SoonwhyOptions accepts the API key, endpoint, service name, optional service version, environment metadata and request timeout controls.
