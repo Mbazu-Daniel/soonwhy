@@ -44,7 +44,7 @@ export class TelemetryQueryService {
   search<T>(
     index: keyof typeof QUICKWIT_INDEXES,
     query: TelemetryQuery,
-    options: Omit<Parameters<QuickwitService['search']>[2], 'query' | 'startTimestamp' | 'endTimestamp'> = {},
+    options: Omit<import('@soonwhy/shared').QuickwitSearchInput, 'query' | 'startTimestamp' | 'endTimestamp'> = {},
   ) {
     const range = { from: query.from, to: query.to };
     return this.quickwit.search<T>(QUICKWIT_INDEXES[index], {
