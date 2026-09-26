@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { TimeRangeControl, telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Search, ChevronDown, ChevronRight, SlidersHorizontal, RotateCcw, Download, Bookmark } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, SlidersHorizontal, RotateCcw, Download, Bookmark, ExternalLink } from 'lucide-react';
 import { Card, CardContent } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Button } from '~/components/ui/button';
@@ -77,6 +77,7 @@ function LogRow({ log }: { log: LogEntry }) {
                 <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Service</dt><dd className="font-medium">{log.service}</dd></div>
                 <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Level</dt><dd className="font-medium uppercase">{log.level}</dd></div>
                 <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Timestamp</dt><dd className="font-mono">{new Date(log.timestamp).toLocaleTimeString()}</dd></div>
+                {(fields.traceId || fields.spanId) && <div className="mt-3 border-t pt-3"><p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Correlation</p><div className="mt-2 flex flex-wrap gap-2">{fields.traceId && <Link to="/$organizationSlug/p/$projectSlug/trace/$traceId" params={{ organizationSlug: Route.useParams().organizationSlug, projectSlug: Route.useParams().projectSlug, traceId: String(fields.traceId) }} className="inline-flex items-center gap-1 text-xs font-medium text-[#16931F] hover:underline">View trace <ExternalLink className="h-3 w-3" /></Link>}</div></div>}
               </dl>
             </div>
           </div>
@@ -90,20 +91,27 @@ function LogViewer() {
   const { projectId } = useProject();
   const [search, setSearch] = useState('');
   const [levelFilter, setLevelFilter] = useState('all');
-  const [serviceFilter, setServiceFilter] = useState('all');
+  const [serviceFilter, setServiceFilter] = useState(initialService);
   const [cursor, setCursor] = useState<string>();
   const [allLogs, setAllLogs] = useState<LogEntry[]>([]);
   const [range, setRange] = useState<TelemetryRange>('24h');
   const [live, setLive] = useState(false);
+  const { organizationSlug, projectSlug } = Route.useParams();
   const rangeParams = telemetryRangeParams(range);
+  const routeSearch = Route.useSearch() as { service?: string; traceId?: string; spanId?: string };
+  const initialService = routeSearch.service ?? 'all';
+  const traceIdFilter = routeSearch.traceId;
+  const spanIdFilter = routeSearch.spanId;
 
   const { data, isLoading, isFetching, isError, refetch } = useQuery({
-    queryKey: ['logs', projectId, levelFilter, serviceFilter, search, cursor, range, live],
+    queryKey: ['logs', projectId, levelFilter, serviceFilter, search, cursor, range, live, traceIdFilter, spanIdFilter],
     queryFn: () => {
       const params = new URLSearchParams();
       if (levelFilter !== 'all') params.set('level', levelFilter);
       if (serviceFilter !== 'all') params.set('service', serviceFilter);
       if (search) params.set('q', search);
+      if (traceIdFilter) params.set('traceId', traceIdFilter);
+      if (spanIdFilter) params.set('spanId', spanIdFilter);
       if (cursor) params.set('cursor', cursor);
       Object.entries(rangeParams).forEach(([key, value]) => params.set(key, value));
       params.set('limit', '50');
@@ -161,6 +169,7 @@ function LogViewer() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#16931F]">Telemetry explorer</p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">Logs</h1>
+        {(traceIdFilter || spanIdFilter) && <p className="mt-1 text-xs text-[#16931F]">Showing correlated telemetry{spanIdFilter ? ' for span ' + spanIdFilter : ''}{traceIdFilter ? ' in trace ' + traceIdFilter : ''}</p>}
         <p className="mt-1 text-sm text-muted-foreground">Search every field, narrow the stream, and inspect the context around a log event.</p></div><div className="flex flex-wrap items-center gap-2"><TimeRangeControl value={range} onChange={(value) => { setRange(value); setCursor(undefined); setAllLogs([]); }} /><Button variant={live ? "default" : "outline"} size="sm" onClick={() => setLive((value) => !value)}>{live ? "Live" : "Live mode"}</Button></div>
       </header>
 
