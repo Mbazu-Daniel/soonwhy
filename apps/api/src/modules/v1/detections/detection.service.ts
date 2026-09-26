@@ -458,7 +458,7 @@ export class DetectionService {
       ))
       .limit(1);
 
-    if (existing[0]) return existing[0] as DetectionFinding;
+    if (existing[0]) return this.toDetectionFinding(existing[0]);
 
     return this.persistFinding({
       orgId,
@@ -822,6 +822,26 @@ export class DetectionService {
         },
       }];
     });
+  }
+
+  private toDetectionFinding(row: typeof findings.$inferSelect): DetectionFinding {
+    return {
+      id: row.id,
+      projectId: row.projectId,
+      serviceName: row.serviceName,
+      type: row.type as FindingType,
+      severity: row.severity as FindingSeverity,
+      title: row.title,
+      description: row.description,
+      observedValue: row.observedValue,
+      threshold: row.threshold,
+      unit: row.unit,
+      window: {
+        start: row.windowStart,
+        end: row.windowEnd,
+      },
+      evidence: row.evidence,
+    };
   }
 
   private async persistFinding(input: {
