@@ -18,3 +18,7 @@ sdks/
 ```
 
 Framework adapters stay thin and delegate runtime behavior to a core SDK. The shared protocol provides a common contract for future SDKs.
+
+## Package flow
+
+Node-based framework adapters delegate to the Node runtime. Vite and Next.js compose the browser and server integrations rather than creating separate telemetry protocols. The shared protocol and types live under sdks/shared so new SDKs can follow the same ingestion contract.
