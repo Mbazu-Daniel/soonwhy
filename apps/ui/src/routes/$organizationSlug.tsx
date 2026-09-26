@@ -9,7 +9,6 @@ import { SidebarProvider } from '~/lib/sidebar-context';
 import { getSessionToken, clearSession } from '~/lib/auth-client';
 import { useProject } from '~/lib/project-context';
 import { api } from '~/lib/api';
-import { ProjectBreadcrumb } from '~/components/project-breadcrumb';
 import { CreateProjectDialog } from '~/components/create-project-dialog';
 
 interface Organization { id: string; name: string; slug: string; }
@@ -23,7 +22,7 @@ function OrganizationDashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { organizationSlug } = Route.useParams();
-  const { orgId, projectId, setOrganization } = useProject();
+  const { orgId, projectId, setOrganization, setProject } = useProject();
   const token = getSessionToken();
 
   const session = useQuery({
@@ -49,7 +48,8 @@ function OrganizationDashboardLayout() {
   });
 
   const isProjectRoute = location.pathname.includes('/p/');
-  const activeProject = projects.data?.find((project) => project.id === projectId) ?? projects.data?.[0];
+  const projectRouteSlug = isProjectRoute ? location.pathname.split('/p/')[1]?.split('/')[0] : null;
+  const activeProject = projects.data?.find((project) => project.slug === projectRouteSlug) ?? projects.data?.find((project) => project.id === projectId) ?? projects.data?.[0];
 
   useEffect(() => {
     if (session.isLoading || organizations.isLoading) return;
@@ -69,17 +69,22 @@ function OrganizationDashboardLayout() {
   }, [token, session.isLoading, session.data, organizations.isLoading, organizations.data, organization, navigate, setOrganization]);
 
   useEffect(() => {
-    if (!organization || projects.isLoading || !projects.data?.length || isProjectRoute || !activeProject) return;
+    if (!organization || !projects.data) return;
 
-    const segment = location.pathname.slice(`/${organizationSlug}`.length).replace(/^\//, '');
+    if (isProjectRoute) {
+      if (activeProject && (projectId !== activeProject.id)) setProject(activeProject);
+      return;
+    }
+
+    if (!projects.data.length || !activeProject) return;
+
+    const segment = location.pathname.slice(`/${organizationSlug}`.length).replace(/^\\//, '');
     const page = segment === 'dashboard' || !segment ? '' : segment.split('/')[0];
     const allowed = new Set(['services', 'detections', 'investigations', 'errors', 'logs', 'traces', 'api-keys', 'settings']);
     const suffix = allowed.has(page) ? page : '';
-    const target = suffix
-      ? `/${organizationSlug}/p/${activeProject.slug}/${suffix}`
-      : `/${organizationSlug}/p/${activeProject.slug}/`;
+    const target = suffix ? `/${organizationSlug}/p/${activeProject.slug}/${suffix}` : `/${organizationSlug}/p/${activeProject.slug}/`;
     void navigate({ to: target as never, replace: true });
-  }, [activeProject, isProjectRoute, location.pathname, navigate, organization, organizationSlug, projects.data, projects.isLoading, projectId]);
+  }, [activeProject, isProjectRoute, location.pathname, navigate, organization, organizationSlug, projectId, projects.data, setProject]);
 
   const showCreateProject = !!organization && !projects.isLoading && projects.data?.length === 0;
 
@@ -95,7 +100,6 @@ function OrganizationDashboardLayout() {
         <div className="flex min-h-0 w-full flex-1">
           <Sidebar />
           <main id="main-content" tabIndex={-1} className="min-h-0 w-full min-w-0 flex-1 overflow-y-auto bg-[#040405] px-4 py-5 sm:px-6 sm:py-7 xl:px-8">
-            {isProjectRoute && <ProjectBreadcrumb />}
             <Outlet />
           </main>
           <CreateProjectDialog open={showCreateProject} onOpenChange={() => undefined} />
@@ -111,7 +115,7 @@ function DashboardLoading() {
     <div className="min-h-screen bg-[#040405]">
       <header className="h-16 border-b border-[#242426] bg-[#0B0B0C]" />
       <div className="flex min-h-[calc(100vh-4rem)]">
-        <aside className="hidden w-64 border-r border-[#242426] bg-[#0B0B0C] lg:block" />
+        <aside className="hidden w-60 border-r border-[#242426] bg-[#0B0B0C] lg:block" />
         <main className="flex-1 p-6 sm:p-8">
           <div className="mx-auto max-w-[1440px] space-y-6">
             <Skeleton className="h-9 w-48" />
