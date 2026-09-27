@@ -1,56 +1,88 @@
 ---
 title: Node.js
-description: OpenTelemetry instrumentation for Node.js.
+description: Add Soonwhy telemetry to a Node.js service.
 ---
 
 # Node.js
 
-@soonwhy/node is the core server SDK. It initializes the OpenTelemetry Node runtime and enables the supported automatic instrumentations.
-
 ## Install
 
-    pnpm add @soonwhy/node @opentelemetry/api @opentelemetry/auto-instrumentations-node @opentelemetry/exporter-trace-otlp-proto @opentelemetry/resources @opentelemetry/sdk-node @opentelemetry/sdk-trace-base
+```bash
+pnpm add @soonwhy/node
+```
 
-## Initialize
+`@soonwhy/node` installs the OpenTelemetry runtime it needs.
 
-    import { initNode } from '@soonwhy/node';
+## Start
 
-    const sdk = initNode({
-      apiKey: process.env.SOONWHY_API_KEY!,
-      serviceName: 'payments-api',
-      serviceVersion: '1.0.0',
-      environment: 'production',
-    });
+```ts
+import { initNode } from '@soonwhy/node';
 
-Initialize before importing instrumented application modules so OpenTelemetry can patch them before they are loaded.
+initNode({
+  apiKey: process.env.SOONWHY_API_KEY!,
+  serviceName: 'payments-api',
+});
+```
 
-## Instrumentation
+Start the SDK before importing instrumented modules.
 
-The SDK currently configures HTTP, Express, NestJS, PostgreSQL, Redis and ioredis. Other auto-instrumentations are disabled by default.
+## Options
 
-You can selectively disable supported integrations:
+```ts
+initNode({
+  apiKey: process.env.SOONWHY_API_KEY!,
+  serviceName: 'payments-api',
+  serviceVersion: '1.0.0',
+  environment: 'production',
+});
+```
 
-    initNode({
-      apiKey: process.env.SOONWHY_API_KEY!,
-      serviceName: 'payments-api',
-      instrumentations: {
-        postgres: false,
-        redis: false,
-      },
-    });
+Supported instrumentations:
+
+- HTTP
+- Express
+- NestJS
+- PostgreSQL
+- Redis
+- ioredis
+
+Disable an integration when needed:
+
+```ts
+initNode({
+  apiKey: process.env.SOONWHY_API_KEY!,
+  serviceName: 'payments-api',
+  instrumentations: {
+    postgres: false,
+    redis: false,
+  },
+});
+```
 
 ## Sampling
 
-    initNode({
-      apiKey: process.env.SOONWHY_API_KEY!,
-      serviceName: 'payments-api',
-      sampling: { type: 'ratio', ratio: 0.25 },
-    });
+```ts
+initNode({
+  apiKey: process.env.SOONWHY_API_KEY!,
+  serviceName: 'payments-api',
+  sampling: { type: 'ratio', ratio: 0.25 },
+});
+```
 
-Use always_off, always_on, or a ratio between 0 and 1.
+Sampling modes are `always_on`, `always_off`, and `ratio`.
 
 ## Shutdown
 
-initNode registers SIGINT and SIGTERM handlers by default. If your application owns process lifecycle, set registerShutdownHandlers to false and call sdk.shutdown() yourself.
+The SDK handles `SIGINT` and `SIGTERM` by default.
 
-See sdks/node/examples/ for a minimal integration.
+Disable this behavior when the application owns shutdown:
+
+```ts
+initNode({
+  apiKey: process.env.SOONWHY_API_KEY!,
+  serviceName: 'payments-api',
+  registerShutdownHandlers: false,
+});
+```
+
+Then call `shutdown()` when the process exits.
