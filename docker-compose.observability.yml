@@ -90,7 +90,7 @@ services:
       REDIS_URL: redis://redis:6379
       QUICKWIT_URL: http://quickwit:7280
       # NATS_URL: nats://nats:4222
-      FRONTEND_URL: http://localhost:3000
+      # FRONTEND_URL: http://localhost:3000
       BETTER_AUTH_URL: http://localhost:3001
       BETTER_AUTH_SECRET: replace-with-a-long-random-secret
       PORT: 3001
@@ -133,19 +133,19 @@ services:
       quickwit: {condition: service_healthy}
       # nats: {condition: service_healthy}
 
-  ui:
-    build:
-      context: .
-      target: ui
-      args:
-        # Browser calls the published API port. The /api/v1 prefix is added in the client.
-        VITE_API_URL: http://localhost:3001
-    environment:
-      HOST: 0.0.0.0
-      PORT: "3000"
-    depends_on:
-      api: {condition: service_started}
-    ports: ["3000:3000"]
+  # ui:
+  #   build:
+  #     context: .
+  #     target: ui
+  #     args:
+  #       # Browser calls the published API port. The /api/v1 prefix is added in the client.
+  #       VITE_API_URL: http://localhost:3001
+  #   environment:
+  #     HOST: 0.0.0.0
+  #     PORT: "3000"
+  #   depends_on:
+  #     api: {condition: service_started}
+  #   ports: ["3000:3000"]
 
 volumes:
   postgres-data:

@@ -60,7 +60,7 @@ doc/
 .agents/
 .cursor/
 .codex-plugin/
-.scratch/
+.scratchs/
 *.pdf
 *.docx
 *.txt
