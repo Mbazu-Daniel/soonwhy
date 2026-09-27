@@ -9,7 +9,11 @@
     "lint": "oxlint",
     "format": "oxfmt",
     "verify:migrations": "node scripts/verify-migrations.mjs",
-    "prepare": "husky"
+    "prepare": "husky",
+    "registry:up": "docker compose -f docker-compose.verdaccio.yml up -d",
+    "registry:down": "docker compose -f docker-compose.verdaccio.yml down",
+    "registry:logs": "docker compose -f docker-compose.verdaccio.yml logs -f",
+    "publish:local": "node scripts/publish-local.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.2",

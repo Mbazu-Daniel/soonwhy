@@ -1,7 +1,17 @@
 # Soonwhy SDKs
 
-Independent SDKs live under `sdks/`: Node, Express, NestJS, Python, Web, Vite, and Next.js.
+Every SDK has an `examples/` directory with a minimal integration.
 
-Framework integrations stay thin and share the same telemetry contract. Node uses OpenTelemetry for automatic server instrumentation; Python provides a dependency-free manual client; Web is the browser-safe manual client.
+| SDK | Package |
+|---|---|
+| Node.js | `@soonwhy/node` |
+| Express | `@soonwhy/express` |
+| NestJS | `@soonwhy/nestjs` |
+| Python | `soonwhy` |
+| Web | `@soonwhy/web` |
+| Vite | `@soonwhy/vite` |
+| Next.js | `@soonwhy/nextjs` |
 
-See each SDK directory for installation and usage.
+Build all TypeScript SDKs with `pnpm build`. Check Python with `cd sdks/python && python -m compileall src`.
+
+See `docs/` for the complete Mintlify documentation source.

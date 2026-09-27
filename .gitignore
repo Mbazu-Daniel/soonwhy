@@ -48,7 +48,7 @@ dist/
 # Local dev binaries and data
 .dev/
 
+doc/
+
 # TypeScript incremental build info
 *.tsbuildinfo
-docs
-doc

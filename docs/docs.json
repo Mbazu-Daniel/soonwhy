@@ -1,0 +1,66 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Soonwhy",
+  "description": "OpenTelemetry observability SDKs for Node.js, Python, browsers and modern web frameworks.",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Concepts",
+            "pages": [
+              "architecture",
+              "configuration",
+              "telemetry",
+              "local-registry"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "SDKs",
+        "groups": [
+          {
+            "group": "Server",
+            "pages": [
+              "sdks/node",
+              "sdks/express",
+              "sdks/nestjs",
+              "sdks/python"
+            ]
+          },
+          {
+            "group": "Web",
+            "pages": [
+              "sdks/web",
+              "sdks/vite",
+              "sdks/nextjs"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Reference",
+        "groups": [
+          {
+            "group": "Common",
+            "pages": [
+              "reference/options",
+              "reference/errors",
+              "reference/troubleshooting"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

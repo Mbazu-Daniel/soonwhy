@@ -1,0 +1,17 @@
+---
+title: Express
+description: Add Soonwhy instrumentation to Express.
+---
+
+# Express
+
+```bash
+pnpm add @soonwhy/express express
+```
+
+```ts
+import { initExpress } from '@soonwhy/express';
+initExpress({ apiKey: process.env.SOONWHY_API_KEY!, serviceName: 'express-api' });
+```
+
+The adapter enables HTTP and Express instrumentation and delegates to `@soonwhy/node`.

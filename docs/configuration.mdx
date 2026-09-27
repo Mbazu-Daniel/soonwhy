@@ -1,0 +1,38 @@
+---
+title: Configuration
+description: Configure Soonwhy SDKs.
+---
+
+# Configuration
+
+## Node.js
+
+| Option | Required |
+|---|---|
+| `apiKey` | Yes |
+| `serviceName` | Yes |
+| `endpoint` | No |
+| `serviceVersion` | No |
+| `environment` | No |
+| `deployment` | No |
+| `resourceAttributes` | No |
+| `sampling` | No |
+
+Default endpoint:
+
+```text
+http://localhost:3002/v1
+```
+
+## Web
+
+| Option | Required |
+|---|---|
+| `apiKey` | Yes |
+| `endpoint` | No |
+| `serviceName` | No |
+| `serviceVersion` | No |
+| `deploymentEnvironment` | No |
+| `attributes` | No |
+
+Do not expose a server API key in browser code.
