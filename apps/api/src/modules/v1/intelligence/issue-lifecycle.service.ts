@@ -1,11 +1,10 @@
+import { Injectable } from '@nestjs/common';
 import type { Issue } from './issue.types';
 import {
   applyIssueLifecycle,
   type IssueLifecycleResult,
 } from './issue-lifecycle.coordinator';
-import {
-  createIssueKey,
-} from './issue-lifecycle.engine';
+import { createIssueKey } from './issue-lifecycle.engine';
 import {
   IssueLifecycleRepository,
   type SaveIssueLifecycleInput,
@@ -17,6 +16,7 @@ export interface PersistIssueLifecycleInput {
   issue: Issue;
 }
 
+@Injectable()
 export class IssueLifecycleService {
   constructor(private readonly repository = new IssueLifecycleRepository()) {}
 
