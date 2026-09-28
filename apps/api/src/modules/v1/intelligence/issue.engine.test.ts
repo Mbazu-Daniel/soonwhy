@@ -47,6 +47,7 @@ describe('buildIssue', () => {
 
     expect(issue).toMatchObject({
       identity,
+      confidence,
       status: 'confirmed',
       firstObservedAt: '2026-09-28T10:00:00Z',
       lastObservedAt: '2026-09-28T10:05:00Z',
