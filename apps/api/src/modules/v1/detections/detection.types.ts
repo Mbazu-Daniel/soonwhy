@@ -11,6 +11,7 @@ export type FindingType =
   | 'database_query'
   | 'database_n_plus_one'
   | 'database_query_volume'
+  | 'database_error'
   | 'performance';
 
 export type FindingSeverity = 'warning' | 'critical';
