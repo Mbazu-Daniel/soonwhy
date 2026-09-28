@@ -1,6 +1,15 @@
 import type { Issue } from './issue.types';
-import { applyIssueLifecycle, type IssueLifecycleResult } from './issue-lifecycle.coordinator';
-import { IssueLifecycleRepository, type SaveIssueLifecycleInput } from './issue-lifecycle.repository';
+import {
+  applyIssueLifecycle,
+  type IssueLifecycleResult,
+} from './issue-lifecycle.coordinator';
+import {
+  createIssueKey,
+} from './issue-lifecycle.engine';
+import {
+  IssueLifecycleRepository,
+  type SaveIssueLifecycleInput,
+} from './issue-lifecycle.repository';
 
 export interface PersistIssueLifecycleInput {
   orgId: string;
@@ -12,7 +21,7 @@ export class IssueLifecycleService {
   constructor(private readonly repository = new IssueLifecycleRepository()) {}
 
   async apply(input: PersistIssueLifecycleInput): Promise<IssueLifecycleResult> {
-    const issueKey = this.createIssueKey(input.issue);
+    const issueKey = createIssueKey(input.issue.identity);
     const current = await this.repository.find(input.orgId, input.projectId, issueKey);
     const result = applyIssueLifecycle(input.issue, current);
 
@@ -26,9 +35,5 @@ export class IssueLifecycleService {
 
     const lifecycle = await this.repository.save(saveInput);
     return { action: result.action, lifecycle };
-  }
-
-  private createIssueKey(issue: Issue): string {
-    return issue.identity.fingerprintVersion + ':' + issue.identity.fingerprint;
   }
 }
