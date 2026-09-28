@@ -13,6 +13,7 @@ import { detectDatabaseQueryVolume, type DatabaseQueryVolumeTrace } from '../int
 import { detectDatabaseErrors, type DatabaseErrorTrace } from '../intelligence/database-error.detector';
 import { detectDatabaseLatencyContribution, type DatabaseLatencyContributionTrace } from '../intelligence/database-latency-contribution.detector';
 import { detectDatabaseConnectionPool, type DatabaseConnectionPoolSample } from '../intelligence/database-connection-pool.detector';
+import { detectDatabaseTimeouts, type DatabaseTimeoutTrace } from '../intelligence/database-timeout.detector';
 import { sanitizeRequestUrl } from './detection.utils';
 import { correlateFindings } from './detection.correlation';
 import { completeDetectionRun, failDetectionRun, startDetectionRun } from './detection.run';
@@ -76,6 +77,7 @@ interface TraceSource {
   duration?: number;
   statusCode?: number;
   statusMessage?: string;
+  errorType?: string;
   dependencyName?: string;
   dependencyType?: string;
   spanKind?: number;
@@ -488,6 +490,56 @@ export class DetectionService {
             ...(candidate.signal.p95UtilizationPercent !== undefined ? { p95UtilizationPercent: candidate.signal.p95UtilizationPercent } : {}),
             ...(candidate.signal.p95PendingRequests !== undefined ? { p95PendingRequests: candidate.signal.p95PendingRequests } : {}),
             ...(candidate.signal.timeoutIncrease !== undefined ? { timeoutIncrease: candidate.signal.timeoutIncrease } : {}),
+          },
+        })),
+      }));
+    }
+
+    const databaseTimeoutTraces: DatabaseTimeoutTrace[] = currentDatabaseSpans.map((sample) => ({
+      timestamp: sample.timestamp,
+      service: sample.service,
+      traceId: sample.traceId,
+      spanId: sample.spanId,
+      duration: sample.duration,
+      dependencyType: sample.dependencyType,
+      dependencyName: sample.dependencyName,
+      ...(sample.errorType ? { errorType: sample.errorType } : {}),
+      ...(sample.dbQueryText ? { dbQueryText: sample.dbQueryText } : {}),
+      ...(sample.dbQuerySummary ? { dbQuerySummary: sample.dbQuerySummary } : {}),
+      ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
+      ...(sample.dbSystemName ? { dbSystemName: sample.dbSystemName } : {}),
+    }));
+
+    for (const candidate of detectDatabaseTimeouts(databaseTimeoutTraces)) {
+      detected.push(await this.persistFinding({
+        orgId,
+        projectId,
+        serviceName: candidate.serviceName,
+        type: 'database_timeout',
+        severity: candidate.signal.timeoutRate >= 0.5 ? 'critical' : 'warning',
+        title: 'Database timeouts detected in ' + candidate.serviceName,
+        description: this.describeDatabaseTimeout(candidate),
+        observedValue: candidate.signal.timeoutRate * 100,
+        threshold: 10,
+        unit: '% timeout rate',
+        start,
+        end,
+        evidence: candidate.samples.map((sample) => ({
+          kind: 'trace' as const,
+          label: 'database-timeout',
+          value: sample.duration,
+          context: {
+            service: sample.service,
+            traceId: sample.traceId,
+            spanId: sample.spanId,
+            timestamp: sample.timestamp,
+            errorType: sample.errorType ?? 'timeout',
+            fingerprint: candidate.identity.fingerprint,
+            databaseSystem: candidate.databaseSystem ?? '',
+            dependencyName: sample.dependencyName,
+            ...(candidate.queryOperation ? { queryOperation: candidate.queryOperation } : {}),
+            ...(candidate.querySummary ? { querySummary: candidate.querySummary } : {}),
+            ...(sample.dbQueryText ? { query: sample.dbQueryText } : {}),
           },
         })),
       }));
@@ -1173,6 +1225,8 @@ export class DetectionService {
         duration: Number(source.duration ?? 0),
         ...(Number.isFinite(source.statusCode) ? { statusCode: Number(source.statusCode) } : {}),
         ...(source.statusMessage ? { statusMessage: String(source.statusMessage) } : {}),
+        ...(typeof source.errorType === 'string' ? { errorType: source.errorType } : {}),
+        ...(source.errorType ? { errorType: String(source.errorType) } : {}),
         dependencyType: 'database',
         dependencyName,
         ...(source.name ? { spanName: String(source.name) } : {}),
@@ -1215,6 +1269,13 @@ export class DetectionService {
       '% of trace duration at p95, with ' +
       candidate.signal.p95DurationMs.toFixed(0) +
       'ms of database time.';
+  }
+
+  private describeDatabaseTimeout(
+    candidate: ReturnType<typeof detectDatabaseTimeouts>[number],
+  ): string {
+    const queryLabel = candidate.querySummary ?? candidate.queryOperation ?? candidate.query;
+    return queryLabel + ' timed out ' + candidate.signal.timeoutCount + ' times out of ' + candidate.signal.totalCount + ' executions (' + (candidate.signal.timeoutRate * 100).toFixed(1) + '%).';
   }
 
   private describeDatabaseError(
