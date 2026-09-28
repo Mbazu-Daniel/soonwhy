@@ -1,4 +1,3 @@
-import { Injectable } from '@nestjs/common';
 import type { Issue } from './issue.types';
 import {
   applyIssueLifecycle,
@@ -9,6 +8,7 @@ import {
   IssueLifecycleRepository,
   type SaveIssueLifecycleInput,
 } from './issue-lifecycle.repository';
+import type { IssueLifecycle } from './issue-lifecycle.types';
 
 export interface PersistIssueLifecycleInput {
   orgId: string;
@@ -16,9 +16,15 @@ export interface PersistIssueLifecycleInput {
   issue: Issue;
 }
 
-@Injectable()
+interface IssueLifecycleRepositoryPort {
+  find(orgId: string, projectId: string, issueKey: string): Promise<IssueLifecycle | undefined>;
+  save(input: SaveIssueLifecycleInput): Promise<IssueLifecycle>;
+}
+
 export class IssueLifecycleService {
-  constructor(private readonly repository = new IssueLifecycleRepository()) {}
+  constructor(
+    private readonly repository: IssueLifecycleRepositoryPort = new IssueLifecycleRepository(),
+  ) {}
 
   async apply(input: PersistIssueLifecycleInput): Promise<IssueLifecycleResult> {
     const issueKey = createIssueKey(input.issue.identity);
@@ -27,13 +33,12 @@ export class IssueLifecycleService {
 
     if (!result.lifecycle) return result;
 
-    const saveInput: SaveIssueLifecycleInput = {
+    const lifecycle = await this.repository.save({
       orgId: input.orgId,
       projectId: input.projectId,
       lifecycle: result.lifecycle,
-    };
+    });
 
-    const lifecycle = await this.repository.save(saveInput);
     return { action: result.action, lifecycle };
   }
 }
