@@ -11,6 +11,7 @@ import { detectDatabaseQueries, type DatabaseQueryTrace } from '../intelligence/
 import { detectNPlusOne, type NPlusOneTrace } from '../intelligence/n-plus-one.detector';
 import { detectDatabaseQueryVolume, type DatabaseQueryVolumeTrace } from '../intelligence/database-query-volume.detector';
 import { detectDatabaseErrors, type DatabaseErrorTrace } from '../intelligence/database-error.detector';
+import { detectDatabaseLatencyContribution, type DatabaseLatencyContributionTrace } from '../intelligence/database-latency-contribution.detector';
 import { sanitizeRequestUrl } from './detection.utils';
 import { correlateFindings } from './detection.correlation';
 import { completeDetectionRun, failDetectionRun, startDetectionRun } from './detection.run';
@@ -361,6 +362,69 @@ export class DetectionService {
             ...(candidate.collectionName ? { collectionName: candidate.collectionName } : {}),
             ...(sample.dbQueryText ? { query: sample.dbQueryText } : {}),
             ...(sample.dbReturnedRows !== undefined ? { returnedRows: sample.dbReturnedRows } : {}),
+          },
+        })),
+      }));
+    }
+
+    const traceDurations = await this.searchTraceDurations(
+      orgId,
+      projectId,
+      startTimestamp,
+      endTimestamp,
+    );
+
+    const databaseLatencyContributionTraces: DatabaseLatencyContributionTrace[] = currentDatabaseSpans.flatMap((sample) => {
+      const traceDuration = traceDurations.get(sample.traceId);
+      if (traceDuration === undefined) return [];
+
+      return [{
+        timestamp: sample.timestamp,
+        service: sample.service,
+        traceId: sample.traceId,
+        spanId: sample.spanId,
+        duration: sample.duration,
+        traceDuration,
+        dependencyType: sample.dependencyType,
+        dependencyName: sample.dependencyName,
+        ...(sample.dbQueryText ? { dbQueryText: sample.dbQueryText } : {}),
+        ...(sample.dbQuerySummary ? { dbQuerySummary: sample.dbQuerySummary } : {}),
+        ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
+        ...(sample.dbSystemName ? { dbSystemName: sample.dbSystemName } : {}),
+        ...(sample.dbCollectionName ? { dbCollectionName: sample.dbCollectionName } : {}),
+      }];
+    });
+
+    for (const candidate of detectDatabaseLatencyContribution(databaseLatencyContributionTraces)) {
+      detected.push(await this.persistFinding({
+        orgId,
+        projectId,
+        serviceName: candidate.serviceName,
+        type: 'database_latency_contribution',
+        severity: candidate.signal.p95ContributionPercent >= 75 ? 'critical' : 'warning',
+        title: 'Database latency dominates traces in ' + candidate.serviceName,
+        description: this.describeDatabaseLatencyContribution(candidate),
+        observedValue: candidate.signal.p95ContributionPercent,
+        threshold: 50,
+        unit: '% of trace duration',
+        start,
+        end,
+        evidence: candidate.samples.map((sample) => ({
+          kind: 'trace' as const,
+          label: 'database-latency-contribution',
+          value: sample.duration,
+          context: {
+            service: sample.service,
+            traceId: sample.traceId,
+            spanId: sample.spanId,
+            traceDurationMs: sample.traceDuration,
+            contributionPercent: (sample.duration / sample.traceDuration) * 100,
+            fingerprint: candidate.identity.fingerprint,
+            databaseSystem: candidate.databaseSystem ?? '',
+            dependencyName: sample.dependencyName,
+            ...(candidate.queryOperation ? { queryOperation: candidate.queryOperation } : {}),
+            ...(candidate.querySummary ? { querySummary: candidate.querySummary } : {}),
+            ...(sample.dbQueryText ? { query: sample.dbQueryText } : {}),
           },
         })),
       }));
@@ -1007,6 +1071,18 @@ export class DetectionService {
       Math.round(candidate.signal.observedValue) + 'ms.';
   }
 
+  private describeDatabaseLatencyContribution(
+    candidate: ReturnType<typeof detectDatabaseLatencyContribution>[number],
+  ): string {
+    const queryLabel = candidate.querySummary ?? candidate.queryOperation ?? candidate.query;
+    return queryLabel +
+      ' accounts for ' +
+      candidate.signal.p95ContributionPercent.toFixed(0) +
+      '% of trace duration at p95, with ' +
+      candidate.signal.p95DurationMs.toFixed(0) +
+      'ms of database time.';
+  }
+
   private describeDatabaseError(
     candidate: ReturnType<typeof detectDatabaseErrors>[number],
   ): string {
@@ -1045,6 +1121,48 @@ export class DetectionService {
       ' times in one trace under the same parent span, consuming about ' +
       Math.round(candidate.signal.totalDurationMs) +
       'ms of database time.';
+  }
+
+  private async searchTraceDurations(
+    orgId: string,
+    projectId: string,
+    startTimestamp: number,
+    endTimestamp: number,
+  ): Promise<Map<string, number>> {
+    const result = await this.quickwit.search<TraceSource>(QUICKWIT_INDEXES.traces, {
+      query: quickwitTenantQuery(orgId, projectId),
+      startTimestamp,
+      endTimestamp,
+      maxHits: 5000,
+      sortBy: ['-duration'],
+    });
+
+    const traces = new Map<string, { start: number; end: number }>();
+
+    for (const hit of result.hits ?? []) {
+      const source = hit._source;
+      if (!source?.traceId) continue;
+
+      const start = new Date(String(source.timestamp ?? '')).getTime();
+      const duration = Number(source.duration ?? 0);
+      if (!Number.isFinite(start) || !Number.isFinite(duration) || duration <= 0) continue;
+
+      const end = start + duration;
+      const existing = traces.get(source.traceId);
+      if (!existing) {
+        traces.set(source.traceId, { start, end });
+        continue;
+      }
+
+      existing.start = Math.min(existing.start, start);
+      existing.end = Math.max(existing.end, end);
+    }
+
+    return new Map(
+      Array.from(traces.entries())
+        .map(([traceId, value]) => [traceId, value.end - value.start] as const)
+        .filter(([, duration]) => duration > 0),
+    );
   }
 
   private async searchTraceSpanCandidates(
