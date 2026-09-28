@@ -25,7 +25,6 @@ export interface EvidenceWindow {
 }
 
 export interface EvidenceBundle {
-  identity: TelemetryIdentity;
   observations: EvidenceObservation[];
   window: EvidenceWindow;
 }
