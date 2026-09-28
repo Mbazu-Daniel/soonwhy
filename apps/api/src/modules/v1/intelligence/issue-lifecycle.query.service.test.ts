@@ -21,6 +21,7 @@ describe('IssueLifecycleQueryService', () => {
     const repository = {
       list: vi.fn().mockResolvedValue([lifecycle]),
       find: vi.fn(),
+      save: vi.fn(),
     };
     const service = new IssueLifecycleQueryService(repository);
 
@@ -32,6 +33,7 @@ describe('IssueLifecycleQueryService', () => {
     const repository = {
       list: vi.fn(),
       find: vi.fn().mockResolvedValue(lifecycle),
+      save: vi.fn(),
     };
     const service = new IssueLifecycleQueryService(repository);
 
