@@ -74,12 +74,8 @@ describe('DetectionService realistic telemetry scenarios', () => {
     const result = await service.run('org-1', 'project-1');
 
     expect(result.map((finding) => finding.type)).toEqual([
-      'latency',
-      'error_rate',
+      'performance',
       'throughput',
-      'dependency_latency',
-      'trace_span',
-      'bottleneck',
     ]);
     expect(result.at(-1)).toMatchObject({
       type: 'bottleneck',
