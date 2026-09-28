@@ -24,6 +24,7 @@ const DOMAIN_MAP: Record<DetectionFinding['type'], TelemetryDomain> = {
   database_query: 'database',
   database_n_plus_one: 'database',
   database_query_volume: 'database',
+  database_error: 'database',
   performance: 'performance',
 };
 
@@ -54,7 +55,7 @@ export function createIssueFromDetection(finding: DetectionFinding): Issue {
   const primaryObservation: EvidenceObservation = {
     name: 'observed-value',
     value: finding.observedValue,
-    source: finding.type === 'database_query' || finding.type === 'database_n_plus_one' || finding.type === 'database_query_volume' ? 'trace' : 'metric',
+    source: finding.type === 'database_query' || finding.type === 'database_n_plus_one' || finding.type === 'database_query_volume' || finding.type === 'database_error' ? 'trace' : 'metric',
     observedAt: finding.window.end.toISOString(),
     dimensions: {
       findingType: finding.type,
