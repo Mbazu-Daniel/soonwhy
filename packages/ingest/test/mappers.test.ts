@@ -180,6 +180,44 @@ describe('OTLP JSON parse + telemetry mappers', () => {
     expect(row.dependencyName).toBe('postgresql');
   });
 
+  it('stores sanitized database query identity attributes', () => {
+    const start = BigInt(Date.now()) * 1_000_000n;
+    const end = start + 800_000_000n;
+    const { spans } = parseTracesPayload({
+      resourceSpans: [{
+        resource: {
+          attributes: [{ key: 'service.name', value: { stringValue: 'api' } }],
+        },
+        scopeSpans: [{
+          spans: [{
+            traceId: '1'.repeat(32),
+            spanId: '2'.repeat(16),
+            parentSpanId: '',
+            name: 'SELECT users',
+            kind: 3,
+            startTimeUnixNano: String(start),
+            endTimeUnixNano: String(end),
+            status: { code: 1 },
+            attributes: [
+              { key: 'db.system.name', value: { stringValue: 'postgresql' } },
+              { key: 'db.query.text', value: { stringValue: "SELECT * FROM users WHERE email = 'daniel@example.com' AND id = 42" } },
+              { key: 'db.query.summary', value: { stringValue: 'SELECT users' } },
+              { key: 'db.operation.name', value: { stringValue: 'SELECT' } },
+              { key: 'db.response.returned_rows', value: { intValue: 3 } },
+            ],
+          }],
+        }],
+      }],
+    });
+
+    const row = mapSpanToTraceRow(spans[0]!, tenant);
+    expect(row.dbSystemName).toBe('postgresql');
+    expect(row.dbQuerySummary).toBe('SELECT users');
+    expect(row.dbOperationName).toBe('SELECT');
+    expect(row.dbQueryText).toBe('SELECT * FROM users WHERE email = ? AND id = ?');
+    expect(row.dbReturnedRows).toBe(3);
+  });
+
   it('maps gauge metrics into metrics table rows', () => {
     const { points, rejected } = parseMetricsPayload({
       resourceMetrics: [
