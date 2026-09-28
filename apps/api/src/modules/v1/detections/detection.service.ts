@@ -811,7 +811,7 @@ export class DetectionService {
       sortBy: ['-duration'],
     });
 
-    return result.hits.flatMap((hit) => {
+    return (result.hits ?? []).flatMap((hit) => {
       const source = hit._source;
       if (!source?.traceId || !source.service) return [];
 
