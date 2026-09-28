@@ -3,11 +3,15 @@ import type { IssueLifecycle } from './issue-lifecycle.types';
 
 export function createIssueLifecycle(issue: Issue): IssueLifecycle {
   const firstObservation = issue.observations.reduce((earliest, observation) =>
-    observation.observedAt < earliest.observedAt ? observation : earliest,
+    compareTimestamps(observation.observedAt, earliest.observedAt) < 0
+      ? observation
+      : earliest,
   );
 
   const lastObservation = issue.observations.reduce((latest, observation) =>
-    observation.observedAt > latest.observedAt ? observation : latest,
+    compareTimestamps(observation.observedAt, latest.observedAt) > 0
+      ? observation
+      : latest,
   );
 
   return {
@@ -29,10 +33,17 @@ export function updateIssueLifecycle(
 
   const latestObservedAt = issue.lastObservedAt ?? issue.observations.reduce(
     (latest, observation) =>
-      observation.observedAt > latest.observedAt ? observation : latest,
+      compareTimestamps(observation.observedAt, latest.observedAt) > 0
+        ? observation
+        : latest,
   ).observedAt;
 
-  if (latestObservedAt < lifecycle.lastObservedAt) {
+  const comparison = compareTimestamps(
+    latestObservedAt,
+    lifecycle.lastObservedAt,
+  );
+
+  if (comparison < 0 || (lifecycle.status === 'resolved' && comparison === 0)) {
     return undefined;
   }
 
@@ -51,7 +62,7 @@ export function resolveIssue(
   if (
     lifecycle.status !== 'active' ||
     !isValidTimestamp(resolvedAt) ||
-    resolvedAt < lifecycle.lastObservedAt
+    compareTimestamps(resolvedAt, lifecycle.lastObservedAt) < 0
   ) {
     return undefined;
   }
@@ -70,7 +81,7 @@ export function reopenIssue(
   if (
     lifecycle.status !== 'resolved' ||
     !isValidTimestamp(observedAt) ||
-    observedAt < lifecycle.lastObservedAt
+    compareTimestamps(observedAt, lifecycle.lastObservedAt) <= 0
   ) {
     return undefined;
   }
@@ -89,4 +100,15 @@ export function createIssueKey(identity: Issue['identity']): string {
 
 function isValidTimestamp(value: string): boolean {
   return Number.isFinite(Date.parse(value));
+}
+
+function compareTimestamps(left: string, right: string): number {
+  const leftTime = Date.parse(left);
+  const rightTime = Date.parse(right);
+
+  if (!Number.isFinite(leftTime) || !Number.isFinite(rightTime)) {
+    return Number.NaN;
+  }
+
+  return leftTime - rightTime;
 }
