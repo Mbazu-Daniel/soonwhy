@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, NotFoundException, Param, Query, UseGuards } from '@nestjs/common';
 import { CurrentOrg, OrgContext } from '../../../common/decorators/current-org.decorator';
 import { TenantGuard } from '../../../common/middleware/tenant-context.guard';
 import type { IssueLifecycleStatus } from './issue-lifecycle.types';
@@ -32,6 +32,8 @@ export class IssueLifecycleController {
     @Param('projectId') projectId: string,
     @Param('issueKey') issueKey: string,
   ) {
-    return this.queryService.get(org.orgId, projectId, issueKey);
+    const lifecycle = await this.queryService.get(org.orgId, projectId, issueKey);
+    if (!lifecycle) throw new NotFoundException('Issue not found');
+    return lifecycle;
   }
 }
