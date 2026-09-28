@@ -10,6 +10,7 @@ import { IssueLifecycleService } from '../intelligence/issue-lifecycle.service';
 import { detectDatabaseQueries, type DatabaseQueryTrace } from '../intelligence/database-query.detector';
 import { detectNPlusOne, type NPlusOneTrace } from '../intelligence/n-plus-one.detector';
 import { detectDatabaseQueryVolume, type DatabaseQueryVolumeTrace } from '../intelligence/database-query-volume.detector';
+import { detectDatabaseErrors, type DatabaseErrorTrace } from '../intelligence/database-error.detector';
 import { sanitizeRequestUrl } from './detection.utils';
 import { correlateFindings } from './detection.correlation';
 import { completeDetectionRun, failDetectionRun, startDetectionRun } from './detection.run';
@@ -360,6 +361,71 @@ export class DetectionService {
             ...(sample.dbReturnedRows !== undefined ? { returnedRows: sample.dbReturnedRows } : {}),
           },
         })),
+      }));
+    }
+
+    const databaseErrorTraces = (spans: DatabaseQueryTrace[]): DatabaseErrorTrace[] =>
+      spans.map((sample) => ({
+        timestamp: sample.timestamp,
+        service: sample.service,
+        traceId: sample.traceId,
+        spanId: sample.spanId,
+        duration: sample.duration,
+        dependencyType: sample.dependencyType,
+        dependencyName: sample.dependencyName,
+        ...(sample.statusCode !== undefined ? { statusCode: sample.statusCode } : {}),
+        ...(sample.statusMessage ? { statusMessage: sample.statusMessage } : {}),
+        ...(sample.dbQueryText ? { dbQueryText: sample.dbQueryText } : {}),
+        ...(sample.dbQuerySummary ? { dbQuerySummary: sample.dbQuerySummary } : {}),
+        ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
+        ...(sample.dbSystemName ? { dbSystemName: sample.dbSystemName } : {}),
+        ...(sample.dbCollectionName ? { dbCollectionName: sample.dbCollectionName } : {}),
+      }));
+
+    for (const candidate of detectDatabaseErrors(databaseErrorTraces(currentDatabaseSpans))) {
+      detected.push(await this.persistFinding({
+        orgId,
+        projectId,
+        serviceName: candidate.serviceName,
+        type: 'database_error',
+        severity: candidate.signal.errorRate >= 0.5 ? 'critical' : 'warning',
+        title: 'Database errors increased in ' + candidate.serviceName,
+        description: this.describeDatabaseError(candidate),
+        observedValue: candidate.signal.errorRate * 100,
+        threshold: 10,
+        unit: '% error rate',
+        start,
+        end,
+        evidence: [
+          ...candidate.samples.map((sample) => ({
+            kind: 'trace' as const,
+            label: 'database-error-sample',
+            value: sample.duration,
+            context: {
+              service: sample.service,
+              traceId: sample.traceId,
+              spanId: sample.spanId,
+              statusCode: sample.statusCode ?? 0,
+              statusMessage: sample.statusMessage ?? '',
+              fingerprint: candidate.identity.fingerprint,
+              databaseSystem: candidate.databaseSystem ?? '',
+              dependencyName: sample.dependencyName,
+              ...(candidate.queryOperation ? { queryOperation: candidate.queryOperation } : {}),
+              ...(candidate.querySummary ? { querySummary: candidate.querySummary } : {}),
+              ...(sample.dbQueryText ? { query: sample.dbQueryText } : {}),
+            },
+          })),
+          {
+            kind: 'recommendation' as const,
+            label: 'database-error-guidance',
+            value: 'Inspect the database error pattern, query parameters, schema changes, locks, constraints, and recent deployments before changing the query or retry behavior.',
+            context: {
+              errorCount: candidate.signal.errorCount,
+              totalCount: candidate.signal.totalCount,
+              errorRate: candidate.signal.errorRate,
+            },
+          },
+        ],
       }));
     }
 
@@ -935,6 +1001,20 @@ export class DetectionService {
 
     return queryLabel + ' reached a p95 latency of ' +
       Math.round(candidate.signal.observedValue) + 'ms.';
+  }
+
+  private describeDatabaseError(
+    candidate: ReturnType<typeof detectDatabaseErrors>[number],
+  ): string {
+    const queryLabel = candidate.querySummary ?? candidate.queryOperation ?? candidate.query;
+    return queryLabel +
+      ' failed ' +
+      candidate.signal.errorCount +
+      ' times out of ' +
+      candidate.signal.totalCount +
+      ' executions, for a ' +
+      (candidate.signal.errorRate * 100).toFixed(1) +
+      '% database error rate.';
   }
 
   private describeDatabaseQueryVolume(
