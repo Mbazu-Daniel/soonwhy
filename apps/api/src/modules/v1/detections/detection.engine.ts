@@ -1,35 +1,10 @@
 export type DetectionSignalType = 'latency' | 'error_rate' | 'dependency_latency' | 'trace_span';
 
-export interface DetectionRule {
-  type: DetectionSignalType;
-  threshold: number;
-  criticalMultiplier: number;
-  regressionRelativeIncrease: number;
-  regressionAbsoluteIncrease: number;
-  criticalRegressionRelativeIncrease: number;
-  unit: 'ms' | '%';
-}
+export interface DetectionRule { type: DetectionSignalType; threshold: number; criticalMultiplier: number; regressionRelativeIncrease: number; regressionAbsoluteIncrease: number; criticalRegressionRelativeIncrease: number; unit: 'ms' | '%'; }
+export interface DetectionBaseline { value: number; samples: number; }
+export interface DetectionSignal { type: DetectionSignalType; observedValue: number; threshold: number; severity: 'warning' | 'critical'; unit: 'ms' | '%'; baselineValue?: number; changePercent?: number; }
 
-export interface DetectionBaseline {
-  value: number;
-  samples: number;
-}
-
-export interface DetectionSignal {
-  type: DetectionSignalType;
-  observedValue: number;
-  threshold: number;
-  severity: 'warning' | 'critical';
-  unit: 'ms' | '%';
-  baselineValue?: number;
-  changePercent?: number;
-}
-
-import {
-  evaluateLatency as evaluatePerformanceLatency,
-  evaluateThroughput as evaluatePerformanceThroughput,
-  evaluateTraceContribution,
-} from '../intelligence/performance.engine';
+import { evaluateLatency as evaluatePerformanceLatency, evaluateThroughput as evaluatePerformanceThroughput, evaluateTraceContribution } from '../intelligence/performance.engine';
 
 export const DETECTION_RULES: Record<DetectionSignalType, DetectionRule> = {
   latency: { type: 'latency', threshold: 1_000, criticalMultiplier: 2, regressionRelativeIncrease: 0.5, regressionAbsoluteIncrease: 250, criticalRegressionRelativeIncrease: 1, unit: 'ms' },
@@ -38,13 +13,16 @@ export const DETECTION_RULES: Record<DetectionSignalType, DetectionRule> = {
   trace_span: { type: 'trace_span', threshold: 50, criticalMultiplier: 1.5, regressionRelativeIncrease: 0, regressionAbsoluteIncrease: 0, criticalRegressionRelativeIncrease: 0.75, unit: '%' },
 };
 
+const MIN_BASELINE_SAMPLES = 20;
+
 export function evaluateSignal(type: DetectionSignalType, observedValue: number, baseline?: DetectionBaseline): DetectionSignal | undefined {
   const rule = DETECTION_RULES[type];
   if (!Number.isFinite(observedValue)) return undefined;
 
   if (type === 'latency' || type === 'dependency_latency') {
     const thresholdBreach = observedValue >= rule.threshold;
-    const performanceSignal = evaluatePerformanceLatency(observedValue, baseline);
+    const hasBaseline = baseline !== undefined && baseline.samples >= MIN_BASELINE_SAMPLES;
+    const performanceSignal = hasBaseline ? evaluatePerformanceLatency(observedValue, baseline) : undefined;
     if (!thresholdBreach && !performanceSignal) return undefined;
     return {
       type, observedValue, threshold: rule.threshold,
@@ -56,7 +34,7 @@ export function evaluateSignal(type: DetectionSignalType, observedValue: number,
 
   if (type !== 'error_rate') return undefined;
   const thresholdBreach = observedValue >= rule.threshold;
-  const hasBaseline = baseline !== undefined && baseline.samples >= 20;
+  const hasBaseline = baseline !== undefined && baseline.samples >= MIN_BASELINE_SAMPLES;
   const absoluteIncrease = hasBaseline ? observedValue - baseline.value : 0;
   const relativeIncrease = hasBaseline && baseline.value > 0 ? absoluteIncrease / baseline.value : hasBaseline && observedValue > 0 ? Number.POSITIVE_INFINITY : 0;
   const regression = hasBaseline && absoluteIncrease >= rule.regressionAbsoluteIncrease && relativeIncrease >= rule.regressionRelativeIncrease;
@@ -71,7 +49,6 @@ export function evaluateSignal(type: DetectionSignalType, observedValue: number,
 
 export type ThroughputSeverity = 'warning' | 'critical';
 export interface ThroughputSignal { type: 'throughput'; observedValue: number; threshold: number; severity: ThroughputSeverity; unit: 'requests'; baselineValue: number; changePercent: number; }
-
 export function evaluateThroughput(observedRequests: number, baseline?: DetectionBaseline): ThroughputSignal | undefined {
   const signal = evaluatePerformanceThroughput(observedRequests, baseline);
   if (!signal) return undefined;
@@ -79,7 +56,6 @@ export function evaluateThroughput(observedRequests: number, baseline?: Detectio
 }
 
 export interface TraceSpanSignal { type: 'trace_span'; observedValue: number; threshold: number; severity: 'warning' | 'critical'; unit: '%'; spanDuration: number; traceDuration: number; }
-
 export function evaluateTraceSpan(spanDuration: number, traceDuration: number): TraceSpanSignal | undefined {
   const signal = evaluateTraceContribution(spanDuration, traceDuration);
   if (!signal) return undefined;
