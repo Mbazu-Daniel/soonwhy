@@ -65,7 +65,13 @@ describe('database query volume detector', () => {
     expect(detectDatabaseQueryVolume(current, baseline)).toEqual([]);
   });
 
-  it('does not cross database systems for the same query shape', () => {\n    const current = samples(60, 'current').map((item) => ({ ...item, dbSystemName: 'mysql' }));\n    const baseline = samples(25, 'baseline').map((item) => ({ ...item, dbSystemName: 'postgresql' }));\n    expect(detectDatabaseQueryVolume(current, baseline)).toEqual([]);\n  });\n\n  it('ignores non-database spans', () => {
+  it('does not cross database systems for the same query shape', () => {
+    const current = samples(60, 'current').map((item) => ({ ...item, dbSystemName: 'mysql' }));
+    const baseline = samples(25, 'baseline').map((item) => ({ ...item, dbSystemName: 'postgresql' }));
+    expect(detectDatabaseQueryVolume(current, baseline)).toEqual([]);
+  });
+
+  it('ignores non-database spans', () => {
     expect(
       detectDatabaseQueryVolume(
         samples(60, 'current').map((item) => ({ ...item, dependencyType: 'http' })),
