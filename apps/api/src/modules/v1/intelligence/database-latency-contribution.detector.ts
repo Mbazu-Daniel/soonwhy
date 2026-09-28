@@ -84,14 +84,6 @@ export function detectDatabaseLatencyContribution(
       const first = samples[0];
       if (!first) return [];
 
-      const byTrace = new Map<string, DatabaseLatencyContributionTrace>();
-      for (const sample of samples) {
-        const existing = byTrace.get(sample.traceId);
-        if (!existing || sample.duration > existing.duration) {
-          byTrace.set(sample.traceId, sample);
-        }
-      }
-
       const contributions = samples
         .reduce((map, sample) => {
           const current = map.get(sample.traceId) ?? {
@@ -103,8 +95,7 @@ export function detectDatabaseLatencyContribution(
           current.traceDuration = Math.max(current.traceDuration, sample.traceDuration);
           map.set(sample.traceId, current);
           return map;
-        }, new Map<string, { duration: number; traceDuration: number; sample: DatabaseLatencyContributionTrace }>())
-        ;
+        }, new Map<string, { duration: number; traceDuration: number; sample: DatabaseLatencyContributionTrace }>());
 
       const observations = Array.from(contributions.values())
         .map((value) => ({
