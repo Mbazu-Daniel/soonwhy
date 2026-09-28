@@ -13,6 +13,7 @@ export interface DatabaseQueryTrace {
   duration: number;
   dependencyType: string;
   dependencyName: string;
+  spanName?: string;
   dbQueryText?: string;
   dbQuerySummary?: string;
   dbOperationName?: string;
@@ -48,7 +49,8 @@ export function detectDatabaseQueries(
     const first = currentSamples[0];
     if (!first) continue;
 
-    const query = first.dbQueryText ?? first.dbQuerySummary ?? first.dbOperationName ?? first.dependencyName;
+    const query = first.dbQueryText ?? first.dbQuerySummary ?? first.dbOperationName ?? first.spanName;
+
     if (!query) continue;
 
     const identity = fingerprintQuery(query, first.dbSystemName).identity;
@@ -95,7 +97,7 @@ function groupQueries(samples: DatabaseQueryTrace[]): Map<string, DatabaseQueryT
       sample.duration <= 0
     ) continue;
 
-    const query = sample.dbQueryText ?? sample.dbQuerySummary ?? sample.dbOperationName ?? sample.dependencyName;
+    const query = sample.dbQueryText ?? sample.dbQuerySummary ?? sample.dbOperationName ?? sample.spanName;
     if (!query) continue;
 
     const identity = fingerprintQuery(query, sample.dbSystemName).identity;
