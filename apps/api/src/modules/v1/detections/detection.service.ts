@@ -971,6 +971,8 @@ export class DetectionService {
         spanId: String(source.spanId ?? ''),
         ...(source.parentSpanId ? { parentSpanId: String(source.parentSpanId) } : {}),
         duration: Number(source.duration ?? 0),
+        ...(Number.isFinite(source.statusCode) ? { statusCode: Number(source.statusCode) } : {}),
+        ...(source.statusMessage ? { statusMessage: String(source.statusMessage) } : {}),
         dependencyType: 'database',
         dependencyName,
         ...(source.name ? { spanName: String(source.name) } : {}),
