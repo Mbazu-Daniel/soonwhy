@@ -62,8 +62,18 @@ describe('issue lifecycle', () => {
     const lifecycle = createIssueLifecycle({
       ...issue,
       observations: [
-        { ...issue.observations[0], observedAt: '2026-09-28T11:00:00+01:00' },
-        { ...issue.observations[0], observedAt: '2026-09-28T09:30:00Z' },
+        {
+          name: 'query.duration',
+          value: 700,
+          source: 'database',
+          observedAt: '2026-09-28T11:00:00+01:00',
+        },
+        {
+          name: 'query.duration',
+          value: 700,
+          source: 'database',
+          observedAt: '2026-09-28T09:30:00Z',
+        },
       ],
       firstObservedAt: undefined,
       lastObservedAt: undefined,
