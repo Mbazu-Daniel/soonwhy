@@ -12,6 +12,7 @@ import { sanitizeRequestUrl } from './detection.utils';
 import { correlateFindings } from './detection.correlation';
 import { completeDetectionRun, failDetectionRun, startDetectionRun } from './detection.run';
 import { evaluateSignal, evaluateThroughput, evaluateTraceSpan } from './detection.engine';
+import { evaluateServicePerformance } from '../intelligence/service-performance.engine';
 import type { DetectionFinding, DetectionWindow, FindingSeverity, FindingType } from './detection.types';
 
 const WINDOW_MS = 15 * 60_000;
@@ -113,6 +114,9 @@ export class DetectionService {
       baselineBuckets.map((bucket) => [
         bucket.key,
         {
+          p50: this.getPercentile(bucket, '50.0'),
+          p95: this.getPercentile(bucket, '95.0'),
+          p99: this.getPercentile(bucket, '99.0'),
           latency: this.getLatency(bucket),
           errorRate: this.getErrorRate(bucket),
           requests: bucket.doc_count,
@@ -123,57 +127,79 @@ export class DetectionService {
     const detected: DetectionFinding[] = [];
 
     for (const bucket of currentBuckets) {
-      const p95 = this.getLatency(bucket);
+      const p50 = this.getPercentile(bucket, '50.0');
+      const p95 = this.getPercentile(bucket, '95.0');
+      const p99 = this.getPercentile(bucket, '99.0');
       const errorRate = this.getErrorRate(bucket);
       const baseline = baselineByService.get(bucket.key);
 
-      const latencySignal = evaluateSignal(
-        'latency',
-        p95,
+      const performanceSignal = evaluateServicePerformance(
+        {
+          serviceName: bucket.key,
+          endpoint: 'service:' + bucket.key,
+          sampleCount: bucket.doc_count,
+          p50,
+          p95,
+          p99,
+          errorRate: errorRate / 100,
+          throughputPerMinute: bucket.doc_count / 15,
+        },
         baseline
-          ? { value: baseline.latency, samples: baseline.samples }
+          ? {
+              p50: baseline.p50,
+              p95: baseline.p95,
+              p99: baseline.p99,
+              errorRate: baseline.errorRate / 100,
+              throughputPerMinute: baseline.requests / 15,
+            }
           : undefined,
       );
-      if (latencySignal) {
-        detected.push(await this.persistFinding({
-          orgId,
-          projectId,
-          serviceName: bucket.key,
-          type: latencySignal.type,
-          severity: latencySignal.severity,
-          title: 'High latency detected in ' + bucket.key,
-          description: this.describeSignal('The 95th percentile request latency is ' + Math.round(p95) + 'ms over the last 15 minutes.', latencySignal),
-          observedValue: latencySignal.observedValue,
-          threshold: latencySignal.threshold,
-          unit: latencySignal.unit,
-          start,
-          end,
-          evidence: await this.requestEvidence(orgId, projectId, bucket.key, startTimestamp, endTimestamp, 'latency'),
-        }));
-      }
 
-      const errorSignal = evaluateSignal(
-        'error_rate',
-        errorRate,
-        baseline
-          ? { value: baseline.errorRate, samples: baseline.samples }
-          : undefined,
-      );
-      if (errorSignal) {
+      if (performanceSignal) {
         detected.push(await this.persistFinding({
           orgId,
           projectId,
           serviceName: bucket.key,
-          type: errorSignal.type,
-          severity: errorSignal.severity,
-          title: 'Elevated error rate in ' + bucket.key,
-          description: this.describeSignal('HTTP 5xx responses account for ' + errorRate.toFixed(2) + '% of requests over the last 15 minutes.', errorSignal),
-          observedValue: errorSignal.observedValue,
-          threshold: errorSignal.threshold,
-          unit: errorSignal.unit,
+          type: 'performance',
+          severity: performanceSignal.severity,
+          title: 'Service performance degradation in ' + bucket.key,
+          description: this.describePerformanceSignal(performanceSignal),
+          observedValue: p95,
+          threshold: 500,
+          unit: 'ms',
           start,
           end,
-          evidence: await this.requestEvidence(orgId, projectId, bucket.key, startTimestamp, endTimestamp, 'error_rate'),
+          evidence: [
+            {
+              kind: 'metric',
+              label: 'performance-profile',
+              value: p95,
+              context: {
+                service: bucket.key,
+                p50,
+                p95,
+                p99,
+                errorRate,
+                throughputPerMinute: bucket.doc_count / 15,
+                sampleCount: bucket.doc_count,
+                reasons: performanceSignal.reasons.join('; '),
+                ...(performanceSignal.latency.p95ChangePercent !== undefined
+                  ? { p95ChangePercent: performanceSignal.latency.p95ChangePercent }
+                  : {}),
+                ...(performanceSignal.latency.p99ChangePercent !== undefined
+                  ? { p99ChangePercent: performanceSignal.latency.p99ChangePercent }
+                  : {}),
+              },
+            },
+            ...(await this.requestEvidence(
+              orgId,
+              projectId,
+              bucket.key,
+              startTimestamp,
+              endTimestamp,
+              'latency',
+            )),
+          ],
         }));
       }
 
@@ -183,6 +209,7 @@ export class DetectionService {
           ? { value: baseline.requests, samples: baseline.requests }
           : undefined,
       );
+
       if (throughputSignal) {
         detected.push(await this.persistFinding({
           orgId,
@@ -206,6 +233,9 @@ export class DetectionService {
                 service: bucket.key,
                 baselineRequests: throughputSignal.baselineValue,
                 changePercent: throughputSignal.changePercent,
+                p50,
+                p95,
+                p99,
               },
             },
           ],
@@ -601,7 +631,7 @@ export class DetectionService {
           },
           aggs: {
             latency: {
-              percentiles: { field: 'duration', percents: [95] },
+              percentiles: { field: 'duration', percents: [50, 95, 99] },
             },
             errors: {
               filter: { query: 'statusCode:[500 TO 599]' },
@@ -614,8 +644,13 @@ export class DetectionService {
     return (result.aggregations as Aggregations | undefined)?.services?.buckets ?? [];
   }
 
+  private getPercentile(bucket: ServiceBucket, percentile: string): number {
+    const value = bucket.latency?.values?.[percentile] ?? 0;
+    return Number.isFinite(value) && value >= 0 ? value : 0;
+  }
+
   private getLatency(bucket: ServiceBucket): number {
-    return bucket.latency?.values?.['95.0'] ?? 0;
+    return this.getPercentile(bucket, '95.0');
   }
 
   private getErrorRate(bucket: ServiceBucket): number {
@@ -895,6 +930,15 @@ export class DetectionService {
         },
       }];
     });
+  }
+
+  private describePerformanceSignal(signal: ReturnType<typeof evaluateServicePerformance>): string {
+    if (!signal) return 'Service performance degraded over the last 15 minutes.';
+
+    return signal.reasons.join('. ') + '. P50: ' +
+      Math.round(signal.latency.p50) + 'ms, P95: ' +
+      Math.round(signal.latency.p95) + 'ms, P99: ' +
+      Math.round(signal.latency.p99) + 'ms.';
   }
 
   private describeSignal(
