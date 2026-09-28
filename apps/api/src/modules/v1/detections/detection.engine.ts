@@ -25,6 +25,12 @@ export interface DetectionSignal {
   changePercent?: number;
 }
 
+import {
+  evaluateLatency as evaluatePerformanceLatency,
+  evaluateThroughput as evaluatePerformanceThroughput,
+  evaluateTraceContribution,
+} from '../intelligence/performance.engine';
+
 export const DETECTION_RULES: Record<DetectionSignalType, DetectionRule> = {
   latency: {
     type: 'latency',
@@ -71,15 +77,39 @@ export function evaluateSignal(
 ): DetectionSignal | undefined {
   const rule = DETECTION_RULES[type];
 
-  if (!Number.isFinite(observedValue)) {
-    return undefined;
+  if (!Number.isFinite(observedValue)) return undefined;
+
+  if (type === 'latency' || type === 'dependency_latency') {
+    const thresholdBreach = observedValue >= rule.threshold;
+    const performanceSignal = evaluatePerformanceLatency(observedValue, baseline);
+
+    if (!thresholdBreach && !performanceSignal) return undefined;
+
+    return {
+      type,
+      observedValue,
+      threshold: rule.threshold,
+      severity:
+        thresholdBreach && observedValue >= rule.threshold * rule.criticalMultiplier
+          ? 'critical'
+          : performanceSignal?.severity === 'critical'
+            ? 'critical'
+            : 'warning',
+      unit: rule.unit,
+      ...(performanceSignal?.baselineValue !== undefined
+        ? {
+            baselineValue: performanceSignal.baselineValue,
+            changePercent: performanceSignal.changePercent,
+          }
+        : {}),
+    };
   }
+
+  if (type !== 'error_rate') return undefined;
 
   const thresholdBreach = observedValue >= rule.threshold;
   const hasBaseline = baseline !== undefined && baseline.samples >= 20;
-  const absoluteIncrease = hasBaseline
-    ? observedValue - baseline.value
-    : 0;
+  const absoluteIncrease = hasBaseline ? observedValue - baseline.value : 0;
   const relativeIncrease =
     hasBaseline && baseline.value > 0
       ? absoluteIncrease / baseline.value
@@ -93,9 +123,7 @@ export function evaluateSignal(
     absoluteIncrease >= rule.regressionAbsoluteIncrease &&
     relativeIncrease >= rule.regressionRelativeIncrease;
 
-  if (!thresholdBreach && !regression) {
-    return undefined;
-  }
+  if (!thresholdBreach && !regression) return undefined;
 
   return {
     type,
@@ -130,43 +158,23 @@ export interface ThroughputSignal {
   changePercent: number;
 }
 
-const THROUGHPUT_WARNING_DECREASE = 0.3;
-const THROUGHPUT_CRITICAL_DECREASE = 0.5;
-const MIN_BASELINE_SAMPLES = 20;
-
 export function evaluateThroughput(
   observedRequests: number,
   baseline?: DetectionBaseline,
 ): ThroughputSignal | undefined {
-  if (
-    !Number.isFinite(observedRequests) ||
-    observedRequests < 0 ||
-    baseline === undefined ||
-    baseline.samples < MIN_BASELINE_SAMPLES ||
-    !Number.isFinite(baseline.value) ||
-    baseline.value <= 0
-  ) {
-    return undefined;
-  }
-
-  const changeRatio = (observedRequests - baseline.value) / baseline.value;
-  const decrease = -changeRatio;
-
-  if (decrease < THROUGHPUT_WARNING_DECREASE) {
-    return undefined;
-  }
+  const signal = evaluatePerformanceThroughput(observedRequests, baseline);
+  if (!signal) return undefined;
 
   return {
     type: 'throughput',
-    observedValue: observedRequests,
-    threshold: baseline.value * (1 - THROUGHPUT_WARNING_DECREASE),
-    severity: decrease >= THROUGHPUT_CRITICAL_DECREASE ? 'critical' : 'warning',
+    observedValue: signal.observedValue,
+    threshold: signal.baselineValue * 0.7,
+    severity: signal.severity,
     unit: 'requests',
-    baselineValue: baseline.value,
-    changePercent: changeRatio * 100,
+    baselineValue: signal.baselineValue,
+    changePercent: signal.changePercent ?? 0,
   };
 }
-
 
 export interface TraceSpanSignal {
   type: 'trace_span';
@@ -182,24 +190,14 @@ export function evaluateTraceSpan(
   spanDuration: number,
   traceDuration: number,
 ): TraceSpanSignal | undefined {
-  if (
-    !Number.isFinite(spanDuration) ||
-    !Number.isFinite(traceDuration) ||
-    spanDuration <= 0 ||
-    traceDuration <= 0 ||
-    spanDuration > traceDuration
-  ) {
-    return undefined;
-  }
-
-  const contribution = (spanDuration / traceDuration) * 100;
-  if (contribution < 50) return undefined;
+  const signal = evaluateTraceContribution(spanDuration, traceDuration);
+  if (!signal) return undefined;
 
   return {
     type: 'trace_span',
-    observedValue: contribution,
+    observedValue: signal.observedValue,
     threshold: 50,
-    severity: contribution >= 75 ? 'critical' : 'warning',
+    severity: signal.severity,
     unit: '%',
     spanDuration,
     traceDuration,
