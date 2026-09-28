@@ -1,7 +1,7 @@
 import type { EvidenceConfidence } from './evidence-confidence';
 import type { EvidenceObservation, EvidenceWindow } from './evidence.types';
-import type { TelemetryIdentity } from './telemetry-identity.types';
 import type { Issue } from './issue.types';
+import type { TelemetryIdentity } from './telemetry-identity.types';
 
 export interface BuildIssueInput {
   identity: TelemetryIdentity;
@@ -23,6 +23,7 @@ export function buildIssue(input: BuildIssueInput): Issue | undefined {
 
   return {
     identity: input.identity,
+    confidence: input.confidence,
     status: input.confidence.status,
     observations: input.observations,
     windows: validWindows,
