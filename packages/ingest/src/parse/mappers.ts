@@ -302,6 +302,17 @@ export function mapLogToRow(record: ParsedLogRecord, tenant: TenantContext) {
 }
 
 export function mapMetricToRow(point: ParsedMetricPoint, tenant: TenantContext) {
+  const connectionPoolName = typeof point.attributes['db.client.connection.pool.name'] === 'string'
+    ? point.attributes['db.client.connection.pool.name']
+    : undefined;
+  const connectionPoolState = typeof point.attributes['db.client.connection.state'] === 'string'
+    ? point.attributes['db.client.connection.state']
+    : undefined;
+  const attributes = Object.fromEntries(Object.entries(point.attributes).slice(0, 50));
+
+  if (connectionPoolName) attributes['db.client.connection.pool.name'] = connectionPoolName;
+  if (connectionPoolState) attributes['db.client.connection.state'] = connectionPoolState;
+
   return {
     id: randomUUID(),
     timestamp: telemetryTimestamp(point.timestamp),
@@ -314,11 +325,7 @@ export function mapMetricToRow(point: ParsedMetricPoint, tenant: TenantContext) 
     name: point.metricName,
     value: metricValue(point),
     unit: mapMetricUnit(point.metricUnit),
-    attributes: Object.fromEntries(
-      Object.entries(point.attributes).slice(0, 50),
-    ),
-    ...(typeof point.attributes['db.client.connection.pool.name'] === 'string'
-      ? { connectionPoolName: point.attributes['db.client.connection.pool.name'] }
-      : {}),
+    attributes,
+    ...(connectionPoolName ? { connectionPoolName } : {}),
   };
 }
