@@ -62,6 +62,7 @@ interface MetricSource {
   name?: string;
   value?: number;
   connectionPoolName?: string;
+  connectionPoolState?: string;
   attributes?: Record<string, unknown>;
 }
 
@@ -451,7 +452,13 @@ export class DetectionService {
       const critical =
         (candidate.signal.p95UtilizationPercent ?? 0) >= 95 ||
         (candidate.signal.p95PendingRequests ?? 0) >= 5 ||
-        (candidate.signal.timeoutIncrease ?? 0) > 0;
+        false;
+
+      const observed = candidate.signal.p95PendingRequests !== undefined
+        ? { value: candidate.signal.p95PendingRequests, threshold: 1, unit: 'pending requests' }
+        : candidate.signal.p95UtilizationPercent !== undefined
+          ? { value: candidate.signal.p95UtilizationPercent, threshold: 80, unit: '% utilization' }
+          : { value: candidate.signal.timeoutIncrease ?? 0, threshold: 1, unit: 'timeouts' };
 
       detected.push(await this.persistFinding({
         orgId,
@@ -461,9 +468,9 @@ export class DetectionService {
         severity: critical ? 'critical' : 'warning',
         title: 'Database connection pool pressure in ' + candidate.serviceName,
         description: this.describeDatabaseConnectionPool(candidate),
-        observedValue: candidate.signal.p95PendingRequests ?? candidate.signal.p95UtilizationPercent ?? candidate.signal.timeoutIncrease ?? 0,
-        threshold: candidate.signal.p95PendingRequests !== undefined ? 1 : 80,
-        unit: candidate.signal.p95PendingRequests !== undefined ? ' pending requests' : '% utilization',
+        observedValue: observed.value,
+        threshold: observed.threshold,
+        unit: observed.unit,
         start,
         end,
         evidence: candidate.samples.map((sample) => ({
@@ -1085,7 +1092,7 @@ export class DetectionService {
 
       const key = service + '\\0' + poolName + '\\0' + timestamp;
       const snapshot = snapshots.get(key) ?? { timestamp, service, poolName };
-      const state = this.metricString(source?.attributes?.['db.client.connection.state']);
+      const state = source?.connectionPoolState ?? this.metricString(source?.attributes?.['db.client.connection.state']);
 
       if (name === 'db.client.connection.count') {
         if (state === 'used') snapshot.usedConnections = value;
