@@ -3,15 +3,10 @@ import type { IssueLifecycle } from './issue-lifecycle.types';
 
 export function createIssueLifecycle(issue: Issue): IssueLifecycle {
   const firstObservation = issue.observations.reduce((earliest, observation) =>
-    compareTimestamps(observation.observedAt, earliest.observedAt) < 0
-      ? observation
-      : earliest,
+    compareTimestamps(observation.observedAt, earliest.observedAt) < 0 ? observation : earliest,
   );
-
   const lastObservation = issue.observations.reduce((latest, observation) =>
-    compareTimestamps(observation.observedAt, latest.observedAt) > 0
-      ? observation
-      : latest,
+    compareTimestamps(observation.observedAt, latest.observedAt) > 0 ? observation : latest,
   );
 
   return {
@@ -27,25 +22,20 @@ export function updateIssueLifecycle(
   lifecycle: IssueLifecycle,
   issue: Issue,
 ): IssueLifecycle | undefined {
-  if (createIssueKey(issue.identity) !== lifecycle.issueKey) {
+  if (createIssueKey(issue.identity) !== lifecycle.issueKey) return undefined;
+
+  const latestObservedAt = issue.lastObservedAt ?? getLatestObservation(issue);
+  if (!isValidTimestamp(latestObservedAt) || !isValidTimestamp(lifecycle.lastObservedAt)) {
     return undefined;
   }
-
-  const latestObservedAt = issue.lastObservedAt ?? issue.observations.reduce(
-    (latest, observation) =>
-      compareTimestamps(observation.observedAt, latest.observedAt) > 0
-        ? observation
-        : latest,
-  ).observedAt;
 
   const comparison = compareTimestamps(
     latestObservedAt,
-    lifecycle.lastObservedAt,
+    lifecycle.status === 'resolved' && lifecycle.resolvedAt
+      ? lifecycle.resolvedAt
+      : lifecycle.lastObservedAt,
   );
-
-  if (comparison < 0 || (lifecycle.status === 'resolved' && comparison === 0)) {
-    return undefined;
-  }
+  if (!Number.isFinite(comparison) || comparison <= 0) return undefined;
 
   return {
     ...lifecycle,
@@ -67,11 +57,7 @@ export function resolveIssue(
     return undefined;
   }
 
-  return {
-    ...lifecycle,
-    status: 'resolved',
-    resolvedAt,
-  };
+  return { ...lifecycle, status: 'resolved', resolvedAt };
 }
 
 export function reopenIssue(
@@ -81,7 +67,9 @@ export function reopenIssue(
   if (
     lifecycle.status !== 'resolved' ||
     !isValidTimestamp(observedAt) ||
-    compareTimestamps(observedAt, lifecycle.lastObservedAt) <= 0
+    !lifecycle.resolvedAt ||
+    !isValidTimestamp(lifecycle.resolvedAt) ||
+    compareTimestamps(observedAt, lifecycle.resolvedAt) <= 0
   ) {
     return undefined;
   }
@@ -95,7 +83,13 @@ export function reopenIssue(
 }
 
 export function createIssueKey(identity: Issue['identity']): string {
-  return `${identity.fingerprintVersion}:${identity.fingerprint}`;
+  return identity.fingerprintVersion + ':' + identity.fingerprint;
+}
+
+function getLatestObservation(issue: Issue): string {
+  return issue.observations.reduce((latest, observation) =>
+    compareTimestamps(observation.observedAt, latest.observedAt) > 0 ? observation : latest,
+  ).observedAt;
 }
 
 function isValidTimestamp(value: string): boolean {
@@ -105,10 +99,6 @@ function isValidTimestamp(value: string): boolean {
 function compareTimestamps(left: string, right: string): number {
   const leftTime = Date.parse(left);
   const rightTime = Date.parse(right);
-
-  if (!Number.isFinite(leftTime) || !Number.isFinite(rightTime)) {
-    return Number.NaN;
-  }
-
+  if (!Number.isFinite(leftTime) || !Number.isFinite(rightTime)) return Number.NaN;
   return leftTime - rightTime;
 }
