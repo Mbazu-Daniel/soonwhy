@@ -1,29 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import { LogsRepository } from './logs.repository';
 import { GetLogsInput } from './dto';
-import { chRange } from '../../../common/clickhouse/ch-time';
 
 @Injectable()
 export class LogsService {
   constructor(private readonly logsRepository: LogsRepository) {}
 
   async getHistogram(orgId: string, input: GetLogsInput) {
-    const { from, to } = chRange(input.from, input.to);
     return this.logsRepository.queryHistogram({
-      orgId, projectId: input.projectId, from, to,
+      orgId, projectId: input.projectId, from: input.from, to: input.to,
       level: input.level || 'all', service: input.service || '', q: input.q || '', traceId: input.traceId, spanId: input.spanId,
     });
   }
 
   async getLogs(orgId: string, input: GetLogsInput) {
-    const { from, to } = chRange(input.from, input.to);
     let cursor: { ts: string; id: string } | undefined;
     if (input.cursor) {
       try { const decoded = JSON.parse(Buffer.from(input.cursor, 'base64').toString('utf-8')); cursor = { ts: decoded.ts, id: decoded.id }; } catch { cursor = undefined; }
     }
     const limit = input.limit ?? 50;
     const rows = await this.logsRepository.queryLogs({
-      orgId, projectId: input.projectId, from, to, level: input.level || 'all',
+      orgId, projectId: input.projectId, from: input.from, to: input.to, level: input.level || 'all',
       service: input.service || '', q: input.q || '', traceId: input.traceId, spanId: input.spanId, limit, cursor,
     });
     const data = rows.map((r) => {

@@ -1,4 +1,3 @@
-export { ClickhouseService } from './clickhouse/service';
 export { NatsService, type NatsMessageHandler } from './nats/service';
 export { RateLimiter } from './redis/rate-limit';
 export { apiKeys, projects, projectSettings } from './db/schema';

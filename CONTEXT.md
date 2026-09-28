@@ -6,19 +6,19 @@
 Raw data emitted by applications. In Soonwhy, telemetry includes logs, metrics, traces, and API monitoring data.
 
 ### Ingestion
-The process of receiving telemetry from OpenTelemetry-compatible sources and storing it for processing.
+The process of receiving telemetry from OpenTelemetry-compatible sources and indexing it for processing.
 
 ### Mission Control
 The primary dashboard where developers see their application's health, telemetry, and AI insights.
 
 ### Health Score
-A composite metric (0-100) representing overall application health, computed from latency, error rate, and throughput.
+A composite metric representing application health, computed from latency, error rate, throughput, and other verified signals.
 
 ### Evidence
 Specific telemetry data points that support an AI conclusion. Every AI response must cite evidence.
 
 ### Confidence Score
-A value (0-1) representing how certain the AI is about its conclusion. Below 0.7, the AI says "I need more data."
+A value representing how strongly the available evidence supports a conclusion. Low-confidence conclusions ask for more data instead of presenting a guess as fact.
 
 ## Entities
 
@@ -26,10 +26,10 @@ A value (0-1) representing how certain the AI is about its conclusion. Below 0.7
 Top-level tenant. Owns projects and billing.
 
 ### Project
-A monitored application owned by an organization. Soonwhy currently treats deployment/environment as telemetry metadata rather than a separate CRUD entity.
+A monitored application owned by an organization. Deployment and environment are telemetry metadata rather than separate CRUD entities.
 
 ### Service
-A component within a project (e.g., "api", "worker", "scheduler").
+A component within a project such as an API, worker, or scheduler.
 
 ### API Key
 Credentials for telemetry ingestion. Scoped to a project and therefore indirectly to its organization.
@@ -40,7 +40,7 @@ Credentials for telemetry ingestion. Scoped to a project and therefore indirectl
 A discrete event with a message, timestamp, and structured attributes.
 
 ### Metric
-A numeric time series (counter, gauge, histogram).
+A numeric time series such as a counter, gauge, or histogram.
 
 ### Trace
 A distributed request lifecycle composed of spans.
@@ -60,28 +60,29 @@ The process of identifying why an anomaly occurred, backed by correlated evidenc
 Automatic identification of unusual patterns in telemetry data.
 
 ### Correlation
-Linking events across signals (e.g., latency increase coincided with deployment).
+Linking events across signals, such as latency increases coinciding with a deployment or database regression.
 
 ### Hallucination Safeguard
-Mechanism preventing the AI from making claims not backed by telemetry evidence.
+Mechanisms preventing AI from making claims that are not backed by telemetry evidence.
 
 ## Infrastructure
 
-### Hot Storage
-Telemetry data in self-hosted ClickHouse for fast analytical queries.
+### Search and Indexing
+Quickwit is the primary telemetry search and indexing layer.
 
-### Cold Storage
-Archived telemetry in R2 + Parquet for cost-efficient long-term retention.
+### Object Storage
+Cloudflare R2 or another S3-compatible object store holds durable Quickwit index data.
 
 ### Event Bus
-NATS JetStream for async communication between API and workers.
+NATS JetStream provides the durable asynchronous ingestion boundary.
 
-### Parquet
-Columnar file format for efficient analytical queries on archived telemetry.
+### SaaS Database
+Postgres is the source of truth for organizations, projects, members, billing, API keys, and derived intelligence state.
 
+## Intelligence Direction
 
-## Telemetry storage
+Soonwhy is not limited to one performance pattern. N+1 is one example of a broader intelligence system covering request latency, database behavior, external dependencies, errors, CPU/runtime signals, traces, logs, and other observable failure modes.
 
-Quickwit is the primary telemetry search/index layer. Its splits are stored directly in S3-compatible object storage such as Cloudflare R2. NATS JetStream remains the ingestion boundary between OTLP parsing and indexing.
+The intelligence pipeline is evidence-first:
 
-Postgres remains the source of truth for SaaS state. ClickHouse is no longer part of the primary telemetry write path and is being removed from telemetry read paths as those modules migrate.
+`stable identity -> repeated evidence -> measurable impact -> issue -> recommendation -> verification`
