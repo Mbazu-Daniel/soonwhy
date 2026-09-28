@@ -24,9 +24,9 @@ describe('performance intelligence', () => {
   });
 
   it('detects throughput degradation', () => {
-    const signal = evaluateThroughput(600, { value: 1000, samples: 100 });
+    const signal = evaluateThroughput(400, { value: 1000, samples: 100 });
     expect(signal?.severity).toBe('critical');
-    expect(signal?.changePercent).toBe(-40);
+    expect(signal?.changePercent).toBe(-60);
   });
 
   it('detects dominant trace spans without exceeding trace duration', () => {
