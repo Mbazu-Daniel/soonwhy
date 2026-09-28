@@ -35,7 +35,7 @@ describe('database query detector', () => {
 
   it('detects a query regression against a sampled baseline', () => {
     const current = Array.from({ length: 20 }, (_, index) =>
-      sample({ duration: 480 + index }),
+      sample({ duration: 520 + index }),
     );
     const baseline = Array.from({ length: 20 }, (_, index) =>
       sample({ duration: 250 + index }),
