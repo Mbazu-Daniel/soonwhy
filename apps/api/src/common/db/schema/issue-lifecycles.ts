@@ -19,5 +19,5 @@ export const issueLifecycles = pgTable('issue_lifecycles', {
   uniqueIndex('issue_lifecycles_project_issue_key_idx').on(table.projectId, table.issueKey),
   index('issue_lifecycles_org_status_idx').on(table.orgId, table.status),
   index('issue_lifecycles_project_status_idx').on(table.projectId, table.status),
-  check('issue_lifecycles_status_check', sql\`${table.status} in ('active', 'resolved')\`),
+  check('issue_lifecycles_status_check', sql`${table.status} in ('active', 'resolved')`),
 ]);
