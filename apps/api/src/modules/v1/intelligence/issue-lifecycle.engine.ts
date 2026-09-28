@@ -19,11 +19,40 @@ export function createIssueLifecycle(issue: Issue): IssueLifecycle {
   };
 }
 
+export function updateIssueLifecycle(
+  lifecycle: IssueLifecycle,
+  issue: Issue,
+): IssueLifecycle | undefined {
+  if (createIssueKey(issue.identity) !== lifecycle.issueKey) {
+    return undefined;
+  }
+
+  const latestObservedAt = issue.lastObservedAt ?? issue.observations.reduce(
+    (latest, observation) =>
+      observation.observedAt > latest.observedAt ? observation : latest,
+  ).observedAt;
+
+  if (latestObservedAt < lifecycle.lastObservedAt) {
+    return undefined;
+  }
+
+  return {
+    ...lifecycle,
+    status: 'active',
+    lastObservedAt: latestObservedAt,
+    resolvedAt: undefined,
+  };
+}
+
 export function resolveIssue(
   lifecycle: IssueLifecycle,
   resolvedAt: string,
 ): IssueLifecycle | undefined {
-  if (resolvedAt < lifecycle.lastObservedAt) {
+  if (
+    lifecycle.status !== 'active' ||
+    !isValidTimestamp(resolvedAt) ||
+    resolvedAt < lifecycle.lastObservedAt
+  ) {
     return undefined;
   }
 
@@ -38,7 +67,11 @@ export function reopenIssue(
   lifecycle: IssueLifecycle,
   observedAt: string,
 ): IssueLifecycle | undefined {
-  if (lifecycle.status !== 'resolved' || observedAt < lifecycle.lastObservedAt) {
+  if (
+    lifecycle.status !== 'resolved' ||
+    !isValidTimestamp(observedAt) ||
+    observedAt < lifecycle.lastObservedAt
+  ) {
     return undefined;
   }
 
@@ -52,4 +85,8 @@ export function reopenIssue(
 
 export function createIssueKey(identity: Issue['identity']): string {
   return `${identity.fingerprintVersion}:${identity.fingerprint}`;
+}
+
+function isValidTimestamp(value: string): boolean {
+  return Number.isFinite(Date.parse(value));
 }
