@@ -39,7 +39,7 @@ describe('database connection pool detector', () => {
         pendingRequests: 0,
         connectionTimeouts: 0,
       })),
-    ).toEqual([]);
+    )).toEqual([]);
   });
 
   it('isolates services and pools', () => {
