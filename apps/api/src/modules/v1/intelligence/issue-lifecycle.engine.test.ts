@@ -164,6 +164,11 @@ describe('issue lifecycle', () => {
 
     expect(reopenIssue(lifecycle, '2026-09-28T10:15:00Z')).toBeUndefined();
 
+    expect(updateIssueLifecycle(lifecycle, {
+      ...issue,
+      lastObservedAt: 'not-a-date',
+    })).toBeUndefined();
+
     const resolved = resolveIssue(lifecycle, '2026-09-28T10:10:00Z');
     expect(resolved && reopenIssue(resolved, '2026-09-28T10:05:00Z')).toBeUndefined();
   });
