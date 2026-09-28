@@ -1039,26 +1039,3 @@ export class DetectionService {
   }
 }
 
-
-function stringAttribute(
-  attributes: Record<string, string | number | boolean | null>,
-  keys: string[],
-): string | undefined {
-  for (const key of keys) {
-    const value = attributes[key];
-    if (typeof value === 'string' && value.trim()) return value.trim();
-  }
-  return undefined;
-}
-
-function numberAttribute(
-  attributes: Record<string, string | number | boolean | null>,
-  keys: string[],
-): number | undefined {
-  for (const key of keys) {
-    const value = attributes[key];
-    const number = typeof value === 'number' ? value : Number(value);
-    if (Number.isFinite(number)) return number;
-  }
-  return undefined;
-}
