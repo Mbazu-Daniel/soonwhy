@@ -1,4 +1,5 @@
-import { check, index, jsonb, pgTable, sql, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { check, index, jsonb, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import { generateId } from '../generate-id';
 import { organizations } from './organizations';
 import { projects } from './projects';
