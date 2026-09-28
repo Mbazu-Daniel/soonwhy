@@ -8,6 +8,7 @@ import { ProjectsRepository } from '../projects/projects.repository';
 import { createIssueFromDetection } from '../intelligence/detection-issue.adapter';
 import { IssueLifecycleService } from '../intelligence/issue-lifecycle.service';
 import { detectDatabaseQueries, type DatabaseQueryTrace } from '../intelligence/database-query.detector';
+import { detectNPlusOne, type NPlusOneTrace } from '../intelligence/n-plus-one.detector';
 import { sanitizeRequestUrl } from './detection.utils';
 import { correlateFindings } from './detection.correlation';
 import { completeDetectionRun, failDetectionRun, startDetectionRun } from './detection.run';
@@ -358,6 +359,75 @@ export class DetectionService {
             ...(sample.dbReturnedRows !== undefined ? { returnedRows: sample.dbReturnedRows } : {}),
           },
         })),
+      }));
+    }
+
+    const nPlusOneTraces: NPlusOneTrace[] = currentDatabaseSpans.flatMap((sample) => {
+      if (!sample.parentSpanId) return [];
+
+      return [{
+        timestamp: sample.timestamp,
+        service: sample.service,
+        traceId: sample.traceId,
+        spanId: sample.spanId,
+        parentSpanId: sample.parentSpanId,
+        duration: sample.duration,
+        dependencyType: sample.dependencyType,
+        dependencyName: sample.dependencyName,
+        ...(sample.dbQueryText ? { dbQueryText: sample.dbQueryText } : {}),
+        ...(sample.dbQuerySummary ? { dbQuerySummary: sample.dbQuerySummary } : {}),
+        ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
+        ...(sample.dbSystemName ? { dbSystemName: sample.dbSystemName } : {}),
+        ...(sample.dbCollectionName ? { dbCollectionName: sample.dbCollectionName } : {}),
+        ...(sample.dbBatchSize !== undefined ? { dbBatchSize: sample.dbBatchSize } : {}),
+      }];
+    });
+
+    for (const candidate of detectNPlusOne(nPlusOneTraces)) {
+      detected.push(await this.persistFinding({
+        orgId,
+        projectId,
+        serviceName: candidate.serviceName,
+        type: 'database_n_plus_one',
+        severity: 'warning',
+        title: 'Repeated database query detected in ' + candidate.serviceName,
+        description: this.describeNPlusOne(candidate),
+        observedValue: candidate.signal.occurrences,
+        threshold: 3,
+        unit: ' occurrences',
+        start,
+        end,
+        evidence: [
+          ...candidate.samples.map((sample) => ({
+            kind: 'trace' as const,
+            label: 'n-plus-one-query',
+            value: sample.duration,
+            context: {
+              service: sample.service,
+              traceId: sample.traceId,
+              spanId: sample.spanId,
+              parentSpanId: sample.parentSpanId,
+              timestamp: sample.timestamp,
+              fingerprint: candidate.identity.fingerprint,
+              databaseSystem: candidate.databaseSystem ?? '',
+              dependencyName: sample.dependencyName,
+              ...(candidate.queryOperation ? { queryOperation: candidate.queryOperation } : {}),
+              ...(candidate.querySummary ? { querySummary: candidate.querySummary } : {}),
+              ...(sample.dbQueryText ? { query: sample.dbQueryText } : {}),
+            },
+          })),
+          {
+            kind: 'recommendation' as const,
+            label: 'n-plus-one-guidance',
+            value: 'Check whether the repeated query can be loaded with the parent records in one query or replaced with a batched operation. Confirm the query plan before changing the access pattern.',
+            context: {
+              occurrences: candidate.signal.occurrences,
+              totalDurationMs: candidate.signal.totalDurationMs,
+              traceId: candidate.traceId,
+              parentSpanId: candidate.parentSpanId,
+            },
+          },
+        ],
       }));
     }
 
@@ -762,6 +832,7 @@ export class DetectionService {
         service: String(source.service),
         traceId: String(source.traceId),
         spanId: String(source.spanId ?? ''),
+        ...(source.parentSpanId ? { parentSpanId: String(source.parentSpanId) } : {}),
         duration: Number(source.duration ?? 0),
         dependencyType: 'database',
         dependencyName,
@@ -793,6 +864,18 @@ export class DetectionService {
 
     return queryLabel + ' reached a p95 latency of ' +
       Math.round(candidate.signal.observedValue) + 'ms.';
+  }
+
+  private describeNPlusOne(
+    candidate: ReturnType<typeof detectNPlusOne>[number],
+  ): string {
+    const queryLabel = candidate.querySummary ?? candidate.queryOperation ?? candidate.query;
+    return queryLabel +
+      ' was executed ' +
+      candidate.signal.occurrences +
+      ' times in one trace under the same parent span, consuming about ' +
+      Math.round(candidate.signal.totalDurationMs) +
+      'ms of database time.';
   }
 
   private async searchTraceSpanCandidates(
