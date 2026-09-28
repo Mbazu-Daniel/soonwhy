@@ -1069,7 +1069,8 @@ export class DetectionService {
     });
 
     const traces = new Map<string, {
-      duration: number;
+      start: number;
+      end: number;
       rootService: string;
       spans: TraceSource[];
     }>();
@@ -1079,7 +1080,8 @@ export class DetectionService {
       if (!source?.traceId) continue;
 
       const trace = traces.get(source.traceId) ?? {
-        duration: 0,
+        start: Number.POSITIVE_INFINITY,
+        end: 0,
         rootService: String(source.service ?? ''),
         spans: [],
       };
@@ -1088,7 +1090,8 @@ export class DetectionService {
       const startMs = new Date(String(source.timestamp ?? '')).getTime();
       const duration = Number(source.duration ?? 0);
       if (Number.isFinite(startMs) && Number.isFinite(duration) && duration > 0) {
-        trace.duration = Math.max(trace.duration, startMs + duration);
+        trace.start = Math.min(trace.start, startMs);
+        trace.end = Math.max(trace.end, startMs + duration);
       }
 
       if (!source.parentSpanId) {
