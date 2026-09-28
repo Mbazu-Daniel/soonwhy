@@ -20,7 +20,7 @@ export function correlateFindings(findings: DetectionFinding[]): CorrelatedBottl
   }
 
   return Array.from(byService.values()).flatMap((serviceFindings) => {
-    const latency = serviceFindings.find((finding) => finding.type === 'latency');
+    const latency = serviceFindings.find((finding) => finding.type === 'latency' || finding.type === 'performance');
     if (!latency) return [];
 
     const supportingFindings = serviceFindings.filter(
