@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS "issue_lifecycles" (
   "last_observed_at" timestamp NOT NULL,
   "resolved_at" timestamp,
   "created_at" timestamp DEFAULT now() NOT NULL,
-  "updated_at" timestamp DEFAULT now() NOT NULL
+  "updated_at" timestamp DEFAULT now() NOT NULL,
+  CONSTRAINT "issue_lifecycles_status_check" CHECK ("status" IN ('active', 'resolved'))
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS "issue_lifecycles_project_issue_key_idx"
