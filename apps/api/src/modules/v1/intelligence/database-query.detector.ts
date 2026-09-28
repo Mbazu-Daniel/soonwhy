@@ -1,5 +1,6 @@
 import { fingerprintQuery } from './query-fingerprint';
 import {
+  databaseQueryDistribution,
   evaluateDatabaseQuery,
   percentile,
   type DatabaseQuerySignal,
@@ -50,14 +51,15 @@ export function detectDatabaseQueries(
     if (!first) continue;
 
     const query = first.dbQueryText ?? first.dbQuerySummary ?? first.dbOperationName ?? first.spanName;
-
     if (!query) continue;
 
     const identity = fingerprintQuery(query, first.dbSystemName).identity;
     if (identity.fingerprint !== fingerprint) continue;
 
-    const observedP95 = percentile(currentSamples.map((sample) => sample.duration), 0.95);
-    if (observedP95 === undefined) continue;
+    const currentDurations = currentSamples.map((sample) => sample.duration);
+    const observedP95 = percentile(currentDurations, 0.95);
+    const distribution = databaseQueryDistribution(currentDurations);
+    if (observedP95 === undefined || distribution === undefined) continue;
 
     const baselineSamples = baselineGroups.get(groupKey) ?? [];
     const baselineP95 = percentile(baselineSamples.map((sample) => sample.duration), 0.95);
@@ -65,6 +67,8 @@ export function detectDatabaseQueries(
       observedP95,
       baselineP95,
       baselineSamples.length,
+      undefined,
+      distribution,
     );
 
     if (!signal) continue;
