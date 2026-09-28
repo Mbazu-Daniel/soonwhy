@@ -10,7 +10,7 @@ export function createTelemetryIdentity(input: TelemetryIdentityInput): Telemetr
     operationName: input.operationName ?? null,
     resourceName: input.resourceName ?? null,
     databaseSystem: input.databaseSystem ?? null,
-    attributes: input.attributes ?? {},
+    identityAttributes: input.identityAttributes ?? {},
   } satisfies CanonicalValue;
 
   return {
