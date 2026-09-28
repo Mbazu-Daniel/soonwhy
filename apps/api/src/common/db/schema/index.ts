@@ -16,3 +16,4 @@ export { investigationCases, type InvestigationEvidenceRef } from './investigati
 export { agentPolicies, agentAuditEvents, type AgentAccessPolicy } from './agent-governance';
 export { billingPlans, billingPlanQuotas, subscriptions, usageEvents, usagePeriods, billingEvents, type UsageMetric, type BillingEventType } from './billing';
 export { aiProviderCredentials } from './ai-provider-credentials';
+export { issueLifecycles } from './issue-lifecycles';
