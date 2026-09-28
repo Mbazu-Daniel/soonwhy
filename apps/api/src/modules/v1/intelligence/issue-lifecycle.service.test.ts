@@ -12,7 +12,6 @@ const issue: Issue = { identity, confidence: { identity, score: 0.9, status: 'co
 function createRepository() {
   const lifecycles = new Map<string, IssueLifecycle>();
   const repository = {
-    list: vi.fn(async () => []),
     find: vi.fn(async (_orgId: string, _projectId: string, issueKey: string) => lifecycles.get(issueKey)),
     save: vi.fn(async (input: { orgId: string; projectId: string; lifecycle: IssueLifecycle }) => { lifecycles.set(input.lifecycle.issueKey, input.lifecycle); return input.lifecycle; }),
   } satisfies Pick<IssueLifecycleRepository, 'find' | 'save'>;
