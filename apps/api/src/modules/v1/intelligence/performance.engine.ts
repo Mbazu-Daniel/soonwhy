@@ -1,7 +1,6 @@
 import type {
   PerformanceBaseline,
   PerformanceImpact,
-  PerformanceMetric,
   PerformanceSignal,
   PerformanceWindow,
   PersistenceResult,
