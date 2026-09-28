@@ -81,7 +81,7 @@ export function detectNPlusOne(
   }
 
   return Array.from(groups.entries())
-    .flatMap(([key, samples]) => {
+    .flatMap(([_key, samples]) => {
       if (samples.length < thresholds.minimumOccurrences) return [];
 
       const first = samples[0];
