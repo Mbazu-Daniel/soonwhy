@@ -1,6 +1,5 @@
 import type { DetectionEvidence } from '../../../common/db/schema/findings';
 
-export type FindingType = 'latency' | 'error_rate' | 'throughput' | 'dependency_latency' | 'trace_span' | 'bottleneck' | 'error_group' | 'database_query';
 export type FindingSeverity = 'warning' | 'critical';
 
 export interface DetectionWindow {
