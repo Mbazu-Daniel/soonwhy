@@ -67,7 +67,8 @@ describe('DetectionService realistic telemetry scenarios', () => {
       .mockResolvedValueOnce(checkoutRegressionFixture.trace)
       .mockResolvedValueOnce({ hits: checkoutRegressionFixture.dependencyEvidence });
 
-    const service = new DetectionService(quickwit, projectsRepository);
+    const issueLifecycleService = { apply: vi.fn().mockResolvedValue({ action: 'created' }) } as never;
+    const service = new DetectionService(quickwit, projectsRepository, issueLifecycleService);
     const result = await service.run('org-1', 'project-1');
 
     expect(result.map((finding) => finding.type)).toEqual([
