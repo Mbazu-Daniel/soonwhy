@@ -26,10 +26,12 @@ export function updateIssueLifecycle(
 
   const latestObservedAt = issue.lastObservedAt ?? getLatestObservation(issue);
   const comparison = compareTimestamps(latestObservedAt, lifecycle.lastObservedAt);
+  const isDuplicateEvidence = latestObservedAt === lifecycle.lastObservedAt;
 
   if (
     !isValidTimestamp(latestObservedAt) ||
     !isValidTimestamp(lifecycle.lastObservedAt) ||
+    isDuplicateEvidence ||
     comparison <= 0
   ) {
     return undefined;
