@@ -111,5 +111,5 @@ export function detectDatabaseErrors(
 }
 
 function isDatabaseError(trace: DatabaseErrorTrace): boolean {
-  return trace.statusCode !== undefined && trace.statusCode >= 2 && trace.statusCode <= 5;
+  return trace.statusCode === 2;
 }
