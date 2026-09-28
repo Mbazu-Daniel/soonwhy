@@ -1225,7 +1225,6 @@ export class DetectionService {
         duration: Number(source.duration ?? 0),
         ...(Number.isFinite(source.statusCode) ? { statusCode: Number(source.statusCode) } : {}),
         ...(source.statusMessage ? { statusMessage: String(source.statusMessage) } : {}),
-        ...(typeof source.errorType === 'string' ? { errorType: source.errorType } : {}),
         ...(source.errorType ? { errorType: String(source.errorType) } : {}),
         dependencyType: 'database',
         dependencyName,
