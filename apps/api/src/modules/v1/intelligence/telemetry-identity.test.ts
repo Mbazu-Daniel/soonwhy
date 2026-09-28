@@ -35,6 +35,23 @@ describe('telemetry identity', () => {
     expect(identity.domain).toBe('database');
   });
 
+  it('changes identity when an explicit identity attribute changes', () => {
+    const first = createTelemetryIdentity({
+      domain: 'database',
+      serviceName: 'checkout',
+      operationName: 'SELECT users',
+      identityAttributes: { database: 'primary' },
+    });
+    const second = createTelemetryIdentity({
+      domain: 'database',
+      serviceName: 'checkout',
+      operationName: 'SELECT users',
+      identityAttributes: { database: 'replica' },
+    });
+
+    expect(first.fingerprint).not.toBe(second.fingerprint);
+  });
+
   it('keeps equivalent database operations stable', () => {
     const first = createTelemetryIdentity({
       domain: 'database',
