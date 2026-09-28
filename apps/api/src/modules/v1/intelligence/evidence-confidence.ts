@@ -1,6 +1,8 @@
 import type { EvidenceObservation, EvidenceWindow } from './evidence.types';
+import type { TelemetryIdentity } from './telemetry-identity.types';
 
 export interface EvidenceConfidenceInput {
+  identity: TelemetryIdentity;
   observations: EvidenceObservation[];
   windows: EvidenceWindow[];
   requiredWindows?: number;
@@ -9,6 +11,7 @@ export interface EvidenceConfidenceInput {
 }
 
 export interface EvidenceConfidence {
+  identity: TelemetryIdentity;
   score: number;
   status: 'candidate' | 'supported' | 'confirmed';
   observationCount: number;
@@ -35,8 +38,9 @@ export function evaluateEvidenceConfidence(
   const requiredWindows = Math.max(1, input.requiredWindows ?? 3);
   const minimumObservations = Math.max(1, input.minimumObservations ?? 5);
   const minimumIndependentSources = Math.max(1, input.minimumIndependentSources ?? 2);
+  const validWindows = uniqueValidWindows(input.windows);
   const observationCount = input.observations.length;
-  const windowCount = uniqueWindows(input.windows);
+  const windowCount = validWindows.size;
   const independentSourceCount = new Set(input.observations.map((item) => item.source)).size;
 
   const windowScore = Math.min(windowCount / requiredWindows, 1);
@@ -49,6 +53,7 @@ export function evaluateEvidenceConfidence(
   );
 
   let status: EvidenceConfidence['status'] = 'candidate';
+
   if (
     windowCount >= requiredWindows &&
     observationCount >= minimumObservations &&
@@ -60,6 +65,7 @@ export function evaluateEvidenceConfidence(
   }
 
   return {
+    identity: input.identity,
     score,
     status,
     observationCount,
@@ -68,8 +74,12 @@ export function evaluateEvidenceConfidence(
   };
 }
 
-function uniqueWindows(windows: EvidenceWindow[]): number {
-  return new Set(windows.map((window) => `${window.start}:${window.end}`)).size;
+function uniqueValidWindows(windows: EvidenceWindow[]): Set<string> {
+  return new Set(
+    windows
+      .filter((window) => window.start < window.end)
+      .map((window) => `${window.start}:${window.end}`),
+  );
 }
 
 function clamp(value: number): number {
