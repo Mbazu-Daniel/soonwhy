@@ -31,7 +31,14 @@ describe('service performance engine', () => {
     });
 
     expect(signal?.severity).toBe('critical');
-    expect(signal?.reasons).toHaveLength(7);
+    expect(signal?.reasons).toEqual([
+      'p95 latency is elevated',
+      'p95 latency is critical',
+      'error rate is elevated',
+      'error rate is critical',
+      'CPU utilization is elevated',
+      'CPU utilization is critical',
+    ]);
   });
 
   it('records latency regression against a baseline', () => {
