@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { db } from '../../../common/db';
 import { issueLifecycles } from '../../../common/db/schema';
 import type { IssueLifecycle } from './issue-lifecycle.types';
@@ -34,7 +34,6 @@ export class IssueLifecycleRepository {
         eq(issueLifecycles.projectId, projectId),
         eq(issueLifecycles.issueKey, issueKey),
       ))
-      .orderBy(desc(issueLifecycles.updatedAt))
       .limit(1);
 
     return row ? toLifecycle(row as StoredIssueLifecycle) : undefined;
@@ -63,11 +62,15 @@ export class IssueLifecycleRepository {
           resolvedAt: input.lifecycle.resolvedAt ? new Date(input.lifecycle.resolvedAt) : null,
           updatedAt: new Date(),
         },
+        setWhere: sql`${issueLifecycles.lastObservedAt} <= excluded.last_observed_at`,
       })
       .returning();
 
-    if (!row) throw new Error('Failed to persist issue lifecycle');
-    return toLifecycle(row as StoredIssueLifecycle);
+    if (row) return toLifecycle(row as StoredIssueLifecycle);
+
+    const existing = await this.find(input.orgId, input.projectId, input.lifecycle.issueKey);
+    if (!existing) throw new Error('Failed to persist issue lifecycle');
+    return existing;
   }
 }
 
