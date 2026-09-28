@@ -23,7 +23,7 @@ export interface TelemetryIdentityInput {
   operationName?: string;
   resourceName?: string;
   databaseSystem?: string;
-  attributes?: Record<string, CanonicalValue>;
+  identityAttributes?: Record<string, CanonicalValue>;
 }
 
 export type CanonicalValue =
@@ -33,19 +33,3 @@ export type CanonicalValue =
   | null
   | CanonicalValue[]
   | { [key: string]: CanonicalValue };
-
-export interface EvidenceFact {
-  name: string;
-  value: CanonicalValue;
-  unit?: string;
-  source: 'metric' | 'trace' | 'log' | 'request' | 'database' | 'runtime' | 'deployment' | 'ai';
-  timestamp?: string;
-}
-
-export interface EvidenceSet {
-  facts: EvidenceFact[];
-  window?: {
-    start: string;
-    end: string;
-  };
-}
