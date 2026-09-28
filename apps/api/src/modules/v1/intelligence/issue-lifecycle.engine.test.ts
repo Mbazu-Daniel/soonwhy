@@ -58,7 +58,22 @@ describe('issue lifecycle', () => {
     });
   });
 
-  it('updates an issue only with matching, non-stale evidence', () => {
+  it('orders observations by parsed time instead of string representation', () => {
+    const lifecycle = createIssueLifecycle({
+      ...issue,
+      observations: [
+        { ...issue.observations[0], observedAt: '2026-09-28T11:00:00+01:00' },
+        { ...issue.observations[0], observedAt: '2026-09-28T09:30:00Z' },
+      ],
+      firstObservedAt: undefined,
+      lastObservedAt: undefined,
+    });
+
+    expect(lifecycle.firstObservedAt).toBe('2026-09-28T09:30:00Z');
+    expect(lifecycle.lastObservedAt).toBe('2026-09-28T11:00:00+01:00');
+  });
+
+  it('updates an active issue only with matching, non-stale evidence', () => {
     const lifecycle = createIssueLifecycle(issue);
 
     expect(updateIssueLifecycle(lifecycle, {
@@ -79,6 +94,27 @@ describe('issue lifecycle', () => {
       lastObservedAt: '2026-09-28T10:15:00Z',
       resolvedAt: undefined,
     });
+  });
+
+  it('does not reopen a resolved issue without newer evidence', () => {
+    const lifecycle = resolveIssue(
+      createIssueLifecycle(issue),
+      '2026-09-28T10:10:00Z',
+    );
+
+    expect(
+      lifecycle && updateIssueLifecycle(lifecycle, {
+        ...issue,
+        lastObservedAt: '2026-09-28T10:00:00Z',
+      }),
+    ).toBeUndefined();
+
+    expect(
+      lifecycle && updateIssueLifecycle(lifecycle, {
+        ...issue,
+        lastObservedAt: '2026-09-28T10:10:00Z',
+      }),
+    ).toBeUndefined();
   });
 
   it('resolves an active issue only at or after its last observation', () => {
