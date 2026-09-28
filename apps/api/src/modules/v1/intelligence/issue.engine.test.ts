@@ -26,18 +26,8 @@ describe('buildIssue', () => {
       identity,
       confidence,
       observations: [
-        {
-          name: 'query.duration',
-          value: 700,
-          source: 'database',
-          observedAt: '2026-09-28T10:00:00Z',
-        },
-        {
-          name: 'latency',
-          value: 900,
-          source: 'metric',
-          observedAt: '2026-09-28T10:05:00Z',
-        },
+        { name: 'query.duration', value: 700, source: 'database', observedAt: '2026-09-28T10:00:00Z' },
+        { name: 'latency', value: 900, source: 'metric', observedAt: '2026-09-28T10:05:00Z' },
       ],
       windows: [
         { start: '2026-09-28T10:00:00Z', end: '2026-09-28T10:05:00Z' },
@@ -57,56 +47,39 @@ describe('buildIssue', () => {
 
   it('rejects confidence from a different identity', () => {
     const otherIdentity = { ...identity, fingerprint: 'different-query' };
-
-    const issue = buildIssue({
+    expect(buildIssue({
       identity,
       confidence: { ...confidence, identity: otherIdentity },
-      observations: [
-        {
-          name: 'query.duration',
-          value: 700,
-          source: 'database',
-          observedAt: '2026-09-28T10:00:00Z',
-        },
-      ],
-      windows: [
-        { start: '2026-09-28T10:00:00Z', end: '2026-09-28T10:05:00Z' },
-      ],
-    });
-
-    expect(issue).toBeUndefined();
+      observations: [{ name: 'query.duration', value: 700, source: 'database', observedAt: '2026-09-28T10:00:00Z' }],
+      windows: [{ start: '2026-09-28T10:00:00Z', end: '2026-09-28T10:05:00Z' }],
+    })).toBeUndefined();
   });
 
-  it('removes duplicate and invalid windows', () => {
+  it('removes invalid observations and duplicate or invalid windows', () => {
     const issue = buildIssue({
       identity,
       confidence,
       observations: [
-        {
-          name: 'query.duration',
-          value: 700,
-          source: 'database',
-          observedAt: '2026-09-28T10:00:00Z',
-        },
+        { name: 'query.duration', value: 700, source: 'database', observedAt: 'not-a-date' },
+        { name: 'query.duration', value: 800, source: 'database', observedAt: '2026-09-28T10:00:00Z' },
       ],
       windows: [
         { start: '2026-09-28T10:00:00Z', end: '2026-09-28T10:05:00Z' },
         { start: '2026-09-28T10:00:00Z', end: '2026-09-28T10:05:00Z' },
-        { start: '2026-09-28T10:05:00Z', end: '2026-09-28T10:05:00Z' },
+        { start: 'bad', end: '2026-09-28T10:05:00Z' },
       ],
     });
 
+    expect(issue?.observations).toHaveLength(1);
     expect(issue?.windows).toHaveLength(1);
   });
 
-  it('does not build an issue without observations or windows', () => {
-    expect(
-      buildIssue({
-        identity,
-        confidence,
-        observations: [],
-        windows: [{ start: '2026-09-28T10:00:00Z', end: '2026-09-28T10:05:00Z' }],
-      }),
-    ).toBeUndefined();
+  it('does not build an issue without usable observations or windows', () => {
+    expect(buildIssue({
+      identity,
+      confidence,
+      observations: [],
+      windows: [{ start: '2026-09-28T10:00:00Z', end: '2026-09-28T10:05:00Z' }],
+    })).toBeUndefined();
   });
 });
