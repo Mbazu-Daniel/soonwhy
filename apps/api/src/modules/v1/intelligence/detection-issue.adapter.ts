@@ -71,7 +71,7 @@ export function createIssueFromDetection(finding: DetectionFinding): Issue {
         end: finding.window.end.toISOString(),
       }],
     }),
-    status: 'confirmed',
+    status: confidenceStatus(allObservations, identity, finding),
     observations: allObservations,
     windows: [{
       start: finding.window.start.toISOString(),
@@ -80,6 +80,21 @@ export function createIssueFromDetection(finding: DetectionFinding): Issue {
     firstObservedAt: finding.window.start.toISOString(),
     lastObservedAt: finding.window.end.toISOString(),
   };
+}
+
+function confidenceStatus(
+  observations: EvidenceObservation[],
+  identity: ReturnType<typeof createTelemetryIdentity>,
+  finding: DetectionFinding,
+): Issue['status'] {
+  return evaluateEvidenceConfidence({
+    identity,
+    observations,
+    windows: [{
+      start: finding.window.start.toISOString(),
+      end: finding.window.end.toISOString(),
+    }],
+  }).status;
 }
 
 function identityDimensions(evidence: DetectionEvidence[]): Record<string, string> {
