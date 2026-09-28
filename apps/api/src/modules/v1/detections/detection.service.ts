@@ -9,6 +9,7 @@ import { createIssueFromDetection } from '../intelligence/detection-issue.adapte
 import { IssueLifecycleService } from '../intelligence/issue-lifecycle.service';
 import { detectDatabaseQueries, type DatabaseQueryTrace } from '../intelligence/database-query.detector';
 import { detectNPlusOne, type NPlusOneTrace } from '../intelligence/n-plus-one.detector';
+import { detectDatabaseQueryVolume, type DatabaseQueryVolumeTrace } from '../intelligence/database-query-volume.detector';
 import { sanitizeRequestUrl } from './detection.utils';
 import { correlateFindings } from './detection.correlation';
 import { completeDetectionRun, failDetectionRun, startDetectionRun } from './detection.run';
@@ -359,6 +360,76 @@ export class DetectionService {
             ...(sample.dbReturnedRows !== undefined ? { returnedRows: sample.dbReturnedRows } : {}),
           },
         })),
+      }));
+    }
+
+    const queryVolumeTraces = (spans: DatabaseQueryTrace[]): DatabaseQueryVolumeTrace[] =>
+      spans.map((sample) => ({
+        timestamp: sample.timestamp,
+        service: sample.service,
+        traceId: sample.traceId,
+        spanId: sample.spanId,
+        duration: sample.duration,
+        dependencyType: sample.dependencyType,
+        dependencyName: sample.dependencyName,
+        ...(sample.dbQueryText ? { dbQueryText: sample.dbQueryText } : {}),
+        ...(sample.dbQuerySummary ? { dbQuerySummary: sample.dbQuerySummary } : {}),
+        ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
+        ...(sample.dbSystemName ? { dbSystemName: sample.dbSystemName } : {}),
+        ...(sample.dbCollectionName ? { dbCollectionName: sample.dbCollectionName } : {}),
+        ...(sample.dbReturnedRows !== undefined ? { dbReturnedRows: sample.dbReturnedRows } : {}),
+      }));
+
+    for (const candidate of detectDatabaseQueryVolume(
+      queryVolumeTraces(currentDatabaseSpans),
+      queryVolumeTraces(baselineDatabaseSpans),
+    )) {
+      detected.push(await this.persistFinding({
+        orgId,
+        projectId,
+        serviceName: candidate.serviceName,
+        type: 'database_query_volume',
+        severity: candidate.signal.relativeIncrease >= 2 ? 'critical' : 'warning',
+        title: 'Database query volume increased in ' + candidate.serviceName,
+        description: this.describeDatabaseQueryVolume(candidate),
+        observedValue: candidate.signal.currentCount,
+        threshold: candidate.signal.baselineCount,
+        unit: ' queries',
+        start,
+        end,
+        evidence: [
+          ...candidate.samples.map((sample) => ({
+            kind: 'trace' as const,
+            label: 'database-query-volume-sample',
+            value: sample.duration,
+            context: {
+              service: sample.service,
+              traceId: sample.traceId,
+              spanId: sample.spanId,
+              timestamp: sample.timestamp,
+              fingerprint: candidate.identity.fingerprint,
+              databaseSystem: candidate.databaseSystem ?? '',
+              dependencyName: sample.dependencyName,
+              currentCount: candidate.signal.currentCount,
+              baselineCount: candidate.signal.baselineCount,
+              absoluteIncrease: candidate.signal.absoluteIncrease,
+              relativeIncrease: candidate.signal.relativeIncrease,
+              ...(candidate.queryOperation ? { queryOperation: candidate.queryOperation } : {}),
+              ...(candidate.querySummary ? { querySummary: candidate.querySummary } : {}),
+              ...(sample.dbQueryText ? { query: sample.dbQueryText } : {}),
+            },
+          })),
+          {
+            kind: 'recommendation' as const,
+            label: 'query-volume-guidance',
+            value: 'Check whether the increased query volume comes from repeated reads, pagination, fan-out, or a new access path. Compare the query count with request volume before changing the query or schema.',
+            context: {
+              currentCount: candidate.signal.currentCount,
+              baselineCount: candidate.signal.baselineCount,
+              relativeIncrease: candidate.signal.relativeIncrease,
+            },
+          },
+        ],
       }));
     }
 
@@ -866,6 +937,20 @@ export class DetectionService {
       Math.round(candidate.signal.observedValue) + 'ms.';
   }
 
+  private describeDatabaseQueryVolume(
+    candidate: ReturnType<typeof detectDatabaseQueryVolume>[number],
+  ): string {
+    const queryLabel = candidate.querySummary ?? candidate.queryOperation ?? candidate.query;
+    return queryLabel +
+      ' ran ' +
+      candidate.signal.currentCount +
+      ' times in the current window versus ' +
+      candidate.signal.baselineCount +
+      ' in the previous comparable window, a ' +
+      candidate.signal.relativeIncrease.toFixed(0) +
+      '% increase.';
+  }
+
   private describeNPlusOne(
     candidate: ReturnType<typeof detectNPlusOne>[number],
   ): string {
@@ -900,7 +985,8 @@ export class DetectionService {
     });
 
     const traces = new Map<string, {
-      duration: number;
+      start: number;
+      end: number;
       rootService: string;
       spans: TraceSource[];
     }>();
@@ -910,7 +996,8 @@ export class DetectionService {
       if (!source?.traceId) continue;
 
       const trace = traces.get(source.traceId) ?? {
-        duration: 0,
+        start: Number.POSITIVE_INFINITY,
+        end: 0,
         rootService: String(source.service ?? ''),
         spans: [],
       };
@@ -919,7 +1006,8 @@ export class DetectionService {
       const startMs = new Date(String(source.timestamp ?? '')).getTime();
       const duration = Number(source.duration ?? 0);
       if (Number.isFinite(startMs) && Number.isFinite(duration) && duration > 0) {
-        trace.duration = Math.max(trace.duration, startMs + duration);
+        trace.start = Math.min(trace.start, startMs);
+        trace.end = Math.max(trace.end, startMs + duration);
       }
 
       if (!source.parentSpanId) {

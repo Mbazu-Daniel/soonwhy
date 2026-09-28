@@ -77,12 +77,13 @@ describe('DetectionService realistic telemetry scenarios', () => {
       'performance',
       'throughput',
     ]);
-    expect(result.at(-1)).toMatchObject({
+    const bottleneck = result.find((finding) => finding.type === 'bottleneck');
+    expect(bottleneck).toMatchObject({
       type: 'bottleneck',
       serviceName: 'checkout-api',
       severity: 'critical',
     });
-    expect(result.at(-1)?.evidence).toEqual(expect.arrayContaining([
+    expect(bottleneck?.evidence).toEqual(expect.arrayContaining([
       expect.objectContaining({ label: 'correlated-trace', value: 'trace-checkout-001' }),
       expect.objectContaining({ label: 'optimization-guidance', kind: 'recommendation' }),
     ]));

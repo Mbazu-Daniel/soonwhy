@@ -10,6 +10,7 @@ export type FindingType =
   | 'error_group'
   | 'database_query'
   | 'database_n_plus_one'
+  | 'database_query_volume'
   | 'performance';
 
 export type FindingSeverity = 'warning' | 'critical';
