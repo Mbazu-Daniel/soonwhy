@@ -314,5 +314,11 @@ export function mapMetricToRow(point: ParsedMetricPoint, tenant: TenantContext) 
     name: point.metricName,
     value: metricValue(point),
     unit: mapMetricUnit(point.metricUnit),
+    attributes: Object.fromEntries(
+      Object.entries(point.attributes).slice(0, 50),
+    ),
+    ...(typeof point.attributes['db.client.connection.pool.name'] === 'string'
+      ? { connectionPoolName: point.attributes['db.client.connection.pool.name'] }
+      : {}),
   };
 }
