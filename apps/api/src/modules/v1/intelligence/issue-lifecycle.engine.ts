@@ -25,13 +25,15 @@ export function updateIssueLifecycle(
   if (createIssueKey(issue.identity) !== lifecycle.issueKey) return undefined;
 
   const latestObservedAt = issue.lastObservedAt ?? getLatestObservation(issue);
-  const comparison = compareTimestamps(latestObservedAt, lifecycle.lastObservedAt);
+  const comparisonTarget = lifecycle.status === 'resolved' && lifecycle.resolvedAt
+    ? lifecycle.resolvedAt
+    : lifecycle.lastObservedAt;
+  const comparison = compareTimestamps(latestObservedAt, comparisonTarget);
 
   if (
     !isValidTimestamp(latestObservedAt) ||
-    !isValidTimestamp(lifecycle.lastObservedAt) ||
-    comparison < 0 ||
-    (lifecycle.status === 'resolved' && comparison === 0)
+    !isValidTimestamp(comparisonTarget) ||
+    comparison <= 0
   ) {
     return undefined;
   }
@@ -66,7 +68,9 @@ export function reopenIssue(
   if (
     lifecycle.status !== 'resolved' ||
     !isValidTimestamp(observedAt) ||
-    compareTimestamps(observedAt, lifecycle.lastObservedAt) <= 0
+    !lifecycle.resolvedAt ||
+    !isValidTimestamp(lifecycle.resolvedAt) ||
+    compareTimestamps(observedAt, lifecycle.resolvedAt) <= 0
   ) {
     return undefined;
   }
