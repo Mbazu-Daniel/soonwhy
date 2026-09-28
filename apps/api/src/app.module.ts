@@ -21,12 +21,13 @@ import { BusinessOperationsModule } from './modules/v1/business-operations/busin
 import { InvestigationModule } from './modules/v1/investigations/investigation.module';
 import { BillingModule } from './modules/v1/billing/billing.module';
 import { AiModule } from './modules/v1/ai';
+import { IssueLifecycleModule } from './modules/v1/intelligence/issue-lifecycle.module';
 import { TelemetryModule } from './common/telemetry';
 
 const organizationScopedModules = [
   ApiKeysModule, ServicesModule, ProjectsModule, DashboardModule, LogsModule, MetricsModule, RequestsModule,
   TracesModule, DetectionModule, EnvironmentsModule, TeamsModule, DeploymentsModule, BusinessOperationsModule,
-  InvestigationModule, BillingModule, AiModule,
+  InvestigationModule, BillingModule, AiModule, IssueLifecycleModule,
 ];
 
 @Module({
