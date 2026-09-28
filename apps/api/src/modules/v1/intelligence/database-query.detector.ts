@@ -10,6 +10,7 @@ export interface DatabaseQueryTrace {
   service: string;
   traceId: string;
   spanId: string;
+  parentSpanId?: string;
   duration: number;
   dependencyType: string;
   dependencyName: string;
