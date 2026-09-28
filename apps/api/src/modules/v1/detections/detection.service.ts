@@ -61,7 +61,13 @@ interface TraceSource {
   dependencyName?: string;
   dependencyType?: string;
   spanKind?: number;
-  attributes?: Record<string, string | number | boolean | null>;
+  dbQueryText?: string;
+  dbQuerySummary?: string;
+  dbOperationName?: string;
+  dbSystemName?: string;
+  dbCollectionName?: string;
+  dbReturnedRows?: number;
+  dbBatchSize?: number;
 }
 
 @Injectable()
@@ -704,14 +710,13 @@ export class DetectionService {
       const source = hit._source;
       if (!source?.traceId || !source.service) return [];
 
-      const attributes = source.attributes ?? {};
-      const query = stringAttribute(attributes, ['dbQueryText', 'db.query.text', 'db.statement']);
-      const summary = stringAttribute(attributes, ['dbQuerySummary', 'db.query.summary']);
-      const operation = stringAttribute(attributes, ['dbOperationName', 'db.operation.name', 'db.operation']);
-      const system = stringAttribute(attributes, ['dbSystemName', 'db.system.name', 'db.system']);
-      const collection = stringAttribute(attributes, ['dbCollectionName', 'db.collection.name']);
-      const returnedRows = numberAttribute(attributes, ['dbReturnedRows', 'db.response.returned_rows']);
-      const batchSize = numberAttribute(attributes, ['dbBatchSize', 'db.operation.batch.size']);
+      const query = source.dbQueryText;
+      const summary = source.dbQuerySummary;
+      const operation = source.dbOperationName;
+      const system = source.dbSystemName;
+      const collection = source.dbCollectionName;
+      const returnedRows = Number.isFinite(source.dbReturnedRows) ? source.dbReturnedRows : undefined;
+      const batchSize = Number.isFinite(source.dbBatchSize) ? source.dbBatchSize : undefined;
 
       const dependencyName = String(source.dependencyName ?? system ?? source.name ?? '');
       const queryIdentity = query ?? summary ?? operation ?? dependencyName;
