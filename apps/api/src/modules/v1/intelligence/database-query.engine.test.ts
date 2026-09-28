@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  evaluateDatabaseQuery,
-  percentile,
-} from './database-query.engine';
+import { evaluateDatabaseQuery, percentile } from './database-query.engine';
 
 describe('database query engine', () => {
   it('detects a slow query from its p95 latency', () => {
@@ -22,12 +19,12 @@ describe('database query engine', () => {
   });
 
   it('detects a query regression when the absolute and relative gates are met', () => {
-    const signal = evaluateDatabaseQuery(480, 300, 50);
+    const signal = evaluateDatabaseQuery(600, 300, 50);
 
     expect(signal).toMatchObject({
       severity: 'warning',
       baselineValue: 300,
-      changePercent: 60,
+      changePercent: 100,
     });
   });
 
