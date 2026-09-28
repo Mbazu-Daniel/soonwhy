@@ -22,6 +22,7 @@ const DOMAIN_MAP: Record<DetectionFinding['type'], TelemetryDomain> = {
   bottleneck: 'performance',
   error_group: 'error',
   database_query: 'database',
+  performance: 'performance',
 };
 
 export function createIssueFromDetection(finding: DetectionFinding): Issue {
@@ -86,11 +87,19 @@ export function createIssueFromDetection(finding: DetectionFinding): Issue {
 }
 
 function operationName(finding: DetectionFinding): string {
-  const operation = finding.evidence.find(
+  const queryOperation = finding.evidence.find(
     (item) => item.context?.queryOperation,
   )?.context?.queryOperation;
 
-  return typeof operation === 'string' && operation ? operation : finding.type;
+  if (typeof queryOperation === 'string' && queryOperation) return queryOperation;
+
+  const endpoint = finding.evidence.find(
+    (item) => item.context?.endpoint,
+  )?.context?.endpoint;
+
+  if (typeof endpoint === 'string' && endpoint) return endpoint;
+
+  return finding.type;
 }
 
 function identityDimensions(evidence: DetectionEvidence[]): Record<string, string> {
