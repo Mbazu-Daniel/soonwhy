@@ -111,7 +111,58 @@ export function mapSpanToTraceRow(span: ParsedSpan, tenant: TenantContext) {
     statusMessage: span.statusMessage || '',
     dependencyType: getDependencyType(span),
     dependencyName: getDependencyName(span),
+    ...(getDatabaseAttributes(span)),
   };
+}
+
+function getDatabaseAttributes(span: ParsedSpan): Record<string, string | number> {
+  if (getDependencyType(span) !== 'database') return {};
+
+  const queryText = firstStringAttribute(span, ['db.query.text', 'db.statement']);
+  const querySummary = firstStringAttribute(span, ['db.query.summary']);
+  const operationName = firstStringAttribute(span, ['db.operation.name', 'db.operation']);
+  const systemName = firstStringAttribute(span, ['db.system.name', 'db.system', 'db_system']);
+  const collectionName = firstStringAttribute(span, ['db.collection.name', 'db.sql.table']);
+  const returnedRows = firstFiniteNumberAttribute(span, ['db.response.returned_rows']);
+  const batchSize = firstFiniteNumberAttribute(span, ['db.operation.batch.size']);
+
+  return {
+    ...(queryText ? { dbQueryText: sanitizeDatabaseQuery(queryText) } : {}),
+    ...(querySummary ? { dbQuerySummary: querySummary.slice(0, 500) } : {}),
+    ...(operationName ? { dbOperationName: operationName.slice(0, 200) } : {}),
+    ...(systemName ? { dbSystemName: systemName.slice(0, 100) } : {}),
+    ...(collectionName ? { dbCollectionName: collectionName.slice(0, 500) } : {}),
+    ...(returnedRows !== undefined ? { dbReturnedRows: returnedRows } : {}),
+    ...(batchSize !== undefined ? { dbBatchSize: batchSize } : {}),
+  };
+}
+
+function firstStringAttribute(span: ParsedSpan, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = span.attributes[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return undefined;
+}
+
+function firstFiniteNumberAttribute(span: ParsedSpan, keys: string[]): number | undefined {
+  for (const key of keys) {
+    const value = span.attributes[key];
+    const number = typeof value === 'number' ? value : Number(value);
+    if (Number.isFinite(number)) return number;
+  }
+  return undefined;
+}
+
+function sanitizeDatabaseQuery(query: string): string {
+  return query
+    .replace(/'(?:''|[^'])*'/g, '?')
+    .replace(/"(?:""|[^"])*"/g, '?')
+    .replace(/\b\d+(?:\.\d+)?\b/g, '?')
+    .replace(/\b(?:true|false|null)\b/gi, '?')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 16_384);
 }
 
 function getDependencyType(span: ParsedSpan): string {

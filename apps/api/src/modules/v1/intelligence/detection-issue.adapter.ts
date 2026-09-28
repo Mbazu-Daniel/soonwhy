@@ -21,13 +21,14 @@ const DOMAIN_MAP: Record<DetectionFinding['type'], TelemetryDomain> = {
   trace_span: 'performance',
   bottleneck: 'performance',
   error_group: 'error',
+  database_query: 'database',
 };
 
 export function createIssueFromDetection(finding: DetectionFinding): Issue {
   const identity = createTelemetryIdentity({
     domain: DOMAIN_MAP[finding.type],
     serviceName: finding.serviceName,
-    operationName: finding.type,
+    operationName: operationName(finding),
     identityAttributes: {
       findingType: finding.type,
       ...identityDimensions(finding.evidence),
@@ -50,7 +51,7 @@ export function createIssueFromDetection(finding: DetectionFinding): Issue {
   const primaryObservation: EvidenceObservation = {
     name: 'observed-value',
     value: finding.observedValue,
-    source: 'metric',
+    source: finding.type === 'database_query' ? 'trace' : 'metric',
     observedAt: finding.window.end.toISOString(),
     dimensions: {
       findingType: finding.type,
@@ -61,17 +62,19 @@ export function createIssueFromDetection(finding: DetectionFinding): Issue {
 
   const allObservations = [primaryObservation, ...observations];
 
+  const confidence = evaluateEvidenceConfidence({
+    identity,
+    observations: allObservations,
+    windows: [{
+      start: finding.window.start.toISOString(),
+      end: finding.window.end.toISOString(),
+    }],
+  });
+
   return {
     identity,
-    confidence: evaluateEvidenceConfidence({
-      identity,
-      observations: allObservations,
-      windows: [{
-        start: finding.window.start.toISOString(),
-        end: finding.window.end.toISOString(),
-      }],
-    }),
-    status: confidenceStatus(allObservations, identity, finding),
+    confidence,
+    status: confidence.status,
     observations: allObservations,
     windows: [{
       start: finding.window.start.toISOString(),
@@ -82,19 +85,12 @@ export function createIssueFromDetection(finding: DetectionFinding): Issue {
   };
 }
 
-function confidenceStatus(
-  observations: EvidenceObservation[],
-  identity: ReturnType<typeof createTelemetryIdentity>,
-  finding: DetectionFinding,
-): Issue['status'] {
-  return evaluateEvidenceConfidence({
-    identity,
-    observations,
-    windows: [{
-      start: finding.window.start.toISOString(),
-      end: finding.window.end.toISOString(),
-    }],
-  }).status;
+function operationName(finding: DetectionFinding): string {
+  const operation = finding.evidence.find(
+    (item) => item.context?.queryOperation,
+  )?.context?.queryOperation;
+
+  return typeof operation === 'string' && operation ? operation : finding.type;
 }
 
 function identityDimensions(evidence: DetectionEvidence[]): Record<string, string> {
@@ -108,6 +104,9 @@ function identityDimensions(evidence: DetectionEvidence[]): Record<string, strin
 
     const fingerprint = item.context?.fingerprint;
     if (typeof fingerprint === 'string') dimensions.fingerprint = fingerprint;
+
+    const databaseSystem = item.context?.databaseSystem;
+    if (typeof databaseSystem === 'string') dimensions.databaseSystem = databaseSystem;
   }
 
   return dimensions;
