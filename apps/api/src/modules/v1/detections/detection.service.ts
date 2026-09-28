@@ -730,6 +730,7 @@ export class DetectionService {
         duration: Number(source.duration ?? 0),
         dependencyType: 'database',
         dependencyName,
+        ...(source.name ? { spanName: String(source.name) } : {}),
         ...(query ? { dbQueryText: query } : {}),
         ...(summary ? { dbQuerySummary: summary } : {}),
         ...(operation ? { dbOperationName: operation } : {}),
