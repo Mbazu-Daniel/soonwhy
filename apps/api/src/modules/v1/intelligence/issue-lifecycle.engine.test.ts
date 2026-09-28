@@ -73,7 +73,7 @@ describe('issue lifecycle', () => {
     expect(lifecycle.lastObservedAt).toBe('2026-09-28T11:00:00+01:00');
   });
 
-  it('updates an active issue only with matching, non-stale evidence', () => {
+  it('updates an active issue only with matching, newer evidence', () => {
     const lifecycle = createIssueLifecycle(issue);
 
     expect(updateIssueLifecycle(lifecycle, {
@@ -88,6 +88,11 @@ describe('issue lifecycle', () => {
 
     expect(updateIssueLifecycle(lifecycle, {
       ...issue,
+      lastObservedAt: '2026-09-28T10:00:00Z',
+    })).toBeUndefined();
+
+    expect(updateIssueLifecycle(lifecycle, {
+      ...issue,
       lastObservedAt: '2026-09-28T10:15:00Z',
     })).toMatchObject({
       status: 'active',
@@ -96,7 +101,7 @@ describe('issue lifecycle', () => {
     });
   });
 
-  it('does not reopen a resolved issue without newer evidence', () => {
+  it('does not reopen a resolved issue without evidence newer than resolution', () => {
     const lifecycle = resolveIssue(
       createIssueLifecycle(issue),
       '2026-09-28T10:10:00Z',
@@ -115,6 +120,17 @@ describe('issue lifecycle', () => {
         lastObservedAt: '2026-09-28T10:10:00Z',
       }),
     ).toBeUndefined();
+
+    expect(
+      lifecycle && updateIssueLifecycle(lifecycle, {
+        ...issue,
+        lastObservedAt: '2026-09-28T10:15:00Z',
+      }),
+    ).toMatchObject({
+      status: 'active',
+      lastObservedAt: '2026-09-28T10:15:00Z',
+      resolvedAt: undefined,
+    });
   });
 
   it('resolves an active issue only at or after its last observation', () => {
@@ -154,7 +170,7 @@ describe('issue lifecycle', () => {
     });
   });
 
-  it('does not reopen an active issue or accept stale evidence', () => {
+  it('does not reopen an active issue or accept evidence from before resolution', () => {
     const lifecycle = createIssueLifecycle(issue);
 
     expect(reopenIssue(lifecycle, '2026-09-28T10:15:00Z')).toBeUndefined();
