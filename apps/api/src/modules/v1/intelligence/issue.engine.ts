@@ -64,17 +64,13 @@ function uniqueValidWindows(windows: EvidenceWindow[]): EvidenceWindow[] {
 }
 
 function minTimestamp(observations: EvidenceObservation[]): string {
-  return observations.reduce(
-    (earliest, observation) =>
-      observation.observedAt < earliest ? observation.observedAt : earliest,
-    observations[0].observedAt,
-  );
+  return observations.reduce((earliest, observation) =>
+    observation.observedAt < earliest.observedAt ? observation : earliest,
+  ).observedAt;
 }
 
 function maxTimestamp(observations: EvidenceObservation[]): string {
-  return observations.reduce(
-    (latest, observation) =>
-      observation.observedAt > latest ? observation.observedAt : latest,
-    observations[0].observedAt,
-  );
+  return observations.reduce((latest, observation) =>
+    observation.observedAt > latest.observedAt ? observation : latest,
+  ).observedAt;
 }
