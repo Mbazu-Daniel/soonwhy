@@ -51,13 +51,13 @@ export type ThroughputSeverity = 'warning' | 'critical';
 export interface ThroughputSignal { type: 'throughput'; observedValue: number; threshold: number; severity: ThroughputSeverity; unit: 'requests'; baselineValue: number; changePercent: number; }
 export function evaluateThroughput(observedRequests: number, baseline?: DetectionBaseline): ThroughputSignal | undefined {
   const signal = evaluatePerformanceThroughput(observedRequests, baseline);
-  if (!signal) return undefined;
-  return { type: 'throughput', observedValue: signal.observedValue, threshold: signal.baselineValue * 0.7, severity: signal.severity, unit: 'requests', baselineValue: signal.baselineValue, changePercent: signal.changePercent ?? 0 };
+  if (!signal || signal.baselineValue === undefined || signal.changePercent === undefined || signal.severity === 'candidate') return undefined;
+  return { type: 'throughput', observedValue: signal.observedValue, threshold: signal.baselineValue * 0.7, severity: signal.severity, unit: 'requests', baselineValue: signal.baselineValue, changePercent: signal.changePercent };
 }
 
 export interface TraceSpanSignal { type: 'trace_span'; observedValue: number; threshold: number; severity: 'warning' | 'critical'; unit: '%'; spanDuration: number; traceDuration: number; }
 export function evaluateTraceSpan(spanDuration: number, traceDuration: number): TraceSpanSignal | undefined {
   const signal = evaluateTraceContribution(spanDuration, traceDuration);
-  if (!signal) return undefined;
+  if (!signal || signal.severity === 'candidate') return undefined;
   return { type: 'trace_span', observedValue: signal.observedValue, threshold: 50, severity: signal.severity, unit: '%', spanDuration, traceDuration };
 }
