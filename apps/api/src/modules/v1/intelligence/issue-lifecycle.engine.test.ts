@@ -88,6 +88,11 @@ describe('issue lifecycle', () => {
 
     expect(updateIssueLifecycle(lifecycle, {
       ...issue,
+      lastObservedAt: '2026-09-28T10:00:00Z',
+    })).toBeUndefined();
+
+    expect(updateIssueLifecycle(lifecycle, {
+      ...issue,
       lastObservedAt: '2026-09-28T10:15:00Z',
     })).toMatchObject({
       status: 'active',
