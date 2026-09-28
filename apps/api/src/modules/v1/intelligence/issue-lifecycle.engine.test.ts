@@ -44,6 +44,9 @@ const issue: Issue = {
 };
 
 describe('issue lifecycle', () => {
+  const observation = issue.observations[0];
+
+  if (!observation) throw new Error('Test issue must include an observation');
   it('creates a stable key from telemetry identity', () => {
     expect(createIssueKey(identity)).toBe('1:query-fingerprint');
   });
@@ -62,8 +65,8 @@ describe('issue lifecycle', () => {
     const lifecycle = createIssueLifecycle({
       ...issue,
       observations: [
-        { ...issue.observations[0], observedAt: '2026-09-28T11:00:00+01:00' },
-        { ...issue.observations[0], observedAt: '2026-09-28T09:30:00Z' },
+        { ...observation, observedAt: '2026-09-28T11:00:00+01:00' },
+        { ...observation, observedAt: '2026-09-28T09:30:00Z' },
       ],
       firstObservedAt: undefined,
       lastObservedAt: undefined,
