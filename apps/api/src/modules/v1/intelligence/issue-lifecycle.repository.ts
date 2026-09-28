@@ -33,8 +33,7 @@ export class IssueLifecycleRepository {
         eq(issueLifecycles.orgId, orgId),
         eq(issueLifecycles.projectId, projectId),
         eq(issueLifecycles.issueKey, issueKey),
-      ))
-      .limit(1);
+      ));
 
     return row ? toLifecycle(row as StoredIssueLifecycle) : undefined;
   }
