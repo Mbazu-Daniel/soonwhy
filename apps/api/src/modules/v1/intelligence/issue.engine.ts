@@ -15,9 +15,10 @@ export function buildIssue(input: BuildIssueInput): Issue | undefined {
     return undefined;
   }
 
-  const validWindows = uniqueValidWindows(input.windows);
+  const observations = validObservations(input.observations);
+  const windows = uniqueValidWindows(input.windows);
 
-  if (input.observations.length === 0 || validWindows.length === 0) {
+  if (observations.length === 0 || windows.length === 0) {
     return undefined;
   }
 
@@ -25,10 +26,10 @@ export function buildIssue(input: BuildIssueInput): Issue | undefined {
     identity: input.identity,
     confidence: input.confidence,
     status: input.confidence.status,
-    observations: input.observations,
-    windows: validWindows,
-    firstObservedAt: minTimestamp(input.observations),
-    lastObservedAt: maxTimestamp(input.observations),
+    observations,
+    windows,
+    firstObservedAt: minTimestamp(observations),
+    lastObservedAt: maxTimestamp(observations),
   };
 }
 
@@ -44,11 +45,20 @@ function sameIdentity(left: TelemetryIdentity, right: TelemetryIdentity): boolea
   );
 }
 
+function validObservations(
+  observations: EvidenceObservation[],
+): EvidenceObservation[] {
+  return observations.filter((observation) => Number.isFinite(Date.parse(observation.observedAt)));
+}
+
 function uniqueValidWindows(windows: EvidenceWindow[]): EvidenceWindow[] {
   const seen = new Set<string>();
 
   return windows.filter((window) => {
-    if (window.start >= window.end) {
+    const start = Date.parse(window.start);
+    const end = Date.parse(window.end);
+
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start >= end) {
       return false;
     }
 
@@ -65,12 +75,16 @@ function uniqueValidWindows(windows: EvidenceWindow[]): EvidenceWindow[] {
 
 function minTimestamp(observations: EvidenceObservation[]): string {
   return observations.reduce((earliest, observation) =>
-    observation.observedAt < earliest.observedAt ? observation : earliest,
+    Date.parse(observation.observedAt) < Date.parse(earliest.observedAt)
+      ? observation
+      : earliest,
   ).observedAt;
 }
 
 function maxTimestamp(observations: EvidenceObservation[]): string {
   return observations.reduce((latest, observation) =>
-    observation.observedAt > latest.observedAt ? observation : latest,
+    Date.parse(observation.observedAt) > Date.parse(latest.observedAt)
+      ? observation
+      : latest,
   ).observedAt;
 }
