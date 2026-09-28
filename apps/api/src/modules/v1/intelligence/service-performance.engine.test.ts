@@ -31,7 +31,7 @@ describe('service performance engine', () => {
     });
 
     expect(signal?.severity).toBe('critical');
-    expect(signal?.reasons).toHaveLength(6);
+    expect(signal?.reasons).toHaveLength(7);
   });
 
   it('records latency regression against a baseline', () => {
