@@ -30,8 +30,7 @@ export function updateIssueLifecycle(
   if (
     !isValidTimestamp(latestObservedAt) ||
     !isValidTimestamp(lifecycle.lastObservedAt) ||
-    comparison < 0 ||
-    (lifecycle.status === 'resolved' && comparison === 0)
+    comparison <= 0
   ) {
     return undefined;
   }
