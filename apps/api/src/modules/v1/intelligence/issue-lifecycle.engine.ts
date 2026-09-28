@@ -2,12 +2,20 @@ import type { Issue } from './issue.types';
 import type { IssueLifecycle } from './issue-lifecycle.types';
 
 export function createIssueLifecycle(issue: Issue): IssueLifecycle {
+  const firstObservation = issue.observations.reduce((earliest, observation) =>
+    observation.observedAt < earliest.observedAt ? observation : earliest,
+  );
+
+  const lastObservation = issue.observations.reduce((latest, observation) =>
+    observation.observedAt > latest.observedAt ? observation : latest,
+  );
+
   return {
     issueKey: createIssueKey(issue.identity),
     identity: issue.identity,
     status: 'active',
-    firstObservedAt: issue.firstObservedAt ?? issue.observations[0].observedAt,
-    lastObservedAt: issue.lastObservedAt ?? issue.observations[0].observedAt,
+    firstObservedAt: issue.firstObservedAt ?? firstObservation.observedAt,
+    lastObservedAt: issue.lastObservedAt ?? lastObservation.observedAt,
   };
 }
 
