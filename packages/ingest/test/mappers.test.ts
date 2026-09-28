@@ -216,6 +216,31 @@ describe('OTLP JSON parse + telemetry mappers', () => {
     expect(row.dbOperationName).toBe('SELECT');
     expect(row.dbQueryText).toBe('SELECT * FROM users WHERE email = ? AND id = ?');
     expect(row.dbReturnedRows).toBe(3);
+    expect(row.errorType).toBe('timeout');
+  });
+
+  it('preserves database connection pool identity attributes', () => {
+    const { points } = parseMetricsPayload({
+      resourceMetrics: [{
+        resource: { attributes: [{ key: 'service.name', value: { stringValue: 'api' } }] },
+        scopeMetrics: [{ metrics: [{
+          name: 'db.client.connection.count',
+          unit: '{connection}',
+          gauge: { dataPoints: [{
+            timeUnixNano: String(BigInt(Date.now()) * 1_000_000n),
+            asDouble: 9,
+            attributes: [
+              { key: 'db.client.connection.pool.name', value: { stringValue: 'primary' } },
+              { key: 'db.client.connection.state', value: { stringValue: 'used' } },
+            ],
+          }] },
+        }] }],
+      }],
+    });
+
+    const row = mapMetricToRow(points[0]!, tenant);
+    expect(row.connectionPoolName).toBe('primary');
+    expect(row.attributes['db.client.connection.state']).toBe('used');
   });
 
   it('maps gauge metrics into metrics table rows', () => {
