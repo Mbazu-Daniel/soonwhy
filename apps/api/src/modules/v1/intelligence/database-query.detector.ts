@@ -12,6 +12,8 @@ export interface DatabaseQueryTrace {
   spanId: string;
   parentSpanId?: string;
   duration: number;
+  statusCode?: number;
+  statusMessage?: string;
   dependencyType: string;
   dependencyName: string;
   spanName?: string;
