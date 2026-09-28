@@ -7,6 +7,7 @@ import { quickwitTenantQuery, quickwitTerm } from '../../../common/quickwit/quer
 import { ProjectsRepository } from '../projects/projects.repository';
 import { createIssueFromDetection } from '../intelligence/detection-issue.adapter';
 import { IssueLifecycleService } from '../intelligence/issue-lifecycle.service';
+import { detectDatabaseQueries, type DatabaseQueryTrace } from '../intelligence/database-query.detector';
 import { sanitizeRequestUrl } from './detection.utils';
 import { correlateFindings } from './detection.correlation';
 import { completeDetectionRun, failDetectionRun, startDetectionRun } from './detection.run';
@@ -60,7 +61,13 @@ interface TraceSource {
   dependencyName?: string;
   dependencyType?: string;
   spanKind?: number;
-  attributes?: Record<string, string | number | boolean | null>;
+  dbQueryText?: string;
+  dbQuerySummary?: string;
+  dbOperationName?: string;
+  dbSystemName?: string;
+  dbCollectionName?: string;
+  dbReturnedRows?: number;
+  dbBatchSize?: number;
 }
 
 @Injectable()
@@ -275,6 +282,52 @@ export class DetectionService {
             },
           },
         ],
+      }));
+    }
+
+    const [currentDatabaseSpans, baselineDatabaseSpans] = await Promise.all([
+      this.searchDatabaseQuerySpans(orgId, projectId, startTimestamp, endTimestamp),
+      this.searchDatabaseQuerySpans(
+        orgId,
+        projectId,
+        startTimestamp - Math.floor(WINDOW_MS / 1000),
+        startTimestamp,
+      ),
+    ]);
+
+    for (const candidate of detectDatabaseQueries(currentDatabaseSpans, baselineDatabaseSpans)) {
+      detected.push(await this.persistFinding({
+        orgId,
+        projectId,
+        serviceName: candidate.serviceName,
+        type: 'database_query',
+        severity: candidate.signal.severity,
+        title: 'Slow database query in ' + candidate.serviceName,
+        description: this.describeDatabaseQuery(candidate),
+        observedValue: candidate.signal.observedValue,
+        threshold: candidate.signal.threshold,
+        unit: 'ms',
+        start,
+        end,
+        evidence: candidate.samples.map((sample) => ({
+          kind: 'trace',
+          label: 'database-query-span',
+          value: sample.duration,
+          context: {
+            service: sample.service,
+            traceId: sample.traceId,
+            spanId: sample.spanId,
+            timestamp: sample.timestamp,
+            fingerprint: candidate.identity.fingerprint,
+            databaseSystem: candidate.databaseSystem ?? '',
+            dependencyName: sample.dependencyName,
+            ...(candidate.queryOperation ? { queryOperation: candidate.queryOperation } : {}),
+            ...(candidate.querySummary ? { querySummary: candidate.querySummary } : {}),
+            ...(candidate.collectionName ? { collectionName: candidate.collectionName } : {}),
+            ...(sample.dbQueryText ? { query: sample.dbQueryText } : {}),
+            ...(sample.dbReturnedRows !== undefined ? { returnedRows: sample.dbReturnedRows } : {}),
+          },
+        })),
       }));
     }
 
@@ -635,6 +688,77 @@ export class DetectionService {
     );
   }
 
+  private async searchDatabaseQuerySpans(
+    orgId: string,
+    projectId: string,
+    startTimestamp: number,
+    endTimestamp: number,
+  ): Promise<DatabaseQueryTrace[]> {
+    const result = await this.quickwit.search<TraceSource>(QUICKWIT_INDEXES.traces, {
+      query: quickwitTenantQuery(
+        orgId,
+        projectId,
+        quickwitTerm('dependencyType', 'database'),
+      ),
+      startTimestamp,
+      endTimestamp,
+      maxHits: 5000,
+      sortBy: ['-duration'],
+    });
+
+    return result.hits.flatMap((hit) => {
+      const source = hit._source;
+      if (!source?.traceId || !source.service) return [];
+
+      const query = source.dbQueryText;
+      const summary = source.dbQuerySummary;
+      const operation = source.dbOperationName;
+      const system = source.dbSystemName;
+      const collection = source.dbCollectionName;
+      const returnedRows = Number.isFinite(source.dbReturnedRows) ? source.dbReturnedRows : undefined;
+      const batchSize = Number.isFinite(source.dbBatchSize) ? source.dbBatchSize : undefined;
+
+      const dependencyName = String(source.dependencyName ?? system ?? source.name ?? '');
+      const queryIdentity = query ?? summary ?? operation ?? dependencyName;
+      if (!queryIdentity) return [];
+
+      return [{
+        timestamp: String(source.timestamp ?? ''),
+        service: String(source.service),
+        traceId: String(source.traceId),
+        spanId: String(source.spanId ?? ''),
+        duration: Number(source.duration ?? 0),
+        dependencyType: 'database',
+        dependencyName,
+        ...(query ? { dbQueryText: query } : {}),
+        ...(summary ? { dbQuerySummary: summary } : {}),
+        ...(operation ? { dbOperationName: operation } : {}),
+        ...(system ? { dbSystemName: system } : {}),
+        ...(collection ? { dbCollectionName: collection } : {}),
+        ...(returnedRows !== undefined ? { dbReturnedRows: returnedRows } : {}),
+        ...(batchSize !== undefined ? { dbBatchSize: batchSize } : {}),
+      }];
+    });
+  }
+
+  private describeDatabaseQuery(
+    candidate: ReturnType<typeof detectDatabaseQueries>[number],
+  ): string {
+    const baseline = candidate.signal.baselineValue;
+    const change = candidate.signal.changePercent;
+    const queryLabel = candidate.querySummary ?? candidate.queryOperation ?? candidate.query;
+
+    if (baseline !== undefined && change !== undefined) {
+      return queryLabel + ' reached a p95 latency of ' +
+        Math.round(candidate.signal.observedValue) + 'ms, up ' +
+        change.toFixed(0) + '% from the previous comparable window (' +
+        Math.round(baseline) + 'ms).';
+    }
+
+    return queryLabel + ' reached a p95 latency of ' +
+      Math.round(candidate.signal.observedValue) + 'ms.';
+  }
+
   private async searchTraceSpanCandidates(
     orgId: string,
     projectId: string,
@@ -790,6 +914,7 @@ export class DetectionService {
   }
 
   private async assertProjectAccess(orgId: string, projectId: string): Promise<void> {
+
     const project = await this.projectsRepository.getProjectById(projectId, orgId);
 
     if (!project) {
@@ -913,3 +1038,4 @@ export class DetectionService {
     };
   }
 }
+
