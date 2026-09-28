@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { db } from '../../../common/db';
 import { issueLifecycles } from '../../../common/db/schema';
 import type { IssueLifecycle } from './issue-lifecycle.types';
@@ -36,6 +36,26 @@ export class IssueLifecycleRepository {
       ));
 
     return row ? toLifecycle(row as StoredIssueLifecycle) : undefined;
+  }
+
+  async list(
+    orgId: string,
+    projectId: string,
+    status?: IssueLifecycle['status'],
+    limit = 50,
+  ): Promise<IssueLifecycle[]> {
+    const rows = await db
+      .select()
+      .from(issueLifecycles)
+      .where(and(
+        eq(issueLifecycles.orgId, orgId),
+        eq(issueLifecycles.projectId, projectId),
+        ...(status ? [eq(issueLifecycles.status, status)] : []),
+      ))
+      .orderBy(desc(issueLifecycles.lastObservedAt))
+      .limit(Math.min(Math.max(limit, 1), 100));
+
+    return rows.map((row) => toLifecycle(row as StoredIssueLifecycle));
   }
 
   async save(input: SaveIssueLifecycleInput): Promise<IssueLifecycle> {
