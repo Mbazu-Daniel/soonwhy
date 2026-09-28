@@ -12,6 +12,7 @@ import { detectNPlusOne, type NPlusOneTrace } from '../intelligence/n-plus-one.d
 import { detectDatabaseQueryVolume, type DatabaseQueryVolumeTrace } from '../intelligence/database-query-volume.detector';
 import { detectDatabaseErrors, type DatabaseErrorTrace } from '../intelligence/database-error.detector';
 import { detectDatabaseLatencyContribution, type DatabaseLatencyContributionTrace } from '../intelligence/database-latency-contribution.detector';
+import { detectDatabaseConnectionPool, type DatabaseConnectionPoolSample } from '../intelligence/database-connection-pool.detector';
 import { sanitizeRequestUrl } from './detection.utils';
 import { correlateFindings } from './detection.correlation';
 import { completeDetectionRun, failDetectionRun, startDetectionRun } from './detection.run';
@@ -53,6 +54,16 @@ interface RequestSource {
   duration?: number;
   statusCode?: number;
   traceId?: string;
+}
+
+interface MetricSource {
+  timestamp?: string;
+  service?: string;
+  name?: string;
+  value?: number;
+  connectionPoolName?: string;
+  connectionPoolState?: string;
+  attributes?: Record<string, unknown>;
 }
 
 interface TraceSource {
@@ -425,6 +436,58 @@ export class DetectionService {
             ...(candidate.queryOperation ? { queryOperation: candidate.queryOperation } : {}),
             ...(candidate.querySummary ? { querySummary: candidate.querySummary } : {}),
             ...(sample.dbQueryText ? { query: sample.dbQueryText } : {}),
+          },
+        })),
+      }));
+    }
+
+    const databasePoolMetrics = await this.searchDatabaseConnectionPoolMetrics(
+      orgId,
+      projectId,
+      startTimestamp,
+      endTimestamp,
+    );
+
+    for (const candidate of detectDatabaseConnectionPool(databasePoolMetrics)) {
+      const critical =
+        (candidate.signal.p95UtilizationPercent ?? 0) >= 95 ||
+        (candidate.signal.p95PendingRequests ?? 0) >= 5 ||
+        false;
+
+      const observed = candidate.signal.p95PendingRequests !== undefined
+        ? { value: candidate.signal.p95PendingRequests, threshold: 1, unit: 'pending requests' }
+        : candidate.signal.p95UtilizationPercent !== undefined
+          ? { value: candidate.signal.p95UtilizationPercent, threshold: 80, unit: '% utilization' }
+          : { value: candidate.signal.timeoutIncrease ?? 0, threshold: 1, unit: 'timeouts' };
+
+      detected.push(await this.persistFinding({
+        orgId,
+        projectId,
+        serviceName: candidate.serviceName,
+        type: 'database_connection_pool',
+        severity: critical ? 'critical' : 'warning',
+        title: 'Database connection pool pressure in ' + candidate.serviceName,
+        description: this.describeDatabaseConnectionPool(candidate),
+        observedValue: observed.value,
+        threshold: observed.threshold,
+        unit: observed.unit,
+        start,
+        end,
+        evidence: candidate.samples.map((sample) => ({
+          kind: 'metric' as const,
+          label: 'database-connection-pool',
+          value: sample.pendingRequests ?? sample.usedConnections ?? sample.connectionTimeouts ?? 0,
+          context: {
+            service: sample.service,
+            poolName: sample.poolName,
+            timestamp: sample.timestamp,
+            ...(sample.usedConnections !== undefined ? { usedConnections: sample.usedConnections } : {}),
+            ...(sample.maxConnections !== undefined ? { maxConnections: sample.maxConnections } : {}),
+            ...(sample.pendingRequests !== undefined ? { pendingRequests: sample.pendingRequests } : {}),
+            ...(sample.connectionTimeouts !== undefined ? { connectionTimeouts: sample.connectionTimeouts } : {}),
+            ...(candidate.signal.p95UtilizationPercent !== undefined ? { p95UtilizationPercent: candidate.signal.p95UtilizationPercent } : {}),
+            ...(candidate.signal.p95PendingRequests !== undefined ? { p95PendingRequests: candidate.signal.p95PendingRequests } : {}),
+            ...(candidate.signal.timeoutIncrease !== undefined ? { timeoutIncrease: candidate.signal.timeoutIncrease } : {}),
           },
         })),
       }));
@@ -994,6 +1057,77 @@ export class DetectionService {
         }];
       }),
     );
+  }
+
+  private async searchDatabaseConnectionPoolMetrics(
+    orgId: string,
+    projectId: string,
+    startTimestamp: number,
+    endTimestamp: number,
+  ): Promise<DatabaseConnectionPoolSample[]> {
+    const names = [
+      'db.client.connection.count',
+      'db.client.connection.max',
+      'db.client.connection.pending_requests',
+      'db.client.connection.timeouts',
+    ].map((name) => quickwitTerm('name', name)).join(' OR ');
+
+    const result = await this.quickwit.search<MetricSource>(QUICKWIT_INDEXES.metrics, {
+      query: quickwitTenantQuery(orgId, projectId, names),
+      startTimestamp,
+      endTimestamp,
+      maxHits: 5000,
+      sortBy: ['timestamp'],
+    });
+
+    const snapshots = new Map<string, DatabaseConnectionPoolSample>();
+    for (const hit of result.hits ?? []) {
+      const source = hit._source;
+      const timestamp = source?.timestamp;
+      const service = source?.service;
+      const poolName = source?.connectionPoolName ?? this.metricString(source?.attributes?.['db.client.connection.pool.name']);
+      const name = source?.name;
+      const value = Number(source?.value);
+      if (!timestamp || !service || !poolName || !name || !Number.isFinite(value)) continue;
+
+      const key = service + '\\0' + poolName + '\\0' + timestamp;
+      const snapshot = snapshots.get(key) ?? { timestamp, service, poolName };
+      const state = source?.connectionPoolState ?? this.metricString(source?.attributes?.['db.client.connection.state']);
+
+      if (name === 'db.client.connection.count') {
+        if (state === 'used') snapshot.usedConnections = value;
+      } else if (name === 'db.client.connection.max') {
+        snapshot.maxConnections = value;
+      } else if (name === 'db.client.connection.pending_requests') {
+        snapshot.pendingRequests = value;
+      } else if (name === 'db.client.connection.timeouts') {
+        snapshot.connectionTimeouts = value;
+      }
+      snapshots.set(key, snapshot);
+    }
+
+    return Array.from(snapshots.values());
+  }
+
+  private metricString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+  }
+
+  private describeDatabaseConnectionPool(
+    candidate: ReturnType<typeof detectDatabaseConnectionPool>[number],
+  ): string {
+    const reasons = [
+      candidate.signal.p95UtilizationPercent !== undefined
+        ? 'p95 utilization is ' + candidate.signal.p95UtilizationPercent.toFixed(0) + '%'
+        : '',
+      candidate.signal.p95PendingRequests !== undefined
+        ? 'p95 pending requests are ' + candidate.signal.p95PendingRequests.toFixed(0)
+        : '',
+      candidate.signal.timeoutIncrease !== undefined && candidate.signal.timeoutIncrease > 0
+        ? candidate.signal.timeoutIncrease.toFixed(0) + ' connection timeouts occurred'
+        : '',
+    ].filter(Boolean);
+    return candidate.poolName + ' shows database connection pool pressure: ' + reasons.join(', ') + '.';
   }
 
   private async searchDatabaseQuerySpans(
