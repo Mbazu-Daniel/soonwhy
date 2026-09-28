@@ -5,6 +5,8 @@ import { db } from '../../../common/db';
 import { findings, type DetectionEvidence } from '../../../common/db/schema/findings';
 import { quickwitTenantQuery, quickwitTerm } from '../../../common/quickwit/query';
 import { ProjectsRepository } from '../projects/projects.repository';
+import { createIssueFromDetection } from '../intelligence/detection-issue.adapter';
+import { IssueLifecycleService } from '../intelligence/issue-lifecycle.service';
 import { sanitizeRequestUrl } from './detection.utils';
 import { correlateFindings } from './detection.correlation';
 import { completeDetectionRun, failDetectionRun, startDetectionRun } from './detection.run';
@@ -66,6 +68,7 @@ export class DetectionService {
   constructor(
     private readonly quickwit: QuickwitService,
     private readonly projectsRepository: ProjectsRepository,
+    private readonly issueLifecycleService: IssueLifecycleService,
   ) {}
 
   async run(orgId: string, projectId: string): Promise<DetectionFinding[]> {
@@ -396,7 +399,18 @@ export class DetectionService {
       }));
     }
 
+    await this.persistIssueLifecycles(orgId, projectId, detected);
     return detected;
+  }
+
+  private async persistIssueLifecycles(orgId: string, projectId: string, findings: DetectionFinding[]): Promise<void> {
+    for (const finding of findings) {
+      await this.issueLifecycleService.apply({
+        orgId,
+        projectId,
+        issue: createIssueFromDetection(finding),
+      });
+    }
   }
 
   async createFindingFromError(
