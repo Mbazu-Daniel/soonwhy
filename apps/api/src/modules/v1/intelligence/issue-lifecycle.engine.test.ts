@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { createIssueKey, createIssueLifecycle, reopenIssue, resolveIssue } from './issue-lifecycle.engine';
+import {
+  createIssueKey,
+  createIssueLifecycle,
+  reopenIssue,
+  resolveIssue,
+  updateIssueLifecycle,
+} from './issue-lifecycle.engine';
 import type { Issue } from './issue.types';
 import type { TelemetryIdentity } from './telemetry-identity.types';
 
@@ -52,14 +58,49 @@ describe('issue lifecycle', () => {
     });
   });
 
-  it('resolves an issue only at or after its last observation', () => {
+  it('updates an issue only with matching, non-stale evidence', () => {
+    const lifecycle = createIssueLifecycle(issue);
+
+    expect(updateIssueLifecycle(lifecycle, {
+      ...issue,
+      identity: { ...identity, fingerprint: 'other' },
+    })).toBeUndefined();
+
+    expect(updateIssueLifecycle(lifecycle, {
+      ...issue,
+      lastObservedAt: '2026-09-28T09:59:00Z',
+    })).toBeUndefined();
+
+    expect(updateIssueLifecycle(lifecycle, {
+      ...issue,
+      lastObservedAt: '2026-09-28T10:15:00Z',
+    })).toMatchObject({
+      status: 'active',
+      lastObservedAt: '2026-09-28T10:15:00Z',
+      resolvedAt: undefined,
+    });
+  });
+
+  it('resolves an active issue only at or after its last observation', () => {
     const lifecycle = createIssueLifecycle(issue);
 
     expect(resolveIssue(lifecycle, '2026-09-28T09:59:00Z')).toBeUndefined();
+    expect(resolveIssue(lifecycle, 'not-a-date')).toBeUndefined();
     expect(resolveIssue(lifecycle, '2026-09-28T10:10:00Z')).toMatchObject({
       status: 'resolved',
       resolvedAt: '2026-09-28T10:10:00Z',
     });
+  });
+
+  it('does not resolve an already resolved issue', () => {
+    const lifecycle = resolveIssue(
+      createIssueLifecycle(issue),
+      '2026-09-28T10:10:00Z',
+    );
+
+    expect(
+      lifecycle && resolveIssue(lifecycle, '2026-09-28T10:20:00Z'),
+    ).toBeUndefined();
   });
 
   it('reopens a resolved issue when new evidence arrives', () => {
