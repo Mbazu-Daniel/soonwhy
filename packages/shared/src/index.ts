@@ -6,3 +6,10 @@ export {
   apiKeyFromAuthorization,
   type ValidatedApiKey,
 } from './auth/api-keys';
+export {
+  QuickwitService,
+  type QuickwitHit,
+  type QuickwitSearchInput,
+  type QuickwitSearchResponse,
+} from './quickwit';
+export { QUICKWIT_INDEXES, QUICKWIT_INDEX_CONFIG } from './quickwit/config';
