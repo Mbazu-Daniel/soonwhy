@@ -25,17 +25,12 @@ export function updateIssueLifecycle(
   if (createIssueKey(issue.identity) !== lifecycle.issueKey) return undefined;
 
   const latestObservedAt = issue.lastObservedAt ?? getLatestObservation(issue);
-  const comparison = compareTimestamps(latestObservedAt, lifecycle.lastObservedAt);
-  const isDuplicateEvidence = latestObservedAt === lifecycle.lastObservedAt;
-
-  if (
-    !isValidTimestamp(latestObservedAt) ||
-    !isValidTimestamp(lifecycle.lastObservedAt) ||
-    isDuplicateEvidence ||
-    comparison <= 0
-  ) {
+  if (!isValidTimestamp(latestObservedAt) || !isValidTimestamp(lifecycle.lastObservedAt)) {
     return undefined;
   }
+
+  const comparison = compareTimestamps(latestObservedAt, lifecycle.lastObservedAt);
+  if (!Number.isFinite(comparison) || comparison <= 0) return undefined;
 
   return {
     ...lifecycle,
