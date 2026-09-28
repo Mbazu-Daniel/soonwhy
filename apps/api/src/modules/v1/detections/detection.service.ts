@@ -62,6 +62,8 @@ interface TraceSource {
   parentSpanId?: string;
   name?: string;
   duration?: number;
+  statusCode?: number;
+  statusMessage?: string;
   dependencyName?: string;
   dependencyType?: string;
   spanKind?: number;
