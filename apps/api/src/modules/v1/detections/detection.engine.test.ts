@@ -1,19 +1,10 @@
-describe('performance engine integration', () => {
-  it('uses performance intelligence for latency regression severity', () => {
-    expect(evaluateSignal('latency', 600, { value: 300, samples: 100 })?.severity).toBe('critical');
-  });
-
-  it('keeps threshold detection for latency without a baseline', () => {
-    expect(evaluateSignal('latency', 1_250)?.severity).toBe('warning');
-  });
-
-  it('uses performance intelligence for throughput detection', () => {
-    expect(evaluateThroughput(40, { value: 100, samples: 100 })?.severity).toBe('critical');
-  });
-});
-
 import { describe, expect, it } from 'vitest';
-import { DETECTION_RULES, evaluateSignal, evaluateThroughput, evaluateTraceSpan } from './detection.engine';
+import {
+  DETECTION_RULES,
+  evaluateSignal,
+  evaluateThroughput,
+  evaluateTraceSpan,
+} from './detection.engine';
 
 describe('evaluateSignal', () => {
   it('does not detect values below the threshold without a baseline regression', () => {
@@ -57,6 +48,16 @@ describe('evaluateSignal', () => {
     expect(evaluateSignal('latency', 400, { value: 300, samples: 19 })).toBeUndefined();
   });
 
+  it('does not promote a performance candidate to a detection', () => {
+    expect(evaluateSignal('latency', 420, { value: 300, samples: 20 })).toBeUndefined();
+  });
+
+  it('uses performance intelligence for dependency latency regression', () => {
+    expect(
+      evaluateSignal('dependency_latency', 600, { value: 300, samples: 100 })?.severity,
+    ).toBe('critical');
+  });
+
   it('detects error-rate regression from a healthy baseline', () => {
     expect(evaluateSignal('error_rate', 3, { value: 1, samples: 100 })).toEqual({
       type: 'error_rate',
@@ -70,7 +71,9 @@ describe('evaluateSignal', () => {
   });
 
   it('classifies a large regression as critical', () => {
-    expect(evaluateSignal('error_rate', 4, { value: 1, samples: 100 })?.severity).toBe('critical');
+    expect(evaluateSignal('error_rate', 4, { value: 1, samples: 100 })?.severity).toBe(
+      'critical',
+    );
   });
 
   it('ignores non-finite observations', () => {
@@ -93,7 +96,13 @@ describe('evaluateThroughput', () => {
   });
 
   it('classifies a 50 percent throughput decrease as critical', () => {
-    expect(evaluateThroughput(50, { value: 100, samples: 100 })?.severity).toBe('critical');
+    expect(evaluateThroughput(50, { value: 100, samples: 100 })?.severity).toBe(
+      'critical',
+    );
+  });
+
+  it('does not promote a throughput candidate to a detection', () => {
+    expect(evaluateThroughput(80, { value: 100, samples: 100 })).toBeUndefined();
   });
 
   it('ignores small or low-sample throughput changes', () => {
@@ -107,7 +116,6 @@ describe('evaluateThroughput', () => {
   });
 });
 
-
 describe('dependency latency detection', () => {
   it('detects a slow dependency above the absolute threshold', () => {
     expect(evaluateSignal('dependency_latency', 650)).toEqual({
@@ -119,19 +127,12 @@ describe('dependency latency detection', () => {
     });
   });
 
-  it('classifies a critical dependency regression', () => {
-    expect(
-      evaluateSignal('dependency_latency', 800, { value: 300, samples: 100 })?.severity,
-    ).toBe('critical');
-  });
-
   it('does not use a low-sample baseline for regression detection', () => {
     expect(
       evaluateSignal('dependency_latency', 400, { value: 300, samples: 19 }),
     ).toBeUndefined();
   });
 });
-
 
 describe('evaluateTraceSpan', () => {
   it('detects a span responsible for at least half of a trace duration', () => {
@@ -147,7 +148,7 @@ describe('evaluateTraceSpan', () => {
     expect(evaluateTraceSpan(800, 1000)?.severity).toBe('critical');
   });
 
-  it('ignores spans that are not a meaningful part of the trace', () => {
+  it('does not promote a trace candidate to a detection', () => {
     expect(evaluateTraceSpan(400, 1000)).toBeUndefined();
   });
 });
