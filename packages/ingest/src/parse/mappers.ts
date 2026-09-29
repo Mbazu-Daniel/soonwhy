@@ -176,6 +176,7 @@ function getDependencyType(span: ParsedSpan): string {
     span.attributes['db.system'] ||
     span.attributes.db_system
   ) {
+    if (String(span.attributes['db.system.name'] ?? span.attributes['db.system'] ?? '').toLowerCase() === 'redis') return 'redis';
     return 'database';
   }
 
