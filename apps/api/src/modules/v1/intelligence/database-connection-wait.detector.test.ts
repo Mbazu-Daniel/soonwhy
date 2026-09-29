@@ -21,6 +21,7 @@ describe('database connection wait detector', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0]?.signal.sampleCount).toBe(10);
+    expect(result[0]?.signal.severity).toBe('warning');
     expect(result[0]?.signal.p50WaitMs).toBe(145);
     expect(result[0]?.signal.p95WaitMs).toBeGreaterThan(180);
     expect(result[0]?.signal.p99WaitMs).toBeGreaterThanOrEqual(result[0]?.signal.p95WaitMs ?? 0);
@@ -34,6 +35,7 @@ describe('database connection wait detector', () => {
     expect(result).toHaveLength(1);
     expect(result[0]?.signal.regressionDetected).toBe(true);
     expect(result[0]?.signal.p95ChangePercent).toBeGreaterThanOrEqual(100);
+    expect(result[0]?.signal.severity).toBe('warning');
   });
 
   it('ignores healthy waits and insufficient samples', () => {
@@ -44,6 +46,14 @@ describe('database connection wait detector', () => {
     expect(detectDatabaseConnectionWait(
       Array.from({ length: 10 }, (_, index) => sample(index, 20)),
     )).toEqual([]);
+  });
+
+  it('marks severe acquisition wait as critical', () => {
+    const result = detectDatabaseConnectionWait(
+      Array.from({ length: 10 }, (_, index) => sample(index, 250 + index * 10)),
+    );
+
+    expect(result[0]?.signal.severity).toBe('critical');
   });
 
   it('keeps services and pools isolated', () => {
