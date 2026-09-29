@@ -34,7 +34,7 @@ export interface DatabaseResultSetSignal {
   p99Duration: number;
   largeResultRate: number;
   largeResultRows: number;
-  current?: DatabaseResultSetDistribution;
+  current: DatabaseResultSetDistribution;
   baseline?: DatabaseResultSetDistribution;
   baselineSampleCount?: number;
   p95RowsChangePercent?: number;
@@ -95,30 +95,33 @@ export function detectDatabaseResultSets(
   for (const [key, group] of currentGroups) {
     const first = group[0];
     if (!first) continue;
-    const fingerprint = fingerprintQuery(queryFor(first), first.dbSystemName).identity;
+    const identity = fingerprintQuery(queryFor(first), first.dbSystemName).identity;
 
     if (group.length < MINIMUM_SAMPLES) {
-      insufficientEvidence.push({ serviceName: first.service, fingerprint: fingerprint.fingerprint, reason: 'sample_count_below_minimum', sampleCount: group.length });
+      insufficientEvidence.push({ serviceName: first.service, fingerprint: identity.fingerprint, reason: 'sample_count_below_minimum', sampleCount: group.length });
       continue;
     }
 
-    const current = distribution(group);
+    const currentRows = distribution(group.map((sample) => sample.returnedRows ?? 0));
+    const currentDuration = distribution(group.map((sample) => sample.duration));
     const largeResultRate = group.filter((sample) => (sample.returnedRows ?? 0) >= LARGE_RESULT_ROWS).length / group.length;
     const baselineGroup = baselineGroups.get(key) ?? [];
-    const baseline = baselineGroup.length >= MINIMUM_SAMPLES ? distribution(baselineGroup) : undefined;
-    const p95RowsChangePercent = percentChange(current.p95, baseline?.p95);
-    const p99RowsChangePercent = percentChange(current.p99, baseline?.p99);
-    const p95DurationChangePercent = percentChange(current.p95, baseline?.p95);
-    const p99DurationChangePercent = percentChange(current.p99, baseline?.p99);
+    const baseline = baselineGroup.length >= MINIMUM_SAMPLES
+      ? distributionPair(baselineGroup)
+      : undefined;
+    const p95RowsChangePercent = percentChange(currentRows.p95, baseline?.rows.p95);
+    const p99RowsChangePercent = percentChange(currentRows.p99, baseline?.rows.p99);
+    const p95DurationChangePercent = percentChange(currentDuration.p95, baseline?.duration.p95);
+    const p99DurationChangePercent = percentChange(currentDuration.p99, baseline?.duration.p99);
     const regressionDetected =
       (p95RowsChangePercent !== undefined && p95RowsChangePercent >= REGRESSION_P95_ROWS_PERCENT) ||
       (p99RowsChangePercent !== undefined && p99RowsChangePercent >= REGRESSION_P99_ROWS_PERCENT) ||
       (p95DurationChangePercent !== undefined && p95DurationChangePercent >= REGRESSION_DURATION_PERCENT) ||
       (p99DurationChangePercent !== undefined && p99DurationChangePercent >= REGRESSION_DURATION_PERCENT);
 
-    const largeResultDetected = current.p95 >= LARGE_RESULT_ROWS && largeResultRate >= MINIMUM_LARGE_RESULT_RATE;
+    const largeResultDetected = currentRows.p95 >= LARGE_RESULT_ROWS && largeResultRate >= MINIMUM_LARGE_RESULT_RATE;
     if (!largeResultDetected && !regressionDetected) {
-      insufficientEvidence.push({ serviceName: first.service, fingerprint: fingerprint.fingerprint, reason: baseline ? 'result_set_not_actionable' : 'result_set_not_large_or_regressing', sampleCount: group.length });
+      insufficientEvidence.push({ serviceName: first.service, fingerprint: identity.fingerprint, reason: baseline ? 'result_set_not_actionable' : 'result_set_not_large_or_regressing', sampleCount: group.length });
       continue;
     }
 
@@ -135,22 +138,24 @@ export function detectDatabaseResultSets(
         ? 'medium'
         : 'low';
 
-    const payloadValues = group.map((sample) => sample.responseBytes).filter((value): value is number => value !== undefined && Number.isFinite(value) && value >= 0);
+    const payloadValues = group
+      .map((sample) => sample.responseBytes)
+      .filter((value): value is number => value !== undefined && Number.isFinite(value) && value >= 0);
 
     candidates.push({
       serviceName: first.service,
       signal: {
         sampleCount: group.length,
-        p50ReturnedRows: current.p50,
-        p95ReturnedRows: current.p95,
-        p99ReturnedRows: current.p99,
-        p50Duration: current.p50,
-        p95Duration: current.p95,
-        p99Duration: current.p99,
+        p50ReturnedRows: currentRows.p50,
+        p95ReturnedRows: currentRows.p95,
+        p99ReturnedRows: currentRows.p99,
+        p50Duration: currentDuration.p50,
+        p95Duration: currentDuration.p95,
+        p99Duration: currentDuration.p99,
         largeResultRate,
         largeResultRows: LARGE_RESULT_ROWS,
-        current,
-        ...(baseline ? { baseline, baselineSampleCount: baselineGroup.length } : {}),
+        current: currentRows,
+        ...(baseline ? { baseline: baseline.rows, baselineSampleCount: baselineGroup.length } : {}),
         ...(p95RowsChangePercent !== undefined ? { p95RowsChangePercent } : {}),
         ...(p99RowsChangePercent !== undefined ? { p99RowsChangePercent } : {}),
         ...(p95DurationChangePercent !== undefined ? { p95DurationChangePercent } : {}),
@@ -159,23 +164,21 @@ export function detectDatabaseResultSets(
         confidence,
         evidenceReasons: reasons,
       },
-      identity: fingerprint,
+      identity,
       query: queryFor(first),
       ...(first.dbQuerySummary ? { querySummary: first.dbQuerySummary } : {}),
       ...(first.dbOperationName ? { queryOperation: first.dbOperationName } : {}),
       ...(first.dbSystemName ? { databaseSystem: first.dbSystemName } : {}),
       ...(first.dbCollectionName ? { collectionName: first.dbCollectionName } : {}),
       ...(first.endpoint ? { endpoint: first.endpoint } : {}),
-      ...(payloadValues.length >= MINIMUM_SAMPLES ? { payloadBytes: distribution(payloadValues.map((value, index) => ({ returnedRows: value, duration: value }))) } : {}),
+      ...(payloadValues.length >= MINIMUM_SAMPLES ? { payloadBytes: distribution(payloadValues) } : {}),
       samples: group.slice(0, 20),
-      recommendation: recommendationFor(current.p95, current.p99, largeResultRate, regressionDetected),
+      recommendation: recommendationFor(currentRows.p95, currentRows.p99, largeResultRate, regressionDetected),
     });
   }
 
   return {
-    candidates: candidates
-      .sort((a, b) => b.signal.p99ReturnedRows - a.signal.p99ReturnedRows)
-      .slice(0, 100),
+    candidates: candidates.sort((a, b) => b.signal.p99ReturnedRows - a.signal.p99ReturnedRows).slice(0, 100),
     insufficientEvidence: insufficientEvidence.slice(0, 100),
   };
 }
@@ -206,10 +209,20 @@ function queryFor(sample: DatabaseResultSetTrace): string {
   return sample.dbQueryText ?? sample.dbQuerySummary ?? sample.dbOperationName ?? sample.dependencyName;
 }
 
-function distribution(samples: DatabaseResultSetTrace[] | Array<{ returnedRows: number; duration: number }>): DatabaseResultSetDistribution {
-  const rows = samples.map((sample) => 'returnedRows' in sample ? sample.returnedRows : sample.returnedRows).filter(Number.isFinite).sort((a, b) => a - b);
-  const durations = samples.map((sample) => 'duration' in sample ? sample.duration : sample.duration).filter(Number.isFinite).sort((a, b) => a - b);
-  return { p50: percentile(rows, 0.5), p95: percentile(rows, 0.95), p99: percentile(rows, 0.99) };
+function distribution(values: number[]): DatabaseResultSetDistribution {
+  const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
+  return {
+    p50: percentile(sorted, 0.5),
+    p95: percentile(sorted, 0.95),
+    p99: percentile(sorted, 0.99),
+  };
+}
+
+function distributionPair(samples: DatabaseResultSetTrace[]): { rows: DatabaseResultSetDistribution; duration: DatabaseResultSetDistribution } {
+  return {
+    rows: distribution(samples.map((sample) => sample.returnedRows ?? 0)),
+    duration: distribution(samples.map((sample) => sample.duration)),
+  };
 }
 
 function percentile(values: number[], quantile: number): number {
