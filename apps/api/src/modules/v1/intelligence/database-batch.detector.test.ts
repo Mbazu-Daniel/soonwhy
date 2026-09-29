@@ -45,6 +45,13 @@ describe('database batch detector', () => {
     expect(result[0]?.signal.logicalOperationCount).toBe(50);
   });
 
+  it('does not treat a larger batch as a problem when latency is stable', () => {
+    const baseline = Array.from({ length: 10 }, (_, index) => sample(index, 2, { duration: 200 }));
+    const current = Array.from({ length: 10 }, (_, index) => sample(index + 10, 4, { duration: 200 }));
+
+    expect(detectDatabaseBatches(current, baseline)).toEqual([]);
+  });
+
   it('requires actual batch telemetry', () => {
     const result = detectDatabaseBatches(
       Array.from({ length: 10 }, (_, index) => sample(index, 1)),
