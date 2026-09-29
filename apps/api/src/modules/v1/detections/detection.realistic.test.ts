@@ -64,7 +64,9 @@ describe('DetectionService realistic telemetry scenarios', () => {
       .mockResolvedValueOnce({ hits: [] })
       .mockResolvedValueOnce({ hits: [] })
       .mockResolvedValueOnce({ aggregations: { dependencies: { buckets: [{ key: 'checkout-api', dependencies: { buckets: [checkoutRegressionFixture.dependency.current.dependency] } }] } } })
-      .mockResolvedValueOnce({ aggregations: { dependencies: { buckets: [{ key: 'checkout-api', dependencies: { buckets: [checkoutRegressionFixture.dependency.baseline.dependency] } }] } } })
+      .mockResolvedValueOnce({ aggregations: { dependencies: { buckets: [{ key: 'checkout-api', dependencies: { buckets: [checkoutRegressionFixture.dependency.baseline.dependency] } }] } } })      .mockResolvedValueOnce({ hits: [] })
+      .mockResolvedValueOnce({ hits: [] })
+
       .mockResolvedValueOnce({ hits: [] })
       .mockResolvedValueOnce({ hits: [] })
       .mockResolvedValueOnce({ hits: [] })
