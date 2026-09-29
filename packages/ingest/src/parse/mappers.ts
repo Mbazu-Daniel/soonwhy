@@ -126,6 +126,7 @@ function getDatabaseAttributes(span: ParsedSpan): Record<string, string | number
   const collectionName = firstStringAttribute(span, ['db.collection.name', 'db.sql.table']);
   const returnedRows = firstFiniteNumberAttribute(span, ['db.response.returned_rows']);
   const batchSize = firstFiniteNumberAttribute(span, ['db.operation.batch.size']);
+  const responseBytes = firstFiniteNumberAttribute(span, ['db.response.size.bytes', 'db.response.body.size']);
 
   return {
     ...(queryText ? { dbQueryText: sanitizeDatabaseQuery(queryText) } : {}),
@@ -135,6 +136,7 @@ function getDatabaseAttributes(span: ParsedSpan): Record<string, string | number
     ...(collectionName ? { dbCollectionName: collectionName.slice(0, 500) } : {}),
     ...(returnedRows !== undefined ? { dbReturnedRows: returnedRows } : {}),
     ...(batchSize !== undefined ? { dbBatchSize: batchSize } : {}),
+    ...(responseBytes !== undefined ? { dbResponseBytes: responseBytes } : {}),
   };
 }
 

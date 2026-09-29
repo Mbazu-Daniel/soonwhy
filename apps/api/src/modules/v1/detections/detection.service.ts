@@ -14,6 +14,7 @@ import { detectDatabaseErrors, type DatabaseErrorTrace } from '../intelligence/d
 import { detectDatabaseLatencyContribution, type DatabaseLatencyContributionTrace } from '../intelligence/database-latency-contribution.detector';
 import { detectDatabaseConnectionPool, type DatabaseConnectionPoolSample } from '../intelligence/database-connection-pool.detector';
 import { detectDatabaseTimeouts, type DatabaseTimeoutTrace } from '../intelligence/database-timeout.detector';
+import { detectDatabaseResultSets, type DatabaseResultSetTrace } from '../intelligence/database-result-set.detector';
 import { sanitizeRequestUrl } from './detection.utils';
 import { correlateFindings } from './detection.correlation';
 import { completeDetectionRun, failDetectionRun, startDetectionRun } from './detection.run';
@@ -88,6 +89,9 @@ interface TraceSource {
   dbCollectionName?: string;
   dbReturnedRows?: number;
   dbBatchSize?: number;
+  dbResponseBytes?: number;
+  httpRoute?: string;
+  endpoint?: string;
 }
 
 @Injectable()
@@ -542,6 +546,157 @@ export class DetectionService {
             ...(sample.dbQueryText ? { query: sample.dbQueryText } : {}),
           },
         })),
+      }));
+    }
+
+    const [currentEndpointByTrace, baselineEndpointByTrace] = await Promise.all([
+      this.searchRequestEndpoints(orgId, projectId, startTimestamp, endTimestamp),
+      this.searchRequestEndpoints(
+        orgId,
+        projectId,
+        startTimestamp - Math.floor(WINDOW_MS / 1000),
+        startTimestamp,
+      ),
+    ]);
+
+    const currentResultSetSpans = currentDatabaseSpans.map((sample) => ({
+      ...sample,
+      ...(currentEndpointByTrace.get(sample.traceId) ? { httpRoute: currentEndpointByTrace.get(sample.traceId) } : {}),
+    }));
+
+    const baselineResultSetSpans = baselineDatabaseSpans.map((sample) => ({
+      ...sample,
+      ...(baselineEndpointByTrace.get(sample.traceId) ? { httpRoute: baselineEndpointByTrace.get(sample.traceId) } : {}),
+    }));
+
+    const resultSetTraces: DatabaseResultSetTrace[] = currentResultSetSpans.map((sample) => ({
+      timestamp: sample.timestamp,
+      service: sample.service,
+      traceId: sample.traceId,
+      spanId: sample.spanId,
+      duration: sample.duration,
+      dependencyType: sample.dependencyType,
+      dependencyName: sample.dependencyName,
+      ...(traceDurations.get(sample.traceId) !== undefined ? { traceDuration: traceDurations.get(sample.traceId) } : {}),
+      ...(sample.dbReturnedRows !== undefined ? { returnedRows: sample.dbReturnedRows } : {}),
+      ...(sample.dbResponseBytes !== undefined ? { responseBytes: sample.dbResponseBytes } : {}),
+      ...(sample.dbQueryText ? { dbQueryText: sample.dbQueryText } : {}),
+      ...(sample.dbQuerySummary ? { dbQuerySummary: sample.dbQuerySummary } : {}),
+      ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
+      ...(sample.dbSystemName ? { dbSystemName: sample.dbSystemName } : {}),
+      ...(sample.dbCollectionName ? { dbCollectionName: sample.dbCollectionName } : {}),
+      ...(sample.httpRoute ? { endpoint: sample.httpRoute } : {}),
+      ...(sample.endpoint ? { endpoint: sample.endpoint } : {}),
+    }));
+    
+    const baselineResultSetTraces: DatabaseResultSetTrace[] = baselineResultSetSpans.map((sample) => ({
+      timestamp: sample.timestamp,
+      service: sample.service,
+      traceId: sample.traceId,
+      spanId: sample.spanId,
+      duration: sample.duration,
+      dependencyType: sample.dependencyType,
+      dependencyName: sample.dependencyName,
+      ...(sample.dbReturnedRows !== undefined ? { returnedRows: sample.dbReturnedRows } : {}),
+      ...(sample.dbResponseBytes !== undefined ? { responseBytes: sample.dbResponseBytes } : {}),
+      ...(sample.dbQueryText ? { dbQueryText: sample.dbQueryText } : {}),
+      ...(sample.dbQuerySummary ? { dbQuerySummary: sample.dbQuerySummary } : {}),
+      ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
+      ...(sample.dbSystemName ? { dbSystemName: sample.dbSystemName } : {}),
+      ...(sample.dbCollectionName ? { dbCollectionName: sample.dbCollectionName } : {}),
+      ...(sample.httpRoute ? { endpoint: sample.httpRoute } : {}),
+      ...(sample.endpoint ? { endpoint: sample.endpoint } : {}),
+    }));
+
+    const resultSetDetection = detectDatabaseResultSets(resultSetTraces, baselineResultSetTraces);
+    for (const candidate of resultSetDetection.candidates) {
+      const severity =
+        candidate.signal.p99ReturnedRows >= 5000 ||
+        candidate.signal.p95TraceContributionPercent !== undefined && candidate.signal.p95TraceContributionPercent >= 75 ||
+        candidate.signal.p95RowsChangePercent !== undefined && candidate.signal.p95RowsChangePercent >= 200
+          ? 'critical'
+          : 'warning';
+
+      detected.push(await this.persistFinding({
+        orgId,
+        projectId,
+        serviceName: candidate.serviceName,
+        type: 'database_result_set',
+        severity,
+        title: 'Large database result set in ' + candidate.serviceName,
+        description: this.describeDatabaseResultSet(candidate),
+        observedValue: candidate.signal.p95ReturnedRows,
+        threshold: candidate.signal.largeResultRows,
+        unit: 'returned rows',
+        start,
+        end,
+        evidence: [
+          ...candidate.samples.slice(0, 10).map((sample) => ({
+            kind: 'trace' as const,
+            label: 'database-result-set',
+            value: sample.returnedRows ?? 0,
+            context: {
+              service: sample.service,
+              traceId: sample.traceId,
+              spanId: sample.spanId,
+              timestamp: sample.timestamp,
+              fingerprint: candidate.identity.fingerprint,
+              fingerprintVersion: candidate.identity.fingerprintVersion,
+              databaseSystem: candidate.databaseSystem ?? '',
+              dependencyName: sample.dependencyName,
+              returnedRows: sample.returnedRows ?? 0,
+              durationMs: sample.duration,
+              ...(sample.endpoint ? { endpoint: sample.endpoint } : {}),
+              ...(sample.responseBytes !== undefined ? { responseBytes: sample.responseBytes } : {}),
+              ...(candidate.queryOperation ? { queryOperation: candidate.queryOperation } : {}),
+              ...(candidate.querySummary ? { querySummary: candidate.querySummary } : {}),
+              ...(candidate.collectionName ? { collectionName: candidate.collectionName } : {}),
+              ...(sample.dbQueryText ? { query: sample.dbQueryText } : {}),
+            },
+          })),
+          {
+            kind: 'metric' as const,
+            label: 'database-result-set-profile',
+            value: candidate.signal.p95ReturnedRows,
+            context: {
+              sampleCount: candidate.signal.sampleCount,
+              p50ReturnedRows: candidate.signal.p50ReturnedRows,
+              p95ReturnedRows: candidate.signal.p95ReturnedRows,
+              p99ReturnedRows: candidate.signal.p99ReturnedRows,
+              p50Duration: candidate.signal.p50Duration,
+              p95Duration: candidate.signal.p95Duration,
+              p99Duration: candidate.signal.p99Duration,
+              largeResultRate: candidate.signal.largeResultRate,
+              ...(candidate.signal.baselineSampleCount !== undefined ? { baselineSampleCount: candidate.signal.baselineSampleCount } : {}),
+              ...(candidate.signal.p95RowsChangePercent !== undefined ? { p95RowsChangePercent: candidate.signal.p95RowsChangePercent } : {}),
+              ...(candidate.signal.p99RowsChangePercent !== undefined ? { p99RowsChangePercent: candidate.signal.p99RowsChangePercent } : {}),
+              ...(candidate.signal.p95DurationChangePercent !== undefined ? { p95DurationChangePercent: candidate.signal.p95DurationChangePercent } : {}),
+              ...(candidate.signal.p99DurationChangePercent !== undefined ? { p99DurationChangePercent: candidate.signal.p99DurationChangePercent } : {}),
+              ...(candidate.signal.p95TraceContributionPercent !== undefined ? { p95TraceContributionPercent: candidate.signal.p95TraceContributionPercent } : {}),
+              ...(candidate.signal.p99TraceContributionPercent !== undefined ? { p99TraceContributionPercent: candidate.signal.p99TraceContributionPercent } : {}),
+              regressionDetected: candidate.signal.regressionDetected,
+              confidence: candidate.signal.confidence,
+              evidenceReasons: candidate.signal.evidenceReasons.join(';'),
+              ...(candidate.endpoint ? { endpoint: candidate.endpoint } : {}),
+              ...(candidate.payloadBytes ? {
+                payloadP50Bytes: candidate.payloadBytes.p50,
+                payloadP95Bytes: candidate.payloadBytes.p95,
+                payloadP99Bytes: candidate.payloadBytes.p99,
+              } : {}),
+            },
+          },
+          {
+            kind: 'recommendation' as const,
+            label: 'database-result-set-guidance',
+            value: candidate.recommendation.guidance,
+            context: {
+              action: candidate.recommendation.action,
+              validation: candidate.recommendation.validation,
+              ...(candidate.endpoint ? { endpoint: candidate.endpoint } : {}),
+              fingerprint: candidate.identity.fingerprint,
+            },
+          },
+        ],
       }));
     }
 
@@ -1182,6 +1337,36 @@ export class DetectionService {
     return candidate.poolName + ' shows database connection pool pressure: ' + reasons.join(', ') + '.';
   }
 
+  private async searchRequestEndpoints(
+    orgId: string,
+    projectId: string,
+    startTimestamp: number,
+    endTimestamp: number,
+  ): Promise<Map<string, string>> {
+    const result = await this.quickwit.search<RequestSource>(QUICKWIT_INDEXES.requests, {
+      query: quickwitTenantQuery(orgId, projectId),
+      startTimestamp,
+      endTimestamp,
+      maxHits: 5000,
+      sortBy: ['timestamp'],
+    });
+
+    const endpoints = new Map<string, string>();
+    for (const hit of result.hits ?? []) {
+      const source = hit._source;
+      const traceId = source?.traceId;
+      if (!traceId) continue;
+
+      const route = String(source?.url ?? '').trim();
+      if (!route) continue;
+
+      const sanitized = sanitizeRequestUrl(route);
+      if (sanitized) endpoints.set(String(traceId), sanitized);
+    }
+
+    return endpoints;
+  }
+
   private async searchDatabaseQuerySpans(
     orgId: string,
     projectId: string,
@@ -1211,6 +1396,8 @@ export class DetectionService {
       const collection = source.dbCollectionName;
       const returnedRows = Number.isFinite(source.dbReturnedRows) ? source.dbReturnedRows : undefined;
       const batchSize = Number.isFinite(source.dbBatchSize) ? source.dbBatchSize : undefined;
+      const responseBytes = Number.isFinite(source.dbResponseBytes) ? source.dbResponseBytes : undefined;
+      const endpoint = source.httpRoute ?? source.endpoint;
 
       const dependencyName = String(source.dependencyName ?? system ?? source.name ?? '');
       const queryIdentity = query ?? summary ?? operation ?? dependencyName;
@@ -1236,6 +1423,8 @@ export class DetectionService {
         ...(collection ? { dbCollectionName: collection } : {}),
         ...(returnedRows !== undefined ? { dbReturnedRows: returnedRows } : {}),
         ...(batchSize !== undefined ? { dbBatchSize: batchSize } : {}),
+        ...(responseBytes !== undefined ? { dbResponseBytes: responseBytes } : {}),
+        ...(endpoint ? { httpRoute: endpoint, endpoint } : {}),
       }];
     });
   }
@@ -1268,6 +1457,23 @@ export class DetectionService {
       '% of trace duration at p95, with ' +
       candidate.signal.p95DurationMs.toFixed(0) +
       'ms of database time.';
+  }
+
+  private describeDatabaseResultSet(
+    candidate: ReturnType<typeof detectDatabaseResultSets>['candidates'][number],
+  ): string {
+    const queryLabel = candidate.querySummary ?? candidate.queryOperation ?? candidate.query;
+    const endpoint = candidate.endpoint ? ' on ' + candidate.endpoint : '';
+    const regression = candidate.signal.regressionDetected && candidate.signal.p95RowsChangePercent !== undefined
+      ? ' P95 returned rows increased by ' + candidate.signal.p95RowsChangePercent.toFixed(0) + '% from the comparable baseline.'
+      : '';
+    const contribution = candidate.signal.p95TraceContributionPercent !== undefined
+      ? ' Database time contributes ' + candidate.signal.p95TraceContributionPercent.toFixed(0) + '% of trace duration at p95.'
+      : '';
+    return queryLabel + endpoint + ' returns ' +
+      Math.round(candidate.signal.p95ReturnedRows) + ' rows at p95 and ' +
+      Math.round(candidate.signal.p99ReturnedRows) + ' at p99 across ' +
+      candidate.signal.sampleCount + ' executions.' + regression + contribution;
   }
 
   private describeDatabaseTimeout(
