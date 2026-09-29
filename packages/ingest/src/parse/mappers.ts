@@ -203,6 +203,18 @@ function getDependencyType(span: ParsedSpan): string {
 function getDependencyName(span: ParsedSpan): string {
   if (span.kind !== 3) return '';
 
+  const dependencyType = getDependencyType(span);
+  if (dependencyType === 'redis') {
+    return String(
+      span.attributes['server.address'] ??
+        span.attributes['network.peer.address'] ??
+        span.attributes['db.system.name'] ??
+        span.resource.serviceName ??
+        span.name ??
+        '',
+    );
+  }
+
   return String(
     span.attributes['db.system.name'] ??
       span.attributes['db.system'] ??
