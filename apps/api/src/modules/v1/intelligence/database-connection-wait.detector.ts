@@ -14,6 +14,7 @@ export interface DatabaseConnectionWaitThresholds {
 
 export interface DatabaseConnectionWaitSignal {
   sampleCount: number;
+  severity: 'warning' | 'critical';
   p50WaitMs: number;
   p95WaitMs: number;
   p99WaitMs: number;
@@ -59,6 +60,9 @@ export function detectDatabaseConnectionWait(
       : undefined;
     const regressionDetected = p95ChangePercent !== undefined && p95ChangePercent >= thresholds.regressionPercent;
     const pressureDetected = p95WaitMs >= thresholds.warningP95WaitMs;
+    const critical =
+      p95WaitMs >= thresholds.criticalP95WaitMs ||
+      (p95ChangePercent !== undefined && p95ChangePercent >= thresholds.regressionPercent * 2);
 
     if (!pressureDetected && !regressionDetected) return [];
 
@@ -67,6 +71,7 @@ export function detectDatabaseConnectionWait(
       poolName: first.poolName,
       signal: {
         sampleCount: current.length,
+        severity: critical ? 'critical' : 'warning',
         p50WaitMs: percentile(currentValues, 50),
         p95WaitMs,
         p99WaitMs: percentile(currentValues, 99),
