@@ -562,7 +562,7 @@ export class DetectionService {
       ...(sample.httpRoute ? { endpoint: sample.httpRoute } : {}),
     }));
 
-    const baselineBatchTraces: DatabaseBatchTrace[] = baselineBatchSpans.map((sample) => ({
+    const baselineBatchTraces: DatabaseBatchTrace[] = baselineDatabaseSpans.map((sample) => ({
       timestamp: sample.timestamp,
       service: sample.service,
       traceId: sample.traceId,
@@ -619,6 +619,7 @@ export class DetectionService {
             p99Duration: candidate.signal.p99Duration,
             ...(candidate.signal.baselineSampleCount !== undefined ? { baselineSampleCount: candidate.signal.baselineSampleCount } : {}),
             ...(candidate.signal.p95BatchSizeChangePercent !== undefined ? { p95BatchSizeChangePercent: candidate.signal.p95BatchSizeChangePercent } : {}),
+            ...(candidate.signal.p99BatchSizeChangePercent !== undefined ? { p99BatchSizeChangePercent: candidate.signal.p99BatchSizeChangePercent } : {}),
             ...(candidate.signal.p95DurationChangePercent !== undefined ? { p95DurationChangePercent: candidate.signal.p95DurationChangePercent } : {}),
             ...(candidate.signal.p99DurationChangePercent !== undefined ? { p99DurationChangePercent: candidate.signal.p99DurationChangePercent } : {}),
             ...(candidate.signal.p95TraceContributionPercent !== undefined ? { p95TraceContributionPercent: candidate.signal.p95TraceContributionPercent } : {}),
