@@ -16,6 +16,7 @@ export type FindingType =
   | 'database_connection_pool'
   | 'database_connection_wait'
   | 'database_batch'
+  | 'database_dependency_degradation'
   | 'database_result_set'
   | 'database_timeout'
   | 'performance';
