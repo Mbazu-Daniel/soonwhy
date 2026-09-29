@@ -645,6 +645,7 @@ export class DetectionService {
       dependencyType: sample.dependencyType,
       dependencyName: sample.dependencyName,
       ...(sample.statusCode !== undefined ? { statusCode: sample.statusCode } : {}),
+      ...(sample.errorType ? { errorType: sample.errorType } : {}),
       ...(sample.dbQueryText ? { dbQueryText: sample.dbQueryText } : {}),
       ...(sample.dbQuerySummary ? { dbQuerySummary: sample.dbQuerySummary } : {}),
       ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
