@@ -20,6 +20,7 @@ describe('DetectionService realistic telemetry scenarios', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    search.mockResolvedValue({ hits: [] });
     getProjectById.mockResolvedValue({ id: 'project-1', orgId: 'org-1' });
 
     let sequence = 0;
@@ -64,6 +65,10 @@ describe('DetectionService realistic telemetry scenarios', () => {
       .mockResolvedValueOnce({ hits: [] })
       .mockResolvedValueOnce({ aggregations: { dependencies: { buckets: [{ key: 'checkout-api', dependencies: { buckets: [checkoutRegressionFixture.dependency.current.dependency] } }] } } })
       .mockResolvedValueOnce({ aggregations: { dependencies: { buckets: [{ key: 'checkout-api', dependencies: { buckets: [checkoutRegressionFixture.dependency.baseline.dependency] } }] } } })
+      .mockResolvedValueOnce({ hits: [] })
+      .mockResolvedValueOnce({ hits: [] })
+      .mockResolvedValueOnce({ hits: [] })
+      .mockResolvedValueOnce({ hits: [] })
       .mockResolvedValueOnce({ hits: [] })
       .mockResolvedValueOnce({ hits: [] })
       .mockResolvedValueOnce({ hits: [] })

@@ -204,6 +204,7 @@ describe('OTLP JSON parse + telemetry mappers', () => {
               { key: 'db.query.summary', value: { stringValue: 'SELECT users' } },
               { key: 'db.operation.name', value: { stringValue: 'SELECT' } },
               { key: 'db.response.returned_rows', value: { intValue: 3 } },
+              { key: 'error.type', value: { stringValue: 'timeout' } },
             ],
           }],
         }],
