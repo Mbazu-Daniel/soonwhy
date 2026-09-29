@@ -109,6 +109,7 @@ export function mapSpanToTraceRow(span: ParsedSpan, tenant: TenantContext) {
     spanKind: span.kind,
     statusCode: span.statusCode,
     statusMessage: span.statusMessage || '',
+    ...(typeof span.attributes['error.type'] === 'string' ? { errorType: span.attributes['error.type'] } : {}),
     dependencyType: getDependencyType(span),
     dependencyName: getDependencyName(span),
     ...(getDatabaseAttributes(span)),

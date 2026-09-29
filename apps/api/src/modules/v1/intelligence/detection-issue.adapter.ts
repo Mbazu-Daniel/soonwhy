@@ -27,6 +27,7 @@ const DOMAIN_MAP: Record<DetectionFinding['type'], TelemetryDomain> = {
   database_error: 'database',
   database_latency_contribution: 'database',
   database_connection_pool: 'database',
+  database_timeout: 'database',
   performance: 'performance',
 };
 
