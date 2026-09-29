@@ -549,7 +549,27 @@ export class DetectionService {
       }));
     }
 
-    const resultSetTraces: DatabaseResultSetTrace[] = currentDatabaseSpans.map((sample) => ({
+    const [currentEndpointByTrace, baselineEndpointByTrace] = await Promise.all([
+      this.searchRequestEndpoints(orgId, projectId, startTimestamp, endTimestamp),
+      this.searchRequestEndpoints(
+        orgId,
+        projectId,
+        startTimestamp - Math.floor(WINDOW_MS / 1000),
+        startTimestamp,
+      ),
+    ]);
+
+    const currentResultSetSpans = currentDatabaseSpans.map((sample) => ({
+      ...sample,
+      ...(currentEndpointByTrace.get(sample.traceId) ? { httpRoute: currentEndpointByTrace.get(sample.traceId) } : {}),
+    }));
+
+    const baselineResultSetSpans = baselineDatabaseSpans.map((sample) => ({
+      ...sample,
+      ...(baselineEndpointByTrace.get(sample.traceId) ? { httpRoute: baselineEndpointByTrace.get(sample.traceId) } : {}),
+    }));
+
+    const resultSetTraces: DatabaseResultSetTrace[] = currentResultSetSpans.map((sample) => ({
       timestamp: sample.timestamp,
       service: sample.service,
       traceId: sample.traceId,
@@ -569,7 +589,7 @@ export class DetectionService {
       ...(sample.endpoint ? { endpoint: sample.endpoint } : {}),
     }));
     
-    const baselineResultSetTraces: DatabaseResultSetTrace[] = baselineDatabaseSpans.map((sample) => ({
+    const baselineResultSetTraces: DatabaseResultSetTrace[] = baselineResultSetSpans.map((sample) => ({
       timestamp: sample.timestamp,
       service: sample.service,
       traceId: sample.traceId,
@@ -1315,6 +1335,36 @@ export class DetectionService {
         : '',
     ].filter(Boolean);
     return candidate.poolName + ' shows database connection pool pressure: ' + reasons.join(', ') + '.';
+  }
+
+  private async searchRequestEndpoints(
+    orgId: string,
+    projectId: string,
+    startTimestamp: number,
+    endTimestamp: number,
+  ): Promise<Map<string, string>> {
+    const result = await this.quickwit.search<RequestSource>(QUICKWIT_INDEXES.requests, {
+      query: quickwitTenantQuery(orgId, projectId),
+      startTimestamp,
+      endTimestamp,
+      maxHits: 5000,
+      sortBy: ['timestamp'],
+    });
+
+    const endpoints = new Map<string, string>();
+    for (const hit of result.hits ?? []) {
+      const source = hit._source;
+      const traceId = source?.traceId;
+      if (!traceId) continue;
+
+      const route = String(source?.url ?? '').trim();
+      if (!route) continue;
+
+      const sanitized = sanitizeRequestUrl(route);
+      if (sanitized) endpoints.set(String(traceId), sanitized);
+    }
+
+    return endpoints;
   }
 
   private async searchDatabaseQuerySpans(
