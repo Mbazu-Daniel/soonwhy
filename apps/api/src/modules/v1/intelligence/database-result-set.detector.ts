@@ -6,6 +6,7 @@ export interface DatabaseResultSetTrace {
   traceId: string;
   spanId: string;
   duration: number;
+  traceDuration?: number;
   dependencyType: string;
   dependencyName: string;
   returnedRows?: number;
@@ -41,6 +42,8 @@ export interface DatabaseResultSetSignal {
   p99RowsChangePercent?: number;
   p95DurationChangePercent?: number;
   p99DurationChangePercent?: number;
+  p95TraceContributionPercent?: number;
+  p99TraceContributionPercent?: number;
   regressionDetected: boolean;
   confidence: 'low' | 'medium' | 'high';
   evidenceReasons: string[];
@@ -82,6 +85,7 @@ const MINIMUM_LARGE_RESULT_RATE = 0.2;
 const REGRESSION_P95_ROWS_PERCENT = 100;
 const REGRESSION_P99_ROWS_PERCENT = 100;
 const REGRESSION_DURATION_PERCENT = 50;
+const TRACE_CONTRIBUTION_PERCENT = 50;
 
 export function detectDatabaseResultSets(
   samples: DatabaseResultSetTrace[],
@@ -106,13 +110,13 @@ export function detectDatabaseResultSets(
     const currentDuration = distribution(group.map((sample) => sample.duration));
     const largeResultRate = group.filter((sample) => (sample.returnedRows ?? 0) >= LARGE_RESULT_ROWS).length / group.length;
     const baselineGroup = baselineGroups.get(key) ?? [];
-    const baseline = baselineGroup.length >= MINIMUM_SAMPLES
-      ? distributionPair(baselineGroup)
-      : undefined;
+    const baseline = baselineGroup.length >= MINIMUM_SAMPLES ? distributionPair(baselineGroup) : undefined;
     const p95RowsChangePercent = percentChange(currentRows.p95, baseline?.rows.p95);
     const p99RowsChangePercent = percentChange(currentRows.p99, baseline?.rows.p99);
     const p95DurationChangePercent = percentChange(currentDuration.p95, baseline?.duration.p95);
     const p99DurationChangePercent = percentChange(currentDuration.p99, baseline?.duration.p99);
+    const p95TraceContributionPercent = percentileTraceContribution(group, 0.95);
+    const p99TraceContributionPercent = percentileTraceContribution(group, 0.99);
     const regressionDetected =
       (p95RowsChangePercent !== undefined && p95RowsChangePercent >= REGRESSION_P95_ROWS_PERCENT) ||
       (p99RowsChangePercent !== undefined && p99RowsChangePercent >= REGRESSION_P99_ROWS_PERCENT) ||
@@ -120,7 +124,8 @@ export function detectDatabaseResultSets(
       (p99DurationChangePercent !== undefined && p99DurationChangePercent >= REGRESSION_DURATION_PERCENT);
 
     const largeResultDetected = currentRows.p95 >= LARGE_RESULT_ROWS && largeResultRate >= MINIMUM_LARGE_RESULT_RATE;
-    if (!largeResultDetected && !regressionDetected) {
+    const traceContributionDetected = (p95TraceContributionPercent ?? 0) >= TRACE_CONTRIBUTION_PERCENT;
+    if (!largeResultDetected && !regressionDetected && !traceContributionDetected) {
       insufficientEvidence.push({ serviceName: first.service, fingerprint: identity.fingerprint, reason: baseline ? 'result_set_not_actionable' : 'result_set_not_large_or_regressing', sampleCount: group.length });
       continue;
     }
@@ -128,13 +133,14 @@ export function detectDatabaseResultSets(
     const reasons: string[] = [];
     if (largeResultDetected) reasons.push('repeated_large_result_set');
     if (regressionDetected) reasons.push('result_set_or_duration_regression');
+    if (traceContributionDetected) reasons.push('database_time_is_material_to_trace_latency');
     if (baselineGroup.length < MINIMUM_SAMPLES && baselineSamples.length > 0) reasons.push('baseline_insufficient');
     if (group.some((sample) => sample.endpoint)) reasons.push('endpoint_context_available');
     if (group.some((sample) => sample.responseBytes !== undefined)) reasons.push('payload_size_available');
 
-    const confidence = regressionDetected && largeResultRate >= 0.5
+    const confidence = regressionDetected && (largeResultRate >= 0.5 || traceContributionDetected)
       ? 'high'
-      : largeResultRate >= 0.5 || regressionDetected
+      : largeResultRate >= 0.5 || regressionDetected || traceContributionDetected
         ? 'medium'
         : 'low';
 
@@ -160,6 +166,8 @@ export function detectDatabaseResultSets(
         ...(p99RowsChangePercent !== undefined ? { p99RowsChangePercent } : {}),
         ...(p95DurationChangePercent !== undefined ? { p95DurationChangePercent } : {}),
         ...(p99DurationChangePercent !== undefined ? { p99DurationChangePercent } : {}),
+        ...(p95TraceContributionPercent !== undefined ? { p95TraceContributionPercent } : {}),
+        ...(p99TraceContributionPercent !== undefined ? { p99TraceContributionPercent } : {}),
         regressionDetected,
         confidence,
         evidenceReasons: reasons,
@@ -173,7 +181,7 @@ export function detectDatabaseResultSets(
       ...(first.endpoint ? { endpoint: first.endpoint } : {}),
       ...(payloadValues.length >= MINIMUM_SAMPLES ? { payloadBytes: distribution(payloadValues) } : {}),
       samples: group.slice(0, 20),
-      recommendation: recommendationFor(currentRows.p95, currentRows.p99, largeResultRate, regressionDetected),
+      recommendation: recommendationFor(currentRows.p95, currentRows.p99, largeResultRate, regressionDetected, traceContributionDetected),
     });
   }
 
@@ -235,12 +243,25 @@ function percentile(values: number[], quantile: number): number {
   return lower === upper ? lowerValue : lowerValue + (upperValue - lowerValue) * (position - lower);
 }
 
+function percentileTraceContribution(samples: DatabaseResultSetTrace[], quantile: number): number | undefined {
+  const contributions = samples
+    .filter((sample) => sample.traceDuration !== undefined && sample.traceDuration > 0)
+    .map((sample) => Math.min(100, (sample.duration / sample.traceDuration!) * 100));
+  return contributions.length >= MINIMUM_SAMPLES ? percentile(contributions, quantile) : undefined;
+}
+
 function percentChange(current: number, baseline: number | undefined): number | undefined {
   if (baseline === undefined || baseline <= 0) return undefined;
   return ((current - baseline) / baseline) * 100;
 }
 
-function recommendationFor(p95Rows: number, p99Rows: number, largeResultRate: number, regression: boolean): DatabaseResultSetCandidate['recommendation'] {
+function recommendationFor(
+  p95Rows: number,
+  p99Rows: number,
+  largeResultRate: number,
+  regression: boolean,
+  traceContributionDetected: boolean,
+): DatabaseResultSetCandidate['recommendation'] {
   if (p99Rows >= CRITICAL_RESULT_ROWS || largeResultRate >= 0.8) {
     return {
       action: 'pagination',
@@ -255,11 +276,18 @@ function recommendationFor(p95Rows: number, p99Rows: number, largeResultRate: nu
       validation: 'Benchmark the same query shape and compare p50/p95/p99 rows and duration. Do not treat lower latency alone as proof of correctness.',
     };
   }
+  if (traceContributionDetected) {
+    return {
+      action: 'bounded-query',
+      guidance: 'Database time is materially contributing to request latency. Reduce unnecessary result transfer first, then validate the query plan and endpoint behavior.',
+      validation: 'Compare DB duration contribution, endpoint p50/p95/p99 latency, returned rows, and payload size before and after the change.',
+    };
+  }
   if (regression) {
     return {
       action: 'benchmark',
       guidance: 'Treat this as a regression candidate. Compare the current query shape with the baseline before changing indexes or query structure.',
-      validation: 'Run a controlled benchmark and compare the current and baseline p50/p95/p99 distributions, DB contribution, and request latency.',
+      validation: 'Run a controlled benchmark and compare current and baseline p50/p95/p99 distributions, DB contribution, and request latency.',
     };
   }
   return {
