@@ -544,14 +544,13 @@ export class DetectionService {
       }));
     }
 
-    const baselineBatchSpans = baselineDatabaseSpans;
-
     const databaseBatchTraces: DatabaseBatchTrace[] = currentDatabaseSpans.map((sample) => ({
       timestamp: sample.timestamp,
       service: sample.service,
       traceId: sample.traceId,
       spanId: sample.spanId,
       duration: sample.duration,
+      ...(traceDurations.get(sample.traceId) !== undefined ? { traceDuration: traceDurations.get(sample.traceId) } : {}),
       dependencyType: sample.dependencyType,
       dependencyName: sample.dependencyName,
       ...(sample.dbBatchSize !== undefined ? { batchSize: sample.dbBatchSize } : {}),
@@ -577,6 +576,7 @@ export class DetectionService {
       ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
       ...(sample.dbSystemName ? { dbSystemName: sample.dbSystemName } : {}),
       ...(sample.dbCollectionName ? { dbCollectionName: sample.dbCollectionName } : {}),
+      ...(sample.httpRoute ? { endpoint: sample.httpRoute } : {}),
     }));
 
     for (const candidate of detectDatabaseBatches(databaseBatchTraces, baselineBatchTraces)) {
@@ -585,14 +585,18 @@ export class DetectionService {
         projectId,
         serviceName: candidate.serviceName,
         type: 'database_batch',
-        severity: candidate.signal.regressionDetected && candidate.signal.p95DurationChangePercent !== undefined && candidate.signal.p95DurationChangePercent >= 100
+        severity: candidate.signal.regressionDetected && ((candidate.signal.p95DurationChangePercent ?? 0) >= 100 || (candidate.signal.p99DurationChangePercent ?? 0) >= 100)
           ? 'critical'
           : 'warning',
-        title: 'Database batch regression in ' + candidate.serviceName,
+        title: candidate.signal.regressionDetected
+          ? 'Database batch regression in ' + candidate.serviceName
+          : 'Database batch latency contribution in ' + candidate.serviceName,
         description: this.describeDatabaseBatch(candidate),
-        observedValue: candidate.signal.p95Duration,
+        observedValue: candidate.signal.regressionDetected
+          ? candidate.signal.p95DurationChangePercent ?? candidate.signal.p99DurationChangePercent ?? 0
+          : candidate.signal.p95TraceContributionPercent ?? 0,
         threshold: 50,
-        unit: 'ms',
+        unit: candidate.signal.regressionDetected ? '% duration regression' : '% of trace duration',
         start,
         end,
         evidence: candidate.samples.map((sample) => ({
@@ -610,10 +614,13 @@ export class DetectionService {
             p50BatchSize: candidate.signal.p50BatchSize,
             p95BatchSize: candidate.signal.p95BatchSize,
             p99BatchSize: candidate.signal.p99BatchSize,
+            p50Duration: candidate.signal.p50Duration,
             p95Duration: candidate.signal.p95Duration,
             p99Duration: candidate.signal.p99Duration,
+            ...(candidate.signal.baselineSampleCount !== undefined ? { baselineSampleCount: candidate.signal.baselineSampleCount } : {}),
             ...(candidate.signal.p95BatchSizeChangePercent !== undefined ? { p95BatchSizeChangePercent: candidate.signal.p95BatchSizeChangePercent } : {}),
             ...(candidate.signal.p95DurationChangePercent !== undefined ? { p95DurationChangePercent: candidate.signal.p95DurationChangePercent } : {}),
+            ...(candidate.signal.p99DurationChangePercent !== undefined ? { p99DurationChangePercent: candidate.signal.p99DurationChangePercent } : {}),
             ...(candidate.signal.p95TraceContributionPercent !== undefined ? { p95TraceContributionPercent: candidate.signal.p95TraceContributionPercent } : {}),
             fingerprint: candidate.identity.fingerprint,
             databaseSystem: candidate.databaseSystem ?? '',
