@@ -180,6 +180,37 @@ describe('OTLP JSON parse + telemetry mappers', () => {
     expect(row.dependencyName).toBe('postgresql');
   });
 
+  it('normalizes Redis spans for dependency intelligence', () => {
+    const start = BigInt(Date.now()) * 1_000_000n;
+    const end = start + 80_000_000n;
+    const { spans, rejected } = parseTracesPayload({
+      resourceSpans: [{
+        resource: { attributes: [{ key: 'service.name', value: { stringValue: 'api' } }] },
+        scopeSpans: [{ spans: [{
+          traceId: '3'.repeat(32),
+          spanId: '4'.repeat(16),
+          parentSpanId: '5'.repeat(16),
+          name: 'GET',
+          kind: 3,
+          startTimeUnixNano: String(start),
+          endTimeUnixNano: String(end),
+          status: { code: 1 },
+          attributes: [
+            { key: 'db.system.name', value: { stringValue: 'redis' } },
+            { key: 'server.address', value: { stringValue: 'redis.internal' } },
+            { key: 'db.operation.name', value: { stringValue: 'GET' } },
+          ],
+        }] }],
+      }],
+    });
+
+    expect(rejected).toBe(0);
+    const row = mapSpanToTraceRow(spans[0]!, tenant);
+    expect(row.dependencyType).toBe('redis');
+    expect(row.dependencyName).toBe('redis');
+    expect(row.dbOperationName).toBeUndefined();
+  });
+
   it('stores sanitized database query identity attributes', () => {
     const start = BigInt(Date.now()) * 1_000_000n;
     const end = start + 800_000_000n;
