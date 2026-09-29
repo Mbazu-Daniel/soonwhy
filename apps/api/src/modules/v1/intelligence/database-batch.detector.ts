@@ -105,7 +105,7 @@ export function detectDatabaseBatches(
     const reasons: string[] = [];
     if (regressionDetected) reasons.push('batch_size_or_duration_regression');
     if (traceContributionDetected) reasons.push('database_time_is_material_to_trace_latency');
-    if (baseline && baseline.length < MINIMUM_SAMPLES) reasons.push('baseline_insufficient');
+    if (baselineSamples.length > 0 && (!baseline || baseline.length < MINIMUM_SAMPLES)) reasons.push('baseline_insufficient');
     if (current.some((sample) => sample.endpoint)) reasons.push('endpoint_context_available');
 
     const confidence = regressionDetected && traceContributionDetected
