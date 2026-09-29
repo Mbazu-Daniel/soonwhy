@@ -61,15 +61,7 @@ describe('database result set detector', () => {
   it('requires a meaningful large-result rate when there is no regression', () => {
     const result = detectDatabaseResultSets([
       sample(0, 2_000),
-      sample(1, 2_000),
-      sample(2, 500),
-      sample(3, 500),
-      sample(4, 500),
-      sample(5, 500),
-      sample(6, 500),
-      sample(7, 500),
-      sample(8, 500),
-      sample(9, 500),
+      ...Array.from({ length: 19 }, (_, index) => sample(index + 1, 500)),
     ]);
 
     expect(result.candidates).toEqual([]);
