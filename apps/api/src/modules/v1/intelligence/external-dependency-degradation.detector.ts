@@ -4,6 +4,8 @@ const MIN_SAMPLES = 5;
 const LATENCY_THRESHOLD_MS = 500;
 const LATENCY_REGRESSION_PERCENT = 50;
 const ERROR_RATE_THRESHOLD = 0.1;
+const CRITICAL_ERROR_RATE = 0.5;
+const CRITICAL_P95_DURATION_MS = 1000;
 
 export interface ExternalDependencyTrace {
   timestamp: string;
@@ -11,7 +13,7 @@ export interface ExternalDependencyTrace {
   traceId: string;
   spanId: string;
   duration: number;
-  dependencyType: string;
+  dependencyType: 'http' | 'rpc';
   dependencyName: string;
   statusCode?: number;
   errorType?: string;
@@ -25,6 +27,8 @@ interface Signal {
   errorCount: number;
   errorRate: number;
   p95DurationChangePercent?: number;
+  baselineErrorRate?: number;
+  errorRateChangePercent?: number;
   degradationSignals: string[];
   confidence: 'medium' | 'high';
 }
@@ -59,6 +63,13 @@ export function detectExternalDependencyDegradation(
     const baselineP95 = baselineSamples.length >= MIN_SAMPLES
       ? percentile(baselineSamples.map((sample) => sample.duration), 0.95)
       : undefined;
+    const baselineErrorCount = baselineSamples.filter(isError).length;
+    const baselineErrorRate = baselineSamples.length >= MIN_SAMPLES
+      ? baselineErrorCount / baselineSamples.length
+      : undefined;
+    const errorRateChangePercent = baselineErrorRate !== undefined && baselineErrorRate > 0
+      ? ((errorRate - baselineErrorRate) / baselineErrorRate) * 100
+      : undefined;
     const p95DurationChangePercent = baselineP95 !== undefined && baselineP95 > 0
       ? ((currentP95 - baselineP95) / baselineP95) * 100
       : undefined;
@@ -70,14 +81,17 @@ export function detectExternalDependencyDegradation(
     ) {
       degradationSignals.push('latency');
     }
-    if (errorRate >= ERROR_RATE_THRESHOLD) {
+    if (
+      errorRate >= ERROR_RATE_THRESHOLD ||
+      (baselineErrorRate !== undefined && errorRate > baselineErrorRate && errorRate >= ERROR_RATE_THRESHOLD)
+    ) {
       degradationSignals.push('errors');
     }
 
     if (degradationSignals.length < 2) continue;
 
     const [serviceName, dependencyType, dependencyName] = key.split('|');
-    if (!serviceName || !dependencyType || !dependencyName) continue;
+    if (!serviceName || !dependencyType || !dependencyName || !['http', 'rpc'].includes(dependencyType)) continue;
 
     candidates.push({
       serviceName,
@@ -91,10 +105,12 @@ export function detectExternalDependencyDegradation(
         errorCount,
         errorRate,
         ...(p95DurationChangePercent !== undefined ? { p95DurationChangePercent } : {}),
+        ...(baselineErrorRate !== undefined ? { baselineErrorRate } : {}),
+        ...(errorRateChangePercent !== undefined ? { errorRateChangePercent } : {}),
         degradationSignals,
         confidence: degradationSignals.length >= 2 ? 'medium' : 'high',
       },
-      samples: samples.slice(0, 20),
+      samples: samples.filter((sample) => Number.isFinite(sample.duration) && sample.duration >= 0).slice(0, 20),
       identity: createTelemetryIdentity({
         domain: 'dependency',
         serviceName,
@@ -124,7 +140,7 @@ function groupByDependency(samples: ExternalDependencyTrace[]): Map<string, Exte
 }
 
 function isError(sample: ExternalDependencyTrace): boolean {
-  return sample.errorType !== undefined || sample.statusCode !== undefined && sample.statusCode >= 500;
+  return sample.errorType !== undefined || sample.statusCode === 2 || (sample.statusCode !== undefined && sample.statusCode >= 500);
 }
 
 function percentile(values: number[], rank: number): number {
