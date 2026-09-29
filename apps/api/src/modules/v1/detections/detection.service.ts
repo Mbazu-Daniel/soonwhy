@@ -16,6 +16,7 @@ import { detectDatabaseConnectionPool, type DatabaseConnectionPoolSample } from 
 import { detectDatabaseTimeouts, type DatabaseTimeoutTrace } from '../intelligence/database-timeout.detector';
 import { detectDatabaseResultSets, type DatabaseResultSetTrace } from '../intelligence/database-result-set.detector';
 import { detectDatabaseConnectionWait, type DatabaseConnectionWaitSample } from '../intelligence/database-connection-wait.detector';
+import { detectDatabaseBatches, type DatabaseBatchTrace } from '../intelligence/database-batch.detector';
 import { sanitizeRequestUrl } from './detection.utils';
 import { correlateFindings } from './detection.correlation';
 import { completeDetectionRun, failDetectionRun, startDetectionRun } from './detection.run';
@@ -543,6 +544,72 @@ export class DetectionService {
             ...(candidate.signal.baselineP95WaitMs !== undefined ? { baselineP95WaitMs: candidate.signal.baselineP95WaitMs } : {}),
             ...(candidate.signal.p95ChangePercent !== undefined ? { p95ChangePercent: candidate.signal.p95ChangePercent } : {}),
             regressionDetected: candidate.signal.regressionDetected,
+          },
+        })),
+      }));
+    }
+
+    const databaseBatchTraces: DatabaseBatchTrace[] = currentDatabaseSpans.map((sample) => ({
+      timestamp: sample.timestamp,
+      service: sample.service,
+      traceId: sample.traceId,
+      spanId: sample.spanId,
+      duration: sample.duration,
+      dependencyType: sample.dependencyType,
+      dependencyName: sample.dependencyName,
+      ...(sample.dbBatchSize !== undefined ? { batchSize: sample.dbBatchSize } : {}),
+      ...(sample.traceDuration !== undefined ? { traceDuration: sample.traceDuration } : {}),
+      ...(sample.dbQueryText ? { dbQueryText: sample.dbQueryText } : {}),
+      ...(sample.dbQuerySummary ? { dbQuerySummary: sample.dbQuerySummary } : {}),
+      ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
+      ...(sample.dbSystemName ? { dbSystemName: sample.dbSystemName } : {}),
+      ...(sample.dbCollectionName ? { dbCollectionName: sample.dbCollectionName } : {}),
+      ...(sample.httpRoute ? { endpoint: sample.httpRoute } : {}),
+    }));
+
+    for (const candidate of detectDatabaseBatches(databaseBatchTraces)) {
+      detected.push(await this.persistFinding({
+        orgId,
+        projectId,
+        serviceName: candidate.serviceName,
+        type: 'database_batch',
+        severity: candidate.signal.regressionDetected && candidate.signal.p95DurationChangePercent !== undefined && candidate.signal.p95DurationChangePercent >= 100
+          ? 'critical'
+          : 'warning',
+        title: 'Database batch regression in ' + candidate.serviceName,
+        description: this.describeDatabaseBatch(candidate),
+        observedValue: candidate.signal.p95Duration,
+        threshold: 50,
+        unit: 'ms',
+        start,
+        end,
+        evidence: candidate.samples.map((sample) => ({
+          kind: 'trace' as const,
+          label: 'database-batch-operation',
+          value: sample.duration,
+          context: {
+            service: sample.service,
+            traceId: sample.traceId,
+            spanId: sample.spanId,
+            timestamp: sample.timestamp,
+            batchSize: sample.batchSize,
+            logicalOperationCount: candidate.signal.logicalOperationCount,
+            averageBatchSize: candidate.signal.averageBatchSize,
+            p50BatchSize: candidate.signal.p50BatchSize,
+            p95BatchSize: candidate.signal.p95BatchSize,
+            p99BatchSize: candidate.signal.p99BatchSize,
+            p95Duration: candidate.signal.p95Duration,
+            p99Duration: candidate.signal.p99Duration,
+            ...(candidate.signal.p95BatchSizeChangePercent !== undefined ? { p95BatchSizeChangePercent: candidate.signal.p95BatchSizeChangePercent } : {}),
+            ...(candidate.signal.p95DurationChangePercent !== undefined ? { p95DurationChangePercent: candidate.signal.p95DurationChangePercent } : {}),
+            ...(candidate.signal.p95TraceContributionPercent !== undefined ? { p95TraceContributionPercent: candidate.signal.p95TraceContributionPercent } : {}),
+            fingerprint: candidate.identity.fingerprint,
+            databaseSystem: candidate.databaseSystem ?? '',
+            dependencyName: sample.dependencyName,
+            ...(candidate.queryOperation ? { queryOperation: candidate.queryOperation } : {}),
+            ...(candidate.querySummary ? { querySummary: candidate.querySummary } : {}),
+            ...(candidate.collectionName ? { collectionName: candidate.collectionName } : {}),
+            ...(sample.dbQueryText ? { query: sample.dbQueryText } : {}),
           },
         })),
       }));
@@ -1565,6 +1632,21 @@ export class DetectionService {
       Math.round(candidate.signal.p95ReturnedRows) + ' rows at p95 and ' +
       Math.round(candidate.signal.p99ReturnedRows) + ' at p99 across ' +
       candidate.signal.sampleCount + ' executions.' + regression + contribution;
+  }
+
+  private describeDatabaseBatch(
+    candidate: ReturnType<typeof detectDatabaseBatches>[number],
+  ): string {
+    const regression = candidate.signal.p95DurationChangePercent !== undefined
+      ? ' P95 database duration changed by ' + candidate.signal.p95DurationChangePercent.toFixed(0) + '% from baseline.'
+      : '';
+    const contribution = candidate.signal.p95TraceContributionPercent !== undefined
+      ? ' P95 database contribution is ' + candidate.signal.p95TraceContributionPercent.toFixed(0) + '% of trace duration.'
+      : '';
+    return (candidate.querySummary ?? candidate.queryOperation ?? candidate.query) +
+      ' ran as a batch across ' + candidate.signal.sampleCount + ' executions with an average batch size of ' +
+      candidate.signal.averageBatchSize.toFixed(1) + ' (' + candidate.signal.logicalOperationCount + ' logical operations).' +
+      regression + contribution;
   }
 
   private describeDatabaseTimeout(
