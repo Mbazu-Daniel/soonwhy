@@ -14,6 +14,9 @@ export type FindingType =
   | 'database_error'
   | 'database_latency_contribution'
   | 'database_connection_pool'
+  | 'database_connection_wait'
+  | 'database_result_set'
+  | 'database_timeout'
   | 'performance';
 
 export type FindingSeverity = 'warning' | 'critical';

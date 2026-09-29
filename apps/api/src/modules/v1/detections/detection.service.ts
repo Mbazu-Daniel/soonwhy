@@ -15,6 +15,7 @@ import { detectDatabaseLatencyContribution, type DatabaseLatencyContributionTrac
 import { detectDatabaseConnectionPool, type DatabaseConnectionPoolSample } from '../intelligence/database-connection-pool.detector';
 import { detectDatabaseTimeouts, type DatabaseTimeoutTrace } from '../intelligence/database-timeout.detector';
 import { detectDatabaseResultSets, type DatabaseResultSetTrace } from '../intelligence/database-result-set.detector';
+import { detectDatabaseConnectionWait, type DatabaseConnectionWaitSample } from '../intelligence/database-connection-wait.detector';
 import { sanitizeRequestUrl } from './detection.utils';
 import { correlateFindings } from './detection.correlation';
 import { completeDetectionRun, failDetectionRun, startDetectionRun } from './detection.run';
@@ -494,6 +495,51 @@ export class DetectionService {
             ...(candidate.signal.p95UtilizationPercent !== undefined ? { p95UtilizationPercent: candidate.signal.p95UtilizationPercent } : {}),
             ...(candidate.signal.p95PendingRequests !== undefined ? { p95PendingRequests: candidate.signal.p95PendingRequests } : {}),
             ...(candidate.signal.timeoutIncrease !== undefined ? { timeoutIncrease: candidate.signal.timeoutIncrease } : {}),
+          },
+        })),
+      }));
+    }
+
+    const databaseConnectionWaitMetrics = await this.searchDatabaseConnectionWaitMetrics(
+      orgId,
+      projectId,
+      startTimestamp,
+      endTimestamp,
+    );
+
+    for (const candidate of detectDatabaseConnectionWait(databaseConnectionWaitMetrics)) {
+      const critical =
+        candidate.signal.p95WaitMs >= 200 ||
+        candidate.signal.p95ChangePercent !== undefined && candidate.signal.p95ChangePercent >= 200;
+
+      detected.push(await this.persistFinding({
+        orgId,
+        projectId,
+        serviceName: candidate.serviceName,
+        type: 'database_connection_wait',
+        severity: critical ? 'critical' : 'warning',
+        title: 'Database connection wait in ' + candidate.serviceName,
+        description: this.describeDatabaseConnectionWait(candidate),
+        observedValue: candidate.signal.p95WaitMs,
+        threshold: 50,
+        unit: 'ms',
+        start,
+        end,
+        evidence: candidate.samples.map((sample) => ({
+          kind: 'metric' as const,
+          label: 'database-connection-wait',
+          value: sample.waitTimeMs,
+          context: {
+            service: sample.service,
+            poolName: sample.poolName,
+            timestamp: sample.timestamp,
+            waitTimeMs: sample.waitTimeMs,
+            p50WaitMs: candidate.signal.p50WaitMs,
+            p95WaitMs: candidate.signal.p95WaitMs,
+            p99WaitMs: candidate.signal.p99WaitMs,
+            ...(candidate.signal.baselineP95WaitMs !== undefined ? { baselineP95WaitMs: candidate.signal.baselineP95WaitMs } : {}),
+            ...(candidate.signal.p95ChangePercent !== undefined ? { p95ChangePercent: candidate.signal.p95ChangePercent } : {}),
+            regressionDetected: candidate.signal.regressionDetected,
           },
         })),
       }));
@@ -1335,6 +1381,48 @@ export class DetectionService {
         : '',
     ].filter(Boolean);
     return candidate.poolName + ' shows database connection pool pressure: ' + reasons.join(', ') + '.';
+  }
+
+  private async searchDatabaseConnectionWaitMetrics(
+    orgId: string,
+    projectId: string,
+    startTimestamp: number,
+    endTimestamp: number,
+  ): Promise<DatabaseConnectionWaitSample[]> {
+    const query = quickwitTerm('name', 'db.client.connection.wait_time');
+    const result = await this.quickwit.search<MetricSource>(QUICKWIT_INDEXES.metrics, {
+      query: quickwitTenantQuery(orgId, projectId, query),
+      startTimestamp,
+      endTimestamp,
+      maxHits: 5000,
+      sortBy: ['timestamp'],
+    });
+
+    return (result.hits ?? []).flatMap((hit) => {
+      const source = hit._source;
+      const timestamp = source?.timestamp;
+      const service = source?.service;
+      const poolName = source?.connectionPoolName ?? this.metricString(source?.attributes?.['db.client.connection.pool.name']);
+      const value = Number(source?.value);
+      if (!timestamp || !service || !poolName || !Number.isFinite(value) || value < 0) return [];
+      return [{
+        timestamp,
+        service,
+        poolName,
+        waitTimeMs: value * 1000,
+      }];
+    });
+  }
+
+  private describeDatabaseConnectionWait(
+    candidate: ReturnType<typeof detectDatabaseConnectionWait>[number],
+  ): string {
+    const regression = candidate.signal.p95ChangePercent !== undefined
+      ? ' P95 wait time changed by ' + candidate.signal.p95ChangePercent.toFixed(0) + '% from baseline.'
+      : '';
+    return candidate.poolName + ' has a P95 connection acquisition wait of ' +
+      candidate.signal.p95WaitMs.toFixed(0) + 'ms across ' +
+      candidate.signal.sampleCount + ' observations.' + regression;
   }
 
   private async searchRequestEndpoints(
