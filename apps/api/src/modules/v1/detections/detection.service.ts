@@ -700,7 +700,7 @@ export class DetectionService {
             degradationSignals: candidate.signal.degradationSignals.join(','),
             confidence: candidate.signal.confidence,
           },
-          })),
+        })),
         {
           kind: 'recommendation',
           label: 'database-dependency-guidance',
