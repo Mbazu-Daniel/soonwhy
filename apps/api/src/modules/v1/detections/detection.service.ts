@@ -472,7 +472,7 @@ export class DetectionService {
         projectId,
         serviceName: candidate.serviceName,
         type: 'database_connection_pool',
-        severity: critical ? 'critical' : 'warning',
+        severity: candidate.signal.severity,
         title: 'Database connection pool pressure in ' + candidate.serviceName,
         description: this.describeDatabaseConnectionPool(candidate),
         observedValue: observed.value,
@@ -500,17 +500,20 @@ export class DetectionService {
       }));
     }
 
-    const databaseConnectionWaitMetrics = await this.searchDatabaseConnectionWaitMetrics(
-      orgId,
-      projectId,
-      startTimestamp,
-      endTimestamp,
-    );
+    const [databaseConnectionWaitMetrics, baselineDatabaseConnectionWaitMetrics] = await Promise.all([
+      this.searchDatabaseConnectionWaitMetrics(orgId, projectId, startTimestamp, endTimestamp),
+      this.searchDatabaseConnectionWaitMetrics(
+        orgId,
+        projectId,
+        startTimestamp - Math.floor(WINDOW_MS / 1000),
+        startTimestamp,
+      ),
+    ]);
 
-    for (const candidate of detectDatabaseConnectionWait(databaseConnectionWaitMetrics)) {
-      const critical =
-        candidate.signal.p95WaitMs >= 200 ||
-        candidate.signal.p95ChangePercent !== undefined && candidate.signal.p95ChangePercent >= 200;
+    for (const candidate of detectDatabaseConnectionWait(
+      databaseConnectionWaitMetrics,
+      baselineDatabaseConnectionWaitMetrics,
+    )) {
 
       detected.push(await this.persistFinding({
         orgId,
@@ -1402,9 +1405,9 @@ export class DetectionService {
       const source = hit._source;
       const timestamp = source?.timestamp;
       const service = source?.service;
-      const poolName = source?.connectionPoolName ?? this.metricString(source?.attributes?.['db.client.connection.pool.name']);
+      const poolName = source?.connectionPoolName ?? this.metricString(source?.attributes?.['db.client.connection.pool.name']) ?? 'unknown';
       const value = Number(source?.value);
-      if (!timestamp || !service || !poolName || !Number.isFinite(value) || value < 0) return [];
+      if (!timestamp || !service || !Number.isFinite(value) || value < 0) return [];
       return [{
         timestamp,
         service,
