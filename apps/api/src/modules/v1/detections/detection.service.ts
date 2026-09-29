@@ -544,9 +544,7 @@ export class DetectionService {
       }));
     }
 
-    const [baselineBatchSpans] = await Promise.all([
-      Promise.resolve(baselineDatabaseSpans),
-    ]);
+    const baselineBatchSpans = baselineDatabaseSpans;
 
     const databaseBatchTraces: DatabaseBatchTrace[] = currentDatabaseSpans.map((sample) => ({
       timestamp: sample.timestamp,
