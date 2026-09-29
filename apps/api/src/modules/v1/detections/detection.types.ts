@@ -20,6 +20,7 @@ export type FindingType =
   | 'database_result_set'
   | 'database_timeout'
   | 'external_dependency_degradation'
+  | 'redis_degradation'
   | 'performance';
 
 export type FindingSeverity = 'warning' | 'critical';
