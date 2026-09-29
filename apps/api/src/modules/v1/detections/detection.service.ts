@@ -517,7 +517,7 @@ export class DetectionService {
         projectId,
         serviceName: candidate.serviceName,
         type: 'database_connection_wait',
-        severity: critical ? 'critical' : 'warning',
+        severity: candidate.signal.severity,
         title: 'Database connection wait in ' + candidate.serviceName,
         description: this.describeDatabaseConnectionWait(candidate),
         observedValue: candidate.signal.p95WaitMs,
