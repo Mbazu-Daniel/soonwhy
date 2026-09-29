@@ -11,6 +11,7 @@ export interface DatabaseDependencyTrace {
   dependencyType: string;
   dependencyName: string;
   statusCode?: number;
+  errorType?: string;
   dbQueryText?: string;
   dbQuerySummary?: string;
   dbOperationName?: string;
@@ -70,7 +71,7 @@ export function detectDatabaseDependencyDegradation(
       if (!first || current.length < MINIMUM_SAMPLES) return [];
 
       const durations = distribution(current.map((sample) => sample.duration));
-      const errors = current.filter((sample) => sample.statusCode === 2).length;
+      const errors = current.filter((sample) => sample.statusCode === 2 || sample.errorType !== undefined).length;
       const errorRate = errors / current.length;
       const baseline = baselineGroups.get(key);
       const baselineP95 = baseline && baseline.length >= MINIMUM_SAMPLES
