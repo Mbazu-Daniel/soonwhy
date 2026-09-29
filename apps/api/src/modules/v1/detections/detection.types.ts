@@ -15,6 +15,7 @@ export type FindingType =
   | 'database_latency_contribution'
   | 'database_connection_pool'
   | 'database_connection_wait'
+  | 'database_batch'
   | 'database_result_set'
   | 'database_timeout'
   | 'performance';
