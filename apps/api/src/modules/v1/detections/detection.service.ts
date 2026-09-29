@@ -456,11 +456,6 @@ export class DetectionService {
     );
 
     for (const candidate of detectDatabaseConnectionPool(databasePoolMetrics)) {
-      const critical =
-        (candidate.signal.p95UtilizationPercent ?? 0) >= 95 ||
-        (candidate.signal.p95PendingRequests ?? 0) >= 5 ||
-        false;
-
       const observed = candidate.signal.p95PendingRequests !== undefined
         ? { value: candidate.signal.p95PendingRequests, threshold: 1, unit: 'pending requests' }
         : candidate.signal.p95UtilizationPercent !== undefined
