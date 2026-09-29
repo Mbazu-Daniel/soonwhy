@@ -18,6 +18,7 @@ import { detectDatabaseResultSets, type DatabaseResultSetTrace } from '../intell
 import { detectDatabaseConnectionWait, type DatabaseConnectionWaitSample } from '../intelligence/database-connection-wait.detector';
 import { detectDatabaseBatches, type DatabaseBatchTrace } from '../intelligence/database-batch.detector';
 import { detectDatabaseDependencyDegradation, type DatabaseDependencyTrace } from '../intelligence/database-dependency-degradation.detector';
+import { detectExternalDependencyDegradation, type ExternalDependencyTrace } from '../intelligence/external-dependency-degradation.detector';
 import { sanitizeRequestUrl } from './detection.utils';
 import { correlateFindings } from './detection.correlation';
 import { completeDetectionRun, failDetectionRun, startDetectionRun } from './detection.run';
@@ -335,6 +336,70 @@ export class DetectionService {
               dependencyType,
               dependencyName,
               observedLatencyMs: Math.round(dependency.latency),
+            },
+          },
+        ],
+      }));
+    }
+
+    const [currentExternalDependencySpans, baselineExternalDependencySpans] = await Promise.all([
+      this.searchExternalDependencySpans(orgId, projectId, startTimestamp, endTimestamp),
+      this.searchExternalDependencySpans(
+        orgId,
+        projectId,
+        startTimestamp - Math.floor(WINDOW_MS / 1000),
+        startTimestamp,
+      ),
+    ]);
+
+    for (const candidate of detectExternalDependencyDegradation(
+      currentExternalDependencySpans,
+      baselineExternalDependencySpans,
+    )) {
+      detected.push(await this.persistFinding({
+        orgId,
+        projectId,
+        serviceName: candidate.serviceName,
+        type: 'external_dependency_degradation',
+        severity: candidate.signal.degradationSignals.length >= 2 && candidate.signal.errorRate >= 0.5 ? 'critical' : 'warning',
+        title: 'External dependency degradation in ' + candidate.serviceName,
+        description: candidate.dependencyName + ' shows correlated ' + candidate.signal.degradationSignals.join(' and ') + ' degradation across ' + candidate.signal.sampleCount + ' calls.',
+        observedValue: candidate.signal.p95Duration,
+        threshold: 500,
+        unit: 'ms',
+        start,
+        end,
+        evidence: [
+          ...candidate.samples.map((sample) => ({
+            kind: 'trace' as const,
+            label: 'external-dependency-degradation',
+            value: sample.duration,
+            context: {
+              service: sample.service,
+              traceId: sample.traceId,
+              spanId: sample.spanId,
+              timestamp: sample.timestamp,
+              dependencyType: sample.dependencyType,
+              dependencyName: sample.dependencyName,
+              ...(sample.statusCode !== undefined ? { statusCode: sample.statusCode } : {}),
+              ...(sample.errorType ? { errorType: sample.errorType } : {}),
+              p50Duration: candidate.signal.p50Duration,
+              p95Duration: candidate.signal.p95Duration,
+              p99Duration: candidate.signal.p99Duration,
+              errorCount: candidate.signal.errorCount,
+              errorRate: candidate.signal.errorRate,
+              ...(candidate.signal.p95DurationChangePercent !== undefined ? { p95DurationChangePercent: candidate.signal.p95DurationChangePercent } : {}),
+              degradationSignals: candidate.signal.degradationSignals.join(','),
+              confidence: candidate.signal.confidence,
+            },
+          })),
+          {
+            kind: 'recommendation' as const,
+            label: 'external-dependency-guidance',
+            value: candidate.recommendation,
+            context: {
+              dependencyType: candidate.dependencyType,
+              dependencyName: candidate.dependencyName,
             },
           },
         ],
@@ -1623,6 +1688,42 @@ export class DetectionService {
     }
 
     return endpoints;
+  }
+
+  private async searchExternalDependencySpans(
+    orgId: string,
+    projectId: string,
+    startTimestamp: number,
+    endTimestamp: number,
+  ): Promise<ExternalDependencyTrace[]> {
+    const result = await this.quickwit.search<TraceSource>(QUICKWIT_INDEXES.traces, {
+      query: quickwitTenantQuery(orgId, projectId, quickwitTerm('spanKind', '3')),
+      startTimestamp,
+      endTimestamp,
+      maxHits: 5000,
+      sortBy: ['-duration'],
+    });
+
+    return (result.hits ?? []).flatMap((hit) => {
+      const source = hit._source;
+      const dependencyType = String(source?.dependencyType ?? '');
+      if (!source?.traceId || !source.service || !['http', 'rpc'].includes(dependencyType)) return [];
+
+      const dependencyName = String(source.dependencyName ?? source.name ?? '');
+      if (!dependencyName) return [];
+
+      return [{
+        timestamp: String(source.timestamp ?? ''),
+        service: String(source.service),
+        traceId: String(source.traceId),
+        spanId: String(source.spanId ?? ''),
+        duration: Number(source.duration ?? 0),
+        dependencyType,
+        dependencyName,
+        ...(Number.isFinite(source.statusCode) ? { statusCode: Number(source.statusCode) } : {}),
+        ...(source.errorType ? { errorType: String(source.errorType) } : {}),
+      }];
+    });
   }
 
   private async searchDatabaseQuerySpans(
