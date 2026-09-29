@@ -60,7 +60,7 @@ export function createIssueFromDetection(finding: DetectionFinding): Issue {
   const primaryObservation: EvidenceObservation = {
     name: 'observed-value',
     value: finding.observedValue,
-    source: finding.type === 'database_query' || finding.type === 'database_n_plus_one' || finding.type === 'database_query_volume' || finding.type === 'database_error' || finding.type === 'database_latency_contribution' || finding.type === 'database_connection_wait' || finding.type === 'database_result_set' || finding.type === 'database_timeout' ? 'trace' : 'metric',
+    source: finding.type === 'database_query' || finding.type === 'database_n_plus_one' || finding.type === 'database_query_volume' || finding.type === 'database_error' || finding.type === 'database_latency_contribution' || finding.type === 'database_result_set' || finding.type === 'database_timeout' ? 'trace' : 'metric',
     observedAt: finding.window.end.toISOString(),
     dimensions: {
       findingType: finding.type,
@@ -124,6 +124,9 @@ function identityDimensions(evidence: DetectionEvidence[]): Record<string, strin
 
     const databaseSystem = item.context?.databaseSystem;
     if (typeof databaseSystem === 'string') dimensions.databaseSystem = databaseSystem;
+
+    const poolName = item.context?.poolName;
+    if (typeof poolName === 'string') dimensions.poolName = poolName;
   }
 
   return dimensions;
