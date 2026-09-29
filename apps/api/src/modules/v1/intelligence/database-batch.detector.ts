@@ -34,6 +34,8 @@ export interface DatabaseBatchSignal {
   p95DurationChangePercent?: number;
   p99DurationChangePercent?: number;
   p95TraceContributionPercent?: number;
+  p99TraceContributionPercent?: number;
+  baselineSampleCount?: number;
   regressionDetected: boolean;
   traceContributionDetected: boolean;
   confidence: 'low' | 'medium' | 'high';
@@ -74,8 +76,8 @@ export function detectDatabaseBatches(
     const first = current[0];
     if (!first || current.length < MINIMUM_SAMPLES) continue;
 
-    const currentBatchSizes = current.map((sample) => sample.batchSize ?? 0);
-    const currentDurations = current.map((sample) => sample.duration);
+    const currentBatch = distribution(current.map((sample) => sample.batchSize ?? 0));
+    const currentDuration = distribution(current.map((sample) => sample.duration));
     const baseline = baselineGroups.get(key);
     const baselineBatch = baseline && baseline.length >= MINIMUM_SAMPLES
       ? distribution(baseline.map((sample) => sample.batchSize ?? 0))
@@ -84,13 +86,12 @@ export function detectDatabaseBatches(
       ? distribution(baseline.map((sample) => sample.duration))
       : undefined;
 
-    const currentBatch = distribution(currentBatchSizes);
-    const currentDuration = distribution(currentDurations);
     const p95BatchSizeChangePercent = percentChange(currentBatch.p95, baselineBatch?.p95);
     const p99BatchSizeChangePercent = percentChange(currentBatch.p99, baselineBatch?.p99);
     const p95DurationChangePercent = percentChange(currentDuration.p95, baselineDuration?.p95);
     const p99DurationChangePercent = percentChange(currentDuration.p99, baselineDuration?.p99);
     const p95TraceContributionPercent = percentileTraceContribution(current, 0.95);
+    const p99TraceContributionPercent = percentileTraceContribution(current, 0.99);
 
     const regressionDetected =
       (p95DurationChangePercent !== undefined && p95DurationChangePercent >= REGRESSION_DURATION_PERCENT) ||
@@ -100,16 +101,10 @@ export function detectDatabaseBatches(
     if (!regressionDetected && !traceContributionDetected) continue;
 
     const reasons: string[] = [];
-    if (regressionDetected) reasons.push('batch_size_or_duration_regression');
+    if (regressionDetected) reasons.push('duration_regression');
     if (traceContributionDetected) reasons.push('database_time_is_material_to_trace_latency');
     if (baselineSamples.length > 0 && (!baseline || baseline.length < MINIMUM_SAMPLES)) reasons.push('baseline_insufficient');
     if (current.some((sample) => sample.endpoint)) reasons.push('endpoint_context_available');
-
-    const confidence = regressionDetected && traceContributionDetected
-      ? 'high'
-      : regressionDetected || traceContributionDetected
-        ? 'medium'
-        : 'low';
 
     candidates.push({
       serviceName: first.service,
@@ -129,9 +124,11 @@ export function detectDatabaseBatches(
         ...(p95DurationChangePercent !== undefined ? { p95DurationChangePercent } : {}),
         ...(p99DurationChangePercent !== undefined ? { p99DurationChangePercent } : {}),
         ...(p95TraceContributionPercent !== undefined ? { p95TraceContributionPercent } : {}),
+        ...(p99TraceContributionPercent !== undefined ? { p99TraceContributionPercent } : {}),
+        ...(baseline && baseline.length >= MINIMUM_SAMPLES ? { baselineSampleCount: baseline.length } : {}),
         regressionDetected,
         traceContributionDetected,
-        confidence,
+        confidence: regressionDetected && traceContributionDetected ? 'high' : 'medium',
         evidenceReasons: reasons,
       },
       identity: fingerprintQuery(queryFor(first), first.dbSystemName).identity,
@@ -171,7 +168,7 @@ function groupSamples(samples: DatabaseBatchTrace[]): Map<string, DatabaseBatchT
       identity.fingerprint,
       identity.fingerprintVersion,
       sample.dbSystemName ?? '',
-    ].join('\\0');
+    ].join('\0');
     const existing = groups.get(key) ?? [];
     existing.push(sample);
     groups.set(key, existing);
