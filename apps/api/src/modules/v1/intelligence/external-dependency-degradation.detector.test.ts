@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { detectExternalDependencyDegradation, type ExternalDependencyTrace } from './external-dependency-degradation.detector';
 
+let sampleId = 0;
+
 const sample = (overrides: Partial<ExternalDependencyTrace> = {}): ExternalDependencyTrace => ({
   timestamp: '2026-09-29T08:00:00.000Z',
   service: 'checkout-api',
-  traceId: crypto.randomUUID(),
-  spanId: crypto.randomUUID(),
+  traceId: 'trace-' + (++sampleId),
+  spanId: 'span-' + sampleId,
   duration: 600,
   dependencyType: 'http',
   dependencyName: 'payments-api',
