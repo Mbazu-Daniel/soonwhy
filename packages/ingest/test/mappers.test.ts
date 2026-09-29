@@ -207,7 +207,7 @@ describe('OTLP JSON parse + telemetry mappers', () => {
     expect(rejected).toBe(0);
     const row = mapSpanToTraceRow(spans[0]!, tenant);
     expect(row.dependencyType).toBe('redis');
-    expect(row.dependencyName).toBe('redis');
+    expect(row.dependencyName).toBe('redis.internal');
     expect(row.dbOperationName).toBeUndefined();
   });
 
