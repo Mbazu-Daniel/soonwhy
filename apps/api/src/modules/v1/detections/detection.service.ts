@@ -457,11 +457,6 @@ export class DetectionService {
     );
 
     for (const candidate of detectDatabaseConnectionPool(databasePoolMetrics)) {
-      const critical =
-        (candidate.signal.p95UtilizationPercent ?? 0) >= 95 ||
-        (candidate.signal.p95PendingRequests ?? 0) >= 5 ||
-        false;
-
       const observed = candidate.signal.p95PendingRequests !== undefined
         ? { value: candidate.signal.p95PendingRequests, threshold: 1, unit: 'pending requests' }
         : candidate.signal.p95UtilizationPercent !== undefined
@@ -549,6 +544,10 @@ export class DetectionService {
       }));
     }
 
+    const [baselineBatchSpans] = await Promise.all([
+      Promise.resolve(baselineDatabaseSpans),
+    ]);
+
     const databaseBatchTraces: DatabaseBatchTrace[] = currentDatabaseSpans.map((sample) => ({
       timestamp: sample.timestamp,
       service: sample.service,
@@ -558,7 +557,6 @@ export class DetectionService {
       dependencyType: sample.dependencyType,
       dependencyName: sample.dependencyName,
       ...(sample.dbBatchSize !== undefined ? { batchSize: sample.dbBatchSize } : {}),
-      ...(sample.traceDuration !== undefined ? { traceDuration: sample.traceDuration } : {}),
       ...(sample.dbQueryText ? { dbQueryText: sample.dbQueryText } : {}),
       ...(sample.dbQuerySummary ? { dbQuerySummary: sample.dbQuerySummary } : {}),
       ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
@@ -567,7 +565,23 @@ export class DetectionService {
       ...(sample.httpRoute ? { endpoint: sample.httpRoute } : {}),
     }));
 
-    for (const candidate of detectDatabaseBatches(databaseBatchTraces)) {
+    const baselineBatchTraces: DatabaseBatchTrace[] = baselineBatchSpans.map((sample) => ({
+      timestamp: sample.timestamp,
+      service: sample.service,
+      traceId: sample.traceId,
+      spanId: sample.spanId,
+      duration: sample.duration,
+      dependencyType: sample.dependencyType,
+      dependencyName: sample.dependencyName,
+      ...(sample.dbBatchSize !== undefined ? { batchSize: sample.dbBatchSize } : {}),
+      ...(sample.dbQueryText ? { dbQueryText: sample.dbQueryText } : {}),
+      ...(sample.dbQuerySummary ? { dbQuerySummary: sample.dbQuerySummary } : {}),
+      ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
+      ...(sample.dbSystemName ? { dbSystemName: sample.dbSystemName } : {}),
+      ...(sample.dbCollectionName ? { dbCollectionName: sample.dbCollectionName } : {}),
+    }));
+
+    for (const candidate of detectDatabaseBatches(databaseBatchTraces, baselineBatchTraces)) {
       detected.push(await this.persistFinding({
         orgId,
         projectId,
