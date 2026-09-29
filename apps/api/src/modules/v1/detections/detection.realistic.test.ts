@@ -20,6 +20,7 @@ describe('DetectionService realistic telemetry scenarios', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    search.mockResolvedValue({ hits: [] });
     getProjectById.mockResolvedValue({ id: 'project-1', orgId: 'org-1' });
 
     let sequence = 0;
