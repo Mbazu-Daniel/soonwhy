@@ -17,6 +17,7 @@ import { detectDatabaseTimeouts, type DatabaseTimeoutTrace } from '../intelligen
 import { detectDatabaseResultSets, type DatabaseResultSetTrace } from '../intelligence/database-result-set.detector';
 import { detectDatabaseConnectionWait, type DatabaseConnectionWaitSample } from '../intelligence/database-connection-wait.detector';
 import { detectDatabaseBatches, type DatabaseBatchTrace } from '../intelligence/database-batch.detector';
+import { detectDatabaseDependencyDegradation, type DatabaseDependencyTrace } from '../intelligence/database-dependency-degradation.detector';
 import { sanitizeRequestUrl } from './detection.utils';
 import { correlateFindings } from './detection.correlation';
 import { completeDetectionRun, failDetectionRun, startDetectionRun } from './detection.run';
@@ -632,6 +633,82 @@ export class DetectionService {
             ...(sample.dbQueryText ? { query: sample.dbQueryText } : {}),
           },
         })),
+      }));
+    }
+
+    const databaseDependencyTraces: DatabaseDependencyTrace[] = currentDatabaseSpans.map((sample) => ({
+      timestamp: sample.timestamp,
+      service: sample.service,
+      traceId: sample.traceId,
+      spanId: sample.spanId,
+      duration: sample.duration,
+      dependencyType: sample.dependencyType,
+      dependencyName: sample.dependencyName,
+      ...(sample.statusCode !== undefined ? { statusCode: sample.statusCode } : {}),
+      ...(sample.dbQueryText ? { dbQueryText: sample.dbQueryText } : {}),
+      ...(sample.dbQuerySummary ? { dbQuerySummary: sample.dbQuerySummary } : {}),
+      ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
+      ...(sample.dbSystemName ? { dbSystemName: sample.dbSystemName } : {}),
+      ...(sample.dbBatchSize !== undefined ? { dbBatchSize: sample.dbBatchSize } : {}),
+    }));
+
+    for (const candidate of detectDatabaseDependencyDegradation(
+      databaseDependencyTraces,
+      baselineDatabaseSpans,
+      databasePoolMetrics,
+      databaseConnectionWaitMetrics,
+    )) {
+      detected.push(await this.persistFinding({
+        orgId,
+        projectId,
+        serviceName: candidate.serviceName,
+        type: 'database_dependency_degradation',
+        severity: candidate.signal.degradationSignals.length >= 3 ? 'critical' : 'warning',
+        title: 'Database dependency degradation in ' + candidate.serviceName,
+        description: candidate.dependencyName + ' shows correlated ' +
+          candidate.signal.degradationSignals.join(', ') + ' degradation across ' +
+          candidate.signal.sampleCount + ' database operations.',
+        observedValue: candidate.signal.p95Duration,
+        threshold: 500,
+        unit: 'ms',
+        start,
+        end,
+        evidence: candidate.samples.map((sample) => ({
+          kind: 'trace' as const,
+          label: 'database-dependency-degradation',
+          value: sample.duration,
+          context: {
+            service: sample.service,
+            traceId: sample.traceId,
+            spanId: sample.spanId,
+            timestamp: sample.timestamp,
+            dependencyName: sample.dependencyName,
+            databaseSystem: candidate.databaseSystem ?? '',
+            p50Duration: candidate.signal.p50Duration,
+            p95Duration: candidate.signal.p95Duration,
+            p99Duration: candidate.signal.p99Duration,
+            errorCount: candidate.signal.errorCount,
+            errorRate: candidate.signal.errorRate,
+            ...(candidate.signal.p95DurationChangePercent !== undefined ? { p95DurationChangePercent: candidate.signal.p95DurationChangePercent } : {}),
+            poolPressure: candidate.signal.poolPressure,
+            connectionWaitPressure: candidate.signal.connectionWaitPressure,
+            batchOperationCount: candidate.signal.batchOperationCount,
+            batchRate: candidate.signal.batchRate,
+            ...(candidate.signal.averageBatchSize !== undefined ? { averageBatchSize: candidate.signal.averageBatchSize } : {}),
+            queryFingerprintCount: candidate.signal.queryFingerprintCount,
+            degradationSignals: candidate.signal.degradationSignals.join(','),
+            confidence: candidate.signal.confidence,
+          },
+        })),
+        {
+          kind: 'recommendation',
+          label: 'database-dependency-guidance',
+          value: candidate.recommendation,
+          context: {
+            dependencyName: candidate.dependencyName,
+            databaseSystem: candidate.databaseSystem ?? '',
+          },
+        },
       }));
     }
 
