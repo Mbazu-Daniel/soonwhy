@@ -71,6 +71,9 @@ describe('DetectionService realistic telemetry scenarios', () => {
       .mockResolvedValueOnce({ hits: [] })
       .mockResolvedValueOnce({ hits: [] })
       .mockResolvedValueOnce({ hits: [] })
+      .mockResolvedValueOnce({ hits: [] })
+      .mockResolvedValueOnce({ hits: [] })
+      .mockResolvedValueOnce({ hits: [] })
       .mockResolvedValueOnce(checkoutRegressionFixture.trace)
       .mockResolvedValueOnce({ hits: checkoutRegressionFixture.dependencyEvidence });
 
