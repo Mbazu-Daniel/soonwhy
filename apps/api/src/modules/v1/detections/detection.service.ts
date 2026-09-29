@@ -19,6 +19,7 @@ import { detectDatabaseConnectionWait, type DatabaseConnectionWaitSample } from 
 import { detectDatabaseBatches, type DatabaseBatchTrace } from '../intelligence/database-batch.detector';
 import { detectDatabaseDependencyDegradation, type DatabaseDependencyTrace } from '../intelligence/database-dependency-degradation.detector';
 import { detectExternalDependencyDegradation, type ExternalDependencyTrace } from '../intelligence/external-dependency-degradation.detector';
+import { detectRedisDegradation, type RedisTrace } from '../intelligence/redis-degradation.detector';
 import { sanitizeRequestUrl } from './detection.utils';
 import { correlateFindings } from './detection.correlation';
 import { completeDetectionRun, failDetectionRun, startDetectionRun } from './detection.run';
@@ -337,6 +338,62 @@ export class DetectionService {
               dependencyName,
               observedLatencyMs: Math.round(dependency.latency),
             },
+          },
+        ],
+      }));
+    }
+
+    const [currentRedisSpans, baselineRedisSpans] = await Promise.all([
+      this.searchRedisSpans(orgId, projectId, startTimestamp, endTimestamp),
+      this.searchRedisSpans(
+        orgId,
+        projectId,
+        startTimestamp - Math.floor(WINDOW_MS / 1000),
+        startTimestamp,
+      ),
+    ]);
+
+    for (const candidate of detectRedisDegradation(currentRedisSpans, baselineRedisSpans)) {
+      detected.push(await this.persistFinding({
+        orgId,
+        projectId,
+        serviceName: candidate.serviceName,
+        type: 'redis_degradation',
+        severity: candidate.signal.errorRate >= 0.5 || candidate.signal.p95Duration >= 1000 ? 'critical' : 'warning',
+        title: 'Redis degradation in ' + candidate.serviceName,
+        description: candidate.dependencyName + (candidate.operationName ? ' ' + candidate.operationName : '') + ' shows correlated ' + candidate.signal.degradationSignals.join(' and ') + ' degradation across ' + candidate.signal.sampleCount + ' operations.',
+        observedValue: candidate.signal.p95Duration,
+        threshold: 50,
+        unit: 'ms',
+        start,
+        end,
+        evidence: [
+          ...candidate.samples.map((sample) => ({
+            kind: 'trace' as const,
+            label: 'redis-degradation',
+            value: sample.duration,
+            context: {
+              service: sample.service,
+              traceId: sample.traceId,
+              spanId: sample.spanId,
+              timestamp: sample.timestamp,
+              dependencyName: sample.dependencyName,
+              ...(sample.operationName ? { operationName: sample.operationName } : {}),
+              ...(sample.errorType ? { errorType: sample.errorType } : {}),
+              p50Duration: candidate.signal.p50Duration,
+              p95Duration: candidate.signal.p95Duration,
+              p99Duration: candidate.signal.p99Duration,
+              errorCount: candidate.signal.errorCount,
+              errorRate: candidate.signal.errorRate,
+              ...(candidate.signal.p95DurationChangePercent !== undefined ? { p95DurationChangePercent: candidate.signal.p95DurationChangePercent } : {}),
+              degradationSignals: candidate.signal.degradationSignals.join(','),
+            },
+          })),
+          {
+            kind: 'recommendation' as const,
+            label: 'redis-guidance',
+            value: candidate.recommendation,
+            context: { dependencyName: candidate.dependencyName, ...(candidate.operationName ? { operationName: candidate.operationName } : {}) },
           },
         ],
       }));
@@ -1689,6 +1746,40 @@ export class DetectionService {
     }
 
     return endpoints;
+  }
+
+  private async searchRedisSpans(
+    orgId: string,
+    projectId: string,
+    startTimestamp: number,
+    endTimestamp: number,
+  ): Promise<RedisTrace[]> {
+    const result = await this.quickwit.search<TraceSource>(QUICKWIT_INDEXES.traces, {
+      query: quickwitTenantQuery(orgId, projectId, quickwitTerm('spanKind', '3')),
+      startTimestamp,
+      endTimestamp,
+      maxHits: 5000,
+      sortBy: ['-duration'],
+    });
+
+    return (result.hits ?? []).flatMap((hit) => {
+      const source = hit._source;
+      if (source?.dependencyType !== 'redis' || !source.traceId || !source.service || !source.dependencyName) return [];
+      const duration = Number(source.duration ?? 0);
+      if (!Number.isFinite(duration) || duration < 0) return [];
+
+      return [{
+        timestamp: String(source.timestamp ?? ''),
+        service: String(source.service),
+        traceId: String(source.traceId),
+        spanId: String(source.spanId ?? ''),
+        duration,
+        dependencyName: String(source.dependencyName),
+        ...(source.dbOperationName ? { operationName: String(source.dbOperationName) } : {}),
+        ...(source.statusCode !== undefined ? { statusCode: Number(source.statusCode) } : {}),
+        ...(source.errorType ? { errorType: String(source.errorType) } : {}),
+      }];
+    });
   }
 
   private async searchExternalDependencySpans(
