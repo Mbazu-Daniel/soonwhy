@@ -59,7 +59,6 @@ export interface DatabaseBatchCandidate {
 }
 
 const MINIMUM_SAMPLES = 5;
-const REGRESSION_BATCH_SIZE_PERCENT = 100;
 const REGRESSION_DURATION_PERCENT = 50;
 const TRACE_CONTRIBUTION_PERCENT = 50;
 
@@ -94,8 +93,6 @@ export function detectDatabaseBatches(
     const p95TraceContributionPercent = percentileTraceContribution(current, 0.95);
 
     const regressionDetected =
-      (p95BatchSizeChangePercent !== undefined && p95BatchSizeChangePercent >= REGRESSION_BATCH_SIZE_PERCENT) ||
-      (p99BatchSizeChangePercent !== undefined && p99BatchSizeChangePercent >= REGRESSION_BATCH_SIZE_PERCENT) ||
       (p95DurationChangePercent !== undefined && p95DurationChangePercent >= REGRESSION_DURATION_PERCENT) ||
       (p99DurationChangePercent !== undefined && p99DurationChangePercent >= REGRESSION_DURATION_PERCENT);
     const traceContributionDetected = (p95TraceContributionPercent ?? 0) >= TRACE_CONTRIBUTION_PERCENT;
