@@ -65,12 +65,14 @@ export function detectQueueDegradation(current: QueueTrace[], baseline: QueueTra
     if (
       p95Duration >= LATENCY_THRESHOLD_MS ||
       (p95DurationChangePercent !== undefined && p95DurationChangePercent >= LATENCY_REGRESSION_PERCENT)
-    ) degradationSignals.push('latency');
+    ) {
+      degradationSignals.push('latency');
+    }
     if (errorRate >= ERROR_RATE_THRESHOLD) degradationSignals.push('errors');
     if (degradationSignals.length < 2) continue;
 
     const [serviceName, queueType, queueName, operationName] = key.split('|');
-    if (!serviceName || !queueName || !queueType || !isQueueType(queueType)) continue;
+    if (!serviceName || !queueName || !isQueueType(queueType)) continue;
 
     candidates.push({
       serviceName,
@@ -109,7 +111,7 @@ export function detectQueueDegradation(current: QueueTrace[], baseline: QueueTra
 function groupByQueue(samples: QueueTrace[]): Map<string, QueueTrace[]> {
   const groups = new Map<string, QueueTrace[]>();
   for (const sample of samples) {
-    if (!sample.service || !sample.queueName || !Number.isFinite(sample.duration) || sample.duration < 0) continue;
+    if (!sample.service || !sample.queueName || !sample.queueType || !Number.isFinite(sample.duration) || sample.duration < 0) continue;
     const key = [sample.service, sample.queueType, sample.queueName, sample.operationName ?? ''].join('|');
     const group = groups.get(key) ?? [];
     group.push(sample);
@@ -123,7 +125,7 @@ function isQueueType(value: string): value is QueueType {
 }
 
 function isError(sample: QueueTrace): boolean {
-  return sample.errorType !== undefined || sample.statusCode !== undefined && sample.statusCode >= 2;
+  return Boolean(sample.errorType) || (sample.statusCode !== undefined && sample.statusCode >= 500);
 }
 
 function percentile(values: number[], rank: number): number {
