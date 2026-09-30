@@ -1609,7 +1609,7 @@ export class DetectionService {
                   percentiles: { field: 'duration', percents: [95] },
                 },
                 errors: {
-                  filter: { query: 'statusCode:[2] OR statusCode:[500 TO 599]' },
+                  filter: { query: 'statusCode:2 OR statusCode:[500 TO 599]' },
                 },
                 dependencyType: {
                   terms: {
