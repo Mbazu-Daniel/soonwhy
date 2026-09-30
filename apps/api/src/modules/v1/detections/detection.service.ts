@@ -24,6 +24,7 @@ import { sanitizeRequestUrl } from './detection.utils';
 import { correlateFindings } from './detection.correlation';
 import { completeDetectionRun, failDetectionRun, startDetectionRun } from './detection.run';
 import { evaluateSignal, evaluateThroughput, evaluateTraceSpan } from './detection.engine';
+import { evaluateEndpointPerformance } from './performance-detection';
 import { evaluateServicePerformance } from '../intelligence/service-performance.engine';
 import { evaluateDependency } from '../intelligence/dependency-intelligence';
 import type { DetectionFinding, DetectionWindow, FindingSeverity, FindingType } from './detection.types';
@@ -271,6 +272,78 @@ export class DetectionService {
           ],
         }));
       }
+    }
+
+    const [currentEndpoints, baselineEndpoints] = await Promise.all([
+      this.searchEndpointBuckets(orgId, projectId, startTimestamp, endTimestamp),
+      this.searchEndpointBuckets(
+        orgId,
+        projectId,
+        startTimestamp - Math.floor(WINDOW_MS / 1000),
+        startTimestamp,
+      ),
+    ]);
+
+    const baselineByEndpoint = new Map(baselineEndpoints.map((endpoint) => [endpoint.key, endpoint]));
+
+    for (const endpoint of currentEndpoints) {
+      const baseline = baselineByEndpoint.get(endpoint.key);
+      const [serviceName, method, url] = endpoint.key.split('|');
+      if (!serviceName || !method || !url) continue;
+
+      const performance = evaluateEndpointPerformance(
+        {
+          serviceName,
+          endpointName: method + ' ' + sanitizeRequestUrl(url),
+          sampleCount: endpoint.doc_count,
+          p95Duration: endpoint.latency,
+          throughputPerMinute: endpoint.doc_count / 15,
+          errorRate: endpoint.errorRate,
+        },
+        baseline ? {
+          serviceName,
+          endpointName: method + ' ' + sanitizeRequestUrl(url),
+          sampleCount: baseline.doc_count,
+          p95Duration: baseline.latency,
+          throughputPerMinute: baseline.doc_count / 15,
+          errorRate: baseline.errorRate,
+        } : undefined,
+      );
+
+      if (!performance) continue;
+
+      detected.push(await this.persistFinding({
+        orgId,
+        projectId,
+        serviceName,
+        type: 'latency',
+        severity: performance.confidence === 'high' ? 'critical' : 'warning',
+        title: 'Endpoint performance degradation in ' + serviceName,
+        description: performance.summary,
+        observedValue: endpoint.latency,
+        threshold: 100,
+        unit: 'ms',
+        start,
+        end,
+        evidence: [
+          {
+            kind: 'metric',
+            label: 'performance-endpoint',
+            value: endpoint.latency,
+            context: {
+              endpointName: performance.endpointName,
+              fingerprint: performance.identity.fingerprint,
+              sampleCount: endpoint.doc_count,
+              signals: performance.signals.join(','),
+              confidence: performance.confidence,
+              ...(performance.latencyRegressionPercent !== undefined ? { latencyRegressionPercent: performance.latencyRegressionPercent } : {}),
+              ...(performance.throughputRegressionPercent !== undefined ? { throughputRegressionPercent: performance.throughputRegressionPercent } : {}),
+              ...(performance.errorRegressionPercent !== undefined ? { errorRegressionPercent: performance.errorRegressionPercent } : {}),
+            },
+          },
+          ...(await this.endpointPerformanceEvidence(orgId, projectId, serviceName, method, url, startTimestamp, endTimestamp)),
+        ],
+      }));
     }
 
     const [currentDependencies, baselineDependencies] = await Promise.all([
@@ -2255,6 +2328,45 @@ export class DetectionService {
     if (!project) {
       throw new NotFoundException('Project not found');
     }
+  }
+
+  private async endpointPerformanceEvidence(
+    orgId: string,
+    projectId: string,
+    serviceName: string,
+    method: string,
+    url: string,
+    startTimestamp: number,
+    endTimestamp: number,
+  ): Promise<DetectionEvidence[]> {
+    const result = await this.quickwit.search<RequestSource>(QUICKWIT_INDEXES.requests, {
+      query: quickwitTenantQuery(orgId, projectId, [
+        quickwitTerm('service', serviceName),
+        quickwitTerm('method', method),
+        quickwitTerm('url', url),
+      ].join(' AND ')),
+      startTimestamp,
+      endTimestamp,
+      maxHits: 5,
+      sortBy: ['duration:desc'],
+    });
+
+    return result.hits.flatMap((hit) => {
+      const source = hit._source;
+      if (!source?.traceId) return [];
+      return [{
+        kind: 'trace' as const,
+        label: 'endpoint-trace',
+        value: source.traceId,
+        context: {
+          traceId: source.traceId,
+          service: String(source.service ?? serviceName),
+          method: String(source.method ?? method),
+          path: sanitizeRequestUrl(String(source.url ?? url)),
+          timestamp: String(source.timestamp ?? ''),
+        },
+      }];
+    });
   }
 
   private async requestEvidence(
