@@ -25,6 +25,7 @@ import { correlateFindings } from './detection.correlation';
 import { completeDetectionRun, failDetectionRun, startDetectionRun } from './detection.run';
 import { evaluateSignal, evaluateThroughput, evaluateTraceSpan } from './detection.engine';
 import { evaluateServicePerformance } from '../intelligence/service-performance.engine';
+import { evaluateDependency } from '../intelligence/dependency-intelligence';
 import type { DetectionFinding, DetectionWindow, FindingSeverity, FindingType } from './detection.types';
 
 const WINDOW_MS = 15 * 60_000;
@@ -40,6 +41,7 @@ interface DependencyBucket {
   key: string;
   doc_count: number;
   latency?: { values?: Record<string, number> };
+  errors?: { doc_count?: number };
   dependencyType?: { buckets?: Array<{ key: string; doc_count: number }> };
 }
 
@@ -290,33 +292,35 @@ export class DetectionService {
 
     for (const dependency of currentDependencies) {
       const baseline = baselineByDependency.get(dependency.key);
-      const signal = evaluateSignal(
-        'dependency_latency',
-        dependency.latency,
-        baseline
-          ? { value: baseline.latency, samples: baseline.samples }
-          : undefined,
-      );
+      const serviceName = dependency.serviceName;
+      const dependencyType = dependency.dependencyType;
+      const dependencyName = dependency.dependencyName;
+      const finding = evaluateDependency({
+        serviceName,
+        dependencyType,
+        dependencyName,
+        sampleCount: dependency.samples,
+        ...(baseline ? { baselineSampleCount: baseline.samples } : {}),
+        p95Duration: dependency.latency,
+        ...(baseline ? { baselineP95Duration: baseline.latency } : {}),
+        errorCount: dependency.errorCount,
+        errorRate: dependency.errorRate,
+        ...(baseline ? { baselineErrorRate: baseline.errorRate } : {}),
+      });
 
-      if (!signal) continue;
-
-      const [serviceName, dependencyType, dependencyName] = dependency.key.split('|');
-      if (!serviceName || !dependencyType || !dependencyName) continue;
+      if (!finding) continue;
 
       detected.push(await this.persistFinding({
         orgId,
         projectId,
         serviceName,
-        type: signal.type,
-        severity: signal.severity,
-        title: 'Slow ' + dependencyType + ' dependency in ' + serviceName,
-        description: this.describeSignal(
-          dependencyType + ' dependency ' + dependencyName + ' has a 95th percentile latency of ' + Math.round(dependency.latency) + 'ms.',
-          signal,
-        ),
-        observedValue: signal.observedValue,
-        threshold: signal.threshold,
-        unit: signal.unit,
+        type: 'dependency_latency',
+        severity: finding.confidence === 'high' ? 'critical' : 'warning',
+        title: 'Dependency degradation in ' + serviceName,
+        description: finding.summary,
+        observedValue: dependency.latency,
+        threshold: 100,
+        unit: 'ms',
         start,
         end,
         evidence: [
@@ -330,15 +334,37 @@ export class DetectionService {
             endTimestamp,
           )),
           {
+            kind: 'metric',
+            label: 'dependency-profile',
+            value: dependency.latency,
+            context: {
+              dependencyType,
+              dependencyName,
+              sampleCount: dependency.samples,
+              errorCount: dependency.errorCount,
+              errorRate: dependency.errorRate,
+              ...(finding.latencyRegressionPercent !== undefined
+                ? { latencyRegressionPercent: finding.latencyRegressionPercent }
+                : {}),
+              ...(finding.errorRegressionPercent !== undefined
+                ? { errorRegressionPercent: finding.errorRegressionPercent }
+                : {}),
+              ...(finding.throughputRegressionPercent !== undefined
+                ? { throughputRegressionPercent: finding.throughputRegressionPercent }
+                : {}),
+              signals: finding.signals.join(','),
+              confidence: finding.confidence,
+            },
+          },
+          {
             kind: 'recommendation',
             label: 'optimization-guidance',
             value: this.dependencyRecommendation(dependencyType),
             context: {
               dependencyType,
               dependencyName,
-              observedLatencyMs: Math.round(dependency.latency),
             },
-          },
+            },
         ],
       }));
     }
@@ -489,7 +515,8 @@ export class DetectionService {
         unit: 'ms',
         start,
         end,
-        evidence: candidate.samples.map((sample) => ({
+        evidence: [
+          ...candidate.samples.map((sample) => ({
           kind: 'trace',
           label: 'database-query-span',
           value: sample.duration,
@@ -824,8 +851,8 @@ export class DetectionService {
             degradationSignals: candidate.signal.degradationSignals.join(','),
             confidence: candidate.signal.confidence,
           },
-        })),
-        {
+          })),
+          {
           kind: 'recommendation',
           label: 'database-dependency-guidance',
           value: candidate.recommendation,
@@ -1545,7 +1572,16 @@ export class DetectionService {
     projectId: string,
     startTimestamp: number,
     endTimestamp: number,
-  ): Promise<Array<{ key: string; latency: number; samples: number }>> {
+  ): Promise<Array<{
+    key: string;
+    serviceName: string;
+    dependencyType: 'database' | 'cache' | 'queue' | 'http' | 'grpc' | 'other';
+    dependencyName: string;
+    latency: number;
+    samples: number;
+    errorCount: number;
+    errorRate: number;
+  }>> {
     const result = await this.quickwit.search<never>(QUICKWIT_INDEXES.traces, {
       query: quickwitTenantQuery(
         orgId,
@@ -1573,6 +1609,9 @@ export class DetectionService {
                 latency: {
                   percentiles: { field: 'duration', percents: [95] },
                 },
+                errors: {
+                  filter: { query: 'statusCode:2 OR statusCode:[500 TO 599]' },
+                },
                 dependencyType: {
                   terms: {
                     field: 'dependencyType',
@@ -1589,17 +1628,29 @@ export class DetectionService {
     const aggregation = (result.aggregations as Aggregations | undefined)?.dependencies;
     return (aggregation?.buckets ?? []).flatMap((serviceBucket) =>
       (serviceBucket.dependencies?.buckets ?? []).flatMap((dependencyBucket) => {
-        const dependencyName = dependencyBucket.key;
-        if (!dependencyName) return [];
-
+        const dependencyName = String(dependencyBucket.key ?? '').trim();
         const dependencyType = dependencyBucket.dependencyType?.buckets?.[0]?.key;
+        if (
+          !dependencyName ||
+          !['database', 'cache', 'queue', 'http', 'grpc', 'other'].includes(String(dependencyType))
+        ) {
+          return [];
+        }
+
         const latency = dependencyBucket.latency?.values?.['95.0'] ?? 0;
-        if (!dependencyType || latency <= 0) return [];
+        const samples = dependencyBucket.doc_count;
+        const errorCount = dependencyBucket.errors?.doc_count ?? 0;
+        if (!Number.isFinite(latency) || latency <= 0 || samples <= 0) return [];
 
         return [{
           key: serviceBucket.key + '|' + dependencyType + '|' + dependencyName,
+          serviceName: String(serviceBucket.key),
+          dependencyType: dependencyType as 'database' | 'cache' | 'queue' | 'http' | 'grpc' | 'other',
+          dependencyName,
           latency,
-          samples: dependencyBucket.doc_count,
+          samples,
+          errorCount,
+          errorRate: errorCount / samples,
         }];
       }),
     );
