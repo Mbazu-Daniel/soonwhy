@@ -12,7 +12,7 @@ describe('evaluateDependency', () => {
     })).toBeNull();
   });
 
-  it('requires enough baseline samples when a baseline is supplied', () => {
+  it('requires enough baseline samples for baseline metrics', () => {
     expect(evaluateDependency({
       serviceName: 'orders',
       dependencyType: 'database',
@@ -21,6 +21,17 @@ describe('evaluateDependency', () => {
       baselineSampleCount: 4,
       p95Duration: 400,
       baselineP95Duration: 100,
+    })).toBeNull();
+  });
+
+  it('rejects an orphan baseline sample count', () => {
+    expect(evaluateDependency({
+      serviceName: 'orders',
+      dependencyType: 'database',
+      dependencyName: 'orders-db',
+      sampleCount: 20,
+      baselineSampleCount: 20,
+      p95Duration: 400,
     })).toBeNull();
   });
 
@@ -55,6 +66,23 @@ describe('evaluateDependency', () => {
     expect(result?.identity.operationName).toBeUndefined();
   });
 
+  it('normalizes whitespace in identity fields', () => {
+    const result = evaluateDependency({
+      serviceName: ' orders ',
+      dependencyType: 'http',
+      dependencyName: ' payments ',
+      operationName: ' call ',
+      sampleCount: 10,
+      p95Duration: 200,
+    });
+
+    expect(result).toMatchObject({
+      serviceName: 'orders',
+      dependencyName: 'payments',
+      operationName: 'call',
+    });
+  });
+
   it('correlates latency and errors with high confidence', () => {
     const result = evaluateDependency({
       serviceName: 'orders',
@@ -80,6 +108,18 @@ describe('evaluateDependency', () => {
     });
   });
 
+  it('does not flag a relative error regression without a meaningful absolute increase', () => {
+    expect(evaluateDependency({
+      serviceName: 'orders',
+      dependencyType: 'http',
+      dependencyName: 'payments',
+      sampleCount: 100,
+      baselineSampleCount: 100,
+      errorRate: 0.02,
+      baselineErrorRate: 0.01,
+    })).toBeNull();
+  });
+
   it('keeps a single signal family at medium confidence', () => {
     const result = evaluateDependency({
       serviceName: 'orders',
@@ -94,7 +134,7 @@ describe('evaluateDependency', () => {
     expect(result?.confidence).toBe('medium');
   });
 
-  it('rejects invalid rates instead of treating them as real errors', () => {
+  it('rejects invalid rates and error counts', () => {
     expect(evaluateDependency({
       serviceName: 'orders',
       dependencyType: 'http',
@@ -102,6 +142,15 @@ describe('evaluateDependency', () => {
       sampleCount: 20,
       errorRate: 2,
       baselineErrorRate: 0.1,
+    })).toBeNull();
+
+    expect(evaluateDependency({
+      serviceName: 'orders',
+      dependencyType: 'http',
+      dependencyName: 'payments',
+      sampleCount: 20,
+      errorCount: 21,
+      errorRate: 0.2,
     })).toBeNull();
   });
 
