@@ -588,8 +588,7 @@ export class DetectionService {
         unit: 'ms',
         start,
         end,
-        evidence: [
-          ...candidate.samples.map((sample) => ({
+        evidence: candidate.samples.map((sample) => ({
           kind: 'trace',
           label: 'database-query-span',
           value: sample.duration,
