@@ -1,3 +1,4 @@
+import type { DetectionEvidence } from '../../../common/db/schema/findings';
 import type { DetectionFinding } from './detection.types';
 
 export interface CorrelatedBottleneck {
@@ -20,28 +21,32 @@ export function correlateFindings(findings: DetectionFinding[]): CorrelatedBottl
   }
 
   return Array.from(byService.values()).flatMap((serviceFindings) => {
-    const latency = serviceFindings.find((finding) => finding.type === 'latency' || finding.type === 'performance');
+    const latency =
+      serviceFindings.find(
+        (finding) =>
+          finding.type === 'latency' &&
+          finding.evidence.some((evidence) => evidence.label === 'performance-endpoint'),
+      ) ??
+      serviceFindings.find((finding) => finding.type === 'latency');
     if (!latency) return [];
 
-    const supportingFindings = serviceFindings.filter(
-      (finding) =>
-        finding.type === 'dependency_latency' ||
-        finding.type === 'trace_span' ||
-        finding.type === 'error_rate' ||
-        finding.type === 'throughput',
-    );
+    const latencyTraceIds = traceIdsFrom(latency.evidence);
+    const supportingFindings = serviceFindings.filter((finding) => {
+      if (finding.type === 'error_rate' || finding.type === 'throughput') return true;
+      if (finding.type !== 'dependency_latency' && finding.type !== 'trace_span') return false;
+
+      const candidateTraceIds = traceIdsFrom(finding.evidence);
+      if (!latencyTraceIds.length) return true;
+
+      return candidateTraceIds.some((traceId) => latencyTraceIds.includes(traceId));
+    });
 
     const dependency = supportingFindings.find(
       (finding) => finding.type === 'dependency_latency',
     );
     const traceIds = Array.from(
       new Set(
-        supportingFindings.flatMap((finding) =>
-          finding.evidence.flatMap((evidence) => {
-            const traceId = evidence.context?.traceId;
-            return typeof traceId === 'string' && traceId ? [traceId] : [];
-          }),
-        ),
+        supportingFindings.flatMap((finding) => traceIdsFrom(finding.evidence)),
       ),
     );
 
@@ -70,6 +75,13 @@ export function correlateFindings(findings: DetectionFinding[]): CorrelatedBottl
       dependencyName,
       traceIds,
     }];
+  });
+}
+
+function traceIdsFrom(evidence: DetectionEvidence[]): string[] {
+  return evidence.flatMap((item) => {
+    const traceId = item.context?.traceId;
+    return typeof traceId === 'string' && traceId ? [traceId] : [];
   });
 }
 
