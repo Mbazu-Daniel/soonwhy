@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ProjectsModule } from '../projects/projects.module';
+import { IssueLifecycleModule } from '../intelligence/issue-lifecycle.module';
 import { DetectionController } from './detection.controller';
 import { DetectionService } from './detection.service';
 import { RcaModule } from './rca.module';
@@ -10,7 +11,7 @@ import { RcaAnalysisRepository } from './rca.repository';
 import { RcaPersistenceService } from './rca.persistence';
 
 @Module({
-  imports: [ProjectsModule, RcaModule],
+  imports: [ProjectsModule, RcaModule, IssueLifecycleModule],
   controllers: [DetectionController, RcaController],
   providers: [
     DetectionService,

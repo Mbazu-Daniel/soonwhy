@@ -180,6 +180,101 @@ describe('OTLP JSON parse + telemetry mappers', () => {
     expect(row.dependencyName).toBe('postgresql');
   });
 
+  it('normalizes Redis spans for dependency intelligence', () => {
+    const start = BigInt(Date.now()) * 1_000_000n;
+    const end = start + 80_000_000n;
+    const { spans, rejected } = parseTracesPayload({
+      resourceSpans: [{
+        resource: { attributes: [{ key: 'service.name', value: { stringValue: 'api' } }] },
+        scopeSpans: [{ spans: [{
+          traceId: '3'.repeat(32),
+          spanId: '4'.repeat(16),
+          parentSpanId: '5'.repeat(16),
+          name: 'GET',
+          kind: 3,
+          startTimeUnixNano: String(start),
+          endTimeUnixNano: String(end),
+          status: { code: 1 },
+          attributes: [
+            { key: 'db.system.name', value: { stringValue: 'redis' } },
+            { key: 'server.address', value: { stringValue: 'redis.internal' } },
+            { key: 'db.operation.name', value: { stringValue: 'GET' } },
+          ],
+        }] }],
+      }],
+    });
+
+    expect(rejected).toBe(0);
+    const row = mapSpanToTraceRow(spans[0]!, tenant);
+    expect(row.dependencyType).toBe('redis');
+    expect(row.dependencyName).toBe('redis.internal');
+    expect(row.dbOperationName).toBeUndefined();
+  });
+
+  it('stores sanitized database query identity attributes', () => {
+    const start = BigInt(Date.now()) * 1_000_000n;
+    const end = start + 800_000_000n;
+    const { spans } = parseTracesPayload({
+      resourceSpans: [{
+        resource: {
+          attributes: [{ key: 'service.name', value: { stringValue: 'api' } }],
+        },
+        scopeSpans: [{
+          spans: [{
+            traceId: '1'.repeat(32),
+            spanId: '2'.repeat(16),
+            parentSpanId: '',
+            name: 'SELECT users',
+            kind: 3,
+            startTimeUnixNano: String(start),
+            endTimeUnixNano: String(end),
+            status: { code: 1 },
+            attributes: [
+              { key: 'db.system.name', value: { stringValue: 'postgresql' } },
+              { key: 'db.query.text', value: { stringValue: "SELECT * FROM users WHERE email = 'daniel@example.com' AND id = 42" } },
+              { key: 'db.query.summary', value: { stringValue: 'SELECT users' } },
+              { key: 'db.operation.name', value: { stringValue: 'SELECT' } },
+              { key: 'db.response.returned_rows', value: { intValue: 3 } },
+              { key: 'error.type', value: { stringValue: 'timeout' } },
+            ],
+          }],
+        }],
+      }],
+    });
+
+    const row = mapSpanToTraceRow(spans[0]!, tenant);
+    expect(row.dbSystemName).toBe('postgresql');
+    expect(row.dbQuerySummary).toBe('SELECT users');
+    expect(row.dbOperationName).toBe('SELECT');
+    expect(row.dbQueryText).toBe('SELECT * FROM users WHERE email = ? AND id = ?');
+    expect(row.dbReturnedRows).toBe(3);
+    expect(row.errorType).toBe('timeout');
+  });
+
+  it('preserves database connection pool identity attributes', () => {
+    const { points } = parseMetricsPayload({
+      resourceMetrics: [{
+        resource: { attributes: [{ key: 'service.name', value: { stringValue: 'api' } }] },
+        scopeMetrics: [{ metrics: [{
+          name: 'db.client.connection.count',
+          unit: '{connection}',
+          gauge: { dataPoints: [{
+            timeUnixNano: String(BigInt(Date.now()) * 1_000_000n),
+            asDouble: 9,
+            attributes: [
+              { key: 'db.client.connection.pool.name', value: { stringValue: 'primary' } },
+              { key: 'db.client.connection.state', value: { stringValue: 'used' } },
+            ],
+          }] },
+        }] }],
+      }],
+    });
+
+    const row = mapMetricToRow(points[0]!, tenant);
+    expect(row.connectionPoolName).toBe('primary');
+    expect(row.attributes['db.client.connection.state']).toBe('used');
+  });
+
   it('maps gauge metrics into metrics table rows', () => {
     const { points, rejected } = parseMetricsPayload({
       resourceMetrics: [

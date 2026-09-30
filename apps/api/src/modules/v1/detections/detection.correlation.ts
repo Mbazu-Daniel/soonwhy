@@ -20,16 +20,17 @@ export function correlateFindings(findings: DetectionFinding[]): CorrelatedBottl
   }
 
   return Array.from(byService.values()).flatMap((serviceFindings) => {
-    const latency = serviceFindings.find((finding) => finding.type === 'latency');
+    const latency = serviceFindings.find((finding) => finding.type === 'latency' || finding.type === 'performance');
     if (!latency) return [];
 
-    const supportingFindings = serviceFindings.filter(
-      (finding) =>
-        finding.type === 'dependency_latency' ||
-        finding.type === 'trace_span' ||
-        finding.type === 'error_rate' ||
-        finding.type === 'throughput',
-    );
+    const latencyTraceIds = traceIdsFrom(latency.evidence);
+    const supportingFindings = serviceFindings.filter((finding) => {
+      if (finding.type === 'error_rate' || finding.type === 'throughput') return true;
+      if (finding.type !== 'dependency_latency' && finding.type !== 'trace_span') return false;
+      const candidateTraceIds = traceIdsFrom(finding.evidence);
+      if (!latencyTraceIds.length) return true;
+      return candidateTraceIds.some((traceId) => latencyTraceIds.includes(traceId));
+    });
 
     const dependency = supportingFindings.find(
       (finding) => finding.type === 'dependency_latency',
@@ -84,4 +85,11 @@ function dependencyRecommendation(dependencyType: string): string {
     default:
       return 'Inspect the downstream operation first. Check for repeated calls, unnecessary work, and connection or pooling issues.';
   }
+}
+
+function traceIdsFrom(evidence: Array<{ context?: Record<string, unknown> }>): string[] {
+  return evidence.flatMap((item) => {
+    const traceId = item.context?.traceId;
+    return typeof traceId === 'string' && traceId ? [traceId] : [];
+  });
 }
