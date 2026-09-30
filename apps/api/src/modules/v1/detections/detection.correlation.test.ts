@@ -93,3 +93,58 @@ describe('correlateFindings', () => {
     expect(correlateFindings([finding()])).toEqual([]);
   });
 });
+
+
+describe('trace-aware dependency correlation', () => {
+  it('does not correlate an unrelated dependency when request trace identity is known', () => {
+    const result = correlateFindings([
+      finding({
+        evidence: [{
+          kind: 'request',
+          label: 'slow-request',
+          value: 1_600,
+          context: { traceId: 'trace-checkout-001' },
+        }],
+      }),
+      finding({
+        id: 'finding-2',
+        type: 'dependency_latency',
+        evidence: [
+          {
+            kind: 'trace',
+            label: 'slow-dependency-span',
+            value: 1_200,
+            context: {
+              traceId: 'trace-unrelated-002',
+              dependencyType: 'database',
+              dependencyName: 'postgres',
+            },
+          },
+          {
+            kind: 'recommendation',
+            label: 'optimization-guidance',
+            value: 'database guidance',
+            context: {
+              dependencyType: 'database',
+              dependencyName: 'postgres',
+            },
+          },
+        ],
+      }),
+      finding({
+        id: 'finding-3',
+        type: 'trace_span',
+        evidence: [{
+          kind: 'trace',
+          label: 'dominant-span',
+          value: 1_500,
+          context: { traceId: 'trace-checkout-001' },
+        }],
+      }),
+    ]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.supportingFindings.map((item) => item.type)).toEqual(['trace_span']);
+    expect(result[0]?.traceIds).toEqual(['trace-checkout-001']);
+  });
+});
