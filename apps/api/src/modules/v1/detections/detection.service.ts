@@ -364,7 +364,7 @@ export class DetectionService {
               dependencyType,
               dependencyName,
             },
-          },
+            },
         ],
       }));
     }
@@ -515,7 +515,8 @@ export class DetectionService {
         unit: 'ms',
         start,
         end,
-        evidence: candidate.samples.map((sample) => ({
+        evidence: [
+          ...candidate.samples.map((sample) => ({
           kind: 'trace',
           label: 'database-query-span',
           value: sample.duration,
@@ -850,8 +851,8 @@ export class DetectionService {
             degradationSignals: candidate.signal.degradationSignals.join(','),
             confidence: candidate.signal.confidence,
           },
-        })),
-        {
+          })),
+          {
           kind: 'recommendation',
           label: 'database-dependency-guidance',
           value: candidate.recommendation,
