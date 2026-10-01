@@ -299,6 +299,70 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
+sdks/express:
+  dependencies:
+    '@soonwhy/node':
+      specifier: workspace:*
+      version: link:../node
+  devDependencies:
+    typescript:
+      specifier: ^5.8.0
+      version: 5.9.3
+
+sdks/nestjs:
+  dependencies:
+    '@soonwhy/node':
+      specifier: workspace:*
+      version: link:../node
+  devDependencies:
+    typescript:
+      specifier: ^5.8.0
+      version: 5.9.3
+
+sdks/nextjs:
+  dependencies:
+    '@soonwhy/node':
+      specifier: workspace:*
+      version: link:../node
+    '@soonwhy/web':
+      specifier: workspace:*
+      version: link:../web
+  devDependencies:
+    typescript:
+      specifier: ^5.8.0
+      version: 5.9.3
+
+sdks/node:
+  devDependencies:
+    '@types/node':
+      specifier: ^24.13.3
+      version: 24.13.3
+    typescript:
+      specifier: ^5.8.0
+      version: 5.9.3
+
+sdks/shared:
+  devDependencies:
+    typescript:
+      specifier: ^5.8.0
+      version: 5.9.3
+
+sdks/vite:
+  dependencies:
+    '@soonwhy/web':
+      specifier: workspace:*
+      version: link:../web
+  devDependencies:
+    typescript:
+      specifier: ^5.8.0
+      version: 5.9.3
+
+sdks/web:
+  devDependencies:
+    typescript:
+      specifier: ^5.8.0
+      version: 5.9.3
+
 packages:
 
   '@angular-devkit/core@19.2.24':
