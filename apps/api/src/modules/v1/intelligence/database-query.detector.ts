@@ -10,9 +10,13 @@ export interface DatabaseQueryTrace {
   service: string;
   traceId: string;
   spanId: string;
+  parentSpanId?: string;
   duration: number;
+  statusCode?: number;
+  statusMessage?: string;
   dependencyType: string;
   dependencyName: string;
+  spanName?: string;
   dbQueryText?: string;
   dbQuerySummary?: string;
   dbOperationName?: string;
@@ -42,11 +46,19 @@ export function detectDatabaseQueries(
   const baselineGroups = groupQueries(baseline);
   const candidates: DatabaseQueryCandidate[] = [];
 
-  for (const [fingerprint, currentSamples] of currentGroups) {
+  for (const [groupKey, currentSamples] of currentGroups) {
+    const separator = groupKey.indexOf('\0');
+    const fingerprint = separator >= 0 ? groupKey.slice(separator + 1) : groupKey;
     const first = currentSamples[0];
     if (!first) continue;
 
-    const query = first.dbQueryText ?? first.dbQuerySummary ?? first.dbOperationName ?? first.dependencyName;
+    const query =
+      first.dbQueryText ??
+      first.dbQuerySummary ??
+      first.dbOperationName ??
+      first.spanName ??
+      first.dependencyName;
+
     if (!query) continue;
 
     const identity = fingerprintQuery(query, first.dbSystemName).identity;
@@ -55,7 +67,7 @@ export function detectDatabaseQueries(
     const observedP95 = percentile(currentSamples.map((sample) => sample.duration), 0.95);
     if (observedP95 === undefined) continue;
 
-    const baselineSamples = baselineGroups.get(fingerprint) ?? [];
+    const baselineSamples = baselineGroups.get(groupKey) ?? [];
     const baselineP95 = percentile(baselineSamples.map((sample) => sample.duration), 0.95);
     const signal = evaluateDatabaseQuery(
       observedP95,
@@ -93,13 +105,19 @@ function groupQueries(samples: DatabaseQueryTrace[]): Map<string, DatabaseQueryT
       sample.duration <= 0
     ) continue;
 
-    const query = sample.dbQueryText ?? sample.dbQuerySummary ?? sample.dbOperationName ?? sample.dependencyName;
+    const query =
+      sample.dbQueryText ??
+      sample.dbQuerySummary ??
+      sample.dbOperationName ??
+      sample.spanName ??
+      sample.dependencyName;
     if (!query) continue;
 
     const identity = fingerprintQuery(query, sample.dbSystemName).identity;
-    const existing = groups.get(identity.fingerprint) ?? [];
+    const groupKey = sample.service + '\0' + identity.fingerprint;
+    const existing = groups.get(groupKey) ?? [];
     existing.push(sample);
-    groups.set(identity.fingerprint, existing);
+    groups.set(groupKey, existing);
   }
 
   return groups;

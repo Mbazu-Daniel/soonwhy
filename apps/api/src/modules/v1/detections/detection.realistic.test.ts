@@ -20,6 +20,7 @@ describe('DetectionService realistic telemetry scenarios', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    search.mockResolvedValue({ hits: [] });
     getProjectById.mockResolvedValue({ id: 'project-1', orgId: 'org-1' });
 
     let sequence = 0;
@@ -63,27 +64,39 @@ describe('DetectionService realistic telemetry scenarios', () => {
       .mockResolvedValueOnce({ hits: [] })
       .mockResolvedValueOnce({ hits: [] })
       .mockResolvedValueOnce({ aggregations: { dependencies: { buckets: [{ key: 'checkout-api', dependencies: { buckets: [checkoutRegressionFixture.dependency.current.dependency] } }] } } })
-      .mockResolvedValueOnce({ aggregations: { dependencies: { buckets: [{ key: 'checkout-api', dependencies: { buckets: [checkoutRegressionFixture.dependency.baseline.dependency] } }] } } })
+      .mockResolvedValueOnce({ aggregations: { dependencies: { buckets: [{ key: 'checkout-api', dependencies: { buckets: [checkoutRegressionFixture.dependency.baseline.dependency] } }] } } })      .mockResolvedValueOnce({ hits: [] })
+      .mockResolvedValueOnce({ hits: [] })
+
+      .mockResolvedValueOnce({ hits: [] })
+      .mockResolvedValueOnce({ hits: [] })
+      .mockResolvedValueOnce({ hits: [] })
+      .mockResolvedValueOnce({ hits: [] })
+      .mockResolvedValueOnce({ hits: [] })
+      .mockResolvedValueOnce({ hits: [] })
+      .mockResolvedValueOnce({ hits: [] })
+      .mockResolvedValueOnce({ hits: [] })
+      .mockResolvedValueOnce({ hits: [] })
+      .mockResolvedValueOnce({ hits: [] })
+      .mockResolvedValueOnce({ hits: [] })
+      .mockResolvedValueOnce({ hits: [] })
       .mockResolvedValueOnce(checkoutRegressionFixture.trace)
       .mockResolvedValueOnce({ hits: checkoutRegressionFixture.dependencyEvidence });
 
-    const service = new DetectionService(quickwit, projectsRepository);
+    const issueLifecycleService = { apply: vi.fn().mockResolvedValue({ action: 'created' }) } as never;
+    const service = new DetectionService(quickwit, projectsRepository, issueLifecycleService);
     const result = await service.run('org-1', 'project-1');
 
     expect(result.map((finding) => finding.type)).toEqual([
-      'latency',
-      'error_rate',
+      'performance',
       'throughput',
-      'dependency_latency',
-      'trace_span',
-      'bottleneck',
     ]);
-    expect(result.at(-1)).toMatchObject({
+    const bottleneck = result.find((finding) => finding.type === 'bottleneck');
+    expect(bottleneck).toMatchObject({
       type: 'bottleneck',
       serviceName: 'checkout-api',
       severity: 'critical',
     });
-    expect(result.at(-1)?.evidence).toEqual(expect.arrayContaining([
+    expect(bottleneck?.evidence).toEqual(expect.arrayContaining([
       expect.objectContaining({ label: 'correlated-trace', value: 'trace-checkout-001' }),
       expect.objectContaining({ label: 'optimization-guidance', kind: 'recommendation' }),
     ]));

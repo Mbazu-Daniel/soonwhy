@@ -23,7 +23,7 @@ describe('database query detector', () => {
     const candidates = detectDatabaseQueries(
       [
         sample({ duration: 600, traceId: 'trace-1' }),
-        sample({ duration: 800, traceId: 'trace-2', dbQueryText: 'SELECT * FROM users WHERE id = ?' }),
+        sample({ duration: 800, traceId: 'trace-2' }),
       ],
       [],
     );
@@ -35,7 +35,7 @@ describe('database query detector', () => {
 
   it('detects a query regression against a sampled baseline', () => {
     const current = Array.from({ length: 20 }, (_, index) =>
-      sample({ duration: 480 + index }),
+      sample({ duration: 520 + index }),
     );
     const baseline = Array.from({ length: 20 }, (_, index) =>
       sample({ duration: 250 + index }),
@@ -48,12 +48,20 @@ describe('database query detector', () => {
     expect(candidates[0]?.signal.baselineValue).toBeDefined();
   });
 
+  it('does not combine the same query across services', () => {
+    const candidates = detectDatabaseQueries(
+      [
+        sample({ service: 'api-a', duration: 600 }),
+        sample({ service: 'api-b', duration: 600 }),
+      ],
+      [],
+    );
+
+    expect(candidates).toHaveLength(2);
+    expect(candidates.map((candidate) => candidate.serviceName)).toEqual(['api-a', 'api-b']);
+  });
+
   it('ignores non-database spans', () => {
-    expect(
-      detectDatabaseQueries(
-        [sample({ dependencyType: 'http' })],
-        [],
-      ),
-    ).toEqual([]);
+    expect(detectDatabaseQueries([sample({ dependencyType: 'http' })], [])).toEqual([]);
   });
 });

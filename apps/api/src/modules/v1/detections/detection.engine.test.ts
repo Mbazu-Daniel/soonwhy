@@ -1,3 +1,17 @@
+describe('performance engine integration', () => {
+  it('uses performance intelligence for latency regression severity', () => {
+    expect(evaluateSignal('latency', 600, { value: 300, samples: 100 })?.severity).toBe('critical');
+  });
+
+  it('keeps threshold detection for latency without a baseline', () => {
+    expect(evaluateSignal('latency', 1_250)?.severity).toBe('warning');
+  });
+
+  it('uses performance intelligence for throughput detection', () => {
+    expect(evaluateThroughput(40, { value: 100, samples: 100 })?.severity).toBe('critical');
+  });
+});
+
 import { describe, expect, it } from 'vitest';
 import { DETECTION_RULES, evaluateSignal, evaluateThroughput, evaluateTraceSpan } from './detection.engine';
 
