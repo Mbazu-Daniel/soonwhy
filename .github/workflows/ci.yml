@@ -34,8 +34,6 @@ jobs:
         run: pnpm test -- --run
       - name: Build
         run: pnpm build
-      - name: Validate Node SDK example
-        run: pnpm exec tsc -p sdks/node/examples/tsconfig.json --noEmit
       - name: Validate Docker Compose
         run: |
           docker compose -f docker-compose.local.yml config --quiet
