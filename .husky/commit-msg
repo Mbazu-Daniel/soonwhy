@@ -1,9 +1,10 @@
 #!/bin/sh
-# Husky commit-msg hook
-# Validates conventional commit format and blocks AI attribution
+# Validate conventional commit format and block AI attribution trailers
+
+MSG_FILE="$1"
 
 # Run commitlint (exits if invalid)
-"$(git rev-parse --show-toplevel)/node_modules/.bin/commitlint" --edit "$1"
+"$(git rev-parse --show-toplevel)/node_modules/.bin/commitlint" --edit "$MSG_FILE"
 
-# Run existing commit-msg checks (blocks AI attribution)
-"$(git rev-parse --show-toplevel)/.githooks/commit-msg" "$1"
+# Block AI attribution trailers
+sh "$(git rev-parse --show-toplevel)/.husky/check-attribution" "$MSG_FILE"

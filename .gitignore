@@ -52,6 +52,9 @@ dist/
 *.tsbuildinfo
 *.tscheck
 
+# Local domain glossary — filesystem only, never on GitHub
+glossary.md
+
 # Docs / agent files — filesystem only, never on GitHub (except root README.md)
 *.md
 !/README.md

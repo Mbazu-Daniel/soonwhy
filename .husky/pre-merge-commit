@@ -1,0 +1,4 @@
+#!/bin/sh
+# Block AI attribution trailers in merge commit messages
+
+sh "$(git rev-parse --show-toplevel)/.husky/check-attribution" "${1:-}"

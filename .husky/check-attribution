@@ -1,8 +1,12 @@
 #!/bin/sh
-# Block AI attribution trailers
-# Installed by git-hygiene skill
+# Commit message guard: blocks AI attribution trailers in commits and merges.
+# Usage: check-attribution <message-file>
 
 MSG_FILE="$1"
+if [ -z "$MSG_FILE" ]; then
+  MSG_FILE="$(git rev-parse --git-dir)/MERGE_MSG"
+fi
+
 DIRTY=0
 
 for pattern in \
