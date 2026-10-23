@@ -7,7 +7,7 @@ const ERROR_RATE_THRESHOLD = 0.1;
 
 export type CacheType = 'redis' | 'memcached';
 
-export interface RedisTrace {
+export interface CacheTrace {
   timestamp: string;
   service: string;
   traceId: string;
@@ -15,14 +15,12 @@ export interface RedisTrace {
   duration: number;
   dependencyName: string;
   operationName?: string;
-  cacheType?: CacheType;
+  cacheType: CacheType;
   statusCode?: number;
   errorType?: string;
 }
 
-export type CacheTrace = RedisTrace;
-
-export interface RedisCandidate {
+export interface CacheCandidate {
   serviceName: string;
   dependencyName: string;
   cacheType: CacheType;
@@ -37,15 +35,16 @@ export interface RedisCandidate {
     p95DurationChangePercent?: number;
     degradationSignals: string[];
   };
-  samples: RedisTrace[];
+  samples: CacheTrace[];
   identity: ReturnType<typeof createTelemetryIdentity>;
   recommendation: string;
 }
 
-export type CacheCandidate = RedisCandidate;
+export type RedisTrace = CacheTrace;
+export type RedisCandidate = CacheCandidate;
 
 export function detectRedisDegradation(current: RedisTrace[], baseline: RedisTrace[]): RedisCandidate[] {
-  return detectCacheDegradation(current, baseline);
+  return detectCacheDegradation(current, baseline).filter((candidate) => candidate.cacheType === 'redis');
 }
 
 export function detectCacheDegradation(current: CacheTrace[], baseline: CacheTrace[]): CacheCandidate[] {
@@ -78,7 +77,7 @@ export function detectCacheDegradation(current: CacheTrace[], baseline: CacheTra
     if (degradationSignals.length < 2) continue;
 
     const [serviceName, dependencyName, cacheType, operationName] = key.split('|');
-    if (!serviceName || !dependencyName || !cacheType || !isCacheType(cacheType)) continue;
+    if (!serviceName || !dependencyName || !isCacheType(cacheType)) continue;
 
     candidates.push({
       serviceName,
@@ -106,9 +105,7 @@ export function detectCacheDegradation(current: CacheTrace[], baseline: CacheTra
           ...(operationName ? { cacheOperation: operationName } : {}),
         },
       }),
-      recommendation: cacheType === 'redis'
-        ? 'Inspect Redis command latency and errors, connection reuse, hot keys, payload size, and command frequency. Check whether expensive or repeated commands can be reduced or combined.'
-        : 'Inspect Memcached command latency and errors, connection reuse, hot keys, payload size, and command frequency. Check whether expensive or repeated commands can be reduced or combined.',
+      recommendation: cacheRecommendation(cacheType),
     });
   }
 
@@ -118,9 +115,8 @@ export function detectCacheDegradation(current: CacheTrace[], baseline: CacheTra
 function groupByOperation(samples: CacheTrace[]): Map<string, CacheTrace[]> {
   const groups = new Map<string, CacheTrace[]>();
   for (const sample of samples) {
-    if (!sample.service || !sample.dependencyName || !Number.isFinite(sample.duration) || sample.duration < 0) continue;
-    const cacheType = sample.cacheType ?? 'redis';
-    const key = [sample.service, sample.dependencyName, cacheType, sample.operationName ?? ''].join('|');
+    if (!sample.service || !sample.dependencyName || !sample.cacheType || !Number.isFinite(sample.duration) || sample.duration < 0) continue;
+    const key = [sample.service, sample.dependencyName, sample.cacheType, sample.operationName ?? ''].join('|');
     const group = groups.get(key) ?? [];
     group.push(sample);
     groups.set(key, group);
@@ -133,7 +129,12 @@ function isCacheType(value: string): value is CacheType {
 }
 
 function isError(sample: CacheTrace): boolean {
-  return sample.errorType !== undefined || sample.statusCode !== undefined;
+  return Boolean(sample.errorType) || (sample.statusCode !== undefined && sample.statusCode >= 500);
+}
+
+function cacheRecommendation(cacheType: CacheType): string {
+  const backend = cacheType === 'redis' ? 'Redis' : 'Memcached';
+  return `Inspect ${backend} command latency and errors, connection reuse, hot keys, payload size, and command frequency. Check whether expensive or repeated operations can be reduced or combined.`;
 }
 
 function percentile(values: number[], rank: number): number {
