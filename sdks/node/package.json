@@ -1,1 +1,33 @@
-{"name":"@soonwhy/node","version":"0.1.0","description":"Soonwhy OpenTelemetry SDK for Node.js","type":"module","main":"./dist/index.js","types":"./dist/index.d.ts","exports":{".":{"types":"./dist/index.d.ts","import":"./dist/index.js"}},"files":["dist"],"scripts":{"build":"tsc -p tsconfig.json"},"engines":{"node":">=20"},"peerDependencies":{"@opentelemetry/api":"^1.9.0","@opentelemetry/auto-instrumentations-node":"^0.80.0","@opentelemetry/exporter-trace-otlp-proto":"^0.222.0","@opentelemetry/resources":"^2.11.0","@opentelemetry/sdk-node":"^0.222.0","@opentelemetry/sdk-trace-base":"^2.11.0"},"peerDependenciesMeta":{"@opentelemetry/api":{"optional":true},"@opentelemetry/auto-instrumentations-node":{"optional":true},"@opentelemetry/exporter-trace-otlp-proto":{"optional":true},"@opentelemetry/resources":{"optional":true},"@opentelemetry/sdk-node":{"optional":true},"@opentelemetry/sdk-trace-base":{"optional":true}},"devDependencies":{"@types/node":"^24.13.3","typescript":"^5.8.0"}}
+{
+  "name": "@soonwhy/node",
+  "version": "0.1.0",
+  "description": "Soonwhy OpenTelemetry SDK for Node.js",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.80.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "^0.222.0",
+    "@opentelemetry/resources": "^2.11.0",
+    "@opentelemetry/sdk-node": "^0.222.0",
+    "@opentelemetry/sdk-trace-base": "^2.11.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "typescript": "^5.8.0"
+  }
+}

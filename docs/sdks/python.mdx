@@ -1,0 +1,21 @@
+---
+title: Python
+description: Dependency-free Python SDK.
+---
+
+# Python
+
+```bash
+python -m pip install soonwhy
+```
+
+```python
+from soonwhy import Soonwhy, SoonwhyOptions
+sdk = Soonwhy(SoonwhyOptions(api_key='your_api_key', service_name='billing-worker'))
+sdk.capture_log('worker started')
+sdk.capture_metric('jobs.processed', 1)
+sdk.flush()
+sdk.close()
+```
+
+The client uses Python's standard library HTTP implementation and has no runtime dependencies.

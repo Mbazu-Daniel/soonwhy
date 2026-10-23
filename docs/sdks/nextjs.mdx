@@ -1,0 +1,37 @@
+---
+title: Next.js
+description: Server instrumentation and browser configuration.
+---
+
+# Next.js
+
+@soonwhy/nextjs is a thin adapter around the Node and Web SDKs.
+
+## Install
+
+    pnpm add @soonwhy/nextjs
+
+## Server instrumentation
+
+Add the SDK to Next.js instrumentation:
+
+    import { initNextjs } from '@soonwhy/nextjs';
+
+    export function register() {
+      initNextjs({
+        apiKey: process.env.SOONWHY_API_KEY!,
+        serviceName: 'nextjs-app',
+      });
+    }
+
+Keep SOONWHY_API_KEY server-only.
+
+## Browser configuration
+
+Use getBrowserConfig() to derive browser-safe configuration when you intentionally expose a browser ingestion credential. Do not pass the server API key into a client component.
+
+## Shutdown
+
+Call shutdownNextjs() when your application owns shutdown lifecycle outside the normal Next.js process lifecycle.
+
+See sdks/nextjs/examples/ for the instrumentation entry point.

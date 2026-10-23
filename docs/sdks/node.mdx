@@ -1,0 +1,88 @@
+---
+title: Node.js
+description: Add Soonwhy telemetry to a Node.js service.
+---
+
+# Node.js
+
+## Install
+
+```bash
+pnpm add @soonwhy/node
+```
+
+`@soonwhy/node` installs the OpenTelemetry runtime it needs.
+
+## Start
+
+```ts
+import { initNode } from '@soonwhy/node';
+
+initNode({
+  apiKey: process.env.SOONWHY_API_KEY!,
+  serviceName: 'payments-api',
+});
+```
+
+Start the SDK before importing instrumented modules.
+
+## Options
+
+```ts
+initNode({
+  apiKey: process.env.SOONWHY_API_KEY!,
+  serviceName: 'payments-api',
+  serviceVersion: '1.0.0',
+  environment: 'production',
+});
+```
+
+Supported instrumentations:
+
+- HTTP
+- Express
+- NestJS
+- PostgreSQL
+- Redis
+- ioredis
+
+Disable an integration when needed:
+
+```ts
+initNode({
+  apiKey: process.env.SOONWHY_API_KEY!,
+  serviceName: 'payments-api',
+  instrumentations: {
+    postgres: false,
+    redis: false,
+  },
+});
+```
+
+## Sampling
+
+```ts
+initNode({
+  apiKey: process.env.SOONWHY_API_KEY!,
+  serviceName: 'payments-api',
+  sampling: { type: 'ratio', ratio: 0.25 },
+});
+```
+
+Sampling modes are `always_on`, `always_off`, and `ratio`.
+
+## Shutdown
+
+The SDK handles `SIGINT` and `SIGTERM` by default.
+
+Disable this behavior when the application owns shutdown:
+
+```ts
+initNode({
+  apiKey: process.env.SOONWHY_API_KEY!,
+  serviceName: 'payments-api',
+  registerShutdownHandlers: false,
+});
+```
+
+Then call `shutdown()` when the process exits.

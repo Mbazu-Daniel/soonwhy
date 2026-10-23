@@ -1,0 +1,18 @@
+---
+title: Errors
+description: Common SDK configuration problems.
+---
+
+# Errors
+
+## Missing API key
+Check that `SOONWHY_API_KEY` is present and non-empty.
+
+## Invalid endpoint
+Use an `http://` or `https://` endpoint.
+
+## Telemetry missing
+Initialize Node instrumentation before imports and flush buffered telemetry before shutdown.
+
+## Browser secret exposure
+Never put a server-side secret into browser code.

@@ -1,0 +1,20 @@
+---
+title: NestJS
+description: Integrate Soonwhy with NestJS lifecycle management.
+---
+
+# NestJS
+
+```bash
+pnpm add @soonwhy/nestjs
+```
+
+```ts
+import { Module } from '@nestjs/common';
+import { SoonwhyModule } from '@soonwhy/nestjs';
+
+@Module({ imports: [SoonwhyModule.forRoot({ apiKey: process.env.SOONWHY_API_KEY!, serviceName: 'nest-api' })] })
+export class AppModule {}
+```
+
+The adapter closes the SDK through NestJS application shutdown.

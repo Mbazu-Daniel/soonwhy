@@ -1,0 +1,12 @@
+---
+title: Telemetry
+description: Logs, errors, metrics and OpenTelemetry traces.
+---
+
+# Telemetry
+
+The Node SDK uses OpenTelemetry instrumentation for supported server libraries. Express and NestJS configure that same runtime.
+
+Manual SDKs expose logs, errors and metrics. Browser and Python clients encode telemetry using the Soonwhy OTLP JSON ingestion contract.
+
+Metrics are grouped by metric name before transmission where batching is supported.

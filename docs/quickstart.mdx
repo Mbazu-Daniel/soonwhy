@@ -1,0 +1,43 @@
+---
+title: Quickstart
+description: Install and initialize a Soonwhy SDK.
+---
+
+# Quickstart
+
+## Node.js
+
+```bash
+pnpm add @soonwhy/node @opentelemetry/api @opentelemetry/auto-instrumentations-node @opentelemetry/exporter-trace-otlp-proto @opentelemetry/resources @opentelemetry/sdk-node @opentelemetry/sdk-trace-base
+```
+
+```ts
+import { initNode } from '@soonwhy/node';
+initNode({ apiKey: process.env.SOONWHY_API_KEY!, serviceName: 'my-service' });
+```
+
+Initialize Node instrumentation before application modules.
+
+## Python
+
+```bash
+python -m pip install soonwhy
+```
+
+```python
+from soonwhy import Soonwhy, SoonwhyOptions
+sdk = Soonwhy(SoonwhyOptions(api_key='your_api_key', service_name='my-service'))
+sdk.capture_log('Hello from Python')
+sdk.flush()
+sdk.close()
+```
+
+## Browser
+
+```bash
+pnpm add @soonwhy/web
+```
+
+Use `SoonwhyWeb` with a browser-safe ingestion credential.
+
+See the individual SDK pages for framework-specific setup.

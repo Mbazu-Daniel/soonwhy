@@ -1,0 +1,18 @@
+---
+title: Vite
+description: Bootstrap the Soonwhy browser SDK in Vite.
+---
+
+# Vite
+
+```bash
+pnpm add @soonwhy/vite
+```
+
+```ts
+import { defineConfig } from 'vite';
+import { soonwhyVite } from '@soonwhy/vite';
+export default defineConfig({ plugins: [soonwhyVite({ apiKey: process.env.VITE_SOONWHY_API_KEY!, serviceName: 'web-app' })] });
+```
+
+The plugin uses Vite's HTML transformation lifecycle to inject the browser bootstrap.
