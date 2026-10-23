@@ -14,7 +14,7 @@ export class TracesService {
       try { const decoded = JSON.parse(Buffer.from(input.cursor, 'base64').toString('utf-8')); cursor = { ts: decoded.ts, traceId: decoded.traceId }; }
       catch { cursor = undefined; }
     }
-    const rows = await this.tracesRepository.listTraces({ orgId, projectId: input.projectId, from: input.from, to: input.to, limit: input.limit, cursor, q: input.q, service: input.service });
+    const rows = await this.tracesRepository.listTraces({ orgId, projectId: input.projectId, from: input.from ?? new Date(0).toISOString(), to: input.to ?? new Date().toISOString(), limit: input.limit, cursor, q: input.q, service: input.service });
     let nextCursor: string | undefined;
     if (rows.length === input.limit && rows.length > 0) {
       const last = rows[rows.length - 1]!;

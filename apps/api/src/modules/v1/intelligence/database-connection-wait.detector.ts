@@ -71,7 +71,7 @@ export function detectDatabaseConnectionWait(
       poolName: first.poolName,
       signal: {
         sampleCount: current.length,
-        severity: critical ? 'critical' : 'warning',
+        severity: (critical ? 'critical' : 'warning') as 'warning' | 'critical',
         p50WaitMs: percentile(currentValues, 50),
         p95WaitMs,
         p99WaitMs: percentile(currentValues, 99),

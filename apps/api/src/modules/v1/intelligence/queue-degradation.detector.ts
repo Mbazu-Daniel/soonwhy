@@ -72,7 +72,7 @@ export function detectQueueDegradation(current: QueueTrace[], baseline: QueueTra
     if (degradationSignals.length < 2) continue;
 
     const [serviceName, queueType, queueName, operationName] = key.split('|');
-    if (!serviceName || !queueName || !isQueueType(queueType)) continue;
+    if (!serviceName || !queueName || !queueType || !isQueueType(queueType)) continue;
 
     candidates.push({
       serviceName,

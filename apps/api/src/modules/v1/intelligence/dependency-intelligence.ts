@@ -150,7 +150,8 @@ function hasValidObservation(observation: DependencyObservation): boolean {
     !Number.isInteger(observation.sampleCount) ||
     observation.sampleCount < MIN_SAMPLES ||
     (hasBaselineMetric &&
-      (!Number.isInteger(observation.baselineSampleCount) ||
+      (observation.baselineSampleCount === undefined ||
+        !Number.isInteger(observation.baselineSampleCount) ||
         observation.baselineSampleCount < MIN_BASELINE_SAMPLES)) ||
     (!hasBaselineMetric && observation.baselineSampleCount !== undefined)
   ) {

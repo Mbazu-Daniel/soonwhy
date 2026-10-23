@@ -57,7 +57,7 @@ export function detectQueueThroughput(
     if (Math.abs(changePercent) < REGRESSION_PERCENT) continue;
 
     const [serviceName, queueType, queueName, operationName] = key.split('|');
-    if (!serviceName || !queueName || !isQueueType(queueType)) continue;
+    if (!serviceName || !queueName || !queueType || !isQueueType(queueType)) continue;
 
     const direction = changePercent < 0 ? 'dropped' : 'increased';
     candidates.push({

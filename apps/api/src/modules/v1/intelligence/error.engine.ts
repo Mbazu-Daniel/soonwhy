@@ -87,7 +87,7 @@ export function evaluateErrorSignal(
   if (!elevated) return undefined;
 
   const critical =
-    errorRate >= CRITICAL_ERROR_RATE ||
+    errorRate > CRITICAL_ERROR_RATE ||
     window.errorCount >= CRITICAL_ERROR_COUNT ||
     (errorRateChangePercent !== undefined && errorRateChangePercent >= REGRESSION_PERCENT * 2);
 

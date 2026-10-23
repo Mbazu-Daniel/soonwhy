@@ -17,6 +17,7 @@ export interface DatabaseConnectionPoolThresholds {
 
 export interface DatabaseConnectionPoolSignal {
   sampleCount: number;
+  severity?: 'warning' | 'critical';
   p95UtilizationPercent?: number;
   p95PendingRequests?: number;
   timeoutIncrease?: number;
@@ -88,6 +89,11 @@ export function detectDatabaseConnectionPool(
       poolName: first.poolName,
       signal: {
         sampleCount: poolSamples.length,
+        severity: ((p95UtilizationPercent ?? 0) >= 95 ||
+          (p95PendingRequests ?? 0) >= 5 ||
+          (timeoutIncrease ?? 0) >= 3
+          ? 'critical'
+          : 'warning') as 'warning' | 'critical',
         ...(p95UtilizationPercent !== undefined ? { p95UtilizationPercent } : {}),
         ...(p95PendingRequests !== undefined ? { p95PendingRequests } : {}),
         ...(timeoutIncrease !== undefined ? { timeoutIncrease } : {}),

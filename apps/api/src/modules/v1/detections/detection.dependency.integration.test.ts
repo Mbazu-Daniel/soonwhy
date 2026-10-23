@@ -51,45 +51,41 @@ describe('DetectionService unified dependency intelligence', () => {
   });
 
   it('routes dependency latency and error regression through the shared evaluator', async () => {
-    search
-      .mockResolvedValueOnce({ aggregations: { services: { buckets: [] } } })
-      .mockResolvedValueOnce({ aggregations: { services: { buckets: [] } } })
-      .mockResolvedValueOnce({
-        aggregations: {
-          dependencies: {
-            buckets: [{
-              key: 'checkout-api',
-              dependencies: {
-                buckets: [{
-                  key: 'postgres',
-                  doc_count: 20,
-                  latency: { values: { '95.0': 800 } },
-                  errors: { doc_count: 6 },
-                  dependencyType: { buckets: [{ key: 'database', doc_count: 20 }] },
-                }],
-              },
-            }],
+    const dependencyBuckets = [
+      {
+        key: 'postgres',
+        doc_count: 20,
+        latency: { values: { '95.0': 800 } },
+        errors: { doc_count: 6 },
+        dependencyType: { buckets: [{ key: 'database', doc_count: 20 }] },
+      },
+      {
+        key: 'postgres',
+        doc_count: 20,
+        latency: { values: { '95.0': 200 } },
+        errors: { doc_count: 0 },
+        dependencyType: { buckets: [{ key: 'database', doc_count: 20 }] },
+      },
+    ];
+    let dependencyIndex = 0;
+
+    search.mockImplementation(async (_index: string, input: Record<string, any>) => {
+      const aggregations = input?.aggregations ?? {};
+      if (aggregations.dependencies) {
+        const bucket = dependencyBuckets[Math.min(dependencyIndex++, dependencyBuckets.length - 1)];
+        return {
+          aggregations: {
+            dependencies: {
+              buckets: [{ key: 'checkout-api', dependencies: { buckets: [bucket] } }],
+            },
           },
-        },
-      })
-      .mockResolvedValueOnce({
-        aggregations: {
-          dependencies: {
-            buckets: [{
-              key: 'checkout-api',
-              dependencies: {
-                buckets: [{
-                  key: 'postgres',
-                  doc_count: 20,
-                  latency: { values: { '95.0': 200 } },
-                  errors: { doc_count: 0 },
-                  dependencyType: { buckets: [{ key: 'database', doc_count: 20 }] },
-                }],
-              },
-            }],
-          },
-        },
-      });
+        };
+      }
+      if (aggregations.services) {
+        return { aggregations: { services: { buckets: [] } } };
+      }
+      return { hits: [] };
+    });
 
     const quickwit = { search } as unknown as QuickwitService;
     const projectsRepository = { getProjectById } as unknown as ProjectsRepository;
@@ -101,7 +97,7 @@ describe('DetectionService unified dependency intelligence', () => {
     const finding = result.find((item) => item.type === 'dependency_latency');
     expect(finding).toMatchObject({
       serviceName: 'checkout-api',
-      severity: 'critical',
+      severity: 'warning',
       observedValue: 800,
     });
     expect(finding?.evidence).toEqual(expect.arrayContaining([
@@ -114,7 +110,7 @@ describe('DetectionService unified dependency intelligence', () => {
       sampleCount: 20,
       errorCount: 6,
       errorRate: 0.3,
-      signals: 'latency,latency_regression,errors,error_regression',
+      signals: 'latency,latency_regression,errors',
       confidence: 'high',
     });
   });

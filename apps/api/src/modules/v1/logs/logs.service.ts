@@ -8,7 +8,7 @@ export class LogsService {
 
   async getHistogram(orgId: string, input: GetLogsInput) {
     return this.logsRepository.queryHistogram({
-      orgId, projectId: input.projectId, from: input.from, to: input.to,
+      orgId, projectId: input.projectId, from: input.from ?? new Date(0).toISOString(), to: input.to ?? new Date().toISOString(),
       level: input.level || 'all', service: input.service || '', q: input.q || '', traceId: input.traceId, spanId: input.spanId,
     });
   }
@@ -20,7 +20,7 @@ export class LogsService {
     }
     const limit = input.limit ?? 50;
     const rows = await this.logsRepository.queryLogs({
-      orgId, projectId: input.projectId, from: input.from, to: input.to, level: input.level || 'all',
+      orgId, projectId: input.projectId, from: input.from ?? new Date(0).toISOString(), to: input.to ?? new Date().toISOString(), level: input.level || 'all',
       service: input.service || '', q: input.q || '', traceId: input.traceId, spanId: input.spanId, limit, cursor,
     });
     const data = rows.map((r) => {

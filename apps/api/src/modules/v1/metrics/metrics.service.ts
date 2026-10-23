@@ -10,8 +10,8 @@ export class MetricsService {
     const buckets = await this.metricsRepository.queryMetrics({
       orgId,
       projectId: input.projectId,
-      from: input.from,
-      to: input.to,
+      from: input.from ?? new Date(0).toISOString(),
+      to: input.to ?? new Date().toISOString(),
       interval: input.interval,
       service: input.service || '',
     });

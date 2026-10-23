@@ -23,7 +23,11 @@ export interface DatabaseQueryTrace {
   dbSystemName?: string;
   dbCollectionName?: string;
   dbReturnedRows?: number;
+  dbResponseBytes?: number;
   dbBatchSize?: number;
+  httpRoute?: string;
+  endpoint?: string;
+  errorType?: string;
 }
 
 export interface DatabaseQueryCandidate {

@@ -11,7 +11,7 @@ export class RequestsService {
   }
 
   async getStats(orgId: string, input: GetRequestsStatsInput) {
-    const stats = await this.requestsRepository.queryStats({ orgId, projectId: input.projectId, from: input.from, to: input.to });
+    const stats = await this.requestsRepository.queryStats({ orgId, projectId: input.projectId, from: input.from ?? new Date(0).toISOString(), to: input.to ?? new Date().toISOString() });
     return {
       data: stats.map((s) => ({
         url: this.normalizeUrl(s.url), method: s.method, count: s.count,

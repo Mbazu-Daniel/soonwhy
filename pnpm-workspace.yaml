@@ -6,3 +6,6 @@ packages:
 allowBuilds:
   argon2: false
   esbuild: false
+  protobufjs: false
+
+autoInstallPeers: false

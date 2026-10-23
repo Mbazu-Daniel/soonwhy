@@ -77,7 +77,7 @@ export function detectCacheDegradation(current: CacheTrace[], baseline: CacheTra
     if (degradationSignals.length < 2) continue;
 
     const [serviceName, dependencyName, cacheType, operationName] = key.split('|');
-    if (!serviceName || !dependencyName || !isCacheType(cacheType)) continue;
+    if (!serviceName || !dependencyName || !cacheType || !isCacheType(cacheType)) continue;
 
     candidates.push({
       serviceName,

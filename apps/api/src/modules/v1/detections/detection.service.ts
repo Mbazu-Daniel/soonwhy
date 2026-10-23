@@ -18,11 +18,13 @@ import { detectDatabaseResultSets, type DatabaseResultSetTrace } from '../intell
 import { detectDatabaseConnectionWait, type DatabaseConnectionWaitSample } from '../intelligence/database-connection-wait.detector';
 import { detectDatabaseBatches, type DatabaseBatchTrace } from '../intelligence/database-batch.detector';
 import { detectDatabaseDependencyDegradation, type DatabaseDependencyTrace } from '../intelligence/database-dependency-degradation.detector';
+import { evaluateEndpointPerformance } from './performance-detection';
 import { sanitizeRequestUrl } from './detection.utils';
 import { correlateFindings } from './detection.correlation';
 import { completeDetectionRun, failDetectionRun, startDetectionRun } from './detection.run';
 import { evaluateSignal, evaluateThroughput, evaluateTraceSpan } from './detection.engine';
 import { evaluateServicePerformance } from '../intelligence/service-performance.engine';
+import { evaluateDependency } from '../intelligence/dependency-intelligence';
 import type { DetectionFinding, DetectionWindow, FindingSeverity, FindingType } from './detection.types';
 
 const WINDOW_MS = 15 * 60_000;
@@ -34,10 +36,35 @@ interface ServiceBucket {
   errors?: { doc_count?: number };
 }
 
+interface EndpointBucket {
+  key: string;
+  doc_count: number;
+  latency?: { values?: Record<string, number> };
+  errors?: { doc_count?: number };
+  methods?: { buckets?: EndpointMethodBucket[] };
+}
+
+interface EndpointMethodBucket {
+  key: string;
+  doc_count: number;
+  latency?: { values?: Record<string, number> };
+  errors?: { doc_count?: number };
+}
+
+interface EndpointServiceBucket {
+  key: string;
+  endpoints?: { buckets?: EndpointBucket[] };
+}
+
+interface EndpointAggregations {
+  services?: { buckets?: EndpointServiceBucket[] };
+}
+
 interface DependencyBucket {
   key: string;
   doc_count: number;
   latency?: { values?: Record<string, number> };
+  errors?: { doc_count?: number };
   dependencyType?: { buckets?: Array<{ key: string; doc_count: number }> };
 }
 
@@ -269,6 +296,132 @@ export class DetectionService {
       }
     }
 
+    const [currentEndpoints, baselineEndpoints] = await Promise.all([
+      this.searchEndpointBuckets(orgId, projectId, startTimestamp, endTimestamp),
+      this.searchEndpointBuckets(
+        orgId,
+        projectId,
+        startTimestamp - Math.floor(WINDOW_MS / 1000),
+        startTimestamp,
+      ),
+    ]);
+
+    const baselineByEndpoint = new Map(
+      baselineEndpoints.map((endpoint) => [
+        endpoint.key,
+        endpoint,
+      ]),
+    );
+
+    for (const endpoint of currentEndpoints) {
+      const baseline = baselineByEndpoint.get(endpoint.key);
+      const [serviceName, method, url] = endpoint.key.split('|');
+      if (!serviceName || !method || !url) continue;
+
+      const performance = evaluateEndpointPerformance(
+        {
+          serviceName,
+          endpointName: method + ' ' + sanitizeRequestUrl(url),
+          sampleCount: endpoint.doc_count,
+          p95Duration: endpoint.latency,
+          throughputPerMinute: endpoint.doc_count / 15,
+          errorRate: endpoint.errorRate,
+        },
+        baseline
+          ? {
+              serviceName,
+              endpointName: method + ' ' + sanitizeRequestUrl(url),
+              sampleCount: baseline.doc_count,
+              p95Duration: baseline.latency,
+              throughputPerMinute: baseline.doc_count / 15,
+              errorRate: baseline.errorRate,
+            }
+          : undefined,
+      );
+
+      if (!performance) continue;
+
+      const endpointEvidence = {
+        kind: 'request' as const,
+        label: 'performance-endpoint',
+        value: performance.identity.fingerprint,
+        context: {
+          service: serviceName,
+          endpointName: performance.endpointName,
+          fingerprint: performance.identity.fingerprint,
+          signals: performance.signals.join(','),
+          latencyRegressionPercent: performance.latencyRegressionPercent ?? null,
+          throughputRegressionPercent: performance.throughputRegressionPercent ?? null,
+          errorRegressionPercent: performance.errorRegressionPercent ?? null,
+        },
+      };
+
+      if (performance.signals.some((signal) => signal === 'latency' || signal === 'latency_regression')) {
+        detected.push(await this.persistFinding({
+          orgId,
+          projectId,
+          serviceName,
+          type: 'latency',
+          severity: performance.confidence === 'high' ? 'critical' : 'warning',
+          title: 'Endpoint latency detected in ' + serviceName,
+          description: performance.summary,
+          observedValue: endpoint.latency,
+          threshold: 100,
+          unit: 'ms',
+          start,
+          end,
+          evidence: [
+            endpointEvidence,
+            ...(await this.endpointPerformanceEvidence(
+              orgId,
+              projectId,
+              serviceName,
+              method,
+              url,
+              startTimestamp,
+              endTimestamp,
+            )),
+          ],
+        }));
+      }
+
+      if (performance.signals.includes('throughput_regression')) {
+        detected.push(await this.persistFinding({
+          orgId,
+          projectId,
+          serviceName,
+          type: 'throughput',
+          severity: performance.confidence === 'high' ? 'critical' : 'warning',
+          title: 'Endpoint throughput degradation in ' + serviceName,
+          description: performance.summary,
+          observedValue: endpoint.doc_count,
+          threshold: baseline?.doc_count ?? endpoint.doc_count,
+          unit: 'requests',
+          start,
+          end,
+          evidence: [endpointEvidence],
+        }));
+      }
+
+      if (performance.signals.includes('error_regression')) {
+        detected.push(await this.persistFinding({
+          orgId,
+          projectId,
+          serviceName,
+          type: 'error_rate',
+          severity: performance.confidence === 'high' ? 'critical' : 'warning',
+          title: 'Endpoint error-rate regression in ' + serviceName,
+          description: performance.summary,
+          observedValue: endpoint.errorRate,
+          threshold: baseline?.errorRate ?? endpoint.errorRate,
+          unit: '%',
+          start,
+          end,
+          evidence: [endpointEvidence],
+        }));
+      }
+    }
+
     const [currentDependencies, baselineDependencies] = await Promise.all([
       this.searchDependencyBuckets(orgId, projectId, startTimestamp, endTimestamp),
       this.searchDependencyBuckets(
@@ -288,33 +441,33 @@ export class DetectionService {
 
     for (const dependency of currentDependencies) {
       const baseline = baselineByDependency.get(dependency.key);
-      const signal = evaluateSignal(
-        'dependency_latency',
-        dependency.latency,
-        baseline
-          ? { value: baseline.latency, samples: baseline.samples }
-          : undefined,
-      );
+      const { serviceName, dependencyType, dependencyName } = dependency;
+      const finding = evaluateDependency({
+        serviceName,
+        dependencyType,
+        dependencyName,
+        sampleCount: dependency.samples,
+        ...(baseline ? { baselineSampleCount: baseline.samples } : {}),
+        p95Duration: dependency.latency,
+        ...(baseline ? { baselineP95Duration: baseline.latency } : {}),
+        errorCount: dependency.errorCount,
+        errorRate: dependency.errorRate,
+        ...(baseline ? { baselineErrorRate: baseline.errorRate } : {}),
+      });
 
-      if (!signal) continue;
-
-      const [serviceName, dependencyType, dependencyName] = dependency.key.split('|');
-      if (!serviceName || !dependencyType || !dependencyName) continue;
+      if (!finding) continue;
 
       detected.push(await this.persistFinding({
         orgId,
         projectId,
         serviceName,
-        type: signal.type,
-        severity: signal.severity,
-        title: 'Slow ' + dependencyType + ' dependency in ' + serviceName,
-        description: this.describeSignal(
-          dependencyType + ' dependency ' + dependencyName + ' has a 95th percentile latency of ' + Math.round(dependency.latency) + 'ms.',
-          signal,
-        ),
-        observedValue: signal.observedValue,
-        threshold: signal.threshold,
-        unit: signal.unit,
+        type: 'dependency_latency',
+        severity: finding.confidence === 'high' ? 'critical' : 'warning',
+        title: 'Dependency degradation in ' + serviceName,
+        description: finding.summary,
+        observedValue: dependency.latency,
+        threshold: 100,
+        unit: 'ms',
         start,
         end,
         evidence: [
@@ -328,13 +481,35 @@ export class DetectionService {
             endTimestamp,
           )),
           {
+            kind: 'metric',
+            label: 'dependency-profile',
+            value: dependency.latency,
+            context: {
+              dependencyType,
+              dependencyName,
+              sampleCount: dependency.samples,
+              errorCount: dependency.errorCount,
+              errorRate: dependency.errorRate,
+              ...(finding.latencyRegressionPercent !== undefined
+                ? { latencyRegressionPercent: finding.latencyRegressionPercent }
+                : {}),
+              ...(finding.errorRegressionPercent !== undefined
+                ? { errorRegressionPercent: finding.errorRegressionPercent }
+                : {}),
+              ...(finding.throughputRegressionPercent !== undefined
+                ? { throughputRegressionPercent: finding.throughputRegressionPercent }
+                : {}),
+              signals: finding.signals.join(','),
+              confidence: finding.confidence,
+            },
+          },
+          {
             kind: 'recommendation',
             label: 'optimization-guidance',
             value: this.dependencyRecommendation(dependencyType),
             context: {
               dependencyType,
               dependencyName,
-              observedLatencyMs: Math.round(dependency.latency),
             },
           },
         ],
@@ -357,7 +532,7 @@ export class DetectionService {
         projectId,
         serviceName: candidate.serviceName,
         type: 'database_query',
-        severity: candidate.signal.severity,
+        severity: candidate.signal.severity ?? 'warning',
         title: 'Slow database query in ' + candidate.serviceName,
         description: this.describeDatabaseQuery(candidate),
         observedValue: candidate.signal.observedValue,
@@ -469,7 +644,7 @@ export class DetectionService {
         projectId,
         serviceName: candidate.serviceName,
         type: 'database_connection_pool',
-        severity: candidate.signal.severity,
+        severity: candidate.signal.severity ?? 'warning',
         title: 'Database connection pool pressure in ' + candidate.serviceName,
         description: this.describeDatabaseConnectionPool(candidate),
         observedValue: observed.value,
@@ -517,7 +692,7 @@ export class DetectionService {
         projectId,
         serviceName: candidate.serviceName,
         type: 'database_connection_wait',
-        severity: candidate.signal.severity,
+        severity: candidate.signal.severity ?? 'warning',
         title: 'Database connection wait in ' + candidate.serviceName,
         description: this.describeDatabaseConnectionWait(candidate),
         observedValue: candidate.signal.p95WaitMs,
@@ -609,7 +784,7 @@ export class DetectionService {
             traceId: sample.traceId,
             spanId: sample.spanId,
             timestamp: sample.timestamp,
-            batchSize: sample.batchSize,
+            ...(sample.batchSize !== undefined ? { batchSize: sample.batchSize } : {}),
             logicalOperationCount: candidate.signal.logicalOperationCount,
             averageBatchSize: candidate.signal.averageBatchSize,
             p50BatchSize: candidate.signal.p50BatchSize,
@@ -1417,12 +1592,139 @@ export class DetectionService {
     return bucket.doc_count ? (errors / bucket.doc_count) * 100 : 0;
   }
 
+  private async endpointPerformanceEvidence(
+    orgId: string,
+    projectId: string,
+    serviceName: string,
+    method: string,
+    url: string,
+    startTimestamp: number,
+    endTimestamp: number,
+  ): Promise<DetectionEvidence[]> {
+    const query = quickwitTenantQuery(
+      orgId,
+      projectId,
+      [
+        quickwitTerm('service', serviceName),
+        quickwitTerm('method', method),
+        quickwitTerm('url', url),
+      ].join(' AND '),
+    );
+
+    const result = await this.quickwit.search<RequestSource>(QUICKWIT_INDEXES.requests, {
+      query,
+      startTimestamp,
+      endTimestamp,
+      maxHits: 5,
+      sortBy: ['duration:desc'],
+    });
+
+    return (result.hits ?? []).flatMap((hit) => {
+      const source = hit._source;
+      if (!source?.traceId) return [];
+
+      return [{
+        kind: 'trace' as const,
+        label: 'endpoint-trace',
+        value: source.traceId,
+        context: {
+          traceId: source.traceId,
+          service: String(source.service ?? serviceName),
+          method: String(source.method ?? method),
+          path: sanitizeRequestUrl(String(source.url ?? url)),
+          timestamp: String(source.timestamp ?? ''),
+        },
+      }];
+    });
+  }
+
+  private async searchEndpointBuckets(
+    orgId: string,
+    projectId: string,
+    startTimestamp: number,
+    endTimestamp: number,
+  ): Promise<Array<{ key: string; latency: number; errorRate: number; doc_count: number }>> {
+    const result = await this.quickwit.search<never>(QUICKWIT_INDEXES.requests, {
+      query: quickwitTenantQuery(orgId, projectId),
+      startTimestamp,
+      endTimestamp,
+      maxHits: 0,
+      aggregations: {
+        services: {
+          terms: {
+            field: 'service',
+            size: 100,
+            order: { _count: 'desc' },
+          },
+          aggs: {
+            endpoints: {
+              terms: {
+                field: 'url',
+                size: 100,
+                order: { _count: 'desc' },
+              },
+              aggs: {
+                methods: {
+                  terms: {
+                    field: 'method',
+                    size: 20,
+                    order: { _key: 'asc' },
+                  },
+                  aggs: {
+                    latency: {
+                      percentiles: {
+                        field: 'duration',
+                        percents: [95],
+                      },
+                    },
+                    errors: {
+                      filter: {
+                        query: 'statusCode:[500 TO 599]',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const aggregation = (result.aggregations as EndpointAggregations | undefined)?.services;
+    return (aggregation?.buckets ?? []).flatMap((serviceBucket) =>
+      (serviceBucket.endpoints?.buckets ?? []).flatMap((endpointBucket) =>
+        endpointBucket.methods?.buckets?.flatMap((methodBucket) => {
+          const latency = methodBucket.latency?.values?.['95.0'] ?? 0;
+          const errors = methodBucket.errors?.doc_count ?? 0;
+          if (!methodBucket.key || latency <= 0) return [];
+
+          return [{
+            key: serviceBucket.key + '|' + methodBucket.key + '|' + endpointBucket.key,
+            latency,
+            errorRate: methodBucket.doc_count ? errors / methodBucket.doc_count : 0,
+            doc_count: methodBucket.doc_count,
+          }];
+        }) ?? [],
+      ),
+    );
+  }
+
   private async searchDependencyBuckets(
     orgId: string,
     projectId: string,
     startTimestamp: number,
     endTimestamp: number,
-  ): Promise<Array<{ key: string; latency: number; samples: number }>> {
+  ): Promise<Array<{
+    key: string;
+    serviceName: string;
+    dependencyType: 'database' | 'cache' | 'queue' | 'http' | 'grpc' | 'other';
+    dependencyName: string;
+    latency: number;
+    samples: number;
+    errorCount: number;
+    errorRate: number;
+  }>> {
     const result = await this.quickwit.search<never>(QUICKWIT_INDEXES.traces, {
       query: quickwitTenantQuery(
         orgId,
@@ -1450,6 +1752,9 @@ export class DetectionService {
                 latency: {
                   percentiles: { field: 'duration', percents: [95] },
                 },
+                errors: {
+                  filter: { query: 'statusCode:[500 TO 599]' },
+                },
                 dependencyType: {
                   terms: {
                     field: 'dependencyType',
@@ -1466,17 +1771,29 @@ export class DetectionService {
     const aggregation = (result.aggregations as Aggregations | undefined)?.dependencies;
     return (aggregation?.buckets ?? []).flatMap((serviceBucket) =>
       (serviceBucket.dependencies?.buckets ?? []).flatMap((dependencyBucket) => {
-        const dependencyName = dependencyBucket.key;
-        if (!dependencyName) return [];
-
+        const dependencyName = String(dependencyBucket.key ?? '').trim();
         const dependencyType = dependencyBucket.dependencyType?.buckets?.[0]?.key;
+        if (
+          !dependencyName ||
+          !['database', 'cache', 'queue', 'http', 'grpc', 'other'].includes(String(dependencyType))
+        ) {
+          return [];
+        }
+
         const latency = dependencyBucket.latency?.values?.['95.0'] ?? 0;
-        if (!dependencyType || latency <= 0) return [];
+        const samples = dependencyBucket.doc_count;
+        const errorCount = dependencyBucket.errors?.doc_count ?? 0;
+        if (!Number.isFinite(latency) || latency <= 0 || samples <= 0) return [];
 
         return [{
           key: serviceBucket.key + '|' + dependencyType + '|' + dependencyName,
+          serviceName: String(serviceBucket.key),
+          dependencyType: dependencyType as 'database' | 'cache' | 'queue' | 'http' | 'grpc' | 'other',
+          dependencyName,
           latency,
-          samples: dependencyBucket.doc_count,
+          samples,
+          errorCount,
+          errorRate: errorCount / samples,
         }];
       }),
     );
@@ -1862,6 +2179,7 @@ export class DetectionService {
     const traces = new Map<string, {
       start: number;
       end: number;
+      duration: number;
       rootService: string;
       spans: TraceSource[];
     }>();
@@ -1873,6 +2191,7 @@ export class DetectionService {
       const trace = traces.get(source.traceId) ?? {
         start: Number.POSITIVE_INFINITY,
         end: 0,
+        duration: 0,
         rootService: String(source.service ?? ''),
         spans: [],
       };
@@ -1883,6 +2202,7 @@ export class DetectionService {
       if (Number.isFinite(startMs) && Number.isFinite(duration) && duration > 0) {
         trace.start = Math.min(trace.start, startMs);
         trace.end = Math.max(trace.end, startMs + duration);
+        trace.duration = trace.end - trace.start;
       }
 
       if (!source.parentSpanId) {
@@ -1957,7 +2277,7 @@ export class DetectionService {
       sortBy: ['duration:desc'],
     });
 
-    return result.hits.flatMap((hit) => {
+    return (result.hits ?? []).flatMap((hit) => {
       const source = hit._source;
       if (!source) return [];
 
@@ -2035,7 +2355,7 @@ export class DetectionService {
       sortBy: type === 'latency' ? ['duration:desc'] : ['timestamp:desc'],
     });
 
-    return result.hits.flatMap((hit) => {
+    return (result.hits ?? []).flatMap((hit) => {
       const source = hit._source;
       if (!source) return [];
       return [{

@@ -10,6 +10,7 @@ const sample = (overrides: Partial<RedisTrace> = {}): RedisTrace => ({
   duration: 80,
   dependencyName: 'cache.internal',
   operationName: 'GET',
+  cacheType: 'redis',
   ...overrides,
 });
 

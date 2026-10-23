@@ -101,7 +101,7 @@ export function detectDatabaseDependencyDegradation(
           .map((query) => fingerprintQuery(query, first.dbSystemName).identity.fingerprint),
       );
 
-      const confidence = signals.length >= 3 ? 'high' : 'medium';
+      const confidence: DatabaseDependencySignal['confidence'] = signals.length >= 3 ? 'high' : 'medium';
       const recommendation = latencyDegraded && errorDegraded
         ? 'Inspect the affected database dependency for query latency and database errors first, then correlate pool pressure and connection wait before changing query or pool configuration.'
         : poolDegraded || waitDegraded
