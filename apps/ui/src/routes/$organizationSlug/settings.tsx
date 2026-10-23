@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Activity, CheckCircle2, Copy, KeyRound, Loader2, ShieldAlert, Trash2, Wifi, XCircle, Plus, Users, Layers3, CreditCard, UserMinus } from 'lucide-react';
+import { Activity, CheckCircle2, ShieldAlert, Wifi, XCircle, Plus, Users, Layers3, CreditCard, UserMinus } from 'lucide-react';
+import { Badge } from '~/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
-import { Label } from '~/components/ui/label';
 import { api } from '~/lib/api';
 import { useProject } from '~/lib/project-context';
 import { QueryErrorState } from '~/components/query-error-state';
@@ -19,17 +19,6 @@ interface Project {
   name: string;
   slug: string;
   description?: string | null;
-}
-
-interface ApiKey {
-  id: string;
-  name: string;
-  prefix: string;
-  scopes: string[];
-  expiresAt: string | null;
-  lastUsedAt: string | null;
-  createdAt: string;
-  key?: string;
 }
 
 interface TelemetryStatus {
@@ -244,8 +233,4 @@ function formatAge(value: string | null | undefined) {
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
   return `${Math.floor(hours / 24)}d ago`;
-}
-
-function GeneralSettings() {
-  return null;
 }

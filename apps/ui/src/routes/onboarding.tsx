@@ -8,12 +8,12 @@ import { Label } from '~/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { api } from '~/lib/api';
 import { useProject } from '~/lib/project-context';
+import type { ApiKey } from '~/lib/types';
 
 export const Route = createFileRoute('/onboarding')({ component: Onboarding });
 
 interface Organization { id: string; name: string; slug: string; organization?: Organization; }
 interface Project { id: string; name: string; slug: string; description?: string | null; }
-interface ApiKey { id: string; name: string; prefix: string; key: string; }
 
 const steps = ['Organization', 'Project', 'Connect', 'Verify'];
 
@@ -74,7 +74,7 @@ function Onboarding() {
   });
 
   const createKey = useMutation({
-    mutationFn: () => api.post<ApiKey>(`/projects/${projectId}/api-keys`, { name: 'Default ingestion key' }),
+    mutationFn: () => api.post<ApiKey>(`/projects/${projectId}/api-keys`, { name: 'default' }),
     onSuccess: (key) => {
       setApiKey(key);
       goToStep(3);

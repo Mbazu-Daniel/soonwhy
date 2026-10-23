@@ -1,11 +1,8 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
-import { Activity, CheckCircle2, Copy, KeyRound, Loader2, ShieldAlert, Trash2, Wifi, XCircle } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Activity, CheckCircle2, ShieldAlert, Wifi, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Button } from '~/components/ui/button';
-import { Input } from '~/components/ui/input';
-import { Label } from '~/components/ui/label';
 import { api } from '~/lib/api';
 import { useProject } from '~/lib/project-context';
 import { QueryErrorState } from '~/components/query-error-state';
@@ -21,17 +18,6 @@ interface Project {
   description?: string | null;
 }
 
-interface ApiKey {
-  id: string;
-  name: string;
-  prefix: string;
-  scopes: string[];
-  expiresAt: string | null;
-  lastUsedAt: string | null;
-  createdAt: string;
-  key?: string;
-}
-
 interface TelemetryStatus {
   status: 'healthy' | 'stale' | 'waiting';
   hasTelemetry: boolean;
@@ -43,7 +29,6 @@ interface TelemetryStatus {
 
 function SettingsPage() {
   const { orgId, projectId } = useProject();
-  const queryClient = useQueryClient();
 
   const projects = useQuery({
     queryKey: ['projects', orgId],
@@ -100,7 +85,6 @@ function SettingsPage() {
         </CardContent>
       </Card>
 
-      <ApiKeySettings projectId={projectId} queryClient={queryClient} />
       <SetupGuidance />
     </div>
   );
@@ -165,98 +149,6 @@ function StatusMetric({ icon: Icon, label, value, detail }: { icon: typeof Activ
   );
 }
 
-function ApiKeySettings({ projectId, queryClient }: { projectId: string; queryClient: ReturnType<typeof useQueryClient> }) {
-  const [name, setName] = useState('Default ingestion key');
-  const [newKey, setNewKey] = useState<ApiKey | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  const keys = useQuery({
-    queryKey: ['api-keys', projectId],
-    queryFn: () => api.get<ApiKey[]>(`/api-keys?projectId=${encodeURIComponent(projectId)}`),
-  });
-
-  const create = useMutation({
-    mutationFn: () => api.post<ApiKey>(`/api-keys?projectId=${encodeURIComponent(projectId)}`, { name: name.trim() || 'Ingestion key' }),
-    onSuccess: (key) => {
-      setNewKey(key);
-      void queryClient.invalidateQueries({ queryKey: ['api-keys', projectId] });
-    },
-  });
-
-  const remove = useMutation({
-    mutationFn: (id: string) => api.delete(`/api-keys/${encodeURIComponent(id)}`),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['api-keys', projectId] }),
-  });
-
-  async function copyKey() {
-    if (!newKey?.key) return;
-    await navigator.clipboard?.writeText(newKey.key);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1500);
-  }
-
-  return (
-    <Card className="border-border bg-card shadow-none">
-      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <CardTitle>Ingestion API keys</CardTitle>
-          <p className="mt-1 text-sm text-muted-foreground">Raw keys are shown only once when created.</p>
-        </div>
-        <div className="flex gap-2">
-          <Input aria-label="API key name" value={name} onChange={(event) => setName(event.target.value)} className="w-52" maxLength={100} />
-          <Button onClick={() => create.mutate()} disabled={create.isPending}>
-            {create.isPending ? <Loader2 className="animate-spin" /> : <KeyRound />}
-            Create key
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {newKey?.key && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-            <p className="text-sm font-semibold text-amber-900">Copy this key now</p>
-            <p className="mt-1 text-xs text-amber-800">SoonWhy cannot show the raw key again after you leave this page.</p>
-            <div className="mt-3 flex gap-2">
-              <code className="min-w-0 flex-1 break-all rounded-md bg-[#182012] px-3 py-2 text-xs text-white">{newKey.key}</code>
-              <Button variant="outline" size="icon" aria-label="Copy API key" onClick={() => void copyKey()}><Copy /></Button>
-            </div>
-            <p className="mt-2 text-xs text-amber-800">{copied ? 'Copied.' : 'Keep this key in your secret manager.'}</p>
-          </div>
-        )}
-
-        {keys.isError && <QueryErrorState onRetry={() => void keys.refetch()} />}
-        {!keys.isLoading && !keys.isError && !keys.data?.length && (
-          <div className="rounded-lg border border-dashed border-border bg-muted p-6 text-center">
-            <KeyRound className="mx-auto h-6 w-6 text-[#16931F]" />
-            <p className="mt-2 text-sm font-medium">No ingestion keys yet</p>
-            <p className="mt-1 text-xs text-muted-foreground">Create one to connect an application to this project.</p>
-          </div>
-        )}
-        {keys.data?.map((key) => (
-          <div key={key.id} className="flex flex-col gap-3 rounded-lg border border-border p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <p className="font-medium">{key.name}</p>
-              <p className="mt-1 font-mono text-xs text-muted-foreground">{key.prefix}••••••••</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {key.lastUsedAt ? `Last used ${formatAge(key.lastUsedAt)}` : 'Never used'}
-                {key.expiresAt ? ` · Expires ${new Date(key.expiresAt).toLocaleDateString()}` : ''}
-              </p>
-            </div>
-            <Button
-              variant="ghost"
-              className="self-start text-red-700 hover:bg-red-50 hover:text-red-800 sm:self-auto"
-              onClick={() => remove.mutate(key.id)}
-              disabled={remove.isPending}
-              aria-label={`Delete ${key.name}`}
-            >
-              <Trash2 /> Revoke
-            </Button>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  );
-}
-
 function SetupGuidance() {
   return (
     <Card className="border-border bg-muted shadow-none">
@@ -288,8 +180,4 @@ function formatAge(value: string | null | undefined) {
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
   return `${Math.floor(hours / 24)}d ago`;
-}
-
-function GeneralSettings() {
-  return null;
 }

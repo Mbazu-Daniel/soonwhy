@@ -94,7 +94,7 @@ function TraceExplorer() {
           <TimeRangeControl value={range} onChange={setRange} />
         </div>
 
-      {showingStale && <div className="flex items-center justify-between gap-3 rounded-xl border border-[#5A4A1C] bg-[#2A220F] px-4 py-3 text-xs text-[#D8C68A]"><span>Trace telemetry is temporarily unavailable. Showing the last successful result.</span><button type="button" onClick={() => void refetch()} className="rounded-md border px-2 py-1 hover:bg-background">Retry</button></div>}\n\n      <Card className="border-border shadow-none">
+      {showingStale && <div className="flex items-center justify-between gap-3 rounded-xl border border-[#5A4A1C] bg-[#2A220F] px-4 py-3 text-xs text-[#D8C68A]"><span>Trace telemetry is temporarily unavailable. Showing the last successful result.</span><button type="button" onClick={() => void refetch()} className="rounded-md border px-2 py-1 hover:bg-background">Retry</button></div>}   <Card className="border-border shadow-none">
         <CardContent className="p-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
