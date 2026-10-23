@@ -1,6 +1,7 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+  - 'sdks/*'
 
 allowBuilds:
   argon2: false

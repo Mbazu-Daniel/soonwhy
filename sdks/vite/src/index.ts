@@ -1,0 +1,3 @@
+import type {Plugin} from 'vite';
+export interface SoonwhyViteOptions{apiKey:string;endpoint?:string;serviceName?:string;serviceVersion?:string;deploymentEnvironment?:string}
+export function soonwhyVite(options:SoonwhyViteOptions):Plugin{const config=JSON.stringify(options).replace(/</g,'\\u003c');return{name:'vite-plugin-soonwhy',transformIndexHtml(){return[{tag:'script',attrs:{type:'module'},children:`import {SoonwhyWeb} from '@soonwhy/web';window.__soonwhy=new SoonwhyWeb(${config});`,injectTo:'head-prepend'}]}}}

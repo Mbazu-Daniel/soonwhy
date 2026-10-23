@@ -14,6 +14,7 @@ ENV VITE_API_URL=$VITE_API_URL
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY apps ./apps
 COPY packages ./packages
+COPY sdks ./sdks
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @soonwhy/shared build \
  && pnpm --filter @soonwhy/backend build \
