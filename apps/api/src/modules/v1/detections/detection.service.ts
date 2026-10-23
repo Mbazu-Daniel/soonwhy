@@ -5,11 +5,15 @@ import { db } from '../../../common/db';
 import { findings, type DetectionEvidence } from '../../../common/db/schema/findings';
 import { quickwitTenantQuery, quickwitTerm } from '../../../common/quickwit/query';
 import { ProjectsRepository } from '../projects/projects.repository';
+import { createIssueFromDetection } from '../intelligence/detection-issue.adapter';
+import { IssueLifecycleService } from '../intelligence/issue-lifecycle.service';
+import { detectDatabaseQueries, type DatabaseQueryTrace } from '../intelligence/database-query.detector';
+import { detectNPlusOne, type NPlusOneTrace } from '../intelligence/n-plus-one.detector';
 import { sanitizeRequestUrl } from './detection.utils';
 import { correlateFindings } from './detection.correlation';
 import { completeDetectionRun, failDetectionRun, startDetectionRun } from './detection.run';
 import { evaluateSignal, evaluateThroughput, evaluateTraceSpan } from './detection.engine';
-import { evaluateEndpointPerformance } from './performance-detection';
+import { evaluateServicePerformance } from '../intelligence/service-performance.engine';
 import type { DetectionFinding, DetectionWindow, FindingSeverity, FindingType } from './detection.types';
 
 const WINDOW_MS = 15 * 60_000;
@@ -19,30 +23,6 @@ interface ServiceBucket {
   doc_count: number;
   latency?: { values?: Record<string, number> };
   errors?: { doc_count?: number };
-}
-
-interface EndpointBucket {
-  key: string;
-  doc_count: number;
-  latency?: { values?: Record<string, number> };
-  errors?: { doc_count?: number };
-  methods?: { buckets?: EndpointMethodBucket[] };
-}
-
-interface EndpointMethodBucket {
-  key: string;
-  doc_count: number;
-  latency?: { values?: Record<string, number> };
-  errors?: { doc_count?: number };
-}
-
-interface EndpointServiceBucket {
-  key: string;
-  endpoints?: { buckets?: EndpointBucket[] };
-}
-
-interface EndpointAggregations {
-  services?: { buckets?: EndpointServiceBucket[] };
 }
 
 interface DependencyBucket {
@@ -80,12 +60,16 @@ interface TraceSource {
   parentSpanId?: string;
   name?: string;
   duration?: number;
-  statusCode?: number;
-  statusMessage?: string;
   dependencyName?: string;
   dependencyType?: string;
   spanKind?: number;
-  attributes?: Record<string, string | number | boolean | null>;
+  dbQueryText?: string;
+  dbQuerySummary?: string;
+  dbOperationName?: string;
+  dbSystemName?: string;
+  dbCollectionName?: string;
+  dbReturnedRows?: number;
+  dbBatchSize?: number;
 }
 
 @Injectable()
@@ -93,6 +77,7 @@ export class DetectionService {
   constructor(
     private readonly quickwit: QuickwitService,
     private readonly projectsRepository: ProjectsRepository,
+    private readonly issueLifecycleService: IssueLifecycleService,
   ) {}
 
   async run(orgId: string, projectId: string): Promise<DetectionFinding[]> {
@@ -130,6 +115,9 @@ export class DetectionService {
       baselineBuckets.map((bucket) => [
         bucket.key,
         {
+          p50: this.getPercentile(bucket, '50.0'),
+          p95: this.getPercentile(bucket, '95.0'),
+          p99: this.getPercentile(bucket, '99.0'),
           latency: this.getLatency(bucket),
           errorRate: this.getErrorRate(bucket),
           requests: bucket.doc_count,
@@ -140,57 +128,79 @@ export class DetectionService {
     const detected: DetectionFinding[] = [];
 
     for (const bucket of currentBuckets) {
-      const p95 = this.getLatency(bucket);
+      const p50 = this.getPercentile(bucket, '50.0');
+      const p95 = this.getPercentile(bucket, '95.0');
+      const p99 = this.getPercentile(bucket, '99.0');
       const errorRate = this.getErrorRate(bucket);
       const baseline = baselineByService.get(bucket.key);
 
-      const latencySignal = evaluateSignal(
-        'latency',
-        p95,
+      const performanceSignal = evaluateServicePerformance(
+        {
+          serviceName: bucket.key,
+          endpoint: 'service:' + bucket.key,
+          sampleCount: bucket.doc_count,
+          p50,
+          p95,
+          p99,
+          errorRate: errorRate / 100,
+          throughputPerMinute: bucket.doc_count / 15,
+        },
         baseline
-          ? { value: baseline.latency, samples: baseline.samples }
+          ? {
+              p50: baseline.p50,
+              p95: baseline.p95,
+              p99: baseline.p99,
+              errorRate: baseline.errorRate / 100,
+              throughputPerMinute: baseline.requests / 15,
+            }
           : undefined,
       );
-      if (latencySignal) {
-        detected.push(await this.persistFinding({
-          orgId,
-          projectId,
-          serviceName: bucket.key,
-          type: latencySignal.type,
-          severity: latencySignal.severity,
-          title: 'High latency detected in ' + bucket.key,
-          description: this.describeSignal('The 95th percentile request latency is ' + Math.round(p95) + 'ms over the last 15 minutes.', latencySignal),
-          observedValue: latencySignal.observedValue,
-          threshold: latencySignal.threshold,
-          unit: latencySignal.unit,
-          start,
-          end,
-          evidence: await this.requestEvidence(orgId, projectId, bucket.key, startTimestamp, endTimestamp, 'latency'),
-        }));
-      }
 
-      const errorSignal = evaluateSignal(
-        'error_rate',
-        errorRate,
-        baseline
-          ? { value: baseline.errorRate, samples: baseline.samples }
-          : undefined,
-      );
-      if (errorSignal) {
+      if (performanceSignal) {
         detected.push(await this.persistFinding({
           orgId,
           projectId,
           serviceName: bucket.key,
-          type: errorSignal.type,
-          severity: errorSignal.severity,
-          title: 'Elevated error rate in ' + bucket.key,
-          description: this.describeSignal('HTTP 5xx responses account for ' + errorRate.toFixed(2) + '% of requests over the last 15 minutes.', errorSignal),
-          observedValue: errorSignal.observedValue,
-          threshold: errorSignal.threshold,
-          unit: errorSignal.unit,
+          type: 'performance',
+          severity: performanceSignal.severity,
+          title: 'Service performance degradation in ' + bucket.key,
+          description: this.describePerformanceSignal(performanceSignal),
+          observedValue: p95,
+          threshold: 500,
+          unit: 'ms',
           start,
           end,
-          evidence: await this.requestEvidence(orgId, projectId, bucket.key, startTimestamp, endTimestamp, 'error_rate'),
+          evidence: [
+            {
+              kind: 'metric',
+              label: 'performance-profile',
+              value: p95,
+              context: {
+                service: bucket.key,
+                p50,
+                p95,
+                p99,
+                errorRate,
+                throughputPerMinute: bucket.doc_count / 15,
+                sampleCount: bucket.doc_count,
+                reasons: performanceSignal.reasons.join('; '),
+                ...(performanceSignal.latency.p95ChangePercent !== undefined
+                  ? { p95ChangePercent: performanceSignal.latency.p95ChangePercent }
+                  : {}),
+                ...(performanceSignal.latency.p99ChangePercent !== undefined
+                  ? { p99ChangePercent: performanceSignal.latency.p99ChangePercent }
+                  : {}),
+              },
+            },
+            ...(await this.requestEvidence(
+              orgId,
+              projectId,
+              bucket.key,
+              startTimestamp,
+              endTimestamp,
+              'latency',
+            )),
+          ],
         }));
       }
 
@@ -200,6 +210,7 @@ export class DetectionService {
           ? { value: baseline.requests, samples: baseline.requests }
           : undefined,
       );
+
       if (throughputSignal) {
         detected.push(await this.persistFinding({
           orgId,
@@ -223,135 +234,12 @@ export class DetectionService {
                 service: bucket.key,
                 baselineRequests: throughputSignal.baselineValue,
                 changePercent: throughputSignal.changePercent,
+                p50,
+                p95,
+                p99,
               },
             },
           ],
-        }));
-      }
-    }
-
-    const [currentEndpoints, baselineEndpoints] = await Promise.all([
-      this.searchEndpointBuckets(orgId, projectId, startTimestamp, endTimestamp),
-      this.searchEndpointBuckets(
-        orgId,
-        projectId,
-        startTimestamp - Math.floor(WINDOW_MS / 1000),
-        startTimestamp,
-      ),
-    ]);
-
-    const baselineByEndpoint = new Map(
-      baselineEndpoints.map((endpoint) => [
-        endpoint.key,
-        endpoint,
-      ]),
-    );
-
-    for (const endpoint of currentEndpoints) {
-      const baseline = baselineByEndpoint.get(endpoint.key);
-      const [serviceName, method, url] = endpoint.key.split('|');
-      if (!serviceName || !method || !url) continue;
-
-      const performance = evaluateEndpointPerformance(
-        {
-          serviceName,
-          endpointName: method + ' ' + sanitizeRequestUrl(url),
-          sampleCount: endpoint.doc_count,
-          p95Duration: endpoint.latency,
-          throughputPerMinute: endpoint.doc_count / 15,
-          errorRate: endpoint.errorRate,
-        },
-        baseline
-          ? {
-              serviceName,
-              endpointName: method + ' ' + sanitizeRequestUrl(url),
-              sampleCount: baseline.doc_count,
-              p95Duration: baseline.latency,
-              throughputPerMinute: baseline.doc_count / 15,
-              errorRate: baseline.errorRate,
-            }
-          : undefined,
-      );
-
-      if (!performance) continue;
-
-      const endpointEvidence = {
-        kind: 'request' as const,
-        label: 'performance-endpoint',
-        value: performance.identity.fingerprint,
-        context: {
-          service: serviceName,
-          endpointName: performance.endpointName,
-          fingerprint: performance.identity.fingerprint,
-          signals: performance.signals,
-          latencyRegressionPercent: performance.latencyRegressionPercent ?? null,
-          throughputRegressionPercent: performance.throughputRegressionPercent ?? null,
-          errorRegressionPercent: performance.errorRegressionPercent ?? null,
-        },
-      };
-
-      if (performance.signals.some((signal) => signal === 'latency' || signal === 'latency_regression')) {
-        detected.push(await this.persistFinding({
-          orgId,
-          projectId,
-          serviceName,
-          type: 'latency',
-          severity: performance.confidence === 'high' ? 'critical' : 'warning',
-          title: 'Endpoint latency detected in ' + serviceName,
-          description: performance.summary,
-          observedValue: endpoint.latency,
-          threshold: 100,
-          unit: 'ms',
-          start,
-          end,
-          evidence: [
-            endpointEvidence,
-            ...(await this.endpointPerformanceEvidence(
-              orgId,
-              projectId,
-              serviceName,
-              method,
-              url,
-              startTimestamp,
-              endTimestamp,
-            )),
-          ],
-        }));
-      }
-
-      if (performance.signals.includes('throughput_regression')) {
-        detected.push(await this.persistFinding({
-          orgId,
-          projectId,
-          serviceName,
-          type: 'throughput',
-          severity: performance.confidence === 'high' ? 'critical' : 'warning',
-          title: 'Endpoint throughput degradation in ' + serviceName,
-          description: performance.summary,
-          observedValue: endpoint.doc_count,
-          threshold: baseline?.doc_count ?? endpoint.doc_count,
-          unit: 'requests',
-          start,
-          end,
-          evidence: [endpointEvidence],
-        }));
-      }
-
-      if (performance.signals.includes('error_regression')) {
-        detected.push(await this.persistFinding({
-          orgId,
-          projectId,
-          serviceName,
-          type: 'error_rate',
-          severity: performance.confidence === 'high' ? 'critical' : 'warning',
-          title: 'Endpoint error-rate regression in ' + serviceName,
-          description: performance.summary,
-          observedValue: endpoint.errorRate,
-          threshold: baseline?.errorRate ?? endpoint.errorRate,
-          unit: '%',
-          start,
-          end,
-          evidence: [endpointEvidence],
         }));
       }
     }
@@ -422,6 +310,121 @@ export class DetectionService {
               dependencyType,
               dependencyName,
               observedLatencyMs: Math.round(dependency.latency),
+            },
+          },
+        ],
+      }));
+    }
+
+    const [currentDatabaseSpans, baselineDatabaseSpans] = await Promise.all([
+      this.searchDatabaseQuerySpans(orgId, projectId, startTimestamp, endTimestamp),
+      this.searchDatabaseQuerySpans(
+        orgId,
+        projectId,
+        startTimestamp - Math.floor(WINDOW_MS / 1000),
+        startTimestamp,
+      ),
+    ]);
+
+    for (const candidate of detectDatabaseQueries(currentDatabaseSpans, baselineDatabaseSpans)) {
+      detected.push(await this.persistFinding({
+        orgId,
+        projectId,
+        serviceName: candidate.serviceName,
+        type: 'database_query',
+        severity: candidate.signal.severity,
+        title: 'Slow database query in ' + candidate.serviceName,
+        description: this.describeDatabaseQuery(candidate),
+        observedValue: candidate.signal.observedValue,
+        threshold: candidate.signal.threshold,
+        unit: 'ms',
+        start,
+        end,
+        evidence: candidate.samples.map((sample) => ({
+          kind: 'trace',
+          label: 'database-query-span',
+          value: sample.duration,
+          context: {
+            service: sample.service,
+            traceId: sample.traceId,
+            spanId: sample.spanId,
+            timestamp: sample.timestamp,
+            fingerprint: candidate.identity.fingerprint,
+            databaseSystem: candidate.databaseSystem ?? '',
+            dependencyName: sample.dependencyName,
+            ...(candidate.queryOperation ? { queryOperation: candidate.queryOperation } : {}),
+            ...(candidate.querySummary ? { querySummary: candidate.querySummary } : {}),
+            ...(candidate.collectionName ? { collectionName: candidate.collectionName } : {}),
+            ...(sample.dbQueryText ? { query: sample.dbQueryText } : {}),
+            ...(sample.dbReturnedRows !== undefined ? { returnedRows: sample.dbReturnedRows } : {}),
+          },
+        })),
+      }));
+    }
+
+    const nPlusOneTraces: NPlusOneTrace[] = currentDatabaseSpans.flatMap((sample) => {
+      if (!sample.parentSpanId) return [];
+
+      return [{
+        timestamp: sample.timestamp,
+        service: sample.service,
+        traceId: sample.traceId,
+        spanId: sample.spanId,
+        parentSpanId: sample.parentSpanId,
+        duration: sample.duration,
+        dependencyType: sample.dependencyType,
+        dependencyName: sample.dependencyName,
+        ...(sample.dbQueryText ? { dbQueryText: sample.dbQueryText } : {}),
+        ...(sample.dbQuerySummary ? { dbQuerySummary: sample.dbQuerySummary } : {}),
+        ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
+        ...(sample.dbSystemName ? { dbSystemName: sample.dbSystemName } : {}),
+        ...(sample.dbCollectionName ? { dbCollectionName: sample.dbCollectionName } : {}),
+        ...(sample.dbBatchSize !== undefined ? { dbBatchSize: sample.dbBatchSize } : {}),
+      }];
+    });
+
+    for (const candidate of detectNPlusOne(nPlusOneTraces)) {
+      detected.push(await this.persistFinding({
+        orgId,
+        projectId,
+        serviceName: candidate.serviceName,
+        type: 'database_n_plus_one',
+        severity: 'warning',
+        title: 'Repeated database query detected in ' + candidate.serviceName,
+        description: this.describeNPlusOne(candidate),
+        observedValue: candidate.signal.occurrences,
+        threshold: 3,
+        unit: ' occurrences',
+        start,
+        end,
+        evidence: [
+          ...candidate.samples.map((sample) => ({
+            kind: 'trace' as const,
+            label: 'n-plus-one-query',
+            value: sample.duration,
+            context: {
+              service: sample.service,
+              traceId: sample.traceId,
+              spanId: sample.spanId,
+              parentSpanId: sample.parentSpanId,
+              timestamp: sample.timestamp,
+              fingerprint: candidate.identity.fingerprint,
+              databaseSystem: candidate.databaseSystem ?? '',
+              dependencyName: sample.dependencyName,
+              ...(candidate.queryOperation ? { queryOperation: candidate.queryOperation } : {}),
+              ...(candidate.querySummary ? { querySummary: candidate.querySummary } : {}),
+              ...(sample.dbQueryText ? { query: sample.dbQueryText } : {}),
+            },
+          })),
+          {
+            kind: 'recommendation' as const,
+            label: 'n-plus-one-guidance',
+            value: 'Check whether the repeated query can be loaded with the parent records in one query or replaced with a batched operation. Confirm the query plan before changing the access pattern.',
+            context: {
+              occurrences: candidate.signal.occurrences,
+              totalDurationMs: candidate.signal.totalDurationMs,
+              traceId: candidate.traceId,
+              parentSpanId: candidate.parentSpanId,
             },
           },
         ],
@@ -549,7 +552,18 @@ export class DetectionService {
       }));
     }
 
+    await this.persistIssueLifecycles(orgId, projectId, detected);
     return detected;
+  }
+
+  private async persistIssueLifecycles(orgId: string, projectId: string, findings: DetectionFinding[]): Promise<void> {
+    for (const finding of findings) {
+      await this.issueLifecycleService.apply({
+        orgId,
+        projectId,
+        issue: createIssueFromDetection(finding),
+      });
+    }
   }
 
   async createFindingFromError(
@@ -687,7 +701,7 @@ export class DetectionService {
           },
           aggs: {
             latency: {
-              percentiles: { field: 'duration', percents: [95] },
+              percentiles: { field: 'duration', percents: [50, 95, 99] },
             },
             errors: {
               filter: { query: 'statusCode:[500 TO 599]' },
@@ -700,85 +714,18 @@ export class DetectionService {
     return (result.aggregations as Aggregations | undefined)?.services?.buckets ?? [];
   }
 
+  private getPercentile(bucket: ServiceBucket, percentile: string): number {
+    const value = bucket.latency?.values?.[percentile] ?? 0;
+    return Number.isFinite(value) && value >= 0 ? value : 0;
+  }
+
   private getLatency(bucket: ServiceBucket): number {
-    return bucket.latency?.values?.['95.0'] ?? 0;
+    return this.getPercentile(bucket, '95.0');
   }
 
   private getErrorRate(bucket: ServiceBucket): number {
     const errors = bucket.errors?.doc_count ?? 0;
     return bucket.doc_count ? (errors / bucket.doc_count) * 100 : 0;
-  }
-
-  private async searchEndpointBuckets(
-    orgId: string,
-    projectId: string,
-    startTimestamp: number,
-    endTimestamp: number,
-  ): Promise<Array<{ key: string; latency: number; errorRate: number; doc_count: number }>> {
-    const result = await this.quickwit.search<never>(QUICKWIT_INDEXES.requests, {
-      query: quickwitTenantQuery(orgId, projectId),
-      startTimestamp,
-      endTimestamp,
-      maxHits: 0,
-      aggregations: {
-        services: {
-          terms: {
-            field: 'service',
-            size: 100,
-            order: { _count: 'desc' },
-          },
-          aggs: {
-            endpoints: {
-              terms: {
-                field: 'url',
-                size: 100,
-                order: { _count: 'desc' },
-              },
-              aggs: {
-                methods: {
-                  terms: {
-                    field: 'method',
-                    size: 20,
-                    order: { _key: 'asc' },
-                  },
-                  aggs: {
-                    latency: {
-                      percentiles: {
-                        field: 'duration',
-                        percents: [95],
-                      },
-                    },
-                    errors: {
-                      filter: {
-                        query: 'statusCode:[500 TO 599]',
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    const aggregation = (result.aggregations as EndpointAggregations | undefined)?.services;
-    return (aggregation?.buckets ?? []).flatMap((serviceBucket) =>
-      (serviceBucket.endpoints?.buckets ?? []).flatMap((endpointBucket) =>
-        endpointBucket.methods?.buckets?.flatMap((methodBucket) => {
-          const latency = methodBucket.latency?.values?.['95.0'] ?? 0;
-          const errors = methodBucket.errors?.doc_count ?? 0;
-          if (!methodBucket.key || latency <= 0) return [];
-
-          return [{
-            key: serviceBucket.key + '|' + methodBucket.key + '|' + endpointBucket.key,
-            latency,
-            errorRate: methodBucket.doc_count ? errors / methodBucket.doc_count : 0,
-            doc_count: methodBucket.doc_count,
-          }];
-        }) ?? [],
-      ),
-    );
   }
 
   private async searchDependencyBuckets(
@@ -846,6 +793,91 @@ export class DetectionService {
     );
   }
 
+  private async searchDatabaseQuerySpans(
+    orgId: string,
+    projectId: string,
+    startTimestamp: number,
+    endTimestamp: number,
+  ): Promise<DatabaseQueryTrace[]> {
+    const result = await this.quickwit.search<TraceSource>(QUICKWIT_INDEXES.traces, {
+      query: quickwitTenantQuery(
+        orgId,
+        projectId,
+        quickwitTerm('dependencyType', 'database'),
+      ),
+      startTimestamp,
+      endTimestamp,
+      maxHits: 5000,
+      sortBy: ['-duration'],
+    });
+
+    return (result.hits ?? []).flatMap((hit) => {
+      const source = hit._source;
+      if (!source?.traceId || !source.service) return [];
+
+      const query = source.dbQueryText;
+      const summary = source.dbQuerySummary;
+      const operation = source.dbOperationName;
+      const system = source.dbSystemName;
+      const collection = source.dbCollectionName;
+      const returnedRows = Number.isFinite(source.dbReturnedRows) ? source.dbReturnedRows : undefined;
+      const batchSize = Number.isFinite(source.dbBatchSize) ? source.dbBatchSize : undefined;
+
+      const dependencyName = String(source.dependencyName ?? system ?? source.name ?? '');
+      const queryIdentity = query ?? summary ?? operation ?? dependencyName;
+      if (!queryIdentity) return [];
+
+      return [{
+        timestamp: String(source.timestamp ?? ''),
+        service: String(source.service),
+        traceId: String(source.traceId),
+        spanId: String(source.spanId ?? ''),
+        ...(source.parentSpanId ? { parentSpanId: String(source.parentSpanId) } : {}),
+        duration: Number(source.duration ?? 0),
+        dependencyType: 'database',
+        dependencyName,
+        ...(source.name ? { spanName: String(source.name) } : {}),
+        ...(query ? { dbQueryText: query } : {}),
+        ...(summary ? { dbQuerySummary: summary } : {}),
+        ...(operation ? { dbOperationName: operation } : {}),
+        ...(system ? { dbSystemName: system } : {}),
+        ...(collection ? { dbCollectionName: collection } : {}),
+        ...(returnedRows !== undefined ? { dbReturnedRows: returnedRows } : {}),
+        ...(batchSize !== undefined ? { dbBatchSize: batchSize } : {}),
+      }];
+    });
+  }
+
+  private describeDatabaseQuery(
+    candidate: ReturnType<typeof detectDatabaseQueries>[number],
+  ): string {
+    const baseline = candidate.signal.baselineValue;
+    const change = candidate.signal.changePercent;
+    const queryLabel = candidate.querySummary ?? candidate.queryOperation ?? candidate.query;
+
+    if (baseline !== undefined && change !== undefined) {
+      return queryLabel + ' reached a p95 latency of ' +
+        Math.round(candidate.signal.observedValue) + 'ms, up ' +
+        change.toFixed(0) + '% from the previous comparable window (' +
+        Math.round(baseline) + 'ms).';
+    }
+
+    return queryLabel + ' reached a p95 latency of ' +
+      Math.round(candidate.signal.observedValue) + 'ms.';
+  }
+
+  private describeNPlusOne(
+    candidate: ReturnType<typeof detectNPlusOne>[number],
+  ): string {
+    const queryLabel = candidate.querySummary ?? candidate.queryOperation ?? candidate.query;
+    return queryLabel +
+      ' was executed ' +
+      candidate.signal.occurrences +
+      ' times in one trace under the same parent span, consuming about ' +
+      Math.round(candidate.signal.totalDurationMs) +
+      'ms of database time.';
+  }
+
   private async searchTraceSpanCandidates(
     orgId: string,
     projectId: string,
@@ -868,8 +900,7 @@ export class DetectionService {
     });
 
     const traces = new Map<string, {
-      start: number;
-      end: number;
+      duration: number;
       rootService: string;
       spans: TraceSource[];
     }>();
@@ -879,8 +910,7 @@ export class DetectionService {
       if (!source?.traceId) continue;
 
       const trace = traces.get(source.traceId) ?? {
-        start: Number.POSITIVE_INFINITY,
-        end: 0,
+        duration: 0,
         rootService: String(source.service ?? ''),
         spans: [],
       };
@@ -889,8 +919,7 @@ export class DetectionService {
       const startMs = new Date(String(source.timestamp ?? '')).getTime();
       const duration = Number(source.duration ?? 0);
       if (Number.isFinite(startMs) && Number.isFinite(duration) && duration > 0) {
-        trace.start = Math.min(trace.start, startMs);
-        trace.end = Math.max(trace.end, startMs + duration);
+        trace.duration = Math.max(trace.duration, startMs + duration);
       }
 
       if (!source.parentSpanId) {
@@ -986,6 +1015,15 @@ export class DetectionService {
     });
   }
 
+  private describePerformanceSignal(signal: ReturnType<typeof evaluateServicePerformance>): string {
+    if (!signal) return 'Service performance degraded over the last 15 minutes.';
+
+    return signal.reasons.join('. ') + '. P50: ' +
+      Math.round(signal.latency.p50) + 'ms, P95: ' +
+      Math.round(signal.latency.p95) + 'ms, P99: ' +
+      Math.round(signal.latency.p99) + 'ms.';
+  }
+
   private describeSignal(
     description: string,
     signal: ReturnType<typeof evaluateSignal>,
@@ -1004,57 +1042,12 @@ export class DetectionService {
   }
 
   private async assertProjectAccess(orgId: string, projectId: string): Promise<void> {
+
     const project = await this.projectsRepository.getProjectById(projectId, orgId);
 
     if (!project) {
       throw new NotFoundException('Project not found');
     }
-  }
-
-  private async endpointPerformanceEvidence(
-    orgId: string,
-    projectId: string,
-    serviceName: string,
-    method: string,
-    url: string,
-    startTimestamp: number,
-    endTimestamp: number,
-  ): Promise<DetectionEvidence[]> {
-    const query = quickwitTenantQuery(
-      orgId,
-      projectId,
-      [
-        quickwitTerm('service', serviceName),
-        quickwitTerm('method', method),
-        quickwitTerm('url', url),
-      ].join(' AND '),
-    );
-
-    const result = await this.quickwit.search<RequestSource>(QUICKWIT_INDEXES.requests, {
-      query,
-      startTimestamp,
-      endTimestamp,
-      maxHits: 5,
-      sortBy: ['duration:desc'],
-    });
-
-    return result.hits.flatMap((hit) => {
-      const source = hit._source;
-      if (!source?.traceId) return [];
-
-      return [{
-        kind: 'trace' as const,
-        label: 'endpoint-trace',
-        value: source.traceId,
-        context: {
-          traceId: source.traceId,
-          service: String(source.service ?? serviceName),
-          method: String(source.method ?? method),
-          path: sanitizeRequestUrl(String(source.url ?? url)),
-          timestamp: String(source.timestamp ?? ''),
-        },
-      }];
-    });
   }
 
   private async requestEvidence(
@@ -1173,3 +1166,4 @@ export class DetectionService {
     };
   }
 }
+
