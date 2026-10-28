@@ -1,7 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { and, desc, eq } from 'drizzle-orm';
-import { db } from '../../../common/db';
-import { findings, investigationCases, projects } from '../../../common/db/schema';
+import { Injectable } from "@nestjs/common";
+import { and, desc, eq } from "drizzle-orm";
+import { db } from "../../../common/db";
+import {
+  findings,
+  investigationCases,
+  projects,
+} from "../../../common/db/schema";
 
 @Injectable()
 export class InvestigationRepository {
@@ -10,11 +14,13 @@ export class InvestigationRepository {
       .select({ investigation: investigationCases })
       .from(investigationCases)
       .innerJoin(projects, eq(investigationCases.projectId, projects.id))
-      .where(and(
-        eq(investigationCases.projectId, projectId),
-        eq(investigationCases.orgId, orgId),
-        eq(projects.orgId, orgId),
-      ))
+      .where(
+        and(
+          eq(investigationCases.projectId, projectId),
+          eq(investigationCases.orgId, orgId),
+          eq(projects.organizationId, orgId),
+        ),
+      )
       .orderBy(desc(investigationCases.createdAt));
   }
 
@@ -23,11 +29,13 @@ export class InvestigationRepository {
       .select({ investigation: investigationCases })
       .from(investigationCases)
       .innerJoin(projects, eq(investigationCases.projectId, projects.id))
-      .where(and(
-        eq(investigationCases.id, id),
-        eq(investigationCases.orgId, orgId),
-        eq(projects.orgId, orgId),
-      ))
+      .where(
+        and(
+          eq(investigationCases.id, id),
+          eq(investigationCases.orgId, orgId),
+          eq(projects.organizationId, orgId),
+        ),
+      )
       .limit(1);
 
     return row?.investigation;
@@ -37,11 +45,13 @@ export class InvestigationRepository {
     const [row] = await db
       .select({ investigation: investigationCases })
       .from(investigationCases)
-      .where(and(
-        eq(investigationCases.findingId, findingId),
-        eq(investigationCases.orgId, orgId),
-        eq(investigationCases.status, 'open'),
-      ))
+      .where(
+        and(
+          eq(investigationCases.findingId, findingId),
+          eq(investigationCases.orgId, orgId),
+          eq(investigationCases.status, "open"),
+        ),
+      )
       .limit(1);
 
     return row?.investigation;
@@ -52,11 +62,13 @@ export class InvestigationRepository {
       .select({ finding: findings })
       .from(findings)
       .innerJoin(projects, eq(findings.projectId, projects.id))
-      .where(and(
-        eq(findings.id, findingId),
-        eq(findings.orgId, orgId),
-        eq(projects.orgId, orgId),
-      ))
+      .where(
+        and(
+          eq(findings.id, findingId),
+          eq(findings.orgId, orgId),
+          eq(projects.organizationId, orgId),
+        ),
+      )
       .limit(1);
 
     return row?.finding;
@@ -68,7 +80,7 @@ export class InvestigationRepository {
       .values(data)
       .returning();
 
-    if (!investigation) throw new Error('Failed to create investigation case');
+    if (!investigation) throw new Error("Failed to create investigation case");
     return investigation;
   }
 }

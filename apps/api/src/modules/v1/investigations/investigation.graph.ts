@@ -1,6 +1,6 @@
-export type InvestigationGraphNodeType = 'finding' | 'evidence';
+export type InvestigationGraphNodeType = "finding" | "evidence";
 
-export type InvestigationGraphEdgeType = 'supported_by';
+export type InvestigationGraphEdgeType = "supported_by";
 
 export type InvestigationGraphFindingData = {
   id: string;
@@ -27,13 +27,13 @@ export type InvestigationGraphEvidenceData = {
 export type InvestigationGraphNode =
   | {
       id: string;
-      type: 'finding';
+      type: "finding";
       label: string;
       data: InvestigationGraphFindingData;
     }
   | {
       id: string;
-      type: 'evidence';
+      type: "evidence";
       label: string;
       data: InvestigationGraphEvidenceData;
     };

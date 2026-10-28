@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
-import { db } from '../../../common/db';
-import { environments, projects } from '../../../common/db/schema';
+import { Injectable } from "@nestjs/common";
+import { and, eq } from "drizzle-orm";
+import { db } from "../../../common/db";
+import { environments, projects } from "../../../common/db/schema";
 
 @Injectable()
 export class EnvironmentsRepository {
@@ -10,7 +10,9 @@ export class EnvironmentsRepository {
       .select({ environment: environments })
       .from(environments)
       .innerJoin(projects, eq(environments.projectId, projects.id))
-      .where(and(eq(environments.projectId, projectId), eq(projects.orgId, orgId)));
+      .where(
+        and(eq(environments.projectId, projectId), eq(projects.organizationId, orgId)),
+      );
   }
 
   async findBySlug(projectId: string, orgId: string, slug: string) {
@@ -18,13 +20,25 @@ export class EnvironmentsRepository {
       .select({ environment: environments })
       .from(environments)
       .innerJoin(projects, eq(environments.projectId, projects.id))
-      .where(and(eq(environments.projectId, projectId), eq(projects.orgId, orgId), eq(environments.slug, slug)))
+      .where(
+        and(
+          eq(environments.projectId, projectId),
+          eq(projects.organizationId, orgId),
+          eq(environments.slug, slug),
+        ),
+      )
       .limit(1);
     return row?.environment;
   }
 
-  async create(projectId: string, input: { name: string; slug: string; kind: string }) {
-    const [environment] = await db.insert(environments).values({ projectId, ...input }).returning();
+  async create(
+    projectId: string,
+    input: { name: string; slug: string; kind: string },
+  ) {
+    const [environment] = await db
+      .insert(environments)
+      .values({ projectId, ...input })
+      .returning();
     return environment;
   }
 }

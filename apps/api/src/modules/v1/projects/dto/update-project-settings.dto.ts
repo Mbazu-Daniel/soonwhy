@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const UpdateProjectSettingsDto = z.object({
   redactSensitiveData: z.boolean().optional(),
@@ -9,4 +9,6 @@ export const UpdateProjectSettingsDto = z.object({
   maxAttributeValueLength: z.number().int().min(256).max(16384).optional(),
 });
 
-export type UpdateProjectSettingsInput = z.infer<typeof UpdateProjectSettingsDto>;
+export type UpdateProjectSettingsInput = z.infer<
+  typeof UpdateProjectSettingsDto
+>;
