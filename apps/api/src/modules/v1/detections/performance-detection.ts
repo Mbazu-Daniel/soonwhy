@@ -1,4 +1,7 @@
-import { evaluatePerformance, type PerformanceFinding } from '../intelligence/performance-intelligence';
+import {
+  evaluatePerformance,
+  type PerformanceFinding,
+} from "../intelligence/performance-intelligence";
 
 export interface EndpointPerformanceStat {
   serviceName: string;
@@ -9,7 +12,10 @@ export interface EndpointPerformanceStat {
   errorRate: number;
 }
 
-export function evaluateEndpointPerformance(current: EndpointPerformanceStat, baseline?: EndpointPerformanceStat): PerformanceFinding | null {
+export function evaluateEndpointPerformance(
+  current: EndpointPerformanceStat,
+  baseline?: EndpointPerformanceStat,
+): PerformanceFinding | null {
   return evaluatePerformance({
     serviceName: current.serviceName,
     endpointName: current.endpointName,

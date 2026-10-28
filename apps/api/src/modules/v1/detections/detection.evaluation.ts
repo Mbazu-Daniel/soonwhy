@@ -4,9 +4,12 @@ import {
   evaluateTraceSpan,
   type DetectionBaseline,
   type DetectionSignalType,
-} from './detection.engine';
+} from "./detection.engine";
 
-export type EvaluationSignalType = DetectionSignalType | 'throughput' | 'trace_span';
+export type EvaluationSignalType =
+  | DetectionSignalType
+  | "throughput"
+  | "trace_span";
 
 export interface DetectionEvaluationCase {
   name: string;
@@ -15,7 +18,7 @@ export interface DetectionEvaluationCase {
   baseline?: DetectionBaseline;
   traceDuration?: number;
   expectedDetection: boolean;
-  expectedSeverity?: 'warning' | 'critical';
+  expectedSeverity?: "warning" | "critical";
 }
 
 export interface DetectionEvaluationResult {
@@ -32,13 +35,18 @@ export interface DetectionEvaluationResult {
 
 export function evaluateDetectionCase(testCase: DetectionEvaluationCase): {
   detected: boolean;
-  severity?: 'warning' | 'critical';
+  severity?: "warning" | "critical";
 } {
-  const result = testCase.type === 'throughput'
-    ? evaluateThroughput(testCase.observedValue, testCase.baseline)
-    : testCase.type === 'trace_span'
-      ? evaluateTraceSpan(testCase.observedValue, testCase.traceDuration ?? 0)
-      : evaluateSignal(testCase.type, testCase.observedValue, testCase.baseline);
+  const result =
+    testCase.type === "throughput"
+      ? evaluateThroughput(testCase.observedValue, testCase.baseline)
+      : testCase.type === "trace_span"
+        ? evaluateTraceSpan(testCase.observedValue, testCase.traceDuration ?? 0)
+        : evaluateSignal(
+            testCase.type,
+            testCase.observedValue,
+            testCase.baseline,
+          );
 
   return {
     detected: result !== undefined,
@@ -60,7 +68,8 @@ export function runDetectionEvaluation(
     const matchesSeverity =
       testCase.expectedSeverity === undefined ||
       result.severity === testCase.expectedSeverity;
-    const passedCase = result.detected === testCase.expectedDetection && matchesSeverity;
+    const passedCase =
+      result.detected === testCase.expectedDetection && matchesSeverity;
 
     if (passedCase) passed += 1;
 
@@ -85,7 +94,8 @@ export function runDetectionEvaluation(
     falsePositives,
     trueNegatives,
     falseNegatives,
-    precision: precisionDenominator === 0 ? 1 : truePositives / precisionDenominator,
+    precision:
+      precisionDenominator === 0 ? 1 : truePositives / precisionDenominator,
     recall: recallDenominator === 0 ? 1 : truePositives / recallDenominator,
     passed,
     failed: cases.length - passed,
