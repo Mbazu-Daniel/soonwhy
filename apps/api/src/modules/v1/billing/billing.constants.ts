@@ -1,6 +1,6 @@
-import type { UsageMetric } from '../../../common/db/schema/billing';
+import type { UsageMetric } from "../../../common/db/schema/billing";
 
-export const BILLING_PLANS = ['starter', 'growth', 'enterprise'] as const;
+export const BILLING_PLANS = ["starter", "growth", "enterprise"] as const;
 export type BillingPlan = (typeof BILLING_PLANS)[number];
 
 export type UsageLimit = {
@@ -16,11 +16,11 @@ export const DEFAULT_USAGE_LIMITS: Record<BillingPlan, UsageLimit[]> = {
 };
 
 export const USAGE_METRICS: UsageMetric[] = [
-  'telemetry_bytes',
-  'trace_spans',
-  'retained_data_bytes',
-  'rca_invocations',
-  'ai_tokens',
-  'investigations',
-  'sdk_events',
+  "telemetry_bytes",
+  "trace_spans",
+  "retained_data_bytes",
+  "rca_invocations",
+  "ai_tokens",
+  "investigations",
+  "sdk_events",
 ];
