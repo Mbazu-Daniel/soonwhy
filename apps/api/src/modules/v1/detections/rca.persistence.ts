@@ -1,6 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common';
-import type { RcaAnalysis, RcaEvidence, RcaUsage } from './rca.types';
-import { RcaAnalysisRepository, type CreateRcaAnalysisInput } from './rca.repository';
+import { Inject, Injectable } from "@nestjs/common";
+import type { RcaAnalysis, RcaEvidence, RcaUsage } from "./rca.types";
+import {
+  RcaAnalysisRepository,
+  type CreateRcaAnalysisInput,
+} from "./rca.repository";
 
 export interface PersistRcaAnalysisInput {
   orgId: string;
@@ -16,7 +19,12 @@ export interface PersistRcaAnalysisInput {
 
 @Injectable()
 export class RcaPersistenceService {
-  constructor(@Inject(RcaAnalysisRepository) private readonly repository: Pick<RcaAnalysisRepository, 'create' | 'findLatest' | 'list'>) {}
+  constructor(
+    @Inject(RcaAnalysisRepository) private readonly repository: Pick<
+      RcaAnalysisRepository,
+      "create" | "findLatest" | "list"
+    >,
+  ) {}
 
   async persist(input: PersistRcaAnalysisInput) {
     const values: CreateRcaAnalysisInput = {
@@ -33,7 +41,9 @@ export class RcaPersistenceService {
       evidenceRefs: input.analysis.evidenceRefs,
       limitations: input.analysis.limitations,
       confidence: input.analysis.confidence,
-      evidenceSnapshot: JSON.parse(JSON.stringify({ ...input.evidence, rcaUsage: input.usage })) as Record<string, unknown>,
+      evidenceSnapshot: JSON.parse(
+        JSON.stringify({ ...input.evidence, rcaUsage: input.usage }),
+      ) as Record<string, unknown>,
       provider: input.provider,
       model: input.model,
       promptVersion: input.promptVersion,
