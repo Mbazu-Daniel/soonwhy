@@ -1,6 +1,6 @@
-import type { TelemetryIdentity } from './telemetry-identity.types';
+import type { TelemetryIdentity } from "./telemetry-identity.types";
 
-export type IssueLifecycleStatus = 'active' | 'resolved';
+export type IssueLifecycleStatus = "active" | "resolved";
 
 export interface IssueLifecycle {
   issueKey: string;

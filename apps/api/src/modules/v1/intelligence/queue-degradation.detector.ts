@@ -1,11 +1,11 @@
-import { createTelemetryIdentity } from './telemetry-identity';
+import { createTelemetryIdentity } from "./telemetry-identity";
 
 const MIN_SAMPLES = 5;
 const LATENCY_THRESHOLD_MS = 100;
 const LATENCY_REGRESSION_PERCENT = 50;
 const ERROR_RATE_THRESHOLD = 0.1;
 
-export type QueueType = 'kafka' | 'nats' | 'rabbitmq' | 'other';
+export type QueueType = "kafka" | "nats" | "rabbitmq" | "other";
 
 export interface QueueTrace {
   timestamp: string;
@@ -40,7 +40,10 @@ export interface QueueCandidate {
   recommendation: string;
 }
 
-export function detectQueueDegradation(current: QueueTrace[], baseline: QueueTrace[]): QueueCandidate[] {
+export function detectQueueDegradation(
+  current: QueueTrace[],
+  baseline: QueueTrace[],
+): QueueCandidate[] {
   const currentGroups = groupByQueue(current);
   const baselineGroups = groupByQueue(baseline);
   const candidates: QueueCandidate[] = [];
@@ -49,30 +52,46 @@ export function detectQueueDegradation(current: QueueTrace[], baseline: QueueTra
     if (samples.length < MIN_SAMPLES) continue;
 
     const baselineSamples = baselineGroups.get(key) ?? [];
-    const p50Duration = percentile(samples.map((sample) => sample.duration), 0.5);
-    const p95Duration = percentile(samples.map((sample) => sample.duration), 0.95);
-    const p99Duration = percentile(samples.map((sample) => sample.duration), 0.99);
+    const p50Duration = percentile(
+      samples.map((sample) => sample.duration),
+      0.5,
+    );
+    const p95Duration = percentile(
+      samples.map((sample) => sample.duration),
+      0.95,
+    );
+    const p99Duration = percentile(
+      samples.map((sample) => sample.duration),
+      0.99,
+    );
     const errorCount = samples.filter(isError).length;
     const errorRate = errorCount / samples.length;
-    const baselineP95 = baselineSamples.length >= MIN_SAMPLES
-      ? percentile(baselineSamples.map((sample) => sample.duration), 0.95)
-      : undefined;
-    const p95DurationChangePercent = baselineP95 !== undefined && baselineP95 > 0
-      ? ((p95Duration - baselineP95) / baselineP95) * 100
-      : undefined;
+    const baselineP95 =
+      baselineSamples.length >= MIN_SAMPLES
+        ? percentile(
+            baselineSamples.map((sample) => sample.duration),
+            0.95,
+          )
+        : undefined;
+    const p95DurationChangePercent =
+      baselineP95 !== undefined && baselineP95 > 0
+        ? ((p95Duration - baselineP95) / baselineP95) * 100
+        : undefined;
 
     const degradationSignals: string[] = [];
     if (
       p95Duration >= LATENCY_THRESHOLD_MS ||
-      (p95DurationChangePercent !== undefined && p95DurationChangePercent >= LATENCY_REGRESSION_PERCENT)
+      (p95DurationChangePercent !== undefined &&
+        p95DurationChangePercent >= LATENCY_REGRESSION_PERCENT)
     ) {
-      degradationSignals.push('latency');
+      degradationSignals.push("latency");
     }
-    if (errorRate >= ERROR_RATE_THRESHOLD) degradationSignals.push('errors');
+    if (errorRate >= ERROR_RATE_THRESHOLD) degradationSignals.push("errors");
     if (degradationSignals.length < 2) continue;
 
-    const [serviceName, queueType, queueName, operationName] = key.split('|');
-    if (!serviceName || !queueName || !queueType || !isQueueType(queueType)) continue;
+    const [serviceName, queueType, queueName, operationName] = key.split("|");
+    if (!serviceName || !queueName || !queueType || !isQueueType(queueType))
+      continue;
 
     candidates.push({
       serviceName,
@@ -86,22 +105,25 @@ export function detectQueueDegradation(current: QueueTrace[], baseline: QueueTra
         p99Duration,
         errorCount,
         errorRate,
-        ...(p95DurationChangePercent !== undefined ? { p95DurationChangePercent } : {}),
+        ...(p95DurationChangePercent !== undefined
+          ? { p95DurationChangePercent }
+          : {}),
         degradationSignals,
       },
       samples: samples.slice(0, 20),
       identity: createTelemetryIdentity({
-        domain: 'dependency',
+        domain: "dependency",
         serviceName,
         operationName: operationName || queueName,
         identityAttributes: {
-          dependencyType: 'queue',
+          dependencyType: "queue",
           queueType,
           queueName,
           ...(operationName ? { queueOperation: operationName } : {}),
         },
       }),
-      recommendation: 'Inspect queue publish/consume latency, broker errors, retries, consumer concurrency, and queue pressure. Check whether slow consumers, retry loops, or broker saturation explain the degradation.',
+      recommendation:
+        "Inspect queue publish/consume latency, broker errors, retries, consumer concurrency, and queue pressure. Check whether slow consumers, retry loops, or broker saturation explain the degradation.",
     });
   }
 
@@ -111,8 +133,20 @@ export function detectQueueDegradation(current: QueueTrace[], baseline: QueueTra
 function groupByQueue(samples: QueueTrace[]): Map<string, QueueTrace[]> {
   const groups = new Map<string, QueueTrace[]>();
   for (const sample of samples) {
-    if (!sample.service || !sample.queueName || !sample.queueType || !Number.isFinite(sample.duration) || sample.duration < 0) continue;
-    const key = [sample.service, sample.queueType, sample.queueName, sample.operationName ?? ''].join('|');
+    if (
+      !sample.service ||
+      !sample.queueName ||
+      !sample.queueType ||
+      !Number.isFinite(sample.duration) ||
+      sample.duration < 0
+    )
+      continue;
+    const key = [
+      sample.service,
+      sample.queueType,
+      sample.queueName,
+      sample.operationName ?? "",
+    ].join("|");
     const group = groups.get(key) ?? [];
     group.push(sample);
     groups.set(key, group);
@@ -121,11 +155,19 @@ function groupByQueue(samples: QueueTrace[]): Map<string, QueueTrace[]> {
 }
 
 function isQueueType(value: string): value is QueueType {
-  return value === 'kafka' || value === 'nats' || value === 'rabbitmq' || value === 'other';
+  return (
+    value === "kafka" ||
+    value === "nats" ||
+    value === "rabbitmq" ||
+    value === "other"
+  );
 }
 
 function isError(sample: QueueTrace): boolean {
-  return Boolean(sample.errorType) || (sample.statusCode !== undefined && sample.statusCode >= 500);
+  return (
+    Boolean(sample.errorType) ||
+    (sample.statusCode !== undefined && sample.statusCode >= 500)
+  );
 }
 
 function percentile(values: number[], rank: number): number {
@@ -135,5 +177,8 @@ function percentile(values: number[], rank: number): number {
   const lower = Math.floor(index);
   const upper = Math.ceil(index);
   if (lower === upper) return sorted[lower] ?? 0;
-  return (sorted[lower] ?? 0) + ((sorted[upper] ?? 0) - (sorted[lower] ?? 0)) * (index - lower);
+  return (
+    (sorted[lower] ?? 0) +
+    ((sorted[upper] ?? 0) - (sorted[lower] ?? 0)) * (index - lower)
+  );
 }

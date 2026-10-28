@@ -4,7 +4,7 @@ import type {
   PerformanceSignal,
   PerformanceWindow,
   PersistenceResult,
-} from './performance.types';
+} from "./performance.types";
 
 export interface PerformanceThresholds {
   minimumBaselineSamples: number;
@@ -36,28 +36,32 @@ export function evaluateLatency(
   if (!isPositiveFinite(observedMs)) return undefined;
   if (!hasBaseline(baseline, thresholds.minimumBaselineSamples)) {
     return {
-      metric: 'latency',
+      metric: "latency",
       observedValue: observedMs,
-      unit: 'ms',
-      severity: 'candidate',
-      reason: 'No sufficiently sampled comparable baseline is available.',
+      unit: "ms",
+      severity: "candidate",
+      reason: "No sufficiently sampled comparable baseline is available.",
     };
   }
 
   const change = (observedMs - baseline.value) / baseline.value;
   const absoluteIncrease = observedMs - baseline.value;
-  if (absoluteIncrease < thresholds.latencyWarningAbsoluteMs || change < thresholds.latencyWarningRelative) {
+  if (
+    absoluteIncrease < thresholds.latencyWarningAbsoluteMs ||
+    change < thresholds.latencyWarningRelative
+  ) {
     return undefined;
   }
 
   return {
-    metric: 'latency',
+    metric: "latency",
     observedValue: observedMs,
-    unit: 'ms',
+    unit: "ms",
     baselineValue: baseline.value,
     changePercent: change * 100,
-    severity: change >= thresholds.latencyCriticalRelative ? 'critical' : 'warning',
-    reason: 'Latency increased materially against the comparable baseline.',
+    severity:
+      change >= thresholds.latencyCriticalRelative ? "critical" : "warning",
+    reason: "Latency increased materially against the comparable baseline.",
   };
 }
 
@@ -66,21 +70,30 @@ export function evaluateThroughput(
   baseline: PerformanceBaseline | undefined,
   thresholds: PerformanceThresholds = DEFAULT_PERFORMANCE_THRESHOLDS,
 ): PerformanceSignal | undefined {
-  if (!Number.isFinite(observedRequests) || observedRequests < 0) return undefined;
-  if (!hasBaseline(baseline, thresholds.minimumBaselineSamples) || baseline.value <= 0) return undefined;
+  if (!Number.isFinite(observedRequests) || observedRequests < 0)
+    return undefined;
+  if (
+    !hasBaseline(baseline, thresholds.minimumBaselineSamples) ||
+    baseline.value <= 0
+  )
+    return undefined;
 
   const change = (observedRequests - baseline.value) / baseline.value;
   const decrease = -change;
   if (decrease < thresholds.throughputWarningDecrease) return undefined;
 
   return {
-    metric: 'throughput',
+    metric: "throughput",
     observedValue: observedRequests,
-    unit: 'requests',
+    unit: "requests",
     baselineValue: baseline.value,
     changePercent: change * 100,
-    severity: decrease >= thresholds.throughputCriticalDecrease ? 'critical' : 'warning',
-    reason: 'Request throughput dropped materially against the comparable baseline.',
+    severity:
+      decrease >= thresholds.throughputCriticalDecrease
+        ? "critical"
+        : "warning",
+    reason:
+      "Request throughput dropped materially against the comparable baseline.",
   };
 }
 
@@ -89,7 +102,11 @@ export function evaluateTraceContribution(
   traceDurationMs: number,
   thresholds: PerformanceThresholds = DEFAULT_PERFORMANCE_THRESHOLDS,
 ): PerformanceSignal | undefined {
-  if (!isPositiveFinite(spanDurationMs) || !isPositiveFinite(traceDurationMs) || spanDurationMs > traceDurationMs) {
+  if (
+    !isPositiveFinite(spanDurationMs) ||
+    !isPositiveFinite(traceDurationMs) ||
+    spanDurationMs > traceDurationMs
+  ) {
     return undefined;
   }
 
@@ -97,11 +114,14 @@ export function evaluateTraceContribution(
   if (contribution < thresholds.traceWarningContribution) return undefined;
 
   return {
-    metric: 'trace_contribution',
+    metric: "trace_contribution",
     observedValue: contribution * 100,
-    unit: '%',
-    severity: contribution >= thresholds.traceCriticalContribution ? 'critical' : 'warning',
-    reason: 'A single span contributes a large share of the trace duration.',
+    unit: "%",
+    severity:
+      contribution >= thresholds.traceCriticalContribution
+        ? "critical"
+        : "warning",
+    reason: "A single span contributes a large share of the trace duration.",
   };
 }
 
@@ -109,8 +129,13 @@ export function compareImpact(
   affected: PerformanceBaseline,
   unaffected: PerformanceBaseline,
 ): PerformanceImpact | undefined {
-  if (!isPositiveFinite(affected.value) || !isPositiveFinite(unaffected.value) ||
-      affected.samples <= 0 || unaffected.samples <= 0) return undefined;
+  if (
+    !isPositiveFinite(affected.value) ||
+    !isPositiveFinite(unaffected.value) ||
+    affected.samples <= 0 ||
+    unaffected.samples <= 0
+  )
+    return undefined;
 
   return {
     affectedValue: affected.value,
@@ -140,11 +165,13 @@ function hasBaseline(
   baseline: PerformanceBaseline | undefined,
   minimumSamples: number,
 ): baseline is PerformanceBaseline {
-  return baseline !== undefined &&
+  return (
+    baseline !== undefined &&
     Number.isFinite(baseline.value) &&
     baseline.value >= 0 &&
     Number.isFinite(baseline.samples) &&
-    baseline.samples >= minimumSamples;
+    baseline.samples >= minimumSamples
+  );
 }
 
 function isPositiveFinite(value: number): boolean {

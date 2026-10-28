@@ -1,11 +1,11 @@
 export type TelemetryDomain =
-  | 'performance'
-  | 'error'
-  | 'database'
-  | 'dependency'
-  | 'runtime'
-  | 'infrastructure'
-  | 'ai';
+  | "performance"
+  | "error"
+  | "database"
+  | "dependency"
+  | "runtime"
+  | "infrastructure"
+  | "ai";
 
 export interface TelemetryIdentity {
   domain: TelemetryDomain;
