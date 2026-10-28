@@ -4,8 +4,10 @@ import { Activity, AlertTriangle, ArrowUpRight, BrainCircuit, CheckCircle2, Cloc
 import { Card, CardContent } from '~/components/ui/card';
 import { Skeleton } from '~/components/ui/skeleton';
 import { api } from '~/lib/api';
-import { dashboardOverview, type DashboardOverview } from '~/data/dashboard-overview';
+import { type DashboardOverview } from '~/data/dashboard-overview';
 import { useProject } from '~/lib/project-context';
+import { telemetryRangeParams, type TelemetryRange, TimeRangeControl } from '~/components/telemetry/time-range-control';
+import { useState } from 'react';
 
 export const Route = createFileRoute('/$organizationSlug/dashboard')({
   component: DashboardOverviewPage,
@@ -14,17 +16,29 @@ export const Route = createFileRoute('/$organizationSlug/dashboard')({
 function DashboardOverviewPage() {
   const { organizationSlug } = Route.useParams();
   const { projectId } = useProject();
+  const [range, setRange] = useState<TelemetryRange>('24h');
+  const { from, to } = telemetryRangeParams(range);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['dashboard-overview', projectId],
-    queryFn: () => api.get<DashboardOverview>(`/dashboard/overview?projectId=${projectId}`),
+    queryFn: () => api.get<DashboardOverview>(`/projects/${projectId}/dashboard/overview`),
+    enabled: !!projectId,
+  });
+
+  const { data: metricsData } = useQuery({
+    queryKey: ['dashboard-metrics', projectId, range],
+    queryFn: () =>
+      api.get<{ buckets: Array<{ bucket: string; count: number }> }>(
+        `/metrics?projectId=${encodeURIComponent(projectId!)}&from=${from}&to=${to}&interval=30m`,
+      ),
     enabled: !!projectId,
   });
 
   if (!projectId) return <EmptyProject />;
   if (isLoading) return <OverviewSkeleton />;
+  if (isError || !data) return <OverviewSkeleton />;
 
-  const live = data && data.totalRequests > 0 ? data : dashboardOverview;
+  const live = data;
   const score = live.score;
   const health = score >= 90 ? 'Healthy' : score >= 70 ? 'Needs attention' : 'Investigate';
   const healthTone = score >= 90 ? 'text-[#ACFC15]' : score >= 70 ? 'text-[#9A6500]' : 'text-[#8A1C13]';
@@ -33,12 +47,7 @@ function DashboardOverviewPage() {
     <div className="min-h-full w-full">
       <div className="mx-auto max-w-[1440px] space-y-5">
         <h1 className="sr-only">Overview</h1>
-        <div className="flex justify-end">
-          <div className="flex items-center gap-2 rounded-full border border-[#242426] bg-[#0B0B0C] px-3 py-2 text-xs text-[#989898] shadow-[0_1px_2px_rgba(24,32,18,.03)]">
-            <span className="h-2 w-2 rounded-full bg-[#ACFC15]" />
-            Last 24 hours
-          </div>
-        </div>
+        <TimeRangeControl value={range} onChange={setRange} />
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Metric label="Health score" value={String(score)} suffix="/100" icon={Gauge} tone="dark" detail={health} />
@@ -52,15 +61,19 @@ function DashboardOverviewPage() {
             <CardContent className="p-0">
               <div className="flex items-start justify-between border-b border-[#1B1B1D] px-5 py-5 sm:px-6">
                 <h2 className="text-sm font-semibold text-[#F6F6F6]">Traffic & latency</h2>
-                <button type="button" className="rounded-lg border border-[#242426] px-3 py-1.5 text-xs text-[#989898]">24h</button>
+                <button type="button" className="rounded-lg border border-[#242426] px-3 py-1.5 text-xs text-[#989898]">{range}</button>
               </div>
               <div className="px-5 pb-6 pt-4 sm:px-6">
                 <div className="flex h-[260px] items-end gap-2 border-b border-[#1B1B1D] pb-0">
-                  {[36,48,43,62,56,70,64,76,68,82,74,88,80,91,84,96,87,78,86,72,81,67,75,63].map((height, index) => (
-                    <div key={index} className="group flex h-full flex-1 items-end">
-                      <div className="w-full rounded-t-[5px] bg-[#415312] transition-colors group-hover:bg-[#ACFC15]" style={{ height: `${height}%` }} />
-                    </div>
-                  ))}
+                  {(metricsData?.buckets ?? []).map((bucket, index) => {
+                    const max = Math.max(1, ...((metricsData?.buckets ?? []).map((b) => b.count)));
+                    const height = Math.max(6, (bucket.count / max) * 100);
+                    return (
+                      <div key={index} className="group flex h-full flex-1 items-end">
+                        <div className="w-full rounded-t-[5px] bg-[#415312] transition-colors group-hover:bg-[#ACFC15]" style={{ height: `${height}%` }} title={`${new Date(bucket.bucket).toLocaleString()}: ${bucket.count} requests`} />
+                      </div>
+                    );
+                  })}
                 </div>
                 <div className="mt-3 flex justify-between text-[10px] text-[#6E6E70]"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>Now</span></div>
                 <div className="mt-5 grid grid-cols-3 gap-4 border-t border-[#1B1B1D] pt-5">
