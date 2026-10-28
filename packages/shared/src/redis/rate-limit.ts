@@ -1,5 +1,10 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { Redis } from 'ioredis';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from "@nestjs/common";
+import { Redis } from "ioredis";
 
 @Injectable()
 export class RateLimiter implements OnModuleInit, OnModuleDestroy {
@@ -9,13 +14,16 @@ export class RateLimiter implements OnModuleInit, OnModuleDestroy {
   private connected = false;
 
   constructor() {
-    this.rateLimitPerMinute = parseInt(process.env.RATE_LIMIT_PER_MINUTE || '10000', 10);
-    this.redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+    this.rateLimitPerMinute = parseInt(
+      process.env.RATE_LIMIT_PER_MINUTE || "10000",
+      10,
+    );
+    this.redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379", {
       lazyConnect: true,
       maxRetriesPerRequest: 1,
     });
-    this.redis.on('error', (error: Error) =>
-      this.logger.error('Rate limiter Redis error', error),
+    this.redis.on("error", (error: Error) =>
+      this.logger.error("Rate limiter Redis error", error),
     );
   }
 
@@ -23,9 +31,12 @@ export class RateLimiter implements OnModuleInit, OnModuleDestroy {
     try {
       await this.redis.connect();
       this.connected = true;
-      this.logger.log('Rate limiter Redis connected');
+      this.logger.log("Rate limiter Redis connected");
     } catch (error) {
-      this.logger.warn('Rate limiter Redis unavailable; fail-open', error as Error);
+      this.logger.warn(
+        "Rate limiter Redis unavailable; fail-open",
+        error as Error,
+      );
       this.connected = false;
     }
   }
