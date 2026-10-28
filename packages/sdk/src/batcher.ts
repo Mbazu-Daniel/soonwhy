@@ -1,7 +1,13 @@
-import type { ResolvedOptions } from './config.js';
-import { toErrorLog, toLogsPayload, toMetricsPayload } from './otlp.js';
-import type { ErrorInput, FlushResult, LogInput, MetricInput, ResourceOptions } from './types.js';
-import type { TelemetryTransport } from './transport.js';
+import type { ResolvedOptions } from "./config.js";
+import { toErrorLog, toLogsPayload, toMetricsPayload } from "./otlp.js";
+import type {
+  ErrorInput,
+  FlushResult,
+  LogInput,
+  MetricInput,
+  ResourceOptions,
+} from "./types.js";
+import type { TelemetryTransport } from "./transport.js";
 
 export class TelemetryBatcher {
   private readonly logs: LogInput[] = [];
@@ -53,8 +59,18 @@ export class TelemetryBatcher {
     let dropped = 0;
 
     const results = await Promise.all([
-      logs.length ? this.transport.send('logs', toLogsPayload(logs, this.resource, '0.1.0', this.options)) : Promise.resolve(true),
-      metrics.length ? this.transport.send('metrics', toMetricsPayload(metrics, this.resource, '0.1.0', this.options)) : Promise.resolve(true),
+      logs.length
+        ? this.transport.send(
+            "logs",
+            toLogsPayload(logs, this.resource, "0.1.0", this.options),
+          )
+        : Promise.resolve(true),
+      metrics.length
+        ? this.transport.send(
+            "metrics",
+            toMetricsPayload(metrics, this.resource, "0.1.0", this.options),
+          )
+        : Promise.resolve(true),
     ]);
 
     if (logs.length) {
@@ -72,6 +88,7 @@ export class TelemetryBatcher {
   }
 
   private scheduleFlushIfFull(): void {
-    if (this.logs.length + this.metrics.length >= this.options.batchSize) void this.flush();
+    if (this.logs.length + this.metrics.length >= this.options.batchSize)
+      void this.flush();
   }
 }

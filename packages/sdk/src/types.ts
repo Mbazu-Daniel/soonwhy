@@ -7,7 +7,7 @@ export type AttributeValue =
   | { [key: string]: AttributeValue };
 
 export type Attributes = Record<string, AttributeValue>;
-export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
+export type LogLevel = "trace" | "debug" | "info" | "warn" | "error" | "fatal";
 
 export interface LogInput {
   level?: LogLevel;

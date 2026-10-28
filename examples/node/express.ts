@@ -1,27 +1,30 @@
-import { initNode } from '@soonwhy/sdk/node';
+import { initNode } from "@soonwhy/sdk/node";
+
+const apiKey = process.env.SOONWHY_API_KEY;
+if (!apiKey) throw new Error("SOONWHY_API_KEY is required");
 
 const sdk = initNode({
-  apiKey: process.env.SOONWHY_API_KEY ?? '',
+  apiKey,
   endpoint: process.env.SOONWHY_ENDPOINT,
-  serviceName: 'soonwhy-example-express',
-  environment: '4c-validation',
+  serviceName: "soonwhy-example-express",
+  environment: "4c-validation",
 });
 
-const { default: express } = await import('express');
+const { default: express } = await import("express");
 
 const app = express();
 
-app.get('/slow', async (_request, response) => {
+app.get("/slow", async (_request, response) => {
   await new Promise((resolve) => setTimeout(resolve, 250));
   response.json({ ok: true });
 });
 
-app.get('/failure', () => {
-  throw new Error('4C example failure');
+app.get("/failure", () => {
+  throw new Error("4C example failure");
 });
 
 const server = app.listen(3000, () => {
-  console.log('Express example listening on http://localhost:3000');
+  console.log("Express example listening on http://localhost:3000");
 });
 
 const close = async () => {
@@ -29,5 +32,5 @@ const close = async () => {
   await sdk.shutdown();
 };
 
-process.once('SIGINT', () => void close());
-process.once('SIGTERM', () => void close());
+process.once("SIGINT", () => void close());
+process.once("SIGTERM", () => void close());
