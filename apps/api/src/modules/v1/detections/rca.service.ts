@@ -1,10 +1,11 @@
-import type { CorrelatedBottleneck } from './detection.correlation';
-import { buildRcaEvidence } from './rca.evidence';
-import { validateRcaAnalysis } from './rca.validation';
-import type { RcaProvider, RcaProviderResult } from './rca.types';
+import type { CorrelatedBottleneck } from "./detection.correlation";
+import { buildRcaEvidence } from "./rca.evidence";
+import { validateRcaAnalysis } from "./rca.validation";
+import type { RcaProviderResult } from "./rca.types";
+import { MastraRcaProvider } from "./rca.provider";
 
 export class RcaService {
-  constructor(private readonly provider: RcaProvider) {}
+  constructor(private readonly provider: MastraRcaProvider) {}
 
   async analyze(
     projectId: string,

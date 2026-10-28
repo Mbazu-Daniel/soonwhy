@@ -1,6 +1,6 @@
-import { z } from 'zod';
-import type { RcaAnalysis, RcaEvidence } from './rca.types';
-import { validateRcaQuality } from './rca.quality';
+import { z } from "zod";
+import type { RcaAnalysis, RcaEvidence } from "./rca.types";
+import { validateRcaQuality } from "./rca.quality";
 
 const RcaString = z.string().trim().min(1).max(4_000);
 
@@ -12,7 +12,7 @@ export const RcaAnalysisSchema = z
     investigationSteps: z.array(RcaString).max(10),
     suggestedChanges: z.array(RcaString).max(10),
     evidenceRefs: z.array(z.string().trim().min(1).max(200)).max(50),
-    confidence: z.enum(['low', 'medium', 'high']),
+    confidence: z.enum(["low", "medium", "high"]),
     limitations: z.array(RcaString).max(10),
   })
   .strict();

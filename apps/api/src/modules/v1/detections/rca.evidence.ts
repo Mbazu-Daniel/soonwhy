@@ -1,17 +1,17 @@
-import type { CorrelatedBottleneck } from './detection.correlation';
-import type { DetectionEvidence } from '../../../common/db/schema/findings';
-import type { RcaEvidence, RcaEvidenceItem } from './rca.types';
-import { sanitizeRcaContext, sanitizeRcaValue } from './rca.security';
+import type { CorrelatedBottleneck } from "./detection.correlation";
+import type { DetectionEvidence } from "../../../common/db/schema/findings";
+import type { RcaEvidence, RcaEvidenceItem } from "./rca.types";
+import { sanitizeRcaContext, sanitizeRcaValue } from "./rca.security";
 
 function toItem(
   findingId: string,
-  type: RcaEvidenceItem['type'],
-  severity: RcaEvidenceItem['severity'],
+  type: RcaEvidenceItem["type"],
+  severity: RcaEvidenceItem["severity"],
   evidence: DetectionEvidence,
   index: number,
 ): RcaEvidenceItem {
   return {
-    id: findingId + ':' + index,
+    id: findingId + ":" + index,
     sourceFindingId: findingId,
     type,
     severity,
@@ -23,8 +23,8 @@ function toItem(
 
 function collect(
   findingId: string,
-  type: RcaEvidenceItem['type'],
-  severity: RcaEvidenceItem['severity'],
+  type: RcaEvidenceItem["type"],
+  severity: RcaEvidenceItem["severity"],
   evidence: DetectionEvidence[],
   predicate: (item: DetectionEvidence) => boolean,
 ): RcaEvidenceItem[] {
@@ -42,18 +42,20 @@ export function buildRcaEvidence(
     bottleneck.latency.type,
     bottleneck.latency.severity,
     {
-      kind: 'metric',
-      label: 'primary-latency',
+      kind: "metric",
+      label: "primary-latency",
       value: bottleneck.latency.observedValue,
       context: {
         threshold: bottleneck.latency.threshold,
         unit: bottleneck.latency.unit,
-        baselineValue: bottleneck.latency.evidence
-          .find((item) => item.context?.baselineValue !== undefined)
-          ?.context?.baselineValue ?? null,
-        changePercent: bottleneck.latency.evidence
-          .find((item) => item.context?.changePercent !== undefined)
-          ?.context?.changePercent ?? null,
+        baselineValue:
+          bottleneck.latency.evidence.find(
+            (item) => item.context?.baselineValue !== undefined,
+          )?.context?.baselineValue ?? null,
+        changePercent:
+          bottleneck.latency.evidence.find(
+            (item) => item.context?.changePercent !== undefined,
+          )?.context?.changePercent ?? null,
       },
     },
     0,
@@ -65,7 +67,7 @@ export function buildRcaEvidence(
       finding.type,
       finding.severity,
       finding.evidence,
-      (item) => item.kind !== 'trace' && item.kind !== 'recommendation',
+      (item) => item.kind !== "trace" && item.kind !== "recommendation",
     ),
   );
 
@@ -75,7 +77,7 @@ export function buildRcaEvidence(
       finding.type,
       finding.severity,
       finding.evidence,
-      (item) => item.kind === 'trace',
+      (item) => item.kind === "trace",
     ),
   );
 
@@ -86,15 +88,15 @@ export function buildRcaEvidence(
         finding.type,
         finding.severity,
         finding.evidence,
-        (item) => item.kind === 'recommendation',
+        (item) => item.kind === "recommendation",
       ),
     ),
     {
-      id: bottleneck.latency.id + ':correlation-guidance',
+      id: bottleneck.latency.id + ":correlation-guidance",
       sourceFindingId: bottleneck.latency.id,
-      type: 'latency' as const,
+      type: "latency" as const,
       severity: bottleneck.latency.severity,
-      label: 'correlation-guidance',
+      label: "correlation-guidance",
       value: sanitizeRcaValue(bottleneck.recommendation) as string,
       context: sanitizeRcaContext({
         dependencyType: bottleneck.dependencyType ?? null,
@@ -106,8 +108,10 @@ export function buildRcaEvidence(
   return {
     projectId,
     serviceName: sanitizeRcaValue(bottleneck.serviceName) as string,
-    severity: bottleneck.supportingFindings.some((finding) => finding.severity === 'critical')
-      ? 'critical'
+    severity: bottleneck.supportingFindings.some(
+      (finding) => finding.severity === "critical",
+    )
+      ? "critical"
       : bottleneck.latency.severity,
     window: bottleneck.latency.window,
     primaryFinding,

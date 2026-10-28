@@ -1,6 +1,6 @@
-import { and, desc, eq } from 'drizzle-orm';
-import { db } from '../../../common/db';
-import { findings, rcaAnalyses } from '../../../common/db/schema';
+import { and, desc, eq } from "drizzle-orm";
+import { db } from "../../../common/db";
+import { findings, rcaAnalyses } from "../../../common/db/schema";
 
 export interface CreateRcaAnalysisInput {
   orgId: string;
@@ -25,7 +25,7 @@ export interface CreateRcaAnalysisInput {
 export class RcaAnalysisRepository {
   async create(input: CreateRcaAnalysisInput) {
     const [row] = await db.insert(rcaAnalyses).values(input).returning();
-    if (!row) throw new Error('Failed to persist RCA analysis');
+    if (!row) throw new Error("Failed to persist RCA analysis");
     return row;
   }
 
@@ -33,11 +33,13 @@ export class RcaAnalysisRepository {
     const [row] = await db
       .select()
       .from(rcaAnalyses)
-      .where(and(
-        eq(rcaAnalyses.orgId, orgId),
-        eq(rcaAnalyses.projectId, projectId),
-        eq(rcaAnalyses.findingId, findingId),
-      ))
+      .where(
+        and(
+          eq(rcaAnalyses.orgId, orgId),
+          eq(rcaAnalyses.projectId, projectId),
+          eq(rcaAnalyses.findingId, findingId),
+        ),
+      )
       .orderBy(desc(rcaAnalyses.createdAt))
       .limit(1);
     return row;
@@ -47,11 +49,13 @@ export class RcaAnalysisRepository {
     return db
       .select()
       .from(rcaAnalyses)
-      .where(and(
-        eq(rcaAnalyses.orgId, orgId),
-        eq(rcaAnalyses.projectId, projectId),
-        eq(rcaAnalyses.findingId, findingId),
-      ))
+      .where(
+        and(
+          eq(rcaAnalyses.orgId, orgId),
+          eq(rcaAnalyses.projectId, projectId),
+          eq(rcaAnalyses.findingId, findingId),
+        ),
+      )
       .orderBy(desc(rcaAnalyses.createdAt));
   }
 
@@ -59,11 +63,13 @@ export class RcaAnalysisRepository {
     const [row] = await db
       .select()
       .from(findings)
-      .where(and(
-        eq(findings.orgId, orgId),
-        eq(findings.projectId, projectId),
-        eq(findings.id, findingId),
-      ))
+      .where(
+        and(
+          eq(findings.orgId, orgId),
+          eq(findings.projectId, projectId),
+          eq(findings.id, findingId),
+        ),
+      )
       .limit(1);
     return row;
   }
