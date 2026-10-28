@@ -1,31 +1,32 @@
-import type { ResolvedOptions } from './config.js';
+import type { ResolvedOptions } from "./config.js";
 
-export type Signal = 'logs' | 'metrics';
+export type Signal = "logs" | "metrics";
+export type TelemetryTransport = HttpTelemetryTransport;
 
-export interface TelemetryTransport {
-  send(signal: Signal, payload: unknown): Promise<boolean>;
-}
-
-export class HttpTelemetryTransport implements TelemetryTransport {
+export class HttpTelemetryTransport {
   constructor(private readonly options: ResolvedOptions) {}
 
-  async send(signal: Signal, payload: unknown): Promise<boolean> {
+  async send(signal: Signal, payload: Record<string, unknown>): Promise<boolean> {
     const url = `${this.options.endpoint}/${signal}`;
     let attempt = 0;
 
     while (true) {
       try {
         const response = await this.options.fetch(url, {
-          method: 'POST',
+          method: "POST",
           headers: {
             authorization: `Bearer ${this.options.apiKey}`,
-            'content-type': 'application/json',
+            "content-type": "application/json",
           },
           body: JSON.stringify(payload),
         });
 
         if (response.ok) return true;
-        if (!isRetryableStatus(response.status) || attempt >= this.options.maxRetries) return false;
+        if (
+          !isRetryableStatus(response.status) ||
+          attempt >= this.options.maxRetries
+        )
+          return false;
       } catch {
         if (attempt >= this.options.maxRetries) return false;
       }

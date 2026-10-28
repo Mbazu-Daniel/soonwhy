@@ -1,7 +1,8 @@
+import type { Attributes, SoonwhyClient } from "../types.js";
 export type NodeSampling =
-  | { type: 'always_on' }
-  | { type: 'always_off' }
-  | { type: 'ratio'; ratio: number };
+  | { type: "always_on" }
+  | { type: "always_off" }
+  | { type: "ratio"; ratio: number };
 
 export interface NodeSdkOptions {
   apiKey: string;
@@ -11,6 +12,7 @@ export interface NodeSdkOptions {
   environment?: string;
   deployment?: string;
   resourceAttributes?: Record<string, string | number | boolean>;
+  attributes?: Attributes;
   timeoutMs?: number;
   sampling?: NodeSampling;
   registerShutdownHandlers?: boolean;
@@ -22,9 +24,17 @@ export interface NodeSdkOptions {
     redis?: boolean;
     ioredis?: boolean;
   };
+  batchSize?: number;
+  flushIntervalMs?: number;
+  maxRetries?: number;
+  fetch?: typeof globalThis.fetch;
+  sleep?: (delayMs: number) => Promise<void>;
+  redactSensitiveData?: boolean;
+  maxAttributeCount?: number;
+  maxAttributeValueLength?: number;
 }
 
-export interface NodeSdk {
+export interface NodeSdk extends SoonwhyClient {
   start(): void;
   shutdown(): Promise<void>;
   isStarted(): boolean;
