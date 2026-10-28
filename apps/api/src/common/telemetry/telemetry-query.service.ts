@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { QUICKWIT_INDEXES, QuickwitService } from '@soonwhy/shared';
-import { quickwitTenantQuery, quickwitTimestamp } from '../quickwit/query';
+import { Injectable } from "@nestjs/common";
+import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
+import { quickwitTenantQuery, quickwitTimestamp } from "../quickwit/query";
 
 export interface TelemetryRange {
   from: string;
@@ -37,14 +37,17 @@ export class TelemetryQueryService {
     return quickwitTenantQuery(
       query.orgId,
       query.projectId,
-      filters.length ? filters.join(' AND ') : '*',
+      filters.length ? filters.join(" AND ") : "*",
     );
   }
 
   search<T>(
     index: keyof typeof QUICKWIT_INDEXES,
     query: TelemetryQuery,
-    options: Omit<import('@soonwhy/shared').QuickwitSearchInput, 'query' | 'startTimestamp' | 'endTimestamp'> = {},
+    options: Omit<
+      import("@soonwhy/shared").QuickwitSearchInput,
+      "query" | "startTimestamp" | "endTimestamp"
+    > = {},
   ) {
     const range = { from: query.from, to: query.to };
     return this.quickwit.search<T>(QUICKWIT_INDEXES[index], {

@@ -1,5 +1,5 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { TenantRequest } from '../middleware/tenant-context.middleware';
+import { createParamDecorator, ExecutionContext } from "@nestjs/common";
+import { TenantRequest } from "../middleware/tenant-context.middleware";
 
 export interface OrgContext {
   orgId: string;
@@ -17,6 +17,6 @@ export const CurrentOrg = createParamDecorator(
       } as OrgContext;
     }
 
-    return data === 'orgId' ? request.orgId : request.userRole;
+    return data === "orgId" ? request.orgId : request.userRole;
   },
 );

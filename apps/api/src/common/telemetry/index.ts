@@ -1,2 +1,2 @@
-export * from './telemetry.module';
-export * from './telemetry-query.service';
+export * from "./telemetry.module";
+export * from "./telemetry-query.service";

@@ -1,8 +1,9 @@
-import { Module } from '@nestjs/common';
-import { TelemetryQueryService } from './telemetry-query.service';
+import { Module } from "@nestjs/common";
+import { QuickwitService } from "@soonwhy/shared";
+import { TelemetryQueryService } from "./telemetry-query.service";
 
 @Module({
-  providers: [TelemetryQueryService],
-  exports: [TelemetryQueryService],
+  providers: [QuickwitService, TelemetryQueryService],
+  exports: [QuickwitService, TelemetryQueryService],
 })
 export class TelemetryModule {}

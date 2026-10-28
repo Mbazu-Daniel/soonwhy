@@ -1,9 +1,11 @@
-import { betterAuth } from 'better-auth';
-import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { bearer, organization } from 'better-auth/plugins';
-import argon2 from 'argon2';
-import { db } from '../db';
-import * as schema from '../db/schema';
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { bearer, organization } from "better-auth/plugins";
+import argon2 from "argon2";
+import { db } from "../db";
+import * as schema from "../db/schema";
+import * as dotenv from "dotenv";
+dotenv.config();
 
 export const githubEnabled = Boolean(
   process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET,
@@ -14,22 +16,22 @@ export const googleEnabled = Boolean(
 );
 
 function organizationNameFromEmail(email: string): string {
-  const localPart = email.split('@')[0] ?? email;
-  const words = localPart
-    .replace(/[._-]+/g, ' ')
-    .replace(/\s+/g, ' ')
+  const localPart = email.split("@")[0] ?? email;
+  const first = localPart
+    .replace(/[._-]+/g, " ")
+    .replace(/\s+/g, " ")
     .trim()
-    .split(' ')
-    .filter(Boolean);
+    .split(" ")
+    .filter(Boolean)[0];
 
-  return words.length
-    ? words.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
-    : 'My Organization';
+  if (!first) return "My Organization";
+  return first.charAt(0).toUpperCase() + first.slice(1);
 }
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
-    provider: 'pg',
+    provider: "pg",
+    transaction: true,
     schema: {
       user: schema.users,
       account: schema.accounts,
@@ -38,6 +40,7 @@ export const auth = betterAuth({
       member: schema.members,
       organizations: schema.organizations,
       members: schema.members,
+      auditLogs: schema.auditLogs,
     },
   }),
   advanced: {
@@ -52,9 +55,9 @@ export const auth = betterAuth({
       verify: ({ hash, password }) => argon2.verify(hash, password),
     },
   },
-  emailVerification: {
-    sendOnSignUp: true,
-  },
+  // emailVerification: {
+  //   sendOnSignUp: true,
+  // },
   session: {
     expiresIn: 60 * 60 * 24 * 7,
     updateAge: 60 * 60 * 24,
@@ -78,10 +81,10 @@ export const auth = betterAuth({
     organization({
       schema: {
         organization: {
-          modelName: 'organizations',
+          modelName: "organizations",
         },
         member: {
-          modelName: 'members',
+          modelName: "members",
         },
       },
     }),
@@ -98,13 +101,11 @@ export const auth = betterAuth({
       },
     },
   },
-  trustedOrigins: [
-    process.env.FRONTEND_URL || 'http://localhost:3000',
-  ],
-  baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3001',
+  trustedOrigins: [process.env.FRONTEND_URL || "http://localhost:3000"],
+  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:8080",
   secret:
     process.env.BETTER_AUTH_SECRET ??
     (() => {
-      throw new Error('BETTER_AUTH_SECRET env var is required');
+      throw new Error("BETTER_AUTH_SECRET env var is required");
     })(),
 });
