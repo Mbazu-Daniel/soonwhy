@@ -1,19 +1,27 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { OrganizationsRepository } from './organizations.repository';
-import { CreateOrganizationInput, UpdateOrganizationInput } from './dto';
-import { auth } from '../../../common/config/better-auth.config';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from "@nestjs/common";
+import { OrganizationsRepository } from "./organizations.repository";
+import { ProjectsRepository } from "../projects/projects.repository";
+import { CreateOrganizationInput, UpdateOrganizationInput } from "./dto";
+import { auth } from "../../../common/config/better-auth.config";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const authApi = auth.api as any;
 
 @Injectable()
 export class OrganizationsService {
-  constructor(private readonly organizationsRepository: OrganizationsRepository) {}
+  constructor(
+    private readonly organizationsRepository: OrganizationsRepository,
+    private readonly projectsRepository: ProjectsRepository,
+  ) {}
 
   async getOrganizationById(id: string) {
     const org = await this.organizationsRepository.getOrganizationById(id);
     if (!org) {
-      throw new NotFoundException('Organization not found');
+      throw new NotFoundException("Organization not found");
     }
     return org;
   }
@@ -21,7 +29,7 @@ export class OrganizationsService {
   async getOrganizationBySlug(slug: string) {
     const org = await this.organizationsRepository.getOrganizationBySlug(slug);
     if (!org) {
-      throw new NotFoundException('Organization not found');
+      throw new NotFoundException("Organization not found");
     }
     return org;
   }
@@ -32,10 +40,16 @@ export class OrganizationsService {
     });
   }
 
-  async createOrganization(userId: string, input: CreateOrganizationInput, authorization?: string) {
-    const existing = await this.organizationsRepository.getOrganizationBySlug(input.slug);
+  async createOrganization(
+    userId: string,
+    input: CreateOrganizationInput,
+    authorization?: string,
+  ) {
+    const existing = await this.organizationsRepository.getOrganizationBySlug(
+      input.slug,
+    );
     if (existing) {
-      throw new ConflictException('Organization slug already exists');
+      throw new ConflictException("Organization slug already exists");
     }
 
     const result = await authApi.createOrganization({
@@ -47,19 +61,38 @@ export class OrganizationsService {
       },
     });
 
+    const organization =
+      result?.organization ?? result?.data?.organization ?? result;
+    const organizationId = organization?.id;
+
+    if (organizationId) {
+      try {
+        await this.projectsRepository.createProject({
+          organizationId,
+          name: "Default",
+          slug: "default",
+        });
+      } catch {
+        // Best-effort: organization creation should not fail if the
+        // default project already exists or cannot be created.
+      }
+    }
+
     return result;
   }
 
   async updateOrganization(id: string, input: UpdateOrganizationInput) {
     const org = await this.organizationsRepository.getOrganizationById(id);
     if (!org) {
-      throw new NotFoundException('Organization not found');
+      throw new NotFoundException("Organization not found");
     }
 
     if (input.slug && input.slug !== org.slug) {
-      const existing = await this.organizationsRepository.getOrganizationBySlug(input.slug);
+      const existing = await this.organizationsRepository.getOrganizationBySlug(
+        input.slug,
+      );
       if (existing) {
-        throw new ConflictException('Organization slug already exists');
+        throw new ConflictException("Organization slug already exists");
       }
     }
 
@@ -69,12 +102,16 @@ export class OrganizationsService {
   async deleteOrganization(id: string) {
     const org = await this.organizationsRepository.getOrganizationById(id);
     if (!org) {
-      throw new NotFoundException('Organization not found');
+      throw new NotFoundException("Organization not found");
     }
     return this.organizationsRepository.deleteOrganization(id);
   }
 
-  async addMemberToOrganization(organizationId: string, userId: string, role: string = 'member') {
+  async addMemberToOrganization(
+    organizationId: string,
+    userId: string,
+    role: string = "member",
+  ) {
     const result = await authApi.addMember({
       body: {
         userId,
