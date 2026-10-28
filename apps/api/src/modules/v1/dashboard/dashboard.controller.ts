@@ -1,47 +1,60 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
-import { DashboardService } from './dashboard.service';
-import { CurrentOrg, OrgContext } from '../../../common/decorators/current-org.decorator';
-import { TenantGuard } from '../../../common/middleware/tenant-context.guard';
+import { Controller, Get, Param, Query, UseGuards } from "@nestjs/common";
+import { DashboardService } from "./dashboard.service";
+import {
+  CurrentOrg,
+  OrgContext,
+} from "../../../common/decorators/current-org.decorator";
+import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
 
 @UseGuards(TenantGuard)
-@Controller('projects/:projectId/dashboard')
+@Controller("projects/:projectId/dashboard")
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
-  @Get('overview')
+  @Get("overview")
   async getOverview(
     @CurrentOrg() org: OrgContext,
-    @Param('projectId') projectId: string,
-    @Query('from') from?: string,
-    @Query('to') to?: string,
+    @Param("projectId") projectId: string,
+    @Query("from") from?: string,
+    @Query("to") to?: string,
   ) {
     return this.dashboardService.getOverview(org.orgId, projectId, from, to);
   }
 
-  @Get('telemetry-status')
-  async getTelemetryStatus(@CurrentOrg() org: OrgContext, @Param('projectId') projectId: string) {
+  @Get("telemetry-status")
+  async getTelemetryStatus(
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+  ) {
     return this.dashboardService.getTelemetryStatus(org.orgId, projectId);
   }
 
-  @Get('services')
+  @Get("services")
   async getServices(
     @CurrentOrg() org: OrgContext,
-    @Param('projectId') projectId: string,
-    @Query('from') from?: string,
-    @Query('to') to?: string,
+    @Param("projectId") projectId: string,
+    @Query("from") from?: string,
+    @Query("to") to?: string,
   ) {
     return this.dashboardService.getServices(org.orgId, projectId, from, to);
   }
 
-  @Get('errors')
+  @Get("errors")
   async getErrors(
     @CurrentOrg() org: OrgContext,
-    @Param('projectId') projectId: string,
-    @Query('limit') limit?: string,
-    @Query('from') from?: string,
-    @Query('to') to?: string,
-    @Query('service') service?: string,
+    @Param("projectId") projectId: string,
+    @Query("limit") limit?: string,
+    @Query("from") from?: string,
+    @Query("to") to?: string,
+    @Query("service") service?: string,
   ) {
-    return this.dashboardService.getErrors(org.orgId, projectId, limit ? parseInt(limit, 10) : 50, from, to, service);
+    return this.dashboardService.getErrors(
+      org.orgId,
+      projectId,
+      limit ? parseInt(limit, 10) : 50,
+      from,
+      to,
+      service,
+    );
   }
 }
