@@ -1,6 +1,14 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { ProjectsRepository } from './projects.repository';
-import { CreateProjectInput, UpdateProjectInput, UpdateProjectSettingsInput } from './dto';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { ProjectsRepository } from "./projects.repository";
+import {
+  CreateProjectInput,
+  UpdateProjectInput,
+  UpdateProjectSettingsInput,
+} from "./dto";
 
 @Injectable()
 export class ProjectsService {
@@ -8,7 +16,7 @@ export class ProjectsService {
 
   async getProjectById(id: string, orgId: string) {
     const project = await this.projectsRepository.getProjectById(id, orgId);
-    if (!project) throw new NotFoundException('Project not found');
+    if (!project) throw new NotFoundException("Project not found");
     return project;
   }
 
@@ -17,9 +25,15 @@ export class ProjectsService {
   }
 
   async createProject(orgId: string, input: CreateProjectInput) {
-    const existing = await this.projectsRepository.getProjectByOrgAndSlug(orgId, input.slug);
-    if (existing) throw new ConflictException('Project slug already exists in this organization');
-    return this.projectsRepository.createProject({ orgId, ...input });
+    const existing = await this.projectsRepository.getProjectByOrgAndSlug(
+      orgId,
+      input.slug,
+    );
+    if (existing)
+      throw new ConflictException(
+        "Project slug already exists in this organization",
+      );
+    return this.projectsRepository.createProject({ organizationId: orgId, ...input });
   }
 
   async updateProject(id: string, orgId: string, input: UpdateProjectInput) {
@@ -37,7 +51,11 @@ export class ProjectsService {
     return this.projectsRepository.getProjectSettings(id, orgId);
   }
 
-  async updateProjectSettings(id: string, orgId: string, input: UpdateProjectSettingsInput) {
+  async updateProjectSettings(
+    id: string,
+    orgId: string,
+    input: UpdateProjectSettingsInput,
+  ) {
     await this.getProjectById(id, orgId);
     return this.projectsRepository.updateProjectSettings(id, orgId, input);
   }

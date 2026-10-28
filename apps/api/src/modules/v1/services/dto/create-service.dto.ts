@@ -1,8 +1,12 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const CreateServiceDto = z.object({
   name: z.string().min(1).max(120),
-  slug: z.string().min(1).max(120).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  slug: z
+    .string()
+    .min(1)
+    .max(120)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   language: z.string().max(80).optional(),
   framework: z.string().max(120).optional(),
   repositoryUrl: z.string().url().max(500).optional(),
