@@ -1,13 +1,16 @@
 services:
   postgres:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: soonwhy
       POSTGRES_PASSWORD: soonwhy
       POSTGRES_DB: soonwhy
     # Host Postgres already listens on 5432. The container is still :5432 on the compose network.
     ports: ["5433:5432"]
-    volumes: [postgres-data:/var/lib/postgresql/data]
+    # Postgres 18+ expects the volume at /var/lib/postgresql (parent) so it can
+    # store data in a versioned subdirectory.
+    volumes: [postgres-data:/var/lib/postgresql]
+    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U soonwhy -d soonwhy"]
       interval: 5s
@@ -19,63 +22,59 @@ services:
     # Host Redis already listens on 6379. The container is still :6379 on the compose network.
     ports: ["6380:6379"]
     volumes: [redis-data:/data]
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  # nats:
-  #   image: nats:2.11-alpine
-  #   command: ["-js", "-m", "8222", "-sd", "/data"]
-  #   ports: ["4222:4222", "8222:8222"]
-  #   volumes: [nats-data:/data]
-  #   healthcheck:
-  #     test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8222/healthz"]
-  #     interval: 5s
-  #     timeout: 5s
-  #     retries: 10
-
-  minio:
-    image: ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: soonwhy
-      MINIO_ROOT_PASSWORD: soonwhy-secret
-    ports: ["9000:9000", "9001:9001"]
-    volumes: [minio-data:/data]
+  nats:
+    image: nats:2.11-alpine
+    command: ["-js", "-m", "8222", "-sd", "/data"]
+    ports: ["4222:4222", "8222:8222"]
+    volumes: [nats-data:/data]
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8222/healthz"]
       interval: 5s
-      timeout: 20s
+      timeout: 5s
       retries: 10
 
-  minio-init:
-    image: ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z
-    depends_on:
-      minio: {condition: service_healthy}
+  localstack:
+    image: localstack/localstack:3.8.1
     environment:
-      MC_HOST_local: http://soonwhy:soonwhy-secret@minio:9000
-    entrypoint: ["mc"]
-    command: ["mb", "--ignore-existing", "local/soonwhy-quickwit"]
-    restart: "on-failure"
+      SERVICES: s3
+      AWS_DEFAULT_REGION: us-east-1
+    volumes:
+      - localstack-data:/var/lib/localstack
+      - ./infra/localstack/init.sh:/etc/localstack/init/ready.d/init.sh:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:4566/_localstack/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   quickwit:
     image: quickwit/quickwit:0.9.0
     depends_on:
-      minio-init: {condition: service_completed_successfully}
+      localstack: {condition: service_healthy}
     command: run
     environment:
-      AWS_ACCESS_KEY_ID: soonwhy
-      AWS_SECRET_ACCESS_KEY: soonwhy-secret
-      QW_S3_ENDPOINT: http://minio:9000
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_REQUEST_CHECKSUM_CALCULATION: WHEN_REQUIRED
+      AWS_RESPONSE_CHECKSUM_VALIDATION: WHEN_REQUIRED
+      QW_S3_ENDPOINT: http://localstack:4566
       QW_S3_FORCE_PATH_STYLE_ACCESS: "true"
-      QW_METASTORE_URI: s3://soonwhy-quickwit/metastore
-      QW_DEFAULT_INDEX_ROOT_URI: s3://soonwhy-quickwit/indexes
+      QW_METASTORE_URI: file:///quickwit/qwdata/metastore
+      QW_DEFAULT_INDEX_ROOT_URI: file:///quickwit/qwdata/indexes
     ports: ["7280:7280"]
     volumes:
       - quickwit-data:/quickwit/qwdata
       - ./infra/quickwit/quickwit.yaml:/quickwit/config/quickwit.yaml:ro
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "quickwit", "index", "list", "--endpoint", "http://127.0.0.1:7280"]
       interval: 5s
@@ -83,13 +82,29 @@ services:
       retries: 20
       start_period: 20s
 
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.112.0
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    environment:
+      SOONWHY_API_KEY: ${SOONWHY_API_KEY:-}
+    volumes:
+      - ./infra/otel-collector/config.yaml:/etc/otel-collector-config.yaml:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    restart: unless-stopped
+    ports: ["4317:4317", "4318:4318", "8888:8888"]
+    depends_on:
+      ingest: {condition: service_started}
+    pid: host
+
   api:
     build: {context: ., target: build}
     environment:
       DATABASE_URL: postgres://soonwhy:soonwhy@postgres:5432/soonwhy
       REDIS_URL: redis://redis:6379
       QUICKWIT_URL: http://quickwit:7280
-      # NATS_URL: nats://nats:4222
+      NATS_URL: nats://nats:4222
       # FRONTEND_URL: http://localhost:3000
       BETTER_AUTH_URL: http://localhost:3001
       BETTER_AUTH_SECRET: replace-with-a-long-random-secret
@@ -104,21 +119,36 @@ services:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
       quickwit: {condition: service_healthy}
-      # nats: {condition: service_healthy}
-    ports: ["3001:3001"]
+      nats: {condition: service_healthy}
+    restart: unless-stopped
+    ports: []
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/api/v1/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
   ingest:
     build: {context: ., target: ingest}
     environment:
-      # NATS_URL: nats://nats:4222
+      DATABASE_URL: postgres://soonwhy:soonwhy@postgres:5432/soonwhy
+      NATS_URL: nats://nats:4222
       QUICKWIT_URL: http://quickwit:7280
       REDIS_URL: redis://redis:6379
       PORT: 3002
     depends_on:
-      # nats: {condition: service_healthy}
+      nats: {condition: service_healthy}
       redis: {condition: service_healthy}
       quickwit: {condition: service_healthy}
+    restart: unless-stopped
     ports: ["3002:3002"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3002/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
   cron:
     build: {context: ., target: cron}
@@ -126,30 +156,17 @@ services:
       DATABASE_URL: postgres://soonwhy:soonwhy@postgres:5432/soonwhy
       REDIS_URL: redis://redis:6379
       QUICKWIT_URL: http://quickwit:7280
-      # NATS_URL: nats://nats:4222
+      NATS_URL: nats://nats:4222
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
       quickwit: {condition: service_healthy}
-      # nats: {condition: service_healthy}
-
-  # ui:
-  #   build:
-  #     context: .
-  #     target: ui
-  #     args:
-  #       # Browser calls the published API port. The /api/v1 prefix is added in the client.
-  #       VITE_API_URL: http://localhost:3001
-  #   environment:
-  #     HOST: 0.0.0.0
-  #     PORT: "3000"
-  #   depends_on:
-  #     api: {condition: service_started}
-  #   ports: ["3000:3000"]
+      nats: {condition: service_healthy}
+    restart: unless-stopped
 
 volumes:
   postgres-data:
   redis-data:
-  # nats-data:
-  minio-data:
+  nats-data:
+  localstack-data:
   quickwit-data:

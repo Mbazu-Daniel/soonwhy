@@ -1,1 +1,0 @@
-declare module 'vite' { export interface Plugin { name:string; transformIndexHtml?:(...args:unknown[])=>unknown; } }
