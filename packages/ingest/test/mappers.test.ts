@@ -1,17 +1,17 @@
-import { describe, expect, it } from 'vitest';
-import { parseLogsPayload } from '../src/parse/logs';
-import { parseTracesPayload } from '../src/parse/traces';
-import { parseMetricsPayload } from '../src/parse/metrics';
+import { describe, expect, it } from "vitest";
+import { parseLogsPayload } from "../src/parse/logs";
+import { parseTracesPayload } from "../src/parse/traces";
+import { parseMetricsPayload } from "../src/parse/metrics";
 import {
   mapLogToRow,
   mapMetricToRow,
   mapSpanToRequestRow,
   mapSpanToTraceRow,
-} from '../src/parse/mappers';
+} from "../src/parse/mappers";
 
-const tenant = {
-  projectId: 'proj_1',
-  organizationId: 'org_1',
+const organization = {
+  projectId: "proj_1",
+  organizationId: "org_1",
   captureSettings: {
     redactSensitiveData: true,
     captureRequestHeaders: false,
@@ -22,17 +22,17 @@ const tenant = {
   },
 };
 
-describe('OTLP JSON parse + telemetry mappers', () => {
-  it('maps log records with canonical service and trace context', () => {
+describe("OTLP JSON parse + telemetry mappers", () => {
+  it("maps log records with canonical service and trace context", () => {
     const { records, rejected } = parseLogsPayload({
       resourceLogs: [
         {
           resource: {
             attributes: [
-              { key: 'service.name', value: { stringValue: 'api' } },
-              { key: 'service.version', value: { stringValue: '1.0.0' } },
-              { key: 'deployment.environment', value: { stringValue: 'prod' } },
-              { key: 'cloud.region', value: { stringValue: 'eu-west-1' } },
+              { key: "service.name", value: { stringValue: "api" } },
+              { key: "service.version", value: { stringValue: "1.0.0" } },
+              { key: "deployment.environment", value: { stringValue: "prod" } },
+              { key: "cloud.region", value: { stringValue: "eu-west-1" } },
             ],
           },
           scopeLogs: [
@@ -41,14 +41,20 @@ describe('OTLP JSON parse + telemetry mappers', () => {
                 {
                   timeUnixNano: String(BigInt(Date.now()) * 1_000_000n),
                   severityNumber: 9,
-                  severityText: 'INFO',
-                  body: { stringValue: 'request failed authorization=Bearer super-secret password=secret123' },
-                  traceId: 'a'.repeat(32),
-                  spanId: 'b'.repeat(16),
+                  severityText: "INFO",
+                  body: {
+                    stringValue:
+                      "request failed authorization=Bearer super-secret password=secret123",
+                  },
+                  traceId: "a".repeat(32),
+                  spanId: "b".repeat(16),
                   attributes: [
-                    { key: 'order.id', value: { stringValue: 'order_123' } },
-                    { key: 'authorization', value: { stringValue: 'Bearer secret' } },
-                    { key: 'api_key', value: { stringValue: 'secret-key' } },
+                    { key: "order.id", value: { stringValue: "order_123" } },
+                    {
+                      key: "authorization",
+                      value: { stringValue: "Bearer secret" },
+                    },
+                    { key: "api_key", value: { stringValue: "secret-key" } },
                   ],
                 },
               ],
@@ -60,26 +66,26 @@ describe('OTLP JSON parse + telemetry mappers', () => {
 
     expect(rejected).toBe(0);
     expect(records).toHaveLength(1);
-    const row = mapLogToRow(records[0]!, tenant);
-    expect(row.service).toBe('api');
-    expect(row.serviceVersion).toBe('1.0.0');
-    expect(row.environment).toBe('prod');
-    expect(row.region).toBe('eu-west-1');
-    expect(row.traceId).toBe('a'.repeat(32));
-    expect(row.spanId).toBe('b'.repeat(16));
+    const row = mapLogToRow(records[0]!, organization);
+    expect(row.service).toBe("api");
+    expect(row.serviceVersion).toBe("1.0.0");
+    expect(row.environment).toBe("prod");
+    expect(row.region).toBe("eu-west-1");
+    expect(row.traceId).toBe("a".repeat(32));
+    expect(row.spanId).toBe("b".repeat(16));
 
     const attrs = row.attributes as Record<string, unknown>;
-    expect(attrs.traceId).toBe('a'.repeat(32));
-    expect(attrs['order.id']).toBe('order_123');
+    expect(attrs.traceId).toBe("a".repeat(32));
+    expect(attrs["order.id"]).toBe("order_123");
     expect(attrs.authorization).toBeUndefined();
     expect(attrs.api_key).toBeUndefined();
-    expect(row.message).not.toContain('super-secret');
-    expect(row.message).not.toContain('secret123');
-    expect(row.message).toContain('authorization=');
-    expect(row.message).toContain('password=');
+    expect(row.message).not.toContain("super-secret");
+    expect(row.message).not.toContain("secret123");
+    expect(row.message).toContain("authorization=");
+    expect(row.message).toContain("password=");
   });
 
-  it('maps spans to traces and HTTP server spans to canonical request events', () => {
+  it("maps spans to traces and HTTP server spans to canonical request events", () => {
     const start = BigInt(Date.now()) * 1_000_000n;
     const end = start + 5_000_000n;
     const { spans, rejected } = parseTracesPayload({
@@ -87,29 +93,38 @@ describe('OTLP JSON parse + telemetry mappers', () => {
         {
           resource: {
             attributes: [
-              { key: 'service.name', value: { stringValue: 'api' } },
-              { key: 'service.version', value: { stringValue: '2.1.0' } },
-              { key: 'deployment.environment', value: { stringValue: 'prod' } },
-              { key: 'cloud.region', value: { stringValue: 'us-east-1' } },
+              { key: "service.name", value: { stringValue: "api" } },
+              { key: "service.version", value: { stringValue: "2.1.0" } },
+              { key: "deployment.environment", value: { stringValue: "prod" } },
+              { key: "cloud.region", value: { stringValue: "us-east-1" } },
             ],
           },
           scopeSpans: [
             {
               spans: [
                 {
-                  traceId: 'c'.repeat(32),
-                  spanId: 'd'.repeat(16),
-                  parentSpanId: '',
-                  name: 'GET /users',
+                  traceId: "c".repeat(32),
+                  spanId: "d".repeat(16),
+                  parentSpanId: "",
+                  name: "GET /users",
                   kind: 2,
                   startTimeUnixNano: String(start),
                   endTimeUnixNano: String(end),
                   status: { code: 1 },
                   attributes: [
-                    { key: 'http.request.method', value: { stringValue: 'GET' } },
-                    { key: 'http.route', value: { stringValue: '/users' } },
-                    { key: 'url.path', value: { stringValue: '/users?api_key=secret&token=abc' } },
-                    { key: 'http.response.status_code', value: { intValue: 200 } },
+                    {
+                      key: "http.request.method",
+                      value: { stringValue: "GET" },
+                    },
+                    { key: "http.route", value: { stringValue: "/users" } },
+                    {
+                      key: "url.path",
+                      value: { stringValue: "/users?api_key=secret&token=abc" },
+                    },
+                    {
+                      key: "http.response.status_code",
+                      value: { intValue: 200 },
+                    },
                   ],
                 },
               ],
@@ -121,49 +136,57 @@ describe('OTLP JSON parse + telemetry mappers', () => {
 
     expect(rejected).toBe(0);
     const span = spans[0]!;
-    const traceRow = mapSpanToTraceRow(span, tenant);
-    expect(traceRow.traceId).toBe('c'.repeat(32));
-    expect(traceRow.spanId).toBe('d'.repeat(16));
-    expect(traceRow.serviceVersion).toBe('2.1.0');
-    expect(traceRow.environment).toBe('prod');
-    expect(traceRow.region).toBe('us-east-1');
+    const traceRow = mapSpanToTraceRow(span, organization);
+    expect(traceRow.traceId).toBe("c".repeat(32));
+    expect(traceRow.spanId).toBe("d".repeat(16));
+    expect(traceRow.serviceVersion).toBe("2.1.0");
+    expect(traceRow.environment).toBe("prod");
+    expect(traceRow.region).toBe("us-east-1");
     expect(traceRow.duration).toBe(5);
 
-    const requestRow = mapSpanToRequestRow(span, tenant);
+    const requestRow = mapSpanToRequestRow(span, organization);
     expect(requestRow).not.toBeNull();
-    expect(requestRow!.method).toBe('GET');
-    expect(requestRow!.route).toBe('/users');
-    expect(requestRow!.url).toBe('/users');
+    expect(requestRow!.method).toBe("GET");
+    expect(requestRow!.route).toBe("/users");
+    expect(requestRow!.url).toBe("/users");
     expect(requestRow!.statusCode).toBe(200);
-    expect(requestRow!.traceId).toBe('c'.repeat(32));
-    expect(requestRow!.spanId).toBe('d'.repeat(16));
-    expect(requestRow!.serviceVersion).toBe('2.1.0');
+    expect(requestRow!.traceId).toBe("c".repeat(32));
+    expect(requestRow!.spanId).toBe("d".repeat(16));
+    expect(requestRow!.serviceVersion).toBe("2.1.0");
   });
 
-  it('normalizes client database spans for dependency detection', () => {
+  it("normalizes client database spans for dependency detection", () => {
     const start = BigInt(Date.now()) * 1_000_000n;
     const end = start + 800_000_000n;
     const { spans, rejected } = parseTracesPayload({
       resourceSpans: [
         {
           resource: {
-            attributes: [{ key: 'service.name', value: { stringValue: 'api' } }],
+            attributes: [
+              { key: "service.name", value: { stringValue: "api" } },
+            ],
           },
           scopeSpans: [
             {
               spans: [
                 {
-                  traceId: 'e'.repeat(32),
-                  spanId: 'f'.repeat(16),
-                  parentSpanId: 'd'.repeat(16),
-                  name: 'SELECT users',
+                  traceId: "e".repeat(32),
+                  spanId: "f".repeat(16),
+                  parentSpanId: "d".repeat(16),
+                  name: "SELECT users",
                   kind: 3,
                   startTimeUnixNano: String(start),
                   endTimeUnixNano: String(end),
                   status: { code: 1 },
                   attributes: [
-                    { key: 'db.system.name', value: { stringValue: 'postgresql' } },
-                    { key: 'server.address', value: { stringValue: 'postgres' } },
+                    {
+                      key: "db.system.name",
+                      value: { stringValue: "postgresql" },
+                    },
+                    {
+                      key: "server.address",
+                      value: { stringValue: "postgres" },
+                    },
                   ],
                 },
               ],
@@ -174,120 +197,187 @@ describe('OTLP JSON parse + telemetry mappers', () => {
     });
 
     expect(rejected).toBe(0);
-    const row = mapSpanToTraceRow(spans[0]!, tenant);
+    const row = mapSpanToTraceRow(spans[0]!, organization);
     expect(row.spanKind).toBe(3);
-    expect(row.dependencyType).toBe('database');
-    expect(row.dependencyName).toBe('postgresql');
+    expect(row.dependencyType).toBe("database");
+    expect(row.dependencyName).toBe("postgresql");
   });
 
-  it('normalizes Redis spans for dependency intelligence', () => {
+  it("normalizes Redis spans for dependency intelligence", () => {
     const start = BigInt(Date.now()) * 1_000_000n;
     const end = start + 80_000_000n;
     const { spans, rejected } = parseTracesPayload({
-      resourceSpans: [{
-        resource: { attributes: [{ key: 'service.name', value: { stringValue: 'api' } }] },
-        scopeSpans: [{ spans: [{
-          traceId: '3'.repeat(32),
-          spanId: '4'.repeat(16),
-          parentSpanId: '5'.repeat(16),
-          name: 'GET',
-          kind: 3,
-          startTimeUnixNano: String(start),
-          endTimeUnixNano: String(end),
-          status: { code: 1 },
-          attributes: [
-            { key: 'db.system.name', value: { stringValue: 'redis' } },
-            { key: 'server.address', value: { stringValue: 'redis.internal' } },
-            { key: 'db.operation.name', value: { stringValue: 'GET' } },
+      resourceSpans: [
+        {
+          resource: {
+            attributes: [
+              { key: "service.name", value: { stringValue: "api" } },
+            ],
+          },
+          scopeSpans: [
+            {
+              spans: [
+                {
+                  traceId: "3".repeat(32),
+                  spanId: "4".repeat(16),
+                  parentSpanId: "5".repeat(16),
+                  name: "GET",
+                  kind: 3,
+                  startTimeUnixNano: String(start),
+                  endTimeUnixNano: String(end),
+                  status: { code: 1 },
+                  attributes: [
+                    { key: "db.system.name", value: { stringValue: "redis" } },
+                    {
+                      key: "server.address",
+                      value: { stringValue: "redis.internal" },
+                    },
+                    { key: "db.operation.name", value: { stringValue: "GET" } },
+                  ],
+                },
+              ],
+            },
           ],
-        }] }],
-      }],
+        },
+      ],
     });
 
     expect(rejected).toBe(0);
-    const row = mapSpanToTraceRow(spans[0]!, tenant);
-    expect(row.dependencyType).toBe('redis');
-    expect(row.dependencyName).toBe('redis.internal');
+    const row = mapSpanToTraceRow(spans[0]!, organization);
+    expect(row.dependencyType).toBe("redis");
+    expect(row.dependencyName).toBe("redis.internal");
     expect(row.dbOperationName).toBeUndefined();
   });
 
-  it('stores sanitized database query identity attributes', () => {
+  it("stores sanitized database query identity attributes", () => {
     const start = BigInt(Date.now()) * 1_000_000n;
     const end = start + 800_000_000n;
     const { spans } = parseTracesPayload({
-      resourceSpans: [{
-        resource: {
-          attributes: [{ key: 'service.name', value: { stringValue: 'api' } }],
+      resourceSpans: [
+        {
+          resource: {
+            attributes: [
+              { key: "service.name", value: { stringValue: "api" } },
+            ],
+          },
+          scopeSpans: [
+            {
+              spans: [
+                {
+                  traceId: "1".repeat(32),
+                  spanId: "2".repeat(16),
+                  parentSpanId: "",
+                  name: "SELECT users",
+                  kind: 3,
+                  startTimeUnixNano: String(start),
+                  endTimeUnixNano: String(end),
+                  status: { code: 1 },
+                  attributes: [
+                    {
+                      key: "db.system.name",
+                      value: { stringValue: "postgresql" },
+                    },
+                    {
+                      key: "db.query.text",
+                      value: {
+                        stringValue:
+                          "SELECT * FROM users WHERE email = 'daniel@example.com' AND id = 42",
+                      },
+                    },
+                    {
+                      key: "db.query.summary",
+                      value: { stringValue: "SELECT users" },
+                    },
+                    {
+                      key: "db.operation.name",
+                      value: { stringValue: "SELECT" },
+                    },
+                    {
+                      key: "db.response.returned_rows",
+                      value: { intValue: 3 },
+                    },
+                    { key: "error.type", value: { stringValue: "timeout" } },
+                  ],
+                },
+              ],
+            },
+          ],
         },
-        scopeSpans: [{
-          spans: [{
-            traceId: '1'.repeat(32),
-            spanId: '2'.repeat(16),
-            parentSpanId: '',
-            name: 'SELECT users',
-            kind: 3,
-            startTimeUnixNano: String(start),
-            endTimeUnixNano: String(end),
-            status: { code: 1 },
-            attributes: [
-              { key: 'db.system.name', value: { stringValue: 'postgresql' } },
-              { key: 'db.query.text', value: { stringValue: "SELECT * FROM users WHERE email = 'daniel@example.com' AND id = 42" } },
-              { key: 'db.query.summary', value: { stringValue: 'SELECT users' } },
-              { key: 'db.operation.name', value: { stringValue: 'SELECT' } },
-              { key: 'db.response.returned_rows', value: { intValue: 3 } },
-              { key: 'error.type', value: { stringValue: 'timeout' } },
-            ],
-          }],
-        }],
-      }],
+      ],
     });
 
-    const row = mapSpanToTraceRow(spans[0]!, tenant);
-    expect(row.dbSystemName).toBe('postgresql');
-    expect(row.dbQuerySummary).toBe('SELECT users');
-    expect(row.dbOperationName).toBe('SELECT');
-    expect(row.dbQueryText).toBe('SELECT * FROM users WHERE email = ? AND id = ?');
+    const row = mapSpanToTraceRow(spans[0]!, organization);
+    expect(row.dbSystemName).toBe("postgresql");
+    expect(row.dbQuerySummary).toBe("SELECT users");
+    expect(row.dbOperationName).toBe("SELECT");
+    expect(row.dbQueryText).toBe(
+      "SELECT * FROM users WHERE email = ? AND id = ?",
+    );
     expect(row.dbReturnedRows).toBe(3);
-    expect(row.errorType).toBe('timeout');
+    expect(row.errorType).toBe("timeout");
   });
 
-  it('preserves database connection pool identity attributes', () => {
+  it("preserves database connection pool identity attributes", () => {
     const { points } = parseMetricsPayload({
-      resourceMetrics: [{
-        resource: { attributes: [{ key: 'service.name', value: { stringValue: 'api' } }] },
-        scopeMetrics: [{ metrics: [{
-          name: 'db.client.connection.count',
-          unit: '{connection}',
-          gauge: { dataPoints: [{
-            timeUnixNano: String(BigInt(Date.now()) * 1_000_000n),
-            asDouble: 9,
-            attributes: [
-              { key: 'db.client.connection.pool.name', value: { stringValue: 'primary' } },
-              { key: 'db.client.connection.state', value: { stringValue: 'used' } },
-            ],
-          }] },
-        }] }],
-      }],
-    });
-
-    const row = mapMetricToRow(points[0]!, tenant);
-    expect(row.connectionPoolName).toBe('primary');
-    expect(row.attributes['db.client.connection.state']).toBe('used');
-  });
-
-  it('maps gauge metrics into metrics table rows', () => {
-    const { points, rejected } = parseMetricsPayload({
       resourceMetrics: [
         {
           resource: {
-            attributes: [{ key: 'service.name', value: { stringValue: 'api' } }],
+            attributes: [
+              { key: "service.name", value: { stringValue: "api" } },
+            ],
           },
           scopeMetrics: [
             {
               metrics: [
                 {
-                  name: 'http.server.duration',
-                  unit: 'ms',
+                  name: "db.client.connection.count",
+                  unit: "{connection}",
+                  gauge: {
+                    dataPoints: [
+                      {
+                        timeUnixNano: String(BigInt(Date.now()) * 1_000_000n),
+                        asDouble: 9,
+                        attributes: [
+                          {
+                            key: "db.client.connection.pool.name",
+                            value: { stringValue: "primary" },
+                          },
+                          {
+                            key: "db.client.connection.state",
+                            value: { stringValue: "used" },
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const row = mapMetricToRow(points[0]!, organization);
+    expect(row.connectionPoolName).toBe("primary");
+    expect(row.attributes["db.client.connection.state"]).toBe("used");
+  });
+
+  it("maps gauge metrics into metrics table rows", () => {
+    const { points, rejected } = parseMetricsPayload({
+      resourceMetrics: [
+        {
+          resource: {
+            attributes: [
+              { key: "service.name", value: { stringValue: "api" } },
+            ],
+          },
+          scopeMetrics: [
+            {
+              metrics: [
+                {
+                  name: "http.server.duration",
+                  unit: "ms",
                   gauge: {
                     dataPoints: [
                       {
@@ -305,10 +395,10 @@ describe('OTLP JSON parse + telemetry mappers', () => {
     });
 
     expect(rejected).toBe(0);
-    const row = mapMetricToRow(points[0]!, tenant);
-    expect(row.name).toBe('http.server.duration');
+    const row = mapMetricToRow(points[0]!, organization);
+    expect(row.name).toBe("http.server.duration");
     expect(row.value).toBe(12.5);
-    expect(row.unit).toBe('ms');
-    expect(row.service).toBe('api');
+    expect(row.unit).toBe("ms");
+    expect(row.service).toBe("api");
   });
 });

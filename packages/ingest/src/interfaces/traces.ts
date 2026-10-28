@@ -1,4 +1,4 @@
-import type { ParsedResource } from './resource';
+import type { ParsedResource } from "./resource";
 
 export interface ParsedSpan {
   traceId: string;
