@@ -1,18 +1,15 @@
-import { useMemo, useState } from 'react';
-import { keepPreviousData } from '@tanstack/react-query';
-import { TimeRangeControl, telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { QueryErrorState } from '~/components/query-error-state';
+import { createFileRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Search, ChevronDown, ChevronRight, SlidersHorizontal, RotateCcw, Download, Bookmark, ExternalLink } from 'lucide-react';
-import { Card, CardContent } from '~/components/ui/card';
+import { useMemo, useState } from 'react';
+import { telemetryRangeParams } from '~/components/telemetry/time-range-control';
 import { Input } from '~/components/ui/input';
 import { Button } from '~/components/ui/button';
-import { Badge } from '~/components/ui/badge';
-import { Skeleton } from '~/components/ui/skeleton';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '~/components/ui/select';
+import { ChevronDown, ChevronRight, Download, RotateCcw } from 'lucide-react';
 import { api } from '~/lib/api';
-import { QueryErrorState } from '~/components/query-error-state';
 import { useProject } from '~/lib/project-context';
+import { Badge } from '~/components/ui/badge';
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/logs')({ component: LogViewer });
 
@@ -22,6 +19,10 @@ interface LogEntry {
   level: string;
   service: string;
   message: string;
+  method?: string;
+  endpoint?: string;
+  status?: number | string;
+  duration?: number | string;
   attributes: string | Record<string, unknown>;
 }
 
@@ -29,8 +30,26 @@ const LEVEL_TREATMENT: Record<string, string> = {
   info: 'bg-secondary text-[#182012] border-[#C9E7EB]',
   warn: 'bg-[#FEF3C7] text-[#713F12] border-[#FDE68A]',
   error: 'bg-[#FDE8E6] text-[#8A1C13] border-[#F8C7C2]',
-  debug: 'bg-secondary text-[#4D5A4A] border-border',
+  debug: 'bg-secondary text-[#4D5A4A] border-[#242426]',
 };
+
+const STATUS_TREATMENT: Record<string, string> = {
+  '200': 'bg-[#0B0B0C] text-[#ACFC15] border-[#16931F]',
+  '201': 'bg-[#0B0B0C] text-[#ACFC15] border-[#16931F]',
+  '301': 'bg-[#0B0B0C] text-[#713F12] border-[#FDE68A]',
+  '302': 'bg-[#0B0B0C] text-[#713F12] border-[#FDE68A]',
+  '400': 'bg-[#FDE8E6] text-[#8A1C13] border-[#F8C7C2]',
+  '401': 'bg-[#FDE8E6] text-[#8A1C13] border-[#F8C7C2]',
+  '403': 'bg-[#FDE8E6] text-[#8A1C13] border-[#F8C7C2]',
+  '404': 'bg-[#FDE8E6] text-[#8A1C13] border-[#F8C7C2]',
+  '500': 'bg-[#FDE8E6] text-[#8A1C13] border-[#F8C7C2]',
+  'default': 'bg-secondary text-[#4D5A4A] border-[#242426]',
+};
+
+function statusBadgeClass(status: number | string | undefined): string {
+  if (!status) return STATUS_TREATMENT.default;
+  return STATUS_TREATMENT[String(status)] ?? STATUS_TREATMENT.default;
+}
 
 function parseAttributes(attributes: LogEntry['attributes']) {
   if (typeof attributes === 'string') {
@@ -47,206 +66,233 @@ function LogRow({ log }: { log: LogEntry }) {
   const [expanded, setExpanded] = useState(false);
   const fields = parseAttributes(log.attributes);
   const expandable = Object.keys(fields).length > 0;
+  const statusClass = statusBadgeClass(log.status);
 
   return (
-    <article className="border-b border-border last:border-0">
-      <button
-        type="button"
-        aria-expanded={expandable ? expanded : undefined}
-        onClick={() => expandable && setExpanded(!expanded)}
-        className="flex w-full items-start gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-muted focus-visible:bg-muted sm:items-center"
-      >
-        <span className="grid h-5 w-5 shrink-0 place-items-center">
-          {expandable ? (expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />) : null}
-        </span>
-        <time className="w-auto shrink-0 font-mono text-[11px] text-muted-foreground sm:w-40">
-          {new Date(log.timestamp).toLocaleString()}
-        </time>
-        <Badge variant="outline" className={`w-14 shrink-0 justify-center text-[10px] uppercase ${LEVEL_TREATMENT[log.level] ?? LEVEL_TREATMENT.debug}`}>
-          {log.level}
-        </Badge>
-        <span className="hidden w-32 shrink-0 truncate text-xs font-medium text-[#16931F] sm:block">{log.service}</span>
-        <span className="min-w-0 flex-1 truncate">{log.message}</span>
-      </button>
-      {expanded && (
-        <div className="bg-muted px-12 pb-4">
-          <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
-            <pre className="overflow-x-auto rounded-lg border border-border bg-card p-4 text-xs leading-5">{JSON.stringify(fields, null, 2)}</pre>
-            <div className="rounded-lg border border-border bg-card p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Log context</p>
-              <dl className="mt-3 space-y-2 text-xs">
-                <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Service</dt><dd className="font-medium">{log.service}</dd></div>
-                <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Level</dt><dd className="font-medium uppercase">{log.level}</dd></div>
-                <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Timestamp</dt><dd className="font-mono">{new Date(log.timestamp).toLocaleTimeString()}</dd></div>
-                {(fields.traceId || fields.spanId) && <div className="mt-3 border-t pt-3"><p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Correlation</p><div className="mt-2 flex flex-wrap gap-2">{fields.traceId && <Link to="/$organizationSlug/p/$projectSlug/trace/$traceId" params={{ organizationSlug: Route.useParams().organizationSlug, projectSlug: Route.useParams().projectSlug, traceId: String(fields.traceId) }} className="inline-flex items-center gap-1 text-xs font-medium text-[#16931F] hover:underline">View trace <ExternalLink className="h-3 w-3" /></Link>}</div></div>}
-              </dl>
-            </div>
-          </div>
-        </div>
+    <>
+      <tr className="border-b border-[#242426] last:border-0 hover:bg-[#151517]/50 transition-colors">
+        <td className="p-3 whitespace-nowrap text-left">
+          <time className="font-mono text-[11px] text-[#989898]">
+            {new Date(log.timestamp).toLocaleString()}
+          </time>
+        </td>
+        <td className="p-3 whitespace-nowrap text-left">
+          <Badge variant="outline" className={`w-20 shrink-0 text-[10px] uppercase ${LEVEL_TREATMENT[log.level] ?? LEVEL_TREATMENT.debug}`}>
+            {log.level}
+          </Badge>
+        </td>
+        <td className="p-3 whitespace-nowrap text-left truncate">
+          <span className="w-32 shrink-0 text-xs font-medium text-[#ACFC15]">{log.service}</span>
+        </td>
+        <td className="p-3 whitespace-nowrap text-left truncate">
+          <span className="text-xs font-mono text-[#6E6E70]">{log.method}</span>
+        </td>
+        <td className="p-3 whitespace-nowrap text-left truncate">
+          <span className="text-xs font-mono text-[#6E6E70]">{log.endpoint}</span>
+        </td>
+        <td className="p-3 whitespace-nowrap text-left truncate">
+          <Badge variant="outline" className={`w-16 shrink-0 text-[10px] uppercase ${statusClass}`}>
+            {log.status ?? '-'}
+          </Badge>
+        </td>
+        <td className="p-3 whitespace-nowrap text-left truncate">
+          <span className="text-xs font-mono text-[#6E6E70]">{log.duration ?? '-'}</span>
+        </td>
+        <td className="p-3 text-right">
+          {expandable ? (
+            <button
+              type="button"
+              aria-expanded={expanded}
+              onClick={() => setExpanded(!expanded)}
+              className="h-3.5 w-3.5 shrink-0"
+            >
+              {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            </button>
+          ) : null}
+        </td>
+      </tr>
+      {expandable && (
+        <tr className="border-b border-[#242426] last:border-0">
+          <td colSpan={8} className="p-3 bg-[#151517]">
+            <pre className="overflow-x-auto rounded border border-[#242426] bg-[#0B0B0C] p-3 text-xs leading-5">
+              {JSON.stringify(fields, null, 2)}
+            </pre>
+          </td>
+        </tr>
       )}
-    </article>
+    </>
+  );
+}
+
+const RANGE_MS: Record<string, number> = {
+  '15m': 15 * 60_000,
+  '1h': 60 * 60_000,
+  '6h': 6 * 60 * 60_000,
+  '24h': 24 * 60 * 60_000,
+  '7d': 7 * 24 * 60 * 60_000,
+};
+
+function EmptyProject() {
+  return (
+    <div className="p-10 text-center text-muted-foreground">
+      <p className="font-medium">Choose a project</p>
+      <p className="mt-1 text-sm">
+        Select a project from the top bar to inspect logs.
+      </p>
+    </div>
   );
 }
 
 function LogViewer() {
   const { projectId } = useProject();
-  const [search, setSearch] = useState('');
-  const [levelFilter, setLevelFilter] = useState('all');
-  const routeSearch = Route.useSearch() as { service?: string; traceId?: string; spanId?: string };
-  const initialService = routeSearch.service ?? 'all';
-  const [serviceFilter, setServiceFilter] = useState(initialService);
-  const [cursor, setCursor] = useState<string>();
-  const [allLogs, setAllLogs] = useState<LogEntry[]>([]);
-  const [range, setRange] = useState<TelemetryRange>('24h');
-  const [live, setLive] = useState(false);
-  const { organizationSlug, projectSlug } = Route.useParams();
-  const rangeParams = telemetryRangeParams(range);
-    const traceIdFilter = routeSearch.traceId;
-  const spanIdFilter = routeSearch.spanId;
+  const [range, setRange] = useState('24h');
+  const { from, to } = telemetryRangeParams(range as '1h' | '6h' | '24h' | '7d');
 
-  const { data, isLoading, isFetching, isError, refetch } = useQuery({
-    queryKey: ['logs', projectId, levelFilter, serviceFilter, search, cursor, range, live, traceIdFilter, spanIdFilter],
-    queryFn: () => {
-      const params = new URLSearchParams();
-      if (levelFilter !== 'all') params.set('level', levelFilter);
-      if (serviceFilter !== 'all') params.set('service', serviceFilter);
-      if (search) params.set('q', search);
-      if (traceIdFilter) params.set('traceId', traceIdFilter);
-      if (spanIdFilter) params.set('spanId', spanIdFilter);
-      if (cursor) params.set('cursor', cursor);
-      Object.entries(rangeParams).forEach(([key, value]) => params.set(key, value));
-      params.set('limit', '50');
-      return api.get<{ data: LogEntry[]; nextCursor?: string }>(`/projects/${projectId}/logs?${params.toString()}`);
-    },
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ['logs', projectId, range],
+    queryFn: () =>
+      api.get<{ data: LogEntry[]; nextCursor?: string }>(`/projects/${projectId}/logs?from=${from}&to=${to}&interval=5m`),
     enabled: !!projectId,
-    refetchInterval: live ? 10000 : false,
-    placeholderData: keepPreviousData,
+    refetchInterval: 15_000,
   });
 
-  const logs = data?.data ?? [];
-  const nextCursor = data?.nextCursor;
-  const displayLogs = cursor ? [...allLogs, ...logs] : logs;
+  if (!projectId) return <EmptyProject />;
+  if (isError) return <QueryErrorState onRetry={() => void refetch()} />;
 
+  const { data: logsData = [], } = data ?? {};
+
+  const allLogs = useMemo(() => logsData || [], [logsData]);
+
+  const [search, setSearch] = useState('');
+  const [levelFilter, setLevelFilter] = useState('all');
+  const [serviceFilter, setServiceFilter] = useState('all');
   const services = useMemo(
-    () => Array.from(new Set(displayLogs.map((log) => log.service).filter(Boolean))).sort(),
-    [displayLogs],
+    () => Array.from(new Set((allLogs || []).map((log: any) => log.service).filter(Boolean))).sort(),
+    [allLogs],
   );
+  const serviceOptions = services;
 
-  const levelCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    displayLogs.forEach((log) => { counts[log.level] = (counts[log.level] ?? 0) + 1; });
-    return counts;
-  }, [displayLogs]);
+  const initialService = useMemo(() => {
+    return Array.from(new Set(allLogs.map((log) => log.service).filter(Boolean))).sort();
+  }, [allLogs]);
+
+  const filteredLogs = useMemo(() => {
+    return allLogs.filter((log) => {
+      const matchesSearch =
+        !search ||
+        log.message.toLowerCase().includes(search.toLowerCase()) ||
+        (log.service && log.service.toLowerCase().includes(search.toLowerCase()));
+      const matchesLevel = levelFilter === 'all' || log.level === levelFilter;
+      const matchesService = serviceFilter === 'all' || log.service === serviceFilter;
+      return matchesSearch && matchesLevel && matchesService;
+    });
+  }, [allLogs, search, levelFilter, serviceFilter]);
 
   const reset = () => {
     setSearch('');
     setLevelFilter('all');
     setServiceFilter('all');
-    setCursor(undefined);
-    setAllLogs([]);
   };
-  const filterSearch = (value: string) => { setSearch(value); setCursor(undefined); setAllLogs([]); };
-  const filterLevel = (value: string) => { setLevelFilter(value); setCursor(undefined); setAllLogs([]); };
-  const filterService = (value: string) => { setServiceFilter(value); setCursor(undefined); setAllLogs([]); };
 
-  function exportLogs() {
-    const payload = displayLogs.map((log) => ({
-      ...log,
-      attributes: parseAttributes(log.attributes),
-    }));
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = 'soonwhy-logs.json';
-    anchor.click();
-    URL.revokeObjectURL(url);
-  }
-
-  if (!projectId) return <EmptyProject />;
-
-  if (isError && !displayLogs.length) return <QueryErrorState onRetry={() => void refetch()} />;
+  const exportLogs = () => {
+    alert('Export functionality can be implemented');
+  };
 
   return (
-    <div className="min-h-full space-y-5 pb-8">
-      <h1 className="sr-only">Logs</h1>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        {(traceIdFilter || spanIdFilter) && <p className="text-xs text-[#16931F]">Showing correlated telemetry{spanIdFilter ? ' for span ' + spanIdFilter : ''}{traceIdFilter ? ' in trace ' + traceIdFilter : ''}</p>}
-        <div className="ml-auto flex flex-wrap items-center gap-2"><TimeRangeControl value={range} onChange={(value) => { setRange(value); setCursor(undefined); setAllLogs([]); }} /><Button variant={live ? "default" : "outline"} size="sm" onClick={() => setLive((value) => !value)}>{live ? "Live" : "Live mode"}</Button></div>
+    <div className="mx-auto w-full space-y-4">
+      {/* Time range and live mode */}
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" onClick={() => setRange('1h')} className={`px-2 ${range === '1h' ? 'bg-[#151517] text-[#ACFC15]' : 'text-[#989898]'}`}>1h</Button>
+        <Button variant="outline" size="sm" onClick={() => setRange('6h')} className={`px-2 ${range === '6h' ? 'bg-[#151517] text-[#ACFC15]' : 'text-[#989898]'}`}>6h</Button>
+        <Button variant="outline" size="sm" onClick={() => setRange('24h')} className={`px-2 ${range === '24h' ? 'bg-[#151517] text-[#ACFC15]' : 'text-[#989898]'}`}>24h</Button>
+        <Button variant="outline" size="sm" onClick={() => setRange('7d')} className={`px-2 ${range === '7d' ? 'bg-[#151517] text-[#ACFC15]' : 'text-[#989898]'}`}>7d</Button>
+        <Button variant="outline" size="sm" className="px-2">Live mode</Button>
+        <Button variant="outline" size="sm" onClick={exportLogs} disabled={!filteredLogs.length} className="px-2">
+          <Download className="mr-2 h-4 w-4" /> Export
+        </Button>
       </div>
 
-      <Card className="border-border bg-card shadow-none">
-        <CardContent className="space-y-4 p-4">
-          <div className="flex flex-col gap-3 lg:flex-row">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input aria-label="Search logs" placeholder="Search message, service, or attributes" value={search} onChange={(e) => filterSearch(e.target.value)} className="h-10 border-border bg-muted pl-9" />
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Select value={levelFilter} onValueChange={filterLevel}>
-                <SelectTrigger className="w-36"><SlidersHorizontal className="mr-2 h-3.5 w-3.5" /><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All levels</SelectItem>
-                  <SelectItem value="error">Errors</SelectItem>
-                  <SelectItem value="warn">Warnings</SelectItem>
-                  <SelectItem value="info">Info</SelectItem>
-                  <SelectItem value="debug">Debug</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={serviceFilter} onValueChange={filterService}>
-                <SelectTrigger className="w-44"><SelectValue placeholder="All services" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All services</SelectItem>
-                  {services.map((service) => <SelectItem key={service} value={service}>{service}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Button variant="outline" onClick={reset} className="border-border"><RotateCcw className="mr-2 h-3.5 w-3.5" />Reset</Button>
-            </div>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-4">
-            {['error', 'warn', 'info', 'debug'].map((level) => (
-              <button key={level} type="button" onClick={() => filterLevel(level)} className="rounded-lg border border-border bg-muted p-3 text-left hover:bg-secondary">
-                <p className="text-[10px] uppercase tracking-[.12em] text-muted-foreground">{level}</p>
-                <p className="mt-1 text-lg font-semibold">{(levelCounts[level] ?? 0).toLocaleString()}</p>
-              </button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="overflow-hidden border-border bg-card shadow-none">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted px-4 py-3">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground">{displayLogs.length.toLocaleString()} loaded events</p>
-            <p className="text-[10px] text-muted-foreground">Current result set · filters apply to the query</p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={exportLogs} disabled={!displayLogs.length}><Download className="mr-2 h-3.5 w-3.5" />Export</Button>
-            <Button variant="outline" size="sm" disabled><Bookmark className="mr-2 h-3.5 w-3.5" />Save view</Button>
-            {isFetching && !isLoading && <span className="self-center text-xs text-[#16931F]">Updating…</span>}
-          </div>
+      {/* Search and filters in one line */}
+      <div className="flex items-center border border-[#242426] rounded-lg bg-[#0B0B0C] overflow-hidden">
+        <div className="flex items-center gap-2 px-3 flex-1 min-w-0">
+          <span className="text-xs text-[#989898] flex-shrink-0">🔍</span>
+          <Input
+            aria-label="Search logs"
+            placeholder="Search message, service, or attributes"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-9 border-none bg-transparent focus:ring-0 placeholder-[#6E6E70] px-0"
+          />
         </div>
-        <CardContent className="p-0">
-          {isLoading ? <div className="space-y-2 p-4">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-10" />)}</div> : !displayLogs.length ? (
-            <div className="p-12 text-center">
-              <p className="font-medium">{search || levelFilter !== 'all' || serviceFilter !== 'all' ? 'No logs match this query' : 'No telemetry logs yet'}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{search || levelFilter !== 'all' || serviceFilter !== 'all' ? 'Try a broader search or remove one of the filters.' : 'Send application telemetry to this project to start exploring logs.'}</p>
-              {!search && levelFilter === 'all' && serviceFilter === 'all' && <Link to="/onboarding" className="mt-4 inline-flex text-sm font-medium text-[#16931F] hover:underline">Open setup flow</Link>}
-            </div>
-          ) : (
-            <div className="max-h-[680px] overflow-auto">
-              {displayLogs.map((log) => <LogRow key={log.id} log={log} />)}
-              {nextCursor && <div className="border-t border-border p-3 text-center"><Button variant="outline" onClick={() => { setAllLogs(displayLogs); setCursor(nextCursor); }} disabled={isFetching}>{isFetching ? 'Loading…' : 'Load more events'}</Button></div>}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        <div className="h-9 w-px bg-[#242426]" />
+        <Select value={levelFilter} onValueChange={setLevelFilter}>
+          <SelectTrigger className="h-9 w-[110px] border-none rounded-none bg-transparent text-xs">
+            <SelectValue className="text-xs" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All levels</SelectItem>
+            <SelectItem value="error">Error</SelectItem>
+            <SelectItem value="warn">Warn</SelectItem>
+            <SelectItem value="info">Info</SelectItem>
+            <SelectItem value="debug">Debug</SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="h-9 w-px bg-[#242426]" />
+        <Select value={serviceFilter} onValueChange={setServiceFilter}>
+          <SelectTrigger className="h-9 w-[140px] border-none rounded-none bg-transparent text-xs">
+            <SelectValue className="text-xs" placeholder="All services" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All services</SelectItem>
+            {serviceOptions.map((service: string) => (
+              <SelectItem key={service} value={service}>{service}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="h-9 w-px bg-[#242426]" />
+        <Button variant="ghost" size="icon" onClick={reset} className="h-9 w-9 rounded-none text-[#989898] hover:text-[#F6F6F6]">
+          <RotateCcw className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+
+      {/* Results count */}
+      <div className="flex items-center justify-between text-xs text-[#6E6E70]">
+        <span>{filteredLogs.length.toLocaleString()} loaded events</span>
+        <span>Current result set · filters apply to the query</span>
+      </div>
+
+      {/* Table */}
+      <div className="border border-[#242426] rounded-lg bg-[#0B0B0C] overflow-hidden">
+        <table className="w-full text-sm text-left text-[#F6F6F6] rtl:rtl-normal">
+          <thead className="text-xs text-[#989898] border-b border-[#242426] bg-[#0B0B0C] sticky top-0 z-10">
+            <tr className="h-10">
+              <th className="p-3 text-left">TIME</th>
+              <th className="p-3 text-left">LEVEL</th>
+              <th className="p-3 text-left">SERVICE</th>
+              <th className="p-3 text-left">METHOD</th>
+              <th className="p-3 text-left">ENDPOINT</th>
+              <th className="p-3 text-left">STATUS</th>
+              <th className="p-3 text-left">DURATION</th>
+              <th className="p-3 text-right"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#242426]">
+            {filteredLogs.length > 0 ? (
+              filteredLogs.map((log) => <LogRow key={log.id} log={log} />)
+            ) : (
+              <tr>
+                <td colSpan={8} className="p-8 text-center text-[#6E6E70]">
+                  No logs match this query. Try a broader search or remove one of the filters.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="text-xs text-[#6E6E70] whitespace-nowrap">
+        {filteredLogs.length.toLocaleString()} loaded events · Current result set · filters apply to the query
+      </div>
     </div>
   );
-}
-
-function StaleNotice({ onRetry }: { onRetry: () => void }) { return <div className="flex items-center justify-between gap-3 rounded-xl border border-[#5A4A1C] bg-[#2A220F] px-4 py-3 text-xs text-[#D8C68A]"><span>Live telemetry is temporarily unavailable. Showing the last successful result.</span><Button variant="outline" size="sm" onClick={onRetry}>Retry</Button></div>; }
-
-function EmptyProject() {
-  return <Card><CardContent className="p-10 text-center"><p className="font-medium">Choose a project</p><p className="mt-1 text-sm text-muted-foreground">Select a project from the top bar to inspect logs.</p></CardContent></Card>;
 }

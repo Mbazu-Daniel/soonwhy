@@ -15,7 +15,7 @@ import {
 import { Card, CardContent } from '~/components/ui/card';
 import { Skeleton } from '~/components/ui/skeleton';
 import { api } from '~/lib/api';
-import { dashboardOverview, type DashboardOverview } from '~/data/dashboard-overview';
+import { type DashboardOverview } from '~/data/dashboard-overview';
 import { useProject } from '~/lib/project-context';
 import { useState } from 'react';
 import { TimeRangeControl, telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
@@ -87,7 +87,7 @@ function DashboardOverviewPage() {
     return <OverviewSkeleton />;
   }
 
-  const live = data && data.totalRequests > 0 ? data : dashboardOverview;
+  const live = data && data.totalRequests > 0 ? data : ({} as DashboardOverview); dashboardOverview;
   const overviewStale = isLoading === false && !data && !!telemetryStatus?.lastTelemetryAt;
   const score = live.score;
   const health = score >= 90 ? 'Healthy' : score >= 70 ? 'Needs attention' : 'Investigate';

@@ -8,8 +8,9 @@ import { WorkspaceMenu } from '~/components/workspace-switcher';
 import { ProjectBreadcrumb } from '~/components/project-breadcrumb';
 import { api } from '~/lib/api';
 import { signOut, clearSession, getSessionToken } from '~/lib/auth-client';
-import { LogOut, Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { LogOut, Menu, PanelLeftClose, PanelLeftOpen, Bell } from 'lucide-react';
 import { useSidebar } from '~/lib/sidebar-context';
+import { useProject } from '~/lib/project-context';
 
 interface SessionUser { user: { id: string; email: string; name: string | null }; }
 
@@ -18,6 +19,7 @@ export function TopBar() {
   const token = getSessionToken();
   const { toggle, collapsed, toggleCollapsed } = useSidebar();
   const { data: session } = useQuery({ queryKey: ['session'], queryFn: () => api.get<SessionUser>('/auth/session'), enabled: !!token, retry: false });
+  const { projectId } = useProject();
 
   async function handleSignOut() {
     if (token) await signOut(token);
@@ -48,6 +50,11 @@ export function TopBar() {
 
       <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
         <CommandPalette />
+        {projectId && (
+          <Button variant="ghost" size="icon" className="text-[#989898] hover:bg-[#151517] hover:text-[#F6F6F6]" aria-label="Notifications">
+            <Bell className="h-4 w-4" />
+          </Button>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2 pl-2 text-[#F6F6F6]" aria-label="User menu">
