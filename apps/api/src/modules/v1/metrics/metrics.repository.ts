@@ -1,6 +1,10 @@
-import { Injectable } from '@nestjs/common';
-import { QUICKWIT_INDEXES, QuickwitService } from '@soonwhy/shared';
-import { quickwitTerm, quickwitTenantQuery, quickwitTimestamp } from '../../../common/quickwit/query';
+import { Injectable } from "@nestjs/common";
+import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
+import {
+  quickwitTerm,
+  quickwitTenantQuery,
+  quickwitTimestamp,
+} from "../../../common/quickwit/query";
 
 export interface MetricsBucket {
   bucket: string;
@@ -14,6 +18,15 @@ export interface MetricsBucket {
   _5xx: number;
 }
 
+export interface HostMetricsBucket {
+  bucket: string;
+  cpu_percent: number;
+  memory_percent: number;
+  disk_percent: number;
+  network_in_bytes: number;
+  network_out_bytes: number;
+}
+
 interface DateBucket {
   key_as_string?: string;
   doc_count: number;
@@ -21,6 +34,11 @@ interface DateBucket {
   status?: {
     buckets?: Array<{ key: string; doc_count: number }>;
   };
+  cpu_avg?: { value?: number };
+  memory_avg?: { value?: number };
+  disk_avg?: { value?: number };
+  network_in?: { value?: number };
+  network_out?: { value?: number };
 }
 
 interface MetricsAggregation {
@@ -40,18 +58,20 @@ export class MetricsRepository {
     service: string;
   }): Promise<MetricsBucket[]> {
     const intervalMap: Record<string, string> = {
-      '1m': '1m',
-      '5m': '5m',
-      '1h': '1h',
-      '1d': '1d',
+      "1m": "1m",
+      "5m": "5m",
+      "1h": "1h",
+      "1d": "1d",
     };
-    const fixedInterval = intervalMap[params.interval] || '5m';
-    const filters = params.service ? [quickwitTerm('service', params.service)] : [];
+    const fixedInterval = intervalMap[params.interval] || "5m";
+    const filters = params.service
+      ? [quickwitTerm("service", params.service)]
+      : [];
     const result = await this.quickwit.search(QUICKWIT_INDEXES.requests, {
       query: quickwitTenantQuery(
         params.orgId,
         params.projectId,
-        filters.length ? filters.join(' AND ') : '*',
+        filters.length ? filters.join(" AND ") : "*",
       ),
       startTimestamp: quickwitTimestamp(params.from),
       endTimestamp: quickwitTimestamp(params.to),
@@ -59,25 +79,25 @@ export class MetricsRepository {
       aggregations: {
         over_time: {
           date_histogram: {
-            field: 'timestamp',
+            field: "timestamp",
             fixed_interval: fixedInterval,
             min_doc_count: 0,
           },
           aggs: {
             latency: {
               percentiles: {
-                field: 'duration',
+                field: "duration",
                 percents: [50, 95, 99],
               },
             },
             status: {
               range: {
-                field: 'statusCode',
+                field: "statusCode",
                 ranges: [
-                  { from: 200, to: 300, key: '2xx' },
-                  { from: 300, to: 400, key: '3xx' },
-                  { from: 400, to: 500, key: '4xx' },
-                  { from: 500, key: '5xx' },
+                  { from: 200, to: 300, key: "2xx" },
+                  { from: 300, to: 400, key: "3xx" },
+                  { from: 400, to: 500, key: "4xx" },
+                  { from: 500, key: "5xx" },
                 ],
               },
             },
@@ -86,23 +106,86 @@ export class MetricsRepository {
       },
     });
 
-    const aggregation = result.aggregations?.over_time as MetricsAggregation | undefined;
+    const aggregation = result.aggregations?.over_time as
+      | MetricsAggregation
+      | undefined;
     return (aggregation?.buckets ?? []).map((bucket) => {
       const status = new Map(
-        (bucket.status?.buckets ?? []).map((entry) => [entry.key, entry.doc_count]),
+        (bucket.status?.buckets ?? []).map((entry) => [
+          entry.key,
+          entry.doc_count,
+        ]),
       );
       const percentiles = bucket.latency?.values ?? {};
       return {
-        bucket: bucket.key_as_string ?? '',
+        bucket: bucket.key_as_string ?? "",
         count: bucket.doc_count,
-        p50: percentiles['50.0'] ?? 0,
-        p95: percentiles['95.0'] ?? 0,
-        p99: percentiles['99.0'] ?? 0,
-        _2xx: status.get('2xx') ?? 0,
-        _3xx: status.get('3xx') ?? 0,
-        _4xx: status.get('4xx') ?? 0,
-        _5xx: status.get('5xx') ?? 0,
+        p50: percentiles["50.0"] ?? 0,
+        p95: percentiles["95.0"] ?? 0,
+        p99: percentiles["99.0"] ?? 0,
+        _2xx: status.get("2xx") ?? 0,
+        _3xx: status.get("3xx") ?? 0,
+        _4xx: status.get("4xx") ?? 0,
+        _5xx: status.get("5xx") ?? 0,
       };
     });
+  }
+
+  async queryHostMetrics(params: {
+    orgId: string;
+    from: string;
+    to: string;
+    interval: string;
+  }): Promise<HostMetricsBucket[]> {
+    const intervalMap: Record<string, string> = {
+      "1m": "1m",
+      "5m": "5m",
+      "1h": "1h",
+      "1d": "1d",
+    };
+    const fixedInterval = intervalMap[params.interval] || "1m";
+
+    const result = await this.quickwit.search(QUICKWIT_INDEXES.metrics, {
+      query: `system.cpu.utilization OR system.memory.utilization OR system.filesystem.utilization`,
+      startTimestamp: quickwitTimestamp(params.from),
+      endTimestamp: quickwitTimestamp(params.to),
+      maxHits: 0,
+      aggregations: {
+        over_time: {
+          date_histogram: {
+            field: "timestamp",
+            fixed_interval: fixedInterval,
+            min_doc_count: 0,
+          },
+          aggs: {
+            cpu_avg: {
+              avg: { field: "system.cpu.utilization" },
+            },
+            memory_avg: {
+              avg: { field: "system.memory.utilization" },
+            },
+            disk_avg: {
+              avg: { field: "system.filesystem.utilization" },
+            },
+            network_in: {
+              sum: { field: "system.network.in" },
+            },
+            network_out: {
+              sum: { field: "system.network.out" },
+            },
+          },
+        },
+      },
+    });
+
+    const aggregation = result.aggregations?.over_time as MetricsAggregation | undefined;
+    return (aggregation?.buckets ?? []).map((bucket) => ({
+      bucket: bucket.key_as_string ?? "",
+      cpu_percent: (bucket.cpu_avg?.value as number) ?? 0,
+      memory_percent: (bucket.memory_avg?.value as number) ?? 0,
+      disk_percent: (bucket.disk_avg?.value as number) ?? 0,
+      network_in_bytes: (bucket.network_in?.value as number) ?? 0,
+      network_out_bytes: (bucket.network_out?.value as number) ?? 0,
+    }));
   }
 }

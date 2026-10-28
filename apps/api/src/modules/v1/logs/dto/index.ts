@@ -1,1 +1,1 @@
-export * from './get-logs.dto';
+export * from "./get-logs.dto";

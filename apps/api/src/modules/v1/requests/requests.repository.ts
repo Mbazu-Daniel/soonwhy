@@ -1,6 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { QUICKWIT_INDEXES, QuickwitService } from '@soonwhy/shared';
-import { quickwitTenantQuery, quickwitTimestamp } from '../../../common/quickwit/query';
+import { Injectable } from "@nestjs/common";
+import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
+import {
+  quickwitTenantQuery,
+  quickwitTimestamp,
+} from "../../../common/quickwit/query";
 
 export interface RequestStat {
   url: string;
@@ -43,30 +46,28 @@ export class RequestsRepository {
       aggregations: {
         urls: {
           terms: {
-            field: 'url',
+            field: "url",
             size: 50,
-            order: { _key: 'asc' },
+            order: { _key: "asc" },
           },
           aggs: {
             methods: {
               terms: {
-                field: 'method',
+                field: "method",
                 size: 20,
-                order: { _key: 'asc' },
+                order: { _key: "asc" },
               },
               aggs: {
                 latency: {
                   percentiles: {
-                    field: 'duration',
+                    field: "duration",
                     percents: [50, 95, 99],
                   },
                 },
                 status: {
                   range: {
-                    field: 'statusCode',
-                    ranges: [
-                      { from: 400, to: 600, key: 'errors' },
-                    ],
+                    field: "statusCode",
+                    ranges: [{ from: 400, to: 600, key: "errors" }],
                   },
                 },
               },
@@ -76,21 +77,30 @@ export class RequestsRepository {
       },
     });
 
-    const urls = result.aggregations?.urls as { buckets?: UrlBucket[] } | undefined;
-    return (urls?.buckets ?? []).flatMap((urlBucket) =>
-      (urlBucket.methods?.buckets ?? []).map((methodBucket) => {
-        const percentiles = methodBucket.latency?.values ?? {};
-        const errors = methodBucket.status?.buckets?.find((bucket) => bucket.key === 'errors')?.doc_count ?? 0;
-        return {
-          url: urlBucket.key,
-          method: methodBucket.key,
-          count: methodBucket.doc_count,
-          p50: percentiles['50.0'] ?? 0,
-          p95: percentiles['95.0'] ?? 0,
-          p99: percentiles['99.0'] ?? 0,
-          errorRate: methodBucket.doc_count ? (errors / methodBucket.doc_count) * 100 : 0,
-        };
-      }),
-    ).sort((a, b) => b.count - a.count);
+    const urls = result.aggregations?.urls as
+      | { buckets?: UrlBucket[] }
+      | undefined;
+    return (urls?.buckets ?? [])
+      .flatMap((urlBucket) =>
+        (urlBucket.methods?.buckets ?? []).map((methodBucket) => {
+          const percentiles = methodBucket.latency?.values ?? {};
+          const errors =
+            methodBucket.status?.buckets?.find(
+              (bucket) => bucket.key === "errors",
+            )?.doc_count ?? 0;
+          return {
+            url: urlBucket.key,
+            method: methodBucket.key,
+            count: methodBucket.doc_count,
+            p50: percentiles["50.0"] ?? 0,
+            p95: percentiles["95.0"] ?? 0,
+            p99: percentiles["99.0"] ?? 0,
+            errorRate: methodBucket.doc_count
+              ? (errors / methodBucket.doc_count) * 100
+              : 0,
+          };
+        }),
+      )
+      .sort((a, b) => b.count - a.count);
   }
 }
