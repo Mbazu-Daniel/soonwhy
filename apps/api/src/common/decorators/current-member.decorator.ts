@@ -1,5 +1,5 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { TenantRequest } from '../middleware/tenant-context.middleware';
+import { createParamDecorator, ExecutionContext } from "@nestjs/common";
+import { TenantRequest } from "../middleware/tenant-context.middleware";
 
 export interface MemberContext {
   userId: string;
@@ -18,7 +18,7 @@ export const CurrentMember = createParamDecorator(
     const member: MemberContext = {
       userId: request.user.id,
       orgId: request.orgId,
-      role: request.userRole ?? 'member',
+      role: request.userRole ?? "member",
     };
 
     return data ? member[data] : member;

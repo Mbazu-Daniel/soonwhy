@@ -1,5 +1,5 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { TenantRequest } from '../middleware/tenant-context.middleware';
+import { createParamDecorator, ExecutionContext } from "@nestjs/common";
+import { TenantRequest } from "../middleware/tenant-context.middleware";
 
 export interface AuthUser {
   id: string;
