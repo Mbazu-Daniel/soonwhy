@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { MetricsRepository } from './metrics.repository';
-import { GetMetricsInput } from './dto';
+import { Injectable } from "@nestjs/common";
+import { MetricsRepository } from "./metrics.repository";
+import { GetMetricsInput } from "./dto";
 
 @Injectable()
 export class MetricsService {
@@ -13,7 +13,7 @@ export class MetricsService {
       from: input.from ?? new Date(0).toISOString(),
       to: input.to ?? new Date().toISOString(),
       interval: input.interval,
-      service: input.service || '',
+      service: input.service || "",
     });
 
     return {
@@ -25,6 +25,19 @@ export class MetricsService {
         p99: Math.round(b.p99),
         statusCodes: { _2xx: b._2xx, _3xx: b._3xx, _4xx: b._4xx, _5xx: b._5xx },
       })),
+    };
+  }
+
+  async getHostMetrics(orgId: string, input: { from?: string; to?: string; interval?: string }) {
+    const buckets = await this.metricsRepository.queryHostMetrics({
+      orgId,
+      from: input.from ?? new Date(Date.now() - 3600000).toISOString(),
+      to: input.to ?? new Date().toISOString(),
+      interval: input.interval ?? "1m",
+    });
+
+    return {
+      buckets,
     };
   }
 }

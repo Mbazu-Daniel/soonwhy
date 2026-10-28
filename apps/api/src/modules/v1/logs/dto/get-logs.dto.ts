@@ -1,10 +1,13 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const getLogsSchema = z.object({
   projectId: z.string().min(1),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
-  level: z.enum(['debug', 'info', 'warn', 'error', 'fatal', 'all']).optional().default('all'),
+  level: z
+    .enum(["debug", "info", "warn", "error", "fatal", "all"])
+    .optional()
+    .default("all"),
   service: z.string().optional(),
   traceId: z.string().optional(),
   spanId: z.string().optional(),

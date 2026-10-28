@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const getTracesSchema = z.object({
   projectId: z.string().min(1),
