@@ -1,9 +1,9 @@
-import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
-import { NatsService } from '@soonwhy/shared';
-import { IngestConcurrency } from '../pipeline/concurrency';
-import { IngestStats } from '../pipeline/stats';
+import { Controller, Get, HttpCode, HttpStatus } from "@nestjs/common";
+import { NatsService } from "@soonwhy/shared";
+import { IngestConcurrency } from "../pipeline/concurrency";
+import { IngestStats } from "../pipeline/stats";
 
-@Controller('health')
+@Controller("health")
 export class HealthController {
   constructor(
     private readonly nats: NatsService,
@@ -16,10 +16,10 @@ export class HealthController {
   status() {
     const ready = this.nats.isReady();
     return {
-      status: ready ? 'ok' : 'degraded',
+      status: ready ? "ok" : "degraded",
       ready,
       queue: {
-        provider: 'nats-jetstream',
+        provider: "nats-jetstream",
         connected: ready,
       },
       capacity: this.concurrency.snapshot(),

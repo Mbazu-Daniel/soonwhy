@@ -1,17 +1,6 @@
-import { parse, type Type } from 'protobufjs';
+import { parse, type Type } from "protobufjs";
 
-/**
- * OTLP HTTP/protobuf codecs for SoonWhy ingest.
- *
- * Field numbers and types follow OpenTelemetry proto
- * (opentelemetry-proto, collector + signal definitions).
- * Only the Export* request/response surface we accept is included;
- * unknown fields on the wire are skipped by protobufjs.
- *
- * Spec: https://github.com/open-telemetry/opentelemetry-proto
- */
-
-export type OtlpSignal = 'trace' | 'log' | 'metric';
+export type OtlpSignal = "trace" | "log" | "metric";
 
 const TO_OBJECT = {
   arrays: true,
@@ -290,28 +279,31 @@ const codecs: Record<
   { request: Type; response: Type; rejectedKey: string }
 > = {
   trace: {
-    request: typeOf('ExportTraceServiceRequest'),
-    response: typeOf('ExportTraceServiceResponse'),
-    rejectedKey: 'rejectedSpans',
+    request: typeOf("ExportTraceServiceRequest"),
+    response: typeOf("ExportTraceServiceResponse"),
+    rejectedKey: "rejectedSpans",
   },
   log: {
-    request: typeOf('ExportLogsServiceRequest'),
-    response: typeOf('ExportLogsServiceResponse'),
-    rejectedKey: 'rejectedLogRecords',
+    request: typeOf("ExportLogsServiceRequest"),
+    response: typeOf("ExportLogsServiceResponse"),
+    rejectedKey: "rejectedLogRecords",
   },
   metric: {
-    request: typeOf('ExportMetricsServiceRequest'),
-    response: typeOf('ExportMetricsServiceResponse'),
-    rejectedKey: 'rejectedDataPoints',
+    request: typeOf("ExportMetricsServiceRequest"),
+    response: typeOf("ExportMetricsServiceResponse"),
+    rejectedKey: "rejectedDataPoints",
   },
 };
 
-function decodeRequest(signal: OtlpSignal, bytes: Uint8Array): Record<string, unknown> {
+function decodeRequest(
+  signal: OtlpSignal,
+  bytes: Uint8Array,
+): Record<string, unknown> {
   const codec = codecs[signal];
-  return codec.request.toObject(codec.request.decode(bytes), TO_OBJECT) as Record<
-    string,
-    unknown
-  >;
+  return codec.request.toObject(
+    codec.request.decode(bytes),
+    TO_OBJECT,
+  ) as Record<string, unknown>;
 }
 
 export function encodePartialSuccess(

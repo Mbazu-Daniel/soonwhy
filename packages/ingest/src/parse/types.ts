@@ -1,47 +1,64 @@
-import type { ParsedResource } from '../interfaces';
+import type { ParsedResource } from "../interfaces";
 
 export type { ParsedResource };
 
+export interface ResourceAttributes {
+  attributes: Record<string, string>;
+  serviceName: string;
+  serviceVersion: string;
+  environment: string;
+  region: string;
+}
+
 export function resourceFromAttributes(
-  resourceAttrs: Record<string, unknown>,
-): ParsedResource {
+  resourceAttrs: ResourceAttributes,
+): ResourceAttributes {
   return {
-    attributes: resourceAttrs,
-    serviceName: getAttribute(resourceAttrs, 'service.name') || 'unknown_service',
-    serviceVersion: getAttribute(resourceAttrs, 'service.version'),
+    attributes: {},
+    serviceName:
+      getAttribute(resourceAttrs.attributes, "service.name") ||
+      "unknown_service",
+    serviceVersion: getAttribute(resourceAttrs.attributes, "service.version"),
     environment: getAttribute(
-      resourceAttrs,
-      'deployment.environment.name',
-      'deployment.environment',
+      resourceAttrs.attributes,
+      "deployment.environment.name",
+      "deployment.environment",
     ),
-    region: getAttribute(resourceAttrs, 'cloud.region', 'host.region'),
+    region: getAttribute(
+      resourceAttrs.attributes,
+      "cloud.region",
+      "host.region",
+    ),
   };
 }
 
-export function getAttribute(attrs: Record<string, unknown>, ...keys: string[]): string {
+export function getAttribute(
+  attrs: Record<string, string>,
+  ...keys: string[]
+): string {
   for (const key of keys) {
     const val = attrs[key];
-    if (typeof val === 'string' && val) return val;
+    if (typeof val === "string" && val) return val;
   }
-  return '';
+  return "";
 }
 
 /** Accepts OTLP JSON hex ids or protobufjs `bytes: String` base64 ids. */
 export function hexId(value: string, expectedLength: number): string {
-  if (!value || typeof value !== 'string') return '';
+  if (!value || typeof value !== "string") return "";
 
   const normalized = value.toLowerCase();
   if (normalized.length === expectedLength && /^[0-9a-f]+$/.test(normalized)) {
-    return /^0+$/.test(normalized) ? '' : normalized;
+    return /^0+$/.test(normalized) ? "" : normalized;
   }
 
   try {
-    const bytes = Buffer.from(value, 'base64');
+    const bytes = Buffer.from(value, "base64");
     const expectedBytes = expectedLength / 2;
-    if (bytes.byteLength !== expectedBytes) return '';
-    const hex = bytes.toString('hex');
-    return /^0+$/.test(hex) ? '' : hex;
+    if (bytes.byteLength !== expectedBytes) return "";
+    const hex = bytes.toString("hex");
+    return /^0+$/.test(hex) ? "" : hex;
   } catch {
-    return '';
+    return "";
   }
 }

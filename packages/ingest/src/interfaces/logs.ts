@@ -1,6 +1,6 @@
-import type { ParsedResource } from './resource';
+import type { ParsedResource } from "./resource";
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'fatal';
+export type LogLevel = "debug" | "info" | "warn" | "error" | "fatal";
 
 export interface ParsedLogRecord {
   timestamp: string;
