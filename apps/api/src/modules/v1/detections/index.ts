@@ -1,1 +1,1 @@
-export { DetectionModule } from './detection.module';
+export { DetectionModule } from "./detection.module";

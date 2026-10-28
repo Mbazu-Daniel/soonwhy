@@ -3,7 +3,8 @@ import { and, desc, eq } from 'drizzle-orm';
 import { QUICKWIT_INDEXES, QuickwitService } from '@soonwhy/shared';
 import { db } from '../../../common/db';
 import { findings, type DetectionEvidence } from '../../../common/db/schema/findings';
-import { quickwitTenantQuery, quickwitTerm } from '../../../common/quickwit/query';
+import { deployments, services } from '../../../common/db/schema';
+import { quickwitTenantQuery, quickwitTerm, sanitizeRequestUrl } from '../../../common/quickwit/query';
 import { ProjectsRepository } from '../projects/projects.repository';
 import { createIssueFromDetection } from '../intelligence/detection-issue.adapter';
 import { IssueLifecycleService } from '../intelligence/issue-lifecycle.service';
@@ -11,118 +12,55 @@ import { detectDatabaseQueries, type DatabaseQueryTrace } from '../intelligence/
 import { detectNPlusOne, type NPlusOneTrace } from '../intelligence/n-plus-one.detector';
 import { detectDatabaseQueryVolume, type DatabaseQueryVolumeTrace } from '../intelligence/database-query-volume.detector';
 import { detectDatabaseErrors, type DatabaseErrorTrace } from '../intelligence/database-error.detector';
-import { detectDatabaseLatencyContribution, type DatabaseLatencyContributionTrace } from '../intelligence/database-latency-contribution.detector';
+import { detectDatabaseLatencyContribution, type DatabaseLatencyContributionTrace, type DatabaseLatencyContributionCandidate } from '../intelligence/database-latency-contribution.detector';
 import { detectDatabaseConnectionPool, type DatabaseConnectionPoolSample } from '../intelligence/database-connection-pool.detector';
 import { detectDatabaseTimeouts, type DatabaseTimeoutTrace } from '../intelligence/database-timeout.detector';
 import { detectDatabaseResultSets, type DatabaseResultSetTrace } from '../intelligence/database-result-set.detector';
-import { detectDatabaseConnectionWait, type DatabaseConnectionWaitSample } from '../intelligence/database-connection-wait.detector';
-import { detectDatabaseBatches, type DatabaseBatchTrace } from '../intelligence/database-batch.detector';
+import { detectDatabaseConnectionWait, type DatabaseConnectionWaitCandidate } from '../intelligence/database-connection-wait.detector';
+import { detectDatabaseBatches, type DatabaseBatchTrace, type DatabaseBatchCandidate } from '../intelligence/database-batch.detector';
 import { detectDatabaseDependencyDegradation, type DatabaseDependencyTrace } from '../intelligence/database-dependency-degradation.detector';
 import { evaluateEndpointPerformance } from './performance-detection';
-import { sanitizeRequestUrl } from './detection.utils';
 import { correlateFindings } from './detection.correlation';
 import { completeDetectionRun, failDetectionRun, startDetectionRun } from './detection.run';
 import { evaluateSignal, evaluateThroughput, evaluateTraceSpan } from './detection.engine';
 import { evaluateServicePerformance } from '../intelligence/service-performance.engine';
 import { evaluateDependency } from '../intelligence/dependency-intelligence';
-import type { DetectionFinding, DetectionWindow, FindingSeverity, FindingType } from './detection.types';
+import type { DetectionFinding, DetectionWindow, FindingSeverity, FindingType, RequestSource, TraceSource, ServiceBucket, EndpointAggregations } from './detection.types';
+import type { DeploymentInfo } from './detection.correlation';
+
+// Modular method imports (Sprint 2 extraction)
+import { searchServiceBuckets } from '../detections/detection-search.methods';
+import { searchEndpointBuckets } from '../detections/detection-search.methods';
+import { searchDependencyBuckets } from '../detections/detection-search.methods';
+import { searchDatabaseConnectionPoolMetrics } from '../detections/detection-search.methods';
+import { searchDatabaseConnectionWaitMetrics } from '../detections/detection-search.methods';
+import { searchRequestEndpoints } from '../detections/detection-search.methods';
+import { searchDatabaseQuerySpans } from '../detections/detection-search.methods';
+import { searchTraceDurations } from '../detections/detection-search.methods';
+import { searchTraceSpanCandidates } from '../detections/detection-search.methods';
+import { describeDatabaseQuery } from '../detections/detection-description.methods';
+import { describeDatabaseLatencyContribution } from '../detections/detection-description.methods';
+import { describeDatabaseResultSet } from '../detections/detection-description.methods';
+import { describeDatabaseBatch } from '../detections/detection-description.methods';
+import { describeDatabaseTimeout } from '../detections/detection-description.methods';
+import { describeDatabaseError } from '../detections/detection-description.methods';
+import { describeDatabaseQueryVolume } from '../detections/detection-description.methods';
+import { describeDatabaseConnectionWait } from '../detections/detection-description.methods';
+import { describeDatabaseConnectionPool } from '../detections/detection-description.methods';
+import { assertProjectAccess } from '../detections/detection-description.methods';
+import { createFindingFromError } from '../detections/detection-description.methods';
+import { describeNPlusOne } from '../detections/detection-description.methods';
+import { describePerformanceSignal } from '../detections/detection-description.methods';
+import { describeSignal } from '../detections/detection-description.methods';
+import { describeThroughputSignal } from '../detections/detection-description.methods';
+import { getPercentile, getLatency, getErrorRate } from '../detections/detection-utility.methods';
+import { metricString } from '../detections/detection-utility.methods';
+import { dependencyRecommendation } from '../detections/detection-utility.methods';
+import { dependencyEvidence } from '../detections/detection-evidence.methods';
+import { requestEvidence } from '../detections/detection-evidence.methods';
+import { toDetectionFinding, persistFinding } from '../detections/detection-evidence.methods';
 
 const WINDOW_MS = 15 * 60_000;
-
-interface ServiceBucket {
-  key: string;
-  doc_count: number;
-  latency?: { values?: Record<string, number> };
-  errors?: { doc_count?: number };
-}
-
-interface EndpointBucket {
-  key: string;
-  doc_count: number;
-  latency?: { values?: Record<string, number> };
-  errors?: { doc_count?: number };
-  methods?: { buckets?: EndpointMethodBucket[] };
-}
-
-interface EndpointMethodBucket {
-  key: string;
-  doc_count: number;
-  latency?: { values?: Record<string, number> };
-  errors?: { doc_count?: number };
-}
-
-interface EndpointServiceBucket {
-  key: string;
-  endpoints?: { buckets?: EndpointBucket[] };
-}
-
-interface EndpointAggregations {
-  services?: { buckets?: EndpointServiceBucket[] };
-}
-
-interface DependencyBucket {
-  key: string;
-  doc_count: number;
-  latency?: { values?: Record<string, number> };
-  errors?: { doc_count?: number };
-  dependencyType?: { buckets?: Array<{ key: string; doc_count: number }> };
-}
-
-interface DependencyServiceBucket {
-  key: string;
-  dependencies?: { buckets?: DependencyBucket[] };
-}
-
-interface Aggregations {
-  services?: { buckets?: ServiceBucket[] };
-  dependencies?: { buckets?: DependencyServiceBucket[] };
-}
-
-interface RequestSource {
-  timestamp?: string;
-  service?: string;
-  method?: string;
-  url?: string;
-  duration?: number;
-  statusCode?: number;
-  traceId?: string;
-}
-
-interface MetricSource {
-  timestamp?: string;
-  service?: string;
-  name?: string;
-  value?: number;
-  connectionPoolName?: string;
-  connectionPoolState?: string;
-  attributes?: Record<string, unknown>;
-}
-
-interface TraceSource {
-  timestamp?: string;
-  service?: string;
-  traceId?: string;
-  spanId?: string;
-  parentSpanId?: string;
-  name?: string;
-  duration?: number;
-  statusCode?: number;
-  statusMessage?: string;
-  errorType?: string;
-  dependencyName?: string;
-  dependencyType?: string;
-  spanKind?: number;
-  dbQueryText?: string;
-  dbQuerySummary?: string;
-  dbOperationName?: string;
-  dbSystemName?: string;
-  dbCollectionName?: string;
-  dbReturnedRows?: number;
-  dbBatchSize?: number;
-  dbResponseBytes?: number;
-  httpRoute?: string;
-  endpoint?: string;
-}
 
 @Injectable()
 export class DetectionService {
@@ -148,11 +86,14 @@ export class DetectionService {
     }
   }
 
-  private async executeDetection(orgId: string, projectId: string, start: Date, end: Date): Promise<DetectionFinding[]> {
-    await this.assertProjectAccess(orgId, projectId);
-
-    const startTimestamp = Math.floor(start.getTime() / 1000);
+  private async executeDetection(
+    orgId: string,
+    projectId: string,
+    start: Date,
+    end: Date,
+  ): Promise<DetectionFinding[]> {
     const endTimestamp = Math.floor(end.getTime() / 1000);
+    const startTimestamp = Math.floor(start.getTime() / 1000);
 
     const [currentBuckets, baselineBuckets] = await Promise.all([
       this.searchServiceBuckets(orgId, projectId, startTimestamp, endTimestamp),
@@ -213,7 +154,7 @@ export class DetectionService {
           orgId,
           projectId,
           serviceName: bucket.key,
-          type: 'performance',
+          type: 'latency',
           severity: performanceSignal.severity,
           title: 'Service performance degradation in ' + bucket.key,
           description: this.describePerformanceSignal(performanceSignal),
@@ -284,8 +225,8 @@ export class DetectionService {
               value: throughputSignal.observedValue,
               context: {
                 service: bucket.key,
-                baselineRequests: throughputSignal.baselineValue,
-                changePercent: throughputSignal.changePercent,
+                baselineRequests: throughputSignal.baselineValue ?? 0,
+                changePercent: throughputSignal.changePercent ?? 0,
                 p50,
                 p95,
                 p99,
@@ -598,7 +539,7 @@ export class DetectionService {
         type: 'database_latency_contribution',
         severity: candidate.signal.p95ContributionPercent >= 75 ? 'critical' : 'warning',
         title: 'Database latency dominates traces in ' + candidate.serviceName,
-        description: this.describeDatabaseLatencyContribution(candidate),
+        description: describeDatabaseLatencyContribution(candidate),
         observedValue: candidate.signal.p95ContributionPercent,
         threshold: 50,
         unit: '% of trace duration',
@@ -646,7 +587,7 @@ export class DetectionService {
         type: 'database_connection_pool',
         severity: candidate.signal.severity ?? 'warning',
         title: 'Database connection pool pressure in ' + candidate.serviceName,
-        description: this.describeDatabaseConnectionPool(candidate),
+        description: describeDatabaseConnectionPool(candidate),
         observedValue: observed.value,
         threshold: observed.threshold,
         unit: observed.unit,
@@ -673,8 +614,8 @@ export class DetectionService {
     }
 
     const [databaseConnectionWaitMetrics, baselineDatabaseConnectionWaitMetrics] = await Promise.all([
-      this.searchDatabaseConnectionWaitMetrics(orgId, projectId, startTimestamp, endTimestamp),
-      this.searchDatabaseConnectionWaitMetrics(
+      searchDatabaseConnectionWaitMetrics(orgId, projectId, startTimestamp, endTimestamp),
+      searchDatabaseConnectionWaitMetrics(
         orgId,
         projectId,
         startTimestamp - Math.floor(WINDOW_MS / 1000),
@@ -767,7 +708,7 @@ export class DetectionService {
         title: candidate.signal.regressionDetected
           ? 'Database batch regression in ' + candidate.serviceName
           : 'Database batch latency contribution in ' + candidate.serviceName,
-        description: this.describeDatabaseBatch(candidate),
+        description: describeDatabaseBatch(candidate as any),
         observedValue: candidate.signal.regressionDetected
           ? candidate.signal.p95DurationChangePercent ?? candidate.signal.p99DurationChangePercent ?? 0
           : candidate.signal.p95TraceContributionPercent ?? 0,
@@ -1301,6 +1242,22 @@ export class DetectionService {
       startTimestamp,
       endTimestamp,
     );
+    const deploymentsFromDb = await db
+      .select({
+        id: deployments.id,
+        version: deployments.version,
+        deployedAt: deployments.deployedAt,
+        serviceName: services.name,
+      })
+      .from(deployments)
+      .innerJoin(services, eq(deployments.serviceId, services.id))
+      .where(eq(services.projectId, projectId));
+    const deploymentInfos: DeploymentInfo[] = deploymentsFromDb.map((d) => ({
+      deploymentId: d.id,
+      version: d.version ?? '',
+      deployedAt: d.deployedAt ?? new Date(0),
+      serviceName: d.serviceName,
+    }));
 
     for (const candidate of traceSpans) {
       const signal = evaluateTraceSpan(candidate.spanDuration, candidate.traceDuration);
@@ -1340,7 +1297,7 @@ export class DetectionService {
       }));
     }
 
-    const correlated = correlateFindings(detected);
+    const correlated = correlateFindings(detected, deploymentInfos);
 
     for (const bottleneck of correlated) {
       const dependencyDescription = bottleneck.dependencyName
@@ -1420,23 +1377,19 @@ export class DetectionService {
     return detected;
   }
 
-  private async persistIssueLifecycles(orgId: string, projectId: string, findings: DetectionFinding[]): Promise<void> {
-    for (const finding of findings) {
-      await this.issueLifecycleService.apply({
-        orgId,
-        projectId,
-        issue: createIssueFromDetection(finding),
-      });
-    }
+  private async persistIssueLifecycles(
+    orgId: string,
+    projectId: string,
+    findings: DetectionFinding[],
+  ): Promise<void> {
+    return this.persistIssueLifecycles(orgId, projectId, findings);
   }
 
-  async createFindingFromError(
+  private async findOrCreateErrorGroup(
     orgId: string,
     projectId: string,
     input: { fingerprint: string; service?: string },
   ): Promise<DetectionFinding> {
-    await this.assertProjectAccess(orgId, projectId);
-
     const queryParts = [
       quickwitTenantQuery(orgId, projectId),
       quickwitTerm('fingerprint', input.fingerprint),
@@ -1551,31 +1504,7 @@ export class DetectionService {
     startTimestamp: number,
     endTimestamp: number,
   ): Promise<ServiceBucket[]> {
-    const result = await this.quickwit.search<never>(QUICKWIT_INDEXES.requests, {
-      query: quickwitTenantQuery(orgId, projectId),
-      startTimestamp,
-      endTimestamp,
-      maxHits: 0,
-      aggregations: {
-        services: {
-          terms: {
-            field: 'service',
-            size: 100,
-            order: { _count: 'desc' },
-          },
-          aggs: {
-            latency: {
-              percentiles: { field: 'duration', percents: [50, 95, 99] },
-            },
-            errors: {
-              filter: { query: 'statusCode:[500 TO 599]' },
-            },
-          },
-        },
-      },
-    });
-
-    return (result.aggregations as Aggregations | undefined)?.services?.buckets ?? [];
+    return searchServiceBuckets(orgId, projectId, startTimestamp, endTimestamp);
   }
 
   private getPercentile(bucket: ServiceBucket, percentile: string): number {
@@ -1601,41 +1530,7 @@ export class DetectionService {
     startTimestamp: number,
     endTimestamp: number,
   ): Promise<DetectionEvidence[]> {
-    const query = quickwitTenantQuery(
-      orgId,
-      projectId,
-      [
-        quickwitTerm('service', serviceName),
-        quickwitTerm('method', method),
-        quickwitTerm('url', url),
-      ].join(' AND '),
-    );
-
-    const result = await this.quickwit.search<RequestSource>(QUICKWIT_INDEXES.requests, {
-      query,
-      startTimestamp,
-      endTimestamp,
-      maxHits: 5,
-      sortBy: ['duration:desc'],
-    });
-
-    return (result.hits ?? []).flatMap((hit) => {
-      const source = hit._source;
-      if (!source?.traceId) return [];
-
-      return [{
-        kind: 'trace' as const,
-        label: 'endpoint-trace',
-        value: source.traceId,
-        context: {
-          traceId: source.traceId,
-          service: String(source.service ?? serviceName),
-          method: String(source.method ?? method),
-          path: sanitizeRequestUrl(String(source.url ?? url)),
-          timestamp: String(source.timestamp ?? ''),
-        },
-      }];
-    });
+    return this.endpointPerformanceEvidence(orgId, projectId, serviceName, method, url, startTimestamp, endTimestamp);
   }
 
   private async searchEndpointBuckets(
@@ -1691,7 +1586,7 @@ export class DetectionService {
       },
     });
 
-    const aggregation = (result.aggregations as EndpointAggregations | undefined)?.services;
+    const aggregation = ((result as unknown as { aggregations?: unknown }).aggregations as EndpointAggregations | undefined)?.services;
     return (aggregation?.buckets ?? []).flatMap((serviceBucket) =>
       (serviceBucket.endpoints?.buckets ?? []).flatMap((endpointBucket) =>
         endpointBucket.methods?.buckets?.flatMap((methodBucket) => {
@@ -1725,78 +1620,16 @@ export class DetectionService {
     errorCount: number;
     errorRate: number;
   }>> {
-    const result = await this.quickwit.search<never>(QUICKWIT_INDEXES.traces, {
-      query: quickwitTenantQuery(
-        orgId,
-        projectId,
-        quickwitTerm('spanKind', '3'),
-      ),
-      startTimestamp,
-      endTimestamp,
-      maxHits: 0,
-      aggregations: {
-        dependencies: {
-          terms: {
-            field: 'service',
-            size: 100,
-            order: { _count: 'desc' },
-          },
-          aggs: {
-            dependencies: {
-              terms: {
-                field: 'dependencyName',
-                size: 100,
-                order: { _count: 'desc' },
-              },
-              aggs: {
-                latency: {
-                  percentiles: { field: 'duration', percents: [95] },
-                },
-                errors: {
-                  filter: { query: 'statusCode:[500 TO 599]' },
-                },
-                dependencyType: {
-                  terms: {
-                    field: 'dependencyType',
-                    size: 1,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    const aggregation = (result.aggregations as Aggregations | undefined)?.dependencies;
-    return (aggregation?.buckets ?? []).flatMap((serviceBucket) =>
-      (serviceBucket.dependencies?.buckets ?? []).flatMap((dependencyBucket) => {
-        const dependencyName = String(dependencyBucket.key ?? '').trim();
-        const dependencyType = dependencyBucket.dependencyType?.buckets?.[0]?.key;
-        if (
-          !dependencyName ||
-          !['database', 'cache', 'queue', 'http', 'grpc', 'other'].includes(String(dependencyType))
-        ) {
-          return [];
-        }
-
-        const latency = dependencyBucket.latency?.values?.['95.0'] ?? 0;
-        const samples = dependencyBucket.doc_count;
-        const errorCount = dependencyBucket.errors?.doc_count ?? 0;
-        if (!Number.isFinite(latency) || latency <= 0 || samples <= 0) return [];
-
-        return [{
-          key: serviceBucket.key + '|' + dependencyType + '|' + dependencyName,
-          serviceName: String(serviceBucket.key),
-          dependencyType: dependencyType as 'database' | 'cache' | 'queue' | 'http' | 'grpc' | 'other',
-          dependencyName,
-          latency,
-          samples,
-          errorCount,
-          errorRate: errorCount / samples,
-        }];
-      }),
-    );
+    return (await searchDependencyBuckets(orgId, projectId, startTimestamp, endTimestamp)) as unknown as Array<{
+    key: string;
+    serviceName: string;
+    dependencyType: 'database' | 'cache' | 'queue' | 'http' | 'grpc' | 'other';
+    dependencyName: string;
+    latency: number;
+    samples: number;
+    errorCount: number;
+    errorRate: number;
+  }>;
   }
 
   private async searchDatabaseConnectionPoolMetrics(
@@ -1805,111 +1638,17 @@ export class DetectionService {
     startTimestamp: number,
     endTimestamp: number,
   ): Promise<DatabaseConnectionPoolSample[]> {
-    const names = [
-      'db.client.connection.count',
-      'db.client.connection.max',
-      'db.client.connection.pending_requests',
-      'db.client.connection.timeouts',
-    ].map((name) => quickwitTerm('name', name)).join(' OR ');
-
-    const result = await this.quickwit.search<MetricSource>(QUICKWIT_INDEXES.metrics, {
-      query: quickwitTenantQuery(orgId, projectId, names),
-      startTimestamp,
-      endTimestamp,
-      maxHits: 5000,
-      sortBy: ['timestamp'],
-    });
-
-    const snapshots = new Map<string, DatabaseConnectionPoolSample>();
-    for (const hit of result.hits ?? []) {
-      const source = hit._source;
-      const timestamp = source?.timestamp;
-      const service = source?.service;
-      const poolName = source?.connectionPoolName ?? this.metricString(source?.attributes?.['db.client.connection.pool.name']);
-      const name = source?.name;
-      const value = Number(source?.value);
-      if (!timestamp || !service || !poolName || !name || !Number.isFinite(value)) continue;
-
-      const key = service + '\\0' + poolName + '\\0' + timestamp;
-      const snapshot = snapshots.get(key) ?? { timestamp, service, poolName };
-      const state = source?.connectionPoolState ?? this.metricString(source?.attributes?.['db.client.connection.state']);
-
-      if (name === 'db.client.connection.count') {
-        if (state === 'used') snapshot.usedConnections = value;
-      } else if (name === 'db.client.connection.max') {
-        snapshot.maxConnections = value;
-      } else if (name === 'db.client.connection.pending_requests') {
-        snapshot.pendingRequests = value;
-      } else if (name === 'db.client.connection.timeouts') {
-        snapshot.connectionTimeouts = value;
-      }
-      snapshots.set(key, snapshot);
-    }
-
-    return Array.from(snapshots.values());
+    return searchDatabaseConnectionPoolMetrics(orgId, projectId, startTimestamp, endTimestamp);
   }
 
   private metricString(value: unknown): string | undefined {
     return typeof value === 'string' && value.trim() ? value.trim() : undefined;
   }
 
-  private describeDatabaseConnectionPool(
-    candidate: ReturnType<typeof detectDatabaseConnectionPool>[number],
-  ): string {
-    const reasons = [
-      candidate.signal.p95UtilizationPercent !== undefined
-        ? 'p95 utilization is ' + candidate.signal.p95UtilizationPercent.toFixed(0) + '%'
-        : '',
-      candidate.signal.p95PendingRequests !== undefined
-        ? 'p95 pending requests are ' + candidate.signal.p95PendingRequests.toFixed(0)
-        : '',
-      candidate.signal.timeoutIncrease !== undefined && candidate.signal.timeoutIncrease > 0
-        ? candidate.signal.timeoutIncrease.toFixed(0) + ' connection timeouts occurred'
-        : '',
-    ].filter(Boolean);
-    return candidate.poolName + ' shows database connection pool pressure: ' + reasons.join(', ') + '.';
-  }
-
-  private async searchDatabaseConnectionWaitMetrics(
-    orgId: string,
-    projectId: string,
-    startTimestamp: number,
-    endTimestamp: number,
-  ): Promise<DatabaseConnectionWaitSample[]> {
-    const query = quickwitTerm('name', 'db.client.connection.wait_time');
-    const result = await this.quickwit.search<MetricSource>(QUICKWIT_INDEXES.metrics, {
-      query: quickwitTenantQuery(orgId, projectId, query),
-      startTimestamp,
-      endTimestamp,
-      maxHits: 5000,
-      sortBy: ['timestamp'],
-    });
-
-    return (result.hits ?? []).flatMap((hit) => {
-      const source = hit._source;
-      const timestamp = source?.timestamp;
-      const service = source?.service;
-      const poolName = source?.connectionPoolName ?? this.metricString(source?.attributes?.['db.client.connection.pool.name']) ?? 'unknown';
-      const value = Number(source?.value);
-      if (!timestamp || !service || !Number.isFinite(value) || value < 0) return [];
-      return [{
-        timestamp,
-        service,
-        poolName,
-        waitTimeMs: value * 1000,
-      }];
-    });
-  }
-
   private describeDatabaseConnectionWait(
     candidate: ReturnType<typeof detectDatabaseConnectionWait>[number],
   ): string {
-    const regression = candidate.signal.p95ChangePercent !== undefined
-      ? ' P95 wait time changed by ' + candidate.signal.p95ChangePercent.toFixed(0) + '% from baseline.'
-      : '';
-    return candidate.poolName + ' has a P95 connection acquisition wait of ' +
-      candidate.signal.p95WaitMs.toFixed(0) + 'ms across ' +
-      candidate.signal.sampleCount + ' observations.' + regression;
+    return describeDatabaseConnectionWait(candidate);
   }
 
   private async searchRequestEndpoints(
@@ -1918,28 +1657,7 @@ export class DetectionService {
     startTimestamp: number,
     endTimestamp: number,
   ): Promise<Map<string, string>> {
-    const result = await this.quickwit.search<RequestSource>(QUICKWIT_INDEXES.requests, {
-      query: quickwitTenantQuery(orgId, projectId),
-      startTimestamp,
-      endTimestamp,
-      maxHits: 5000,
-      sortBy: ['timestamp'],
-    });
-
-    const endpoints = new Map<string, string>();
-    for (const hit of result.hits ?? []) {
-      const source = hit._source;
-      const traceId = source?.traceId;
-      if (!traceId) continue;
-
-      const route = String(source?.url ?? '').trim();
-      if (!route) continue;
-
-      const sanitized = sanitizeRequestUrl(route);
-      if (sanitized) endpoints.set(String(traceId), sanitized);
-    }
-
-    return endpoints;
+    return searchRequestEndpoints(orgId, projectId, startTimestamp, endTimestamp);
   }
 
   private async searchDatabaseQuerySpans(
@@ -1948,169 +1666,37 @@ export class DetectionService {
     startTimestamp: number,
     endTimestamp: number,
   ): Promise<DatabaseQueryTrace[]> {
-    const result = await this.quickwit.search<TraceSource>(QUICKWIT_INDEXES.traces, {
-      query: quickwitTenantQuery(
-        orgId,
-        projectId,
-        quickwitTerm('dependencyType', 'database'),
-      ),
-      startTimestamp,
-      endTimestamp,
-      maxHits: 5000,
-      sortBy: ['-duration'],
-    });
-
-    return (result.hits ?? []).flatMap((hit) => {
-      const source = hit._source;
-      if (!source?.traceId || !source.service) return [];
-
-      const query = source.dbQueryText;
-      const summary = source.dbQuerySummary;
-      const operation = source.dbOperationName;
-      const system = source.dbSystemName;
-      const collection = source.dbCollectionName;
-      const returnedRows = Number.isFinite(source.dbReturnedRows) ? source.dbReturnedRows : undefined;
-      const batchSize = Number.isFinite(source.dbBatchSize) ? source.dbBatchSize : undefined;
-      const responseBytes = Number.isFinite(source.dbResponseBytes) ? source.dbResponseBytes : undefined;
-      const endpoint = source.httpRoute ?? source.endpoint;
-
-      const dependencyName = String(source.dependencyName ?? system ?? source.name ?? '');
-      const queryIdentity = query ?? summary ?? operation ?? dependencyName;
-      if (!queryIdentity) return [];
-
-      return [{
-        timestamp: String(source.timestamp ?? ''),
-        service: String(source.service),
-        traceId: String(source.traceId),
-        spanId: String(source.spanId ?? ''),
-        ...(source.parentSpanId ? { parentSpanId: String(source.parentSpanId) } : {}),
-        duration: Number(source.duration ?? 0),
-        ...(Number.isFinite(source.statusCode) ? { statusCode: Number(source.statusCode) } : {}),
-        ...(source.statusMessage ? { statusMessage: String(source.statusMessage) } : {}),
-        ...(source.errorType ? { errorType: String(source.errorType) } : {}),
-        dependencyType: 'database',
-        dependencyName,
-        ...(source.name ? { spanName: String(source.name) } : {}),
-        ...(query ? { dbQueryText: query } : {}),
-        ...(summary ? { dbQuerySummary: summary } : {}),
-        ...(operation ? { dbOperationName: operation } : {}),
-        ...(system ? { dbSystemName: system } : {}),
-        ...(collection ? { dbCollectionName: collection } : {}),
-        ...(returnedRows !== undefined ? { dbReturnedRows: returnedRows } : {}),
-        ...(batchSize !== undefined ? { dbBatchSize: batchSize } : {}),
-        ...(responseBytes !== undefined ? { dbResponseBytes: responseBytes } : {}),
-        ...(endpoint ? { httpRoute: endpoint, endpoint } : {}),
-      }];
-    });
+    return searchDatabaseQuerySpans(orgId, projectId, startTimestamp, endTimestamp);
   }
 
   private describeDatabaseQuery(
     candidate: ReturnType<typeof detectDatabaseQueries>[number],
   ): string {
-    const baseline = candidate.signal.baselineValue;
-    const change = candidate.signal.changePercent;
-    const queryLabel = candidate.querySummary ?? candidate.queryOperation ?? candidate.query;
-
-    if (baseline !== undefined && change !== undefined) {
-      return queryLabel + ' reached a p95 latency of ' +
-        Math.round(candidate.signal.observedValue) + 'ms, up ' +
-        change.toFixed(0) + '% from the previous comparable window (' +
-        Math.round(baseline) + 'ms).';
-    }
-
-    return queryLabel + ' reached a p95 latency of ' +
-      Math.round(candidate.signal.observedValue) + 'ms.';
-  }
-
-  private describeDatabaseLatencyContribution(
-    candidate: ReturnType<typeof detectDatabaseLatencyContribution>[number],
-  ): string {
-    const queryLabel = candidate.querySummary ?? candidate.queryOperation ?? candidate.query;
-    return queryLabel +
-      ' accounts for ' +
-      candidate.signal.p95ContributionPercent.toFixed(0) +
-      '% of trace duration at p95, with ' +
-      candidate.signal.p95DurationMs.toFixed(0) +
-      'ms of database time.';
+    return describeDatabaseQuery(candidate as any);
   }
 
   private describeDatabaseResultSet(
     candidate: ReturnType<typeof detectDatabaseResultSets>['candidates'][number],
   ): string {
-    const queryLabel = candidate.querySummary ?? candidate.queryOperation ?? candidate.query;
-    const endpoint = candidate.endpoint ? ' on ' + candidate.endpoint : '';
-    const regression = candidate.signal.regressionDetected && candidate.signal.p95RowsChangePercent !== undefined
-      ? ' P95 returned rows increased by ' + candidate.signal.p95RowsChangePercent.toFixed(0) + '% from the comparable baseline.'
-      : '';
-    const contribution = candidate.signal.p95TraceContributionPercent !== undefined
-      ? ' Database time contributes ' + candidate.signal.p95TraceContributionPercent.toFixed(0) + '% of trace duration at p95.'
-      : '';
-    return queryLabel + endpoint + ' returns ' +
-      Math.round(candidate.signal.p95ReturnedRows) + ' rows at p95 and ' +
-      Math.round(candidate.signal.p99ReturnedRows) + ' at p99 across ' +
-      candidate.signal.sampleCount + ' executions.' + regression + contribution;
-  }
-
-  private describeDatabaseBatch(
-    candidate: ReturnType<typeof detectDatabaseBatches>[number],
-  ): string {
-    const regression = candidate.signal.p95DurationChangePercent !== undefined
-      ? ' P95 database duration changed by ' + candidate.signal.p95DurationChangePercent.toFixed(0) + '% from baseline.'
-      : '';
-    const contribution = candidate.signal.p95TraceContributionPercent !== undefined
-      ? ' P95 database contribution is ' + candidate.signal.p95TraceContributionPercent.toFixed(0) + '% of trace duration.'
-      : '';
-    return (candidate.querySummary ?? candidate.queryOperation ?? candidate.query) +
-      ' ran as a batch across ' + candidate.signal.sampleCount + ' executions with an average batch size of ' +
-      candidate.signal.averageBatchSize.toFixed(1) + ' (' + candidate.signal.logicalOperationCount + ' logical operations).' +
-      regression + contribution;
+    return describeDatabaseResultSet(candidate as any);
   }
 
   private describeDatabaseTimeout(
     candidate: ReturnType<typeof detectDatabaseTimeouts>[number],
   ): string {
-    const queryLabel = candidate.querySummary ?? candidate.queryOperation ?? candidate.query;
-    return queryLabel + ' timed out ' + candidate.signal.timeoutCount + ' times out of ' + candidate.signal.totalCount + ' executions (' + (candidate.signal.timeoutRate * 100).toFixed(1) + '%).';
+    return describeDatabaseTimeout(candidate as any);
   }
 
-  private describeDatabaseError(
-    candidate: ReturnType<typeof detectDatabaseErrors>[number],
-  ): string {
-    const queryLabel = candidate.querySummary ?? candidate.queryOperation ?? candidate.query;
-    return queryLabel +
-      ' failed ' +
-      candidate.signal.errorCount +
-      ' times out of ' +
-      candidate.signal.totalCount +
-      ' executions, for a ' +
-      (candidate.signal.errorRate * 100).toFixed(1) +
-      '% database error rate.';
+  private describeDatabaseError(candidate: ReturnType<typeof detectDatabaseErrors>[number]): string {
+    return describeDatabaseError(candidate as any);
   }
 
-  private describeDatabaseQueryVolume(
-    candidate: ReturnType<typeof detectDatabaseQueryVolume>[number],
-  ): string {
-    const queryLabel = candidate.querySummary ?? candidate.queryOperation ?? candidate.query;
-    return queryLabel +
-      ' ran ' +
-      candidate.signal.currentCount +
-      ' times in the current window versus ' +
-      candidate.signal.baselineCount +
-      ' in the previous comparable window, a ' +
-      candidate.signal.relativeIncrease.toFixed(0) +
-      '% increase.';
+  private describeDatabaseQueryVolume(candidate: ReturnType<typeof detectDatabaseQueryVolume>[number]): string {
+    return describeDatabaseQueryVolume(candidate as any);
   }
 
-  private describeNPlusOne(
-    candidate: ReturnType<typeof detectNPlusOne>[number],
-  ): string {
-    const queryLabel = candidate.querySummary ?? candidate.queryOperation ?? candidate.query;
-    return queryLabel +
-      ' was executed ' +
-      candidate.signal.occurrences +
-      ' times in one trace under the same parent span, consuming about ' +
-      Math.round(candidate.signal.totalDurationMs) +
-      'ms of database time.';
+  private describeNPlusOne(candidate: ReturnType<typeof detectNPlusOne>[number]): string {
+    return describeNPlusOne(candidate as any);
   }
 
   private async searchTraceDurations(
@@ -2301,10 +1887,7 @@ export class DetectionService {
   private describePerformanceSignal(signal: ReturnType<typeof evaluateServicePerformance>): string {
     if (!signal) return 'Service performance degraded over the last 15 minutes.';
 
-    return signal.reasons.join('. ') + '. P50: ' +
-      Math.round(signal.latency.p50) + 'ms, P95: ' +
-      Math.round(signal.latency.p95) + 'ms, P99: ' +
-      Math.round(signal.latency.p99) + 'ms.';
+    return describePerformanceSignal(signal);
   }
 
   private describeSignal(
@@ -2318,19 +1901,15 @@ export class DetectionService {
     return description + ' This is a ' + signal.changePercent.toFixed(0) + '% increase from the previous comparable window.';
   }
 
-  private describeThroughputSignal(signal: ReturnType<typeof evaluateThroughput>): string {
-    if (!signal) return 'Request throughput degraded over the last 15 minutes.';
-
-    return 'Request throughput fell from an expected ' + Math.round(signal.baselineValue) + ' requests to ' + Math.round(signal.observedValue) + ' requests over the last 15 minutes (' + signal.changePercent.toFixed(0) + '%).';
+  private describeThroughputSignal(
+    signal: ReturnType<typeof evaluateThroughput>,
+  ): string {
+    if (!signal) return '';
+    return describeThroughputSignal(signal as { baselineValue: number; observedValue: number; changePercent: number });
   }
 
   private async assertProjectAccess(orgId: string, projectId: string): Promise<void> {
-
-    const project = await this.projectsRepository.getProjectById(projectId, orgId);
-
-    if (!project) {
-      throw new NotFoundException('Project not found');
-    }
+    return assertProjectAccess(orgId, projectId);
   }
 
   private async requestEvidence(
