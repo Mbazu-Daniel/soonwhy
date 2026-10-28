@@ -1,7 +1,7 @@
-import type { EvidenceConfidence } from './evidence-confidence';
-import type { EvidenceObservation, EvidenceWindow } from './evidence.types';
-import type { Issue } from './issue.types';
-import type { TelemetryIdentity } from './telemetry-identity.types';
+import type { EvidenceConfidence } from "./evidence-confidence";
+import type { EvidenceObservation, EvidenceWindow } from "./evidence.types";
+import type { Issue } from "./issue.types";
+import type { TelemetryIdentity } from "./telemetry-identity.types";
 
 export interface BuildIssueInput {
   identity: TelemetryIdentity;
@@ -33,7 +33,10 @@ export function buildIssue(input: BuildIssueInput): Issue | undefined {
   };
 }
 
-function sameIdentity(left: TelemetryIdentity, right: TelemetryIdentity): boolean {
+function sameIdentity(
+  left: TelemetryIdentity,
+  right: TelemetryIdentity,
+): boolean {
   return (
     left.domain === right.domain &&
     left.fingerprint === right.fingerprint &&
@@ -48,7 +51,9 @@ function sameIdentity(left: TelemetryIdentity, right: TelemetryIdentity): boolea
 function validObservations(
   observations: EvidenceObservation[],
 ): EvidenceObservation[] {
-  return observations.filter((observation) => Number.isFinite(Date.parse(observation.observedAt)));
+  return observations.filter((observation) =>
+    Number.isFinite(Date.parse(observation.observedAt)),
+  );
 }
 
 function uniqueValidWindows(windows: EvidenceWindow[]): EvidenceWindow[] {

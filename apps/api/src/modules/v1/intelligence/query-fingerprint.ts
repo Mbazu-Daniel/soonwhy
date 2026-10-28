@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash } from "node:crypto";
 
 export const QUERY_FINGERPRINT_VERSION = 1;
 
@@ -29,9 +29,11 @@ export function fingerprintQuery(
   databaseSystem?: string,
 ): QueryFingerprintResult {
   const canonical = canonicalizeQuery(query);
-  const fingerprint = createHash('sha256')
-    .update(`${QUERY_FINGERPRINT_VERSION}:${databaseSystem ?? ''}:${canonical.operation}`)
-    .digest('hex');
+  const fingerprint = createHash("sha256")
+    .update(
+      `${QUERY_FINGERPRINT_VERSION}:${databaseSystem ?? ""}:${canonical.operation}`,
+    )
+    .digest("hex");
 
   return {
     identity: {
@@ -47,30 +49,33 @@ export function fingerprintQuery(
 export function canonicalizeQuery(query: string): CanonicalQuery {
   const rawQuery = query.trim();
   if (!rawQuery) {
-    return { operation: '', evidence: { rawQuery: query, listCardinalities: [] } };
+    return {
+      operation: "",
+      evidence: { rawQuery: query, listCardinalities: [] },
+    };
   }
 
   let operation = rawQuery
-    .replace(/--[^\r\n]*/g, ' ')
-    .replace(/\/\*[\s\S]*?\*\//g, ' ')
-    .replace(/'(?:''|[^'])*'/g, '?')
+    .replace(/--[^\r\n]*/g, " ")
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/'(?:''|[^'])*'/g, "?")
     .replace(/"(?:""|[^"])*"/g, (match) => match)
-    .replace(/\b\d+(?:\.\d+)?\b/g, '?');
+    .replace(/\b\d+(?:\.\d+)?\b/g, "?");
 
   const listCardinalities: number[] = [];
-  operation = operation.replace(/\bIN\s*\(([^()]*)\)/gi, (_match, contents: string) => {
-    const values = contents
-      .split(',')
-      .map((value) => value.trim())
-      .filter(Boolean);
-    listCardinalities.push(values.length);
-    return 'IN (?)';
-  });
+  operation = operation.replace(
+    /\bIN\s*\(([^()]*)\)/gi,
+    (_match, contents: string) => {
+      const values = contents
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
+      listCardinalities.push(values.length);
+      return "IN (?)";
+    },
+  );
 
-  operation = operation
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase();
+  operation = operation.replace(/\s+/g, " ").trim().toLowerCase();
 
   return {
     operation,
