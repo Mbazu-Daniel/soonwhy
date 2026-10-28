@@ -1,6 +1,6 @@
-import type { DatabaseConnectionPoolSample } from './database-connection-pool.detector';
-import type { DatabaseConnectionWaitSample } from './database-connection-wait.detector';
-import { fingerprintQuery } from './query-fingerprint';
+import type { DatabaseConnectionPoolSample } from "./database-connection-pool.detector";
+import type { DatabaseConnectionWaitSample } from "./database-connection-wait.detector";
+import { fingerprintQuery } from "./query-fingerprint";
 
 export interface DatabaseDependencyTrace {
   timestamp: string;
@@ -34,7 +34,7 @@ export interface DatabaseDependencySignal {
   averageBatchSize?: number;
   queryFingerprintCount: number;
   degradationSignals: string[];
-  confidence: 'medium' | 'high';
+  confidence: "medium" | "high";
 }
 
 export interface DatabaseDependencyCandidate {
@@ -71,91 +71,126 @@ export function detectDatabaseDependencyDegradation(
       if (!first || current.length < MINIMUM_SAMPLES) return [];
 
       const durations = distribution(current.map((sample) => sample.duration));
-      const errors = current.filter((sample) => sample.statusCode === 2 || sample.errorType !== undefined).length;
+      const errors = current.filter(
+        (sample) => sample.statusCode === 2 || sample.errorType !== undefined,
+      ).length;
       const errorRate = errors / current.length;
       const baseline = baselineGroups.get(key);
-      const baselineP95 = baseline && baseline.length >= MINIMUM_SAMPLES
-        ? percentile(baseline.map((sample) => sample.duration), 0.95)
-        : undefined;
-      const p95DurationChangePercent = percentChange(durations.p95, baselineP95);
+      const baselineP95 =
+        baseline && baseline.length >= MINIMUM_SAMPLES
+          ? percentile(
+              baseline.map((sample) => sample.duration),
+              0.95,
+            )
+          : undefined;
+      const p95DurationChangePercent = percentChange(
+        durations.p95,
+        baselineP95,
+      );
       const latencyDegraded =
         durations.p95 >= LATENCY_THRESHOLD_MS ||
-        (p95DurationChangePercent !== undefined && p95DurationChangePercent >= LATENCY_REGRESSION_PERCENT);
+        (p95DurationChangePercent !== undefined &&
+          p95DurationChangePercent >= LATENCY_REGRESSION_PERCENT);
       const errorDegraded = errorRate >= ERROR_RATE_THRESHOLD;
       const poolDegraded = poolPressure.has(first.service);
       const waitDegraded = waitPressure.has(first.service);
       const signals = [
-        ...(latencyDegraded ? ['latency'] : []),
-        ...(errorDegraded ? ['errors'] : []),
-        ...(poolDegraded ? ['connection_pool'] : []),
-        ...(waitDegraded ? ['connection_wait'] : []),
+        ...(latencyDegraded ? ["latency"] : []),
+        ...(errorDegraded ? ["errors"] : []),
+        ...(poolDegraded ? ["connection_pool"] : []),
+        ...(waitDegraded ? ["connection_wait"] : []),
       ];
 
       if (signals.length < 2) return [];
 
-      const batchSamples = current.filter((sample) => sample.dbBatchSize !== undefined && sample.dbBatchSize >= 2);
+      const batchSamples = current.filter(
+        (sample) => sample.dbBatchSize !== undefined && sample.dbBatchSize >= 2,
+      );
       const fingerprints = new Set(
         current
-          .map((sample) => sample.dbQueryText ?? sample.dbQuerySummary ?? sample.dbOperationName)
+          .map(
+            (sample) =>
+              sample.dbQueryText ??
+              sample.dbQuerySummary ??
+              sample.dbOperationName,
+          )
           .filter((query): query is string => Boolean(query))
-          .map((query) => fingerprintQuery(query, first.dbSystemName).identity.fingerprint),
+          .map(
+            (query) =>
+              fingerprintQuery(query, first.dbSystemName).identity.fingerprint,
+          ),
       );
 
-      const confidence: DatabaseDependencySignal['confidence'] = signals.length >= 3 ? 'high' : 'medium';
-      const recommendation = latencyDegraded && errorDegraded
-        ? 'Inspect the affected database dependency for query latency and database errors first, then correlate pool pressure and connection wait before changing query or pool configuration.'
-        : poolDegraded || waitDegraded
-          ? 'Inspect connection capacity and wait pressure alongside the slow or failing database operations. Validate whether pool contention explains the dependency degradation.'
-          : 'Compare the affected database dependency with its baseline and inspect the query and batch shapes contributing to the degradation.';
+      const confidence: DatabaseDependencySignal["confidence"] =
+        signals.length >= 3 ? "high" : "medium";
+      const recommendation =
+        latencyDegraded && errorDegraded
+          ? "Inspect the affected database dependency for query latency and database errors first, then correlate pool pressure and connection wait before changing query or pool configuration."
+          : poolDegraded || waitDegraded
+            ? "Inspect connection capacity and wait pressure alongside the slow or failing database operations. Validate whether pool contention explains the dependency degradation."
+            : "Compare the affected database dependency with its baseline and inspect the query and batch shapes contributing to the degradation.";
 
-      return [{
-        serviceName: first.service,
-        dependencyName: first.dependencyName,
-        ...(first.dbSystemName ? { databaseSystem: first.dbSystemName } : {}),
-        signal: {
-          sampleCount: current.length,
-          p50Duration: durations.p50,
-          p95Duration: durations.p95,
-          p99Duration: durations.p99,
-          errorCount: errors,
-          errorRate,
-          ...(p95DurationChangePercent !== undefined ? { p95DurationChangePercent } : {}),
-          poolPressure: poolDegraded,
-          connectionWaitPressure: waitDegraded,
-          batchOperationCount: batchSamples.length,
-          batchRate: batchSamples.length / current.length,
-          ...(batchSamples.length ? {
-            averageBatchSize: batchSamples.reduce((sum, sample) => sum + (sample.dbBatchSize ?? 0), 0) / batchSamples.length,
-          } : {}),
-          queryFingerprintCount: fingerprints.size,
-          degradationSignals: signals,
-          confidence,
+      return [
+        {
+          serviceName: first.service,
+          dependencyName: first.dependencyName,
+          ...(first.dbSystemName ? { databaseSystem: first.dbSystemName } : {}),
+          signal: {
+            sampleCount: current.length,
+            p50Duration: durations.p50,
+            p95Duration: durations.p95,
+            p99Duration: durations.p99,
+            errorCount: errors,
+            errorRate,
+            ...(p95DurationChangePercent !== undefined
+              ? { p95DurationChangePercent }
+              : {}),
+            poolPressure: poolDegraded,
+            connectionWaitPressure: waitDegraded,
+            batchOperationCount: batchSamples.length,
+            batchRate: batchSamples.length / current.length,
+            ...(batchSamples.length
+              ? {
+                  averageBatchSize:
+                    batchSamples.reduce(
+                      (sum, sample) => sum + (sample.dbBatchSize ?? 0),
+                      0,
+                    ) / batchSamples.length,
+                }
+              : {}),
+            queryFingerprintCount: fingerprints.size,
+            degradationSignals: signals,
+            confidence,
+          },
+          samples: current.slice(0, 20),
+          recommendation,
         },
-        samples: current.slice(0, 20),
-        recommendation,
-      }];
+      ];
     })
     .sort((left, right) => right.signal.p95Duration - left.signal.p95Duration)
     .slice(0, 100);
 }
 
-function groupByDependency(samples: DatabaseDependencyTrace[]): Map<string, DatabaseDependencyTrace[]> {
+function groupByDependency(
+  samples: DatabaseDependencyTrace[],
+): Map<string, DatabaseDependencyTrace[]> {
   const groups = new Map<string, DatabaseDependencyTrace[]>();
 
   for (const sample of samples) {
     if (
-      sample.dependencyType !== 'database' ||
+      sample.dependencyType !== "database" ||
       !sample.service ||
       !sample.dependencyName ||
       !Number.isFinite(sample.duration) ||
       sample.duration <= 0
-    ) continue;
+    )
+      continue;
 
     const key = [
       sample.service,
       sample.dependencyName,
-      sample.dbSystemName ?? '',
-    ].join('\0');
+      sample.dbSystemName ?? "",
+    ].join("\0");
     const existing = groups.get(key) ?? [];
     existing.push(sample);
     groups.set(key, existing);
@@ -164,21 +199,33 @@ function groupByDependency(samples: DatabaseDependencyTrace[]): Map<string, Data
   return groups;
 }
 
-function detectPoolPressure(samples: DatabaseConnectionPoolSample[]): Set<string> {
+function detectPoolPressure(
+  samples: DatabaseConnectionPoolSample[],
+): Set<string> {
   const pressure = new Set<string>();
 
   for (const sample of samples) {
     if (
       !sample.service ||
-      (sample.usedConnections === undefined || sample.maxConnections === undefined || sample.maxConnections <= 0)
-        && (sample.pendingRequests === undefined || sample.pendingRequests < POOL_PENDING_THRESHOLD)
-    ) continue;
+      ((sample.usedConnections === undefined ||
+        sample.maxConnections === undefined ||
+        sample.maxConnections <= 0) &&
+        (sample.pendingRequests === undefined ||
+          sample.pendingRequests < POOL_PENDING_THRESHOLD))
+    )
+      continue;
 
-    const utilization = sample.usedConnections !== undefined && sample.maxConnections !== undefined && sample.maxConnections > 0
-      ? (sample.usedConnections / sample.maxConnections) * 100
-      : 0;
+    const utilization =
+      sample.usedConnections !== undefined &&
+      sample.maxConnections !== undefined &&
+      sample.maxConnections > 0
+        ? (sample.usedConnections / sample.maxConnections) * 100
+        : 0;
 
-    if (utilization >= POOL_UTILIZATION_THRESHOLD || (sample.pendingRequests ?? 0) >= POOL_PENDING_THRESHOLD) {
+    if (
+      utilization >= POOL_UTILIZATION_THRESHOLD ||
+      (sample.pendingRequests ?? 0) >= POOL_PENDING_THRESHOLD
+    ) {
       pressure.add(sample.service);
     }
   }
@@ -186,7 +233,9 @@ function detectPoolPressure(samples: DatabaseConnectionPoolSample[]): Set<string
   return pressure;
 }
 
-function detectWaitPressure(samples: DatabaseConnectionWaitSample[]): Set<string> {
+function detectWaitPressure(
+  samples: DatabaseConnectionWaitSample[],
+): Set<string> {
   return new Set(
     samples
       .filter((sample) => sample.waitTimeMs >= CONNECTION_WAIT_THRESHOLD_MS)
@@ -194,8 +243,14 @@ function detectWaitPressure(samples: DatabaseConnectionWaitSample[]): Set<string
   );
 }
 
-function distribution(values: number[]): { p50: number; p95: number; p99: number } {
-  const sorted = values.filter(Number.isFinite).sort((left, right) => left - right);
+function distribution(values: number[]): {
+  p50: number;
+  p95: number;
+  p99: number;
+} {
+  const sorted = values
+    .filter(Number.isFinite)
+    .sort((left, right) => left - right);
   return {
     p50: percentile(sorted, 0.5),
     p95: percentile(sorted, 0.95),
@@ -210,10 +265,15 @@ function percentile(values: number[], quantile: number): number {
   const upper = Math.ceil(position);
   const lowerValue = values[lower] ?? 0;
   const upperValue = values[upper] ?? lowerValue;
-  return lower === upper ? lowerValue : lowerValue + (upperValue - lowerValue) * (position - lower);
+  return lower === upper
+    ? lowerValue
+    : lowerValue + (upperValue - lowerValue) * (position - lower);
 }
 
-function percentChange(current: number, baseline: number | undefined): number | undefined {
+function percentChange(
+  current: number,
+  baseline: number | undefined,
+): number | undefined {
   if (baseline === undefined || baseline <= 0) return undefined;
   return ((current - baseline) / baseline) * 100;
 }

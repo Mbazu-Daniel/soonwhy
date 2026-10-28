@@ -1,4 +1,4 @@
-import { fingerprintQuery } from './query-fingerprint';
+import { fingerprintQuery } from "./query-fingerprint";
 
 export interface DatabaseQueryTimeoutTrace {
   timestamp: string;
@@ -32,7 +32,7 @@ export interface DatabaseQueryTimeoutSignal {
 
 export interface DatabaseQueryTimeoutCandidate {
   serviceName: string;
-  identity: ReturnType<typeof fingerprintQuery>['identity'];
+  identity: ReturnType<typeof fingerprintQuery>["identity"];
   query: string;
   querySummary?: string;
   queryOperation?: string;
@@ -42,11 +42,12 @@ export interface DatabaseQueryTimeoutCandidate {
   samples: DatabaseQueryTimeoutTrace[];
 }
 
-export const DEFAULT_DATABASE_QUERY_TIMEOUT_THRESHOLDS: DatabaseQueryTimeoutThresholds = {
-  minimumOccurrences: 2,
-  minimumDurationMs: 5_000,
-  minimumRatio: 0.5,
-};
+export const DEFAULT_DATABASE_QUERY_TIMEOUT_THRESHOLDS: DatabaseQueryTimeoutThresholds =
+  {
+    minimumOccurrences: 2,
+    minimumDurationMs: 5_000,
+    minimumRatio: 0.5,
+  };
 
 export function detectDatabaseQueryTimeouts(
   traces: DatabaseQueryTimeoutTrace[],
@@ -56,12 +57,14 @@ export function detectDatabaseQueryTimeouts(
 
   for (const trace of traces) {
     if (
-      trace.dependencyType !== 'database' ||
+      trace.dependencyType !== "database" ||
       !Number.isFinite(trace.duration) ||
       trace.duration < thresholds.minimumDurationMs
-    ) continue;
+    )
+      continue;
 
-    const query = trace.dbQueryText ?? trace.dbQuerySummary ?? trace.dbOperationName;
+    const query =
+      trace.dbQueryText ?? trace.dbQuerySummary ?? trace.dbOperationName;
     if (!query) continue;
 
     const identity = fingerprintQuery(query, trace.dbSystemName).identity;
@@ -69,8 +72,8 @@ export function detectDatabaseQueryTimeouts(
       trace.service,
       identity.fingerprintVersion,
       identity.fingerprint,
-      trace.dbSystemName ?? '',
-    ].join('\0');
+      trace.dbSystemName ?? "",
+    ].join("\0");
 
     const existing = groups.get(key) ?? [];
     existing.push(trace);
@@ -82,33 +85,57 @@ export function detectDatabaseQueryTimeouts(
       const first = samples[0];
       if (!first || samples.length < thresholds.minimumOccurrences) return [];
 
-      const timeoutRatio = samples.length / traces.filter((trace) =>
-        trace.service === first.service &&
-        (trace.dbSystemName ?? '') === (first.dbSystemName ?? '') &&
-        (trace.dbQueryText ?? trace.dbQuerySummary ?? trace.dbOperationName) !== undefined,
-      ).length;
+      const timeoutRatio =
+        samples.length /
+        traces.filter(
+          (trace) =>
+            trace.service === first.service &&
+            (trace.dbSystemName ?? "") === (first.dbSystemName ?? "") &&
+            (trace.dbQueryText ??
+              trace.dbQuerySummary ??
+              trace.dbOperationName) !== undefined,
+        ).length;
 
-      if (!Number.isFinite(timeoutRatio) || timeoutRatio < thresholds.minimumRatio) return [];
+      if (
+        !Number.isFinite(timeoutRatio) ||
+        timeoutRatio < thresholds.minimumRatio
+      )
+        return [];
 
-      const query = first.dbQueryText ?? first.dbQuerySummary ?? first.dbOperationName;
+      const query =
+        first.dbQueryText ?? first.dbQuerySummary ?? first.dbOperationName;
       if (!query) return [];
 
-      return [{
-        serviceName: first.service,
-        identity: fingerprintQuery(query, first.dbSystemName).identity,
-        query,
-        ...(first.dbQuerySummary ? { querySummary: first.dbQuerySummary } : {}),
-        ...(first.dbOperationName ? { queryOperation: first.dbOperationName } : {}),
-        ...(first.dbSystemName ? { databaseSystem: first.dbSystemName } : {}),
-        ...(first.dbCollectionName ? { collectionName: first.dbCollectionName } : {}),
-        signal: {
-          occurrences: samples.length,
-          totalDurationMs: samples.reduce((total, sample) => total + sample.duration, 0),
-          timeoutRatio,
+      return [
+        {
+          serviceName: first.service,
+          identity: fingerprintQuery(query, first.dbSystemName).identity,
+          query,
+          ...(first.dbQuerySummary
+            ? { querySummary: first.dbQuerySummary }
+            : {}),
+          ...(first.dbOperationName
+            ? { queryOperation: first.dbOperationName }
+            : {}),
+          ...(first.dbSystemName ? { databaseSystem: first.dbSystemName } : {}),
+          ...(first.dbCollectionName
+            ? { collectionName: first.dbCollectionName }
+            : {}),
+          signal: {
+            occurrences: samples.length,
+            totalDurationMs: samples.reduce(
+              (total, sample) => total + sample.duration,
+              0,
+            ),
+            timeoutRatio,
+          },
+          samples: samples.slice(0, 10),
         },
-        samples: samples.slice(0, 10),
-      }];
+      ];
     })
-    .sort((left, right) => right.signal.totalDurationMs - left.signal.totalDurationMs)
+    .sort(
+      (left, right) =>
+        right.signal.totalDurationMs - left.signal.totalDurationMs,
+    )
     .slice(0, 100);
 }

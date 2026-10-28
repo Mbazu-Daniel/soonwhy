@@ -1,4 +1,4 @@
-import { fingerprintQuery } from './query-fingerprint';
+import { fingerprintQuery } from "./query-fingerprint";
 
 export interface DatabaseErrorTrace {
   timestamp: string;
@@ -31,7 +31,7 @@ export interface DatabaseErrorSignal {
 
 export interface DatabaseErrorCandidate {
   serviceName: string;
-  identity: ReturnType<typeof fingerprintQuery>['identity'];
+  identity: ReturnType<typeof fingerprintQuery>["identity"];
   query: string;
   querySummary?: string;
   queryOperation?: string;
@@ -54,12 +54,14 @@ export function detectDatabaseErrors(
 
   for (const trace of traces) {
     if (
-      trace.dependencyType !== 'database' ||
+      trace.dependencyType !== "database" ||
       !Number.isFinite(trace.duration) ||
       trace.duration < 0
-    ) continue;
+    )
+      continue;
 
-    const query = trace.dbQueryText ?? trace.dbQuerySummary ?? trace.dbOperationName;
+    const query =
+      trace.dbQueryText ?? trace.dbQuerySummary ?? trace.dbOperationName;
     if (!query) continue;
 
     const identity = fingerprintQuery(query, trace.dbSystemName).identity;
@@ -67,8 +69,8 @@ export function detectDatabaseErrors(
       trace.service,
       identity.fingerprintVersion,
       identity.fingerprint,
-      trace.dbSystemName ?? '',
-    ].join('\0');
+      trace.dbSystemName ?? "",
+    ].join("\0");
 
     const existing = groups.get(key) ?? [];
     existing.push(trace);
@@ -83,28 +85,40 @@ export function detectDatabaseErrors(
       const errors = samples.filter(isDatabaseError);
       const errorRate = errors.length / samples.length;
 
-      if (errors.length < thresholds.minimumErrors || errorRate < thresholds.minimumErrorRate) {
+      if (
+        errors.length < thresholds.minimumErrors ||
+        errorRate < thresholds.minimumErrorRate
+      ) {
         return [];
       }
 
-      const query = first.dbQueryText ?? first.dbQuerySummary ?? first.dbOperationName;
+      const query =
+        first.dbQueryText ?? first.dbQuerySummary ?? first.dbOperationName;
       if (!query) return [];
 
-      return [{
-        serviceName: first.service,
-        identity: fingerprintQuery(query, first.dbSystemName).identity,
-        query,
-        ...(first.dbQuerySummary ? { querySummary: first.dbQuerySummary } : {}),
-        ...(first.dbOperationName ? { queryOperation: first.dbOperationName } : {}),
-        ...(first.dbSystemName ? { databaseSystem: first.dbSystemName } : {}),
-        ...(first.dbCollectionName ? { collectionName: first.dbCollectionName } : {}),
-        signal: {
-          errorCount: errors.length,
-          totalCount: samples.length,
-          errorRate,
+      return [
+        {
+          serviceName: first.service,
+          identity: fingerprintQuery(query, first.dbSystemName).identity,
+          query,
+          ...(first.dbQuerySummary
+            ? { querySummary: first.dbQuerySummary }
+            : {}),
+          ...(first.dbOperationName
+            ? { queryOperation: first.dbOperationName }
+            : {}),
+          ...(first.dbSystemName ? { databaseSystem: first.dbSystemName } : {}),
+          ...(first.dbCollectionName
+            ? { collectionName: first.dbCollectionName }
+            : {}),
+          signal: {
+            errorCount: errors.length,
+            totalCount: samples.length,
+            errorRate,
+          },
+          samples: errors.slice(0, 10),
         },
-        samples: errors.slice(0, 10),
-      }];
+      ];
     })
     .sort((left, right) => right.signal.errorCount - left.signal.errorCount)
     .slice(0, 100);
