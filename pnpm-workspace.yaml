@@ -1,11 +1,8 @@
 packages:
   - 'apps/*'
   - 'packages/*'
-  - 'sdks/*'
-
 allowBuilds:
-  argon2: false
-  esbuild: false
-  protobufjs: false
-
-autoInstallPeers: false
+  argon2: true
+  argon2,esbuild,protobufjs: true
+  esbuild: true
+  protobufjs: true

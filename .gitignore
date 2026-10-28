@@ -67,3 +67,5 @@ doc/
 *.pdf
 *.docx
 *.txt
+*.opencode
+docss*
