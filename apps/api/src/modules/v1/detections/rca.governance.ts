@@ -1,10 +1,10 @@
-import { Injectable } from '@nestjs/common';
-import type { RcaUsage } from './rca.types';
-import { db } from '../../../common/db';
-import { rcaInvocations } from '../../../common/db/schema';
-import { generateId } from '../../../common/db/generate-id';
+import { Injectable } from "@nestjs/common";
+import type { RcaUsage } from "./rca.types";
+import { db } from "../../../common/db";
+import { rcaInvocations } from "../../../common/db/schema";
+import { generateId } from "../../../common/db/generate-id";
 
-export type RcaInvocationStatus = 'succeeded' | 'failed';
+export type RcaInvocationStatus = "succeeded" | "failed";
 
 export interface RcaInvocationRecord {
   id: string;
@@ -26,22 +26,40 @@ export interface RcaInvocationRecord {
 }
 
 export interface RcaGovernanceSink {
-  recordSuccess(input: Omit<RcaInvocationRecord, 'id' | 'status' | 'createdAt' | 'errorCode'>): Promise<void>;
-  recordFailure(input: Omit<RcaInvocationRecord, 'id' | 'status' | 'createdAt'> & { errorCode?: string }): Promise<void>;
+  recordSuccess(
+    input: Omit<
+      RcaInvocationRecord,
+      "id" | "status" | "createdAt" | "errorCode"
+    >,
+  ): Promise<void>;
+  recordFailure(
+    input: Omit<RcaInvocationRecord, "id" | "status" | "createdAt"> & {
+      errorCode?: string;
+    },
+  ): Promise<void>;
 }
 
 @Injectable()
 export class DatabaseRcaGovernanceSink implements RcaGovernanceSink {
   async recordSuccess(
-    input: Omit<RcaInvocationRecord, 'id' | 'status' | 'createdAt' | 'errorCode'>,
+    input: Omit<
+      RcaInvocationRecord,
+      "id" | "status" | "createdAt" | "errorCode"
+    >,
   ): Promise<void> {
-    await db.insert(rcaInvocations).values({ id: generateId(), ...input, status: 'succeeded' });
+    await db
+      .insert(rcaInvocations)
+      .values({ id: generateId(), ...input, status: "succeeded" });
   }
 
   async recordFailure(
-    input: Omit<RcaInvocationRecord, 'id' | 'status' | 'createdAt'> & { errorCode?: string },
+    input: Omit<RcaInvocationRecord, "id" | "status" | "createdAt"> & {
+      errorCode?: string;
+    },
   ): Promise<void> {
-    await db.insert(rcaInvocations).values({ id: generateId(), ...input, status: 'failed' });
+    await db
+      .insert(rcaInvocations)
+      .values({ id: generateId(), ...input, status: "failed" });
   }
 }
 
@@ -64,5 +82,5 @@ export function toRcaUsageFields(usage: RcaUsage) {
 
 export function getRcaErrorCode(error: unknown): string {
   if (error instanceof Error) return error.name;
-  return 'UnknownError';
+  return "UnknownError";
 }

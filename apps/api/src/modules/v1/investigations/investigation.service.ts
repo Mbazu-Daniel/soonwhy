@@ -1,12 +1,16 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import type { DetectionEvidence } from '../../../common/db/schema/findings';
-import { InvestigationRepository } from './investigation.repository';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import type { DetectionEvidence } from "../../../common/db/schema/findings";
+import { InvestigationRepository } from "./investigation.repository";
 import type {
   InvestigationGraph,
   InvestigationGraphEvidenceData,
   InvestigationGraphFindingData,
   InvestigationGraphNode,
-} from './investigation.graph';
+} from "./investigation.graph";
 
 type InvestigationSnapshot = {
   finding?: InvestigationGraphFindingData;
@@ -18,12 +22,14 @@ export class InvestigationService {
   constructor(private readonly repository: InvestigationRepository) {}
 
   async list(projectId: string, orgId: string) {
-    return (await this.repository.list(projectId, orgId)).map(({ investigation }) => investigation);
+    return (await this.repository.list(projectId, orgId)).map(
+      ({ investigation }) => investigation,
+    );
   }
 
   async getById(id: string, orgId: string) {
     const investigation = await this.repository.getById(id, orgId);
-    if (!investigation) throw new NotFoundException('Investigation not found');
+    if (!investigation) throw new NotFoundException("Investigation not found");
     return investigation;
   }
 
@@ -39,7 +45,7 @@ export class InvestigationService {
 
     const findingNode: InvestigationGraphNode = {
       id: `finding:${investigation.findingId}`,
-      type: 'finding',
+      type: "finding",
       label: finding.title ?? investigation.title,
       data: finding,
     };
@@ -61,7 +67,7 @@ export class InvestigationService {
 
         return {
           id: `evidence:${investigation.findingId}:${encodeURIComponent(key)}`,
-          type: 'evidence',
+          type: "evidence",
           label: item.label,
           data,
         };
@@ -74,14 +80,14 @@ export class InvestigationService {
         id: `${findingNode.id}->${node.id}`,
         source: findingNode.id,
         target: node.id,
-        type: 'supported_by' as const,
+        type: "supported_by" as const,
       })),
     };
   }
 
   async start(findingId: string, orgId: string) {
     const finding = await this.repository.getFinding(findingId, orgId);
-    if (!finding) throw new NotFoundException('Finding not found');
+    if (!finding) throw new NotFoundException("Finding not found");
 
     const evidence = finding.evidence as DetectionEvidence[];
     const evidenceRefs = evidence.map((item) => ({
@@ -96,9 +102,9 @@ export class InvestigationService {
         orgId,
         projectId: finding.projectId,
         findingId: finding.id,
-        status: 'open',
+        status: "open",
         serviceName: finding.serviceName,
-        title: 'Investigation for ' + finding.title,
+        title: "Investigation for " + finding.title,
         summary: finding.description,
         evidence: evidenceRefs,
         evidenceSnapshot: {
@@ -120,7 +126,9 @@ export class InvestigationService {
       });
     } catch (error) {
       if (isUniqueViolation(error)) {
-        throw new ConflictException('An investigation is already open for this finding');
+        throw new ConflictException(
+          "An investigation is already open for this finding",
+        );
       }
       throw error;
     }
@@ -128,10 +136,12 @@ export class InvestigationService {
 }
 
 function isUniqueViolation(error: unknown): boolean {
-  return typeof error === 'object'
-    && error !== null
-    && 'code' in error
-    && error.code === '23505';
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "23505"
+  );
 }
 
 function evidenceKey(item: DetectionEvidence): string {

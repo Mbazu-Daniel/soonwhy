@@ -1,8 +1,8 @@
-import { Module } from '@nestjs/common';
-import { TracesController } from './traces.controller';
-import { TracesService } from './traces.service';
-import { TracesRepository } from './traces.repository';
-import { TelemetryModule } from '../../../common/telemetry';
+import { Module } from "@nestjs/common";
+import { TracesController } from "./traces.controller";
+import { TracesService } from "./traces.service";
+import { TracesRepository } from "./traces.repository";
+import { TelemetryModule } from "../../../common/telemetry";
 
 @Module({
   imports: [TelemetryModule],

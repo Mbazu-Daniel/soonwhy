@@ -1,14 +1,17 @@
-import type { CanonicalValue, TelemetryIdentity } from './telemetry-identity.types';
+import type {
+  CanonicalValue,
+  TelemetryIdentity,
+} from "./telemetry-identity.types";
 
 export type EvidenceSource =
-  | 'metric'
-  | 'trace'
-  | 'log'
-  | 'request'
-  | 'database'
-  | 'runtime'
-  | 'deployment'
-  | 'ai';
+  | "metric"
+  | "trace"
+  | "log"
+  | "request"
+  | "database"
+  | "runtime"
+  | "deployment"
+  | "ai";
 
 export interface EvidenceObservation {
   name: string;
@@ -32,5 +35,5 @@ export interface EvidenceBundle {
 export interface IssueCandidate {
   identity: TelemetryIdentity;
   evidence: EvidenceBundle;
-  status: 'candidate' | 'confirmed';
+  status: "candidate" | "confirmed";
 }

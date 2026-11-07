@@ -1,5 +1,3 @@
-/** Shared OTLP time helpers. */
-
 export function nanoTimestamp(nano: string): string | null {
   try {
     const nanos = BigInt(nano);
@@ -7,8 +5,7 @@ export function nanoTimestamp(nano: string): string | null {
     const ms = nanos / 1_000_000n;
     const date = new Date(Number(ms));
     if (Number.isNaN(date.getTime())) return null;
-    // Preserve sub-ms digits in the fractional seconds (OTLP is nanosecond).
-    const frac = String(nanos % 1_000_000_000n).padStart(9, '0');
+    const frac = String(nanos % 1_000_000_000n).padStart(9, "0");
     return `${date.toISOString().slice(0, -5)}.${frac}Z`;
   } catch {
     return null;

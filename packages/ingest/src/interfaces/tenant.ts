@@ -1,13 +1,6 @@
-export interface CaptureSettings {
-  redactSensitiveData: boolean;
-  captureRequestHeaders: boolean;
-  captureRequestBody: boolean;
-  captureResponseBody: boolean;
-  maxAttributeCount: number;
-  maxAttributeValueLength: number;
-}
+import type { CaptureSettings } from "@soonwhy/shared";
 
-export interface TenantContext {
+export interface OrganizationContext {
   projectId: string;
   organizationId: string;
   captureSettings: CaptureSettings;

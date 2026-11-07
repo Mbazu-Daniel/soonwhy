@@ -1,6 +1,13 @@
-import type { CanonicalValue, TelemetryIdentityInput } from './telemetry-identity.types';
-import type { EvidenceObservation } from './evidence.types';
-import { fingerprintQuery, type QueryEvidence, type QueryIdentity } from './query-fingerprint';
+import type {
+  CanonicalValue,
+  TelemetryIdentityInput,
+} from "./telemetry-identity.types";
+import type { EvidenceObservation } from "./evidence.types";
+import {
+  fingerprintQuery,
+  type QueryEvidence,
+  type QueryIdentity,
+} from "./query-fingerprint";
 
 export interface DatabaseQueryIdentity extends QueryIdentity {
   serviceName?: string;
@@ -24,34 +31,36 @@ export interface DatabaseQueryInput {
   endpoint?: string;
 }
 
-export function createDatabaseQueryObservation(input: DatabaseQueryInput): DatabaseQueryObservation {
+export function createDatabaseQueryObservation(
+  input: DatabaseQueryInput,
+): DatabaseQueryObservation {
   const result = fingerprintQuery(input.query, input.databaseSystem);
   const observations: EvidenceObservation[] = [];
 
   if (input.durationMs !== undefined) {
     observations.push({
-      name: 'query.duration',
+      name: "query.duration",
       value: input.durationMs,
-      source: 'database',
+      source: "database",
       observedAt: input.observedAt,
-      unit: 'ms',
+      unit: "ms",
     });
   }
 
   if (input.rowCount !== undefined) {
     observations.push({
-      name: 'query.rows',
+      name: "query.rows",
       value: input.rowCount,
-      source: 'database',
+      source: "database",
       observedAt: input.observedAt,
     });
   }
 
   if (input.endpoint) {
     observations.push({
-      name: 'request.endpoint',
+      name: "request.endpoint",
       value: input.endpoint,
-      source: 'request',
+      source: "request",
       observedAt: input.observedAt,
     });
   }
@@ -69,7 +78,7 @@ export function createDatabaseQueryObservation(input: DatabaseQueryInput): Datab
 
 export function queryIdentityAttributes(
   input: DatabaseQueryInput,
-): TelemetryIdentityInput['identityAttributes'] {
+): TelemetryIdentityInput["identityAttributes"] {
   const attributes: Record<string, CanonicalValue> = {};
   if (input.databaseSystem) attributes.databaseSystem = input.databaseSystem;
   return attributes;

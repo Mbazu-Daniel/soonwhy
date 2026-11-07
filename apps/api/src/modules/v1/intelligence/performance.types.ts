@@ -1,10 +1,10 @@
 export type PerformanceMetric =
-  | 'latency'
-  | 'throughput'
-  | 'dependency_latency'
-  | 'trace_contribution';
+  | "latency"
+  | "throughput"
+  | "dependency_latency"
+  | "trace_contribution";
 
-export type PerformanceSeverity = 'candidate' | 'warning' | 'critical';
+export type PerformanceSeverity = "candidate" | "warning" | "critical";
 
 export interface PerformanceBaseline {
   value: number;
@@ -21,7 +21,7 @@ export interface PerformanceWindow {
 export interface PerformanceSignal {
   metric: PerformanceMetric;
   observedValue: number;
-  unit: 'ms' | '%' | 'requests';
+  unit: "ms" | "%" | "requests";
   baselineValue?: number;
   changePercent?: number;
   severity: PerformanceSeverity;

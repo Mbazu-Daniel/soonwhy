@@ -1,9 +1,15 @@
-import { createHash } from 'node:crypto';
-import type { CanonicalValue, TelemetryIdentity, TelemetryIdentityInput } from './telemetry-identity.types';
+import { createHash } from "node:crypto";
+import type {
+  CanonicalValue,
+  TelemetryIdentity,
+  TelemetryIdentityInput,
+} from "./telemetry-identity.types";
 
 export const TELEMETRY_FINGERPRINT_VERSION = 1;
 
-export function createTelemetryIdentity(input: TelemetryIdentityInput): TelemetryIdentity {
+export function createTelemetryIdentity(
+  input: TelemetryIdentityInput,
+): TelemetryIdentity {
   const fingerprintPayload = {
     domain: input.domain,
     serviceName: input.serviceName ?? null,
@@ -26,12 +32,12 @@ export function createTelemetryIdentity(input: TelemetryIdentityInput): Telemetr
 
 export function fingerprintCanonicalValue(value: CanonicalValue): string {
   const canonical = canonicalize(value);
-  return createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
+  return createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
 }
 
 function canonicalize(value: CanonicalValue): CanonicalValue {
   if (Array.isArray(value)) return value.map(canonicalize);
-  if (value === null || typeof value !== 'object') return value;
+  if (value === null || typeof value !== "object") return value;
 
   return Object.fromEntries(
     Object.entries(value)

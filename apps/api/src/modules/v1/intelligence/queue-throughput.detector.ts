@@ -1,9 +1,9 @@
-import { createTelemetryIdentity } from './telemetry-identity';
+import { createTelemetryIdentity } from "./telemetry-identity";
 
 const MIN_SAMPLES = 5;
 const REGRESSION_PERCENT = 30;
 
-export type QueueType = 'kafka' | 'nats' | 'rabbitmq' | 'other';
+export type QueueType = "kafka" | "nats" | "rabbitmq" | "other";
 
 export interface QueueOperationTrace {
   timestamp: string;
@@ -53,13 +53,15 @@ export function detectQueueThroughput(
     const baselinePerMinute = baselineSamples.length / windowMinutes;
     if (baselinePerMinute <= 0) continue;
 
-    const changePercent = ((currentPerMinute - baselinePerMinute) / baselinePerMinute) * 100;
+    const changePercent =
+      ((currentPerMinute - baselinePerMinute) / baselinePerMinute) * 100;
     if (Math.abs(changePercent) < REGRESSION_PERCENT) continue;
 
-    const [serviceName, queueType, queueName, operationName] = key.split('|');
-    if (!serviceName || !queueName || !queueType || !isQueueType(queueType)) continue;
+    const [serviceName, queueType, queueName, operationName] = key.split("|");
+    if (!serviceName || !queueName || !queueType || !isQueueType(queueType))
+      continue;
 
-    const direction = changePercent < 0 ? 'dropped' : 'increased';
+    const direction = changePercent < 0 ? "dropped" : "increased";
     candidates.push({
       serviceName,
       queueName,
@@ -74,28 +76,45 @@ export function detectQueueThroughput(
       },
       samples: samples.slice(0, 20),
       identity: createTelemetryIdentity({
-        domain: 'dependency',
+        domain: "dependency",
         serviceName,
         operationName: operationName || queueName,
         identityAttributes: {
-          dependencyType: 'queue',
+          dependencyType: "queue",
           queueType,
           queueName,
           ...(operationName ? { queueOperation: operationName } : {}),
         },
       }),
-      recommendation: 'The ' + queueType + ' ' + queueName + ' operation rate ' + direction + ' by ' + Math.abs(changePercent).toFixed(0) + '%. Compare producer and consumer volume, worker concurrency, consumer errors, and deployment changes before changing queue configuration.',
+      recommendation:
+        "The " +
+        queueType +
+        " " +
+        queueName +
+        " operation rate " +
+        direction +
+        " by " +
+        Math.abs(changePercent).toFixed(0) +
+        "%. Compare producer and consumer volume, worker concurrency, consumer errors, and deployment changes before changing queue configuration.",
     });
   }
 
   return candidates;
 }
 
-function groupByQueue(samples: QueueOperationTrace[]): Map<string, QueueOperationTrace[]> {
+function groupByQueue(
+  samples: QueueOperationTrace[],
+): Map<string, QueueOperationTrace[]> {
   const groups = new Map<string, QueueOperationTrace[]>();
   for (const sample of samples) {
-    if (!sample.service || !sample.queueName || !isQueueType(sample.queueType)) continue;
-    const key = [sample.service, sample.queueType, sample.queueName, sample.operationName ?? ''].join('|');
+    if (!sample.service || !sample.queueName || !isQueueType(sample.queueType))
+      continue;
+    const key = [
+      sample.service,
+      sample.queueType,
+      sample.queueName,
+      sample.operationName ?? "",
+    ].join("|");
     const group = groups.get(key) ?? [];
     group.push(sample);
     groups.set(key, group);
@@ -104,5 +123,10 @@ function groupByQueue(samples: QueueOperationTrace[]): Map<string, QueueOperatio
 }
 
 function isQueueType(value: string): value is QueueType {
-  return value === 'kafka' || value === 'nats' || value === 'rabbitmq' || value === 'other';
+  return (
+    value === "kafka" ||
+    value === "nats" ||
+    value === "rabbitmq" ||
+    value === "other"
+  );
 }

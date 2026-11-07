@@ -1,4 +1,4 @@
-export type Role = 'owner' | 'admin' | 'member' | 'viewer';
+export type Role = "owner" | "admin" | "member" | "viewer";
 
 export interface PaginationQuery {
   page?: number;

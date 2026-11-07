@@ -9,7 +9,7 @@ import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '~/components/ui/dropdown-menu';
-import { AlertTriangle, BrainCircuit, Check, ChevronDown, ChevronRight, GitBranch, KeyRound, LayoutDashboard, Plus, ScrollText, Server, Settings, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, BarChart3, Bell, BrainCircuit, Check, ChevronDown, ChevronRight, GitBranch, KeyRound, LayoutDashboard, Plus, ScrollText, Server, Settings, ShieldCheck } from 'lucide-react';
 import { api } from '~/lib/api';
 
 interface Project { id: string; name: string; slug: string; }
@@ -21,12 +21,16 @@ const navGroups = [
     { to: 'errors', label: 'Errors', icon: AlertTriangle },
     { to: 'logs', label: 'Logs', icon: ScrollText },
     { to: 'traces', label: 'Traces', icon: GitBranch },
+    { to: 'metrics', label: 'Metrics', icon: BarChart3 },
   ] },
   { label: 'Intelligence', items: [
     { to: 'detections', label: 'Findings', icon: BrainCircuit },
     { to: 'investigations', label: 'Investigations', icon: ShieldCheck },
   ] },
-  { label: 'Configuration', items: [{ to: 'api-keys', label: 'API Keys', icon: KeyRound }] },
+  { label: 'Configuration', items: [
+    { to: 'alerts', label: 'Alerts', icon: Bell },
+    { to: 'api-keys', label: 'API Keys', icon: KeyRound },
+  ] },
 ] as const;
 
 function projectSlug(name: string) {
@@ -103,7 +107,7 @@ export function Sidebar() {
           </DropdownMenu>
         </div>
         <div className={cn('flex-1 overflow-y-auto pt-5 pb-3', collapsed ? 'px-2' : 'px-3')}>
-          <nav className="space-y-4">{navGroups.map((group) => <div key={group.label}>{!collapsed && <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[.14em] text-[#989898]">{group.label}</p>}<div className="space-y-1">{group.items.map((item) => { const to = orgSlug && selectedProjectSlug ? (item.to === 'overview' ? '/$organizationSlug/p/$projectSlug/' : `/$organizationSlug/p/$projectSlug/${item.to}`) : '/organizations'; const target = orgSlug && selectedProjectSlug ? (item.to === 'overview' ? `/${orgSlug}/p/${selectedProjectSlug}/` : `/${orgSlug}/p/${selectedProjectSlug}/${item.to}`) : '/organizations'; const currentPath = location.pathname.replace(/\/+$/, ''); const targetPath = target.replace(/\/+$/, ''); const active = targetPath !== '/organizations' && (item.exact ? currentPath === targetPath : currentPath === targetPath || currentPath.startsWith(`${targetPath}/`)); return <Link key={item.to} to={to as never} params={orgSlug && selectedProjectSlug ? { organizationSlug: orgSlug, projectSlug: selectedProjectSlug } : undefined} onClick={close} title={collapsed ? item.label : undefined} className={cn('group flex items-center rounded-lg py-2.5 text-sm font-medium transition-colors', collapsed ? 'justify-center px-2' : 'gap-3 px-3', active ? 'bg-[#ACFC15] text-[#182012]' : 'text-[#989898] hover:bg-[#151517] hover:text-[#F6F6F6]')} aria-current={active ? 'page' : undefined}><item.icon className="h-[17px] w-[17px] shrink-0" aria-hidden="true" />{!collapsed && <span className="flex-1">{item.label}</span>}{!collapsed && active && <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />}</Link>; })}</div></div>)}</nav>
+          <nav className="space-y-4">{navGroups.map((group) => <div key={group.label}>{!collapsed && <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[.14em] text-[#989898]">{group.label}</p>}<div className="space-y-1">{group.items.map((item) => { const isOrgLevel = !!(item as any).orgLevel; const to = orgSlug ? (isOrgLevel ? '/$organizationSlug/' + item.to : (selectedProjectSlug ? (item.to === 'overview' ? '/$organizationSlug/p/$projectSlug/' : `/$organizationSlug/p/$projectSlug/${item.to}`) : '/organizations')) : '/organizations'; const target = orgSlug ? (isOrgLevel ? `/${orgSlug}/${item.to}` : (selectedProjectSlug ? (item.to === 'overview' ? `/${orgSlug}/p/${selectedProjectSlug}/` : `/${orgSlug}/p/${selectedProjectSlug}/${item.to}`) : '/organizations')) : '/organizations'; const currentPath = location.pathname.replace(/\/+$/, ''); const targetPath = target.replace(/\/+$/, ''); const active = targetPath !== '/organizations' && (item.exact ? currentPath === targetPath : currentPath === targetPath || currentPath.startsWith(`${targetPath}/`)); return <Link key={item.to} to={to as never} params={orgSlug ? { organizationSlug: orgSlug, ...(isOrgLevel ? {} : { projectSlug: selectedProjectSlug }) } : undefined} onClick={close} title={collapsed ? item.label : undefined} className={cn('group flex items-center rounded-lg py-2.5 text-sm font-medium transition-colors', collapsed ? 'justify-center px-2' : 'gap-3 px-3', active ? 'bg-[#ACFC15] text-[#182012]' : 'text-[#989898] hover:bg-[#151517] hover:text-[#F6F6F6]')} aria-current={active ? 'page' : undefined}><item.icon className="h-[17px] w-[17px] shrink-0" aria-hidden="true" />{!collapsed && <span className="flex-1">{item.label}</span>}{!collapsed && active && <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />}</Link>; })}</div></div>)}</nav>
         </div>
       </aside>
       <Dialog open={createOpen} onOpenChange={(next) => { setCreateOpen(next); if (!next) setError(''); }}><DialogContent><DialogHeader><DialogTitle>Create project</DialogTitle></DialogHeader><form onSubmit={submitProject} className="space-y-4"><div className="space-y-2"><Label htmlFor="sidebar-project-name">Project name</Label><Input id="sidebar-project-name" value={projectName} onChange={(event) => setProjectName(event.target.value)} placeholder="Payments API" required maxLength={100} autoFocus /></div>{error && <p role="alert" className="text-sm text-destructive">{error}</p>}<div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button><Button type="submit" disabled={createProject.isPending}>{createProject.isPending ? 'Creating...' : 'Create project'}</Button></div></form></DialogContent></Dialog>

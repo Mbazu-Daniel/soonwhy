@@ -1,1 +1,0 @@
-declare module 'express' { export type RequestHandler=(req:unknown,res:unknown,next:()=>void)=>void; }

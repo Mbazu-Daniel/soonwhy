@@ -32,18 +32,7 @@
           {
             "group": "Server",
             "pages": [
-              "sdks/node",
-              "sdks/express",
-              "sdks/nestjs",
-              "sdks/python"
-            ]
-          },
-          {
-            "group": "Web",
-            "pages": [
-              "sdks/web",
-              "sdks/vite",
-              "sdks/nextjs"
+              "sdks/node"
             ]
           }
         ]

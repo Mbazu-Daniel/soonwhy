@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { quickwitTerm } from '../../../common/quickwit/query';
-import { TelemetryQueryService } from '../../../common/telemetry';
+import { Injectable } from "@nestjs/common";
+import { quickwitTerm } from "../../../common/quickwit/query";
+import { TelemetryQueryService } from "../../../common/telemetry";
 
 export interface TraceRow {
   traceId: string;
@@ -44,33 +44,42 @@ export class TracesRepository {
     q?: string;
     service?: string;
   }): Promise<TraceListRow[]> {
-    const result = await this.telemetryQuery.search<TraceRow>('traces', {
-      orgId: params.orgId, projectId: params.projectId, from: params.from, to: params.to,
-      filters: [
-        ...(params.q ? [quickwitTerm('traceId', params.q)] : []),
-        ...(params.service ? [quickwitTerm('service', params.service)] : []),
-      ],
-    }, {
-      maxHits: 0,
-      aggregations: {
-        traces: {
-          terms: {
-            field: 'traceId',
-            size: params.limit,
-          },
-          aggs: {
-            min_timestamp: { min: { field: 'timestamp' } },
-            max_timestamp: { max: { field: 'timestamp' } },
-            span_count: { value_count: { field: 'spanId' } },
+    const result = await this.telemetryQuery.search<TraceRow>(
+      "traces",
+      {
+        orgId: params.orgId,
+        projectId: params.projectId,
+        from: params.from,
+        to: params.to,
+        filters: [
+          ...(params.q ? [quickwitTerm("traceId", params.q)] : []),
+          ...(params.service ? [quickwitTerm("service", params.service)] : []),
+        ],
+      },
+      {
+        maxHits: 0,
+        aggregations: {
+          traces: {
+            terms: {
+              field: "traceId",
+              size: params.limit,
+            },
+            aggs: {
+              min_timestamp: { min: { field: "timestamp" } },
+              max_timestamp: { max: { field: "timestamp" } },
+              span_count: { value_count: { field: "spanId" } },
+            },
           },
         },
       },
-    });
+    );
 
-    const aggregation = result.aggregations?.traces as TraceAggregation | undefined;
+    const aggregation = result.aggregations?.traces as
+      | TraceAggregation
+      | undefined;
     return (aggregation?.buckets ?? []).map((bucket) => ({
       traceId: bucket.key,
-      name: '',
+      name: "",
       start: new Date(bucket.min_timestamp?.value ?? 0).toISOString(),
       end: new Date(bucket.max_timestamp?.value ?? 0).toISOString(),
       spanCount: bucket.span_count?.value ?? bucket.doc_count,
@@ -82,10 +91,17 @@ export class TracesRepository {
     projectId: string;
     traceId: string;
   }): Promise<TraceRow[]> {
-    const result = await this.telemetryQuery.search<TraceRow>('traces', {
-      orgId: params.orgId, projectId: params.projectId, from: new Date(Date.now() - 86_400_000).toISOString(), to: new Date().toISOString(),
-      filters: [quickwitTerm('traceId', params.traceId)],
-    }, { maxHits: 10000, sortBy: ['timestamp'] });
+    const result = await this.telemetryQuery.search<TraceRow>(
+      "traces",
+      {
+        orgId: params.orgId,
+        projectId: params.projectId,
+        from: new Date(Date.now() - 86_400_000).toISOString(),
+        to: new Date().toISOString(),
+        filters: [quickwitTerm("traceId", params.traceId)],
+      },
+      { maxHits: 10000, sortBy: ["timestamp"] },
+    );
 
     return result.hits.flatMap((hit) => (hit._source ? [hit._source] : []));
   }

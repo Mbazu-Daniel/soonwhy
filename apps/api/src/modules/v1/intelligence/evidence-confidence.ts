@@ -1,5 +1,5 @@
-import type { EvidenceObservation, EvidenceWindow } from './evidence.types';
-import type { TelemetryIdentity } from './telemetry-identity.types';
+import type { EvidenceObservation, EvidenceWindow } from "./evidence.types";
+import type { TelemetryIdentity } from "./telemetry-identity.types";
 
 export interface EvidenceConfidenceInput {
   identity: TelemetryIdentity;
@@ -13,7 +13,7 @@ export interface EvidenceConfidenceInput {
 export interface EvidenceConfidence {
   identity: TelemetryIdentity;
   score: number;
-  status: 'candidate' | 'supported' | 'confirmed';
+  status: "candidate" | "supported" | "confirmed";
   observationCount: number;
   windowCount: number;
   independentSourceCount: number;
@@ -37,31 +37,39 @@ export function evaluateEvidenceConfidence(
 ): EvidenceConfidence {
   const requiredWindows = Math.max(1, input.requiredWindows ?? 3);
   const minimumObservations = Math.max(1, input.minimumObservations ?? 5);
-  const minimumIndependentSources = Math.max(1, input.minimumIndependentSources ?? 2);
+  const minimumIndependentSources = Math.max(
+    1,
+    input.minimumIndependentSources ?? 2,
+  );
   const validWindows = uniqueValidWindows(input.windows);
   const observationCount = input.observations.length;
   const windowCount = validWindows.size;
-  const independentSourceCount = new Set(input.observations.map((item) => item.source)).size;
+  const independentSourceCount = new Set(
+    input.observations.map((item) => item.source),
+  ).size;
 
   const windowScore = Math.min(windowCount / requiredWindows, 1);
   const observationScore = Math.min(observationCount / minimumObservations, 1);
-  const sourceScore = Math.min(independentSourceCount / minimumIndependentSources, 1);
+  const sourceScore = Math.min(
+    independentSourceCount / minimumIndependentSources,
+    1,
+  );
   const score = clamp(
     windowScore * weights.repeatedWindows +
       observationScore * weights.observationDepth +
       sourceScore * weights.sourceDiversity,
   );
 
-  let status: EvidenceConfidence['status'] = 'candidate';
+  let status: EvidenceConfidence["status"] = "candidate";
 
   if (
     windowCount >= requiredWindows &&
     observationCount >= minimumObservations &&
     independentSourceCount >= minimumIndependentSources
   ) {
-    status = score >= 0.9 ? 'confirmed' : 'supported';
+    status = score >= 0.9 ? "confirmed" : "supported";
   } else if (score >= 0.5) {
-    status = 'supported';
+    status = "supported";
   }
 
   return {

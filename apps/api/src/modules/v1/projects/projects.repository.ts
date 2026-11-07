@@ -1,44 +1,55 @@
-import { Injectable } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
-import { db } from '../../../common/db';
-import { projectSettings, projects } from '../../../common/db/schema';
+import { Injectable } from "@nestjs/common";
+import { and, eq } from "drizzle-orm";
+import { db } from "../../../common/db";
+import { projectSettings, projects } from "../../../common/db/schema";
 
 @Injectable()
 export class ProjectsRepository {
   async getProjectById(id: string, orgId: string) {
     return db.query.projects.findFirst({
-      where: and(eq(projects.id, id), eq(projects.orgId, orgId)),
+      where: and(eq(projects.id, id), eq(projects.organizationId, orgId)),
     });
   }
 
   async getProjectsByOrgId(orgId: string) {
     return db.query.projects.findMany({
-      where: eq(projects.orgId, orgId),
+      where: eq(projects.organizationId, orgId),
     });
   }
 
   async getProjectByOrgAndSlug(orgId: string, slug: string) {
     return db.query.projects.findFirst({
-      where: and(eq(projects.orgId, orgId), eq(projects.slug, slug)),
+      where: and(eq(projects.organizationId, orgId), eq(projects.slug, slug)),
     });
   }
 
-  async createProject(data: { orgId: string; name: string; slug: string; description?: string }) {
+  async createProject(data: {
+    organizationId: string;
+    name: string;
+    slug: string;
+    description?: string;
+  }) {
     const [project] = await db.insert(projects).values(data).returning();
     return project;
   }
 
-  async updateProject(id: string, orgId: string, data: { name?: string; description?: string }) {
+  async updateProject(
+    id: string,
+    orgId: string,
+    data: { name?: string; description?: string },
+  ) {
     const [updated] = await db
       .update(projects)
       .set({ ...data, updatedAt: new Date() })
-      .where(and(eq(projects.id, id), eq(projects.orgId, orgId)))
+      .where(and(eq(projects.id, id), eq(projects.organizationId, orgId)))
       .returning();
     return updated;
   }
 
   async deleteProject(id: string, orgId: string) {
-    await db.delete(projects).where(and(eq(projects.id, id), eq(projects.orgId, orgId)));
+    await db
+      .delete(projects)
+      .where(and(eq(projects.id, id), eq(projects.organizationId, orgId)));
   }
 
   async getProjectSettings(id: string, orgId: string) {
@@ -54,7 +65,7 @@ export class ProjectsRepository {
       })
       .from(projectSettings)
       .innerJoin(projects, eq(projectSettings.projectId, projects.id))
-      .where(and(eq(projectSettings.projectId, id), eq(projects.orgId, orgId)));
+      .where(and(eq(projectSettings.projectId, id), eq(projects.organizationId, orgId)));
     return rows[0] ?? this.defaultProjectSettings(id);
   }
 

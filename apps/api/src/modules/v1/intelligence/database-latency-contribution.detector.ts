@@ -1,4 +1,4 @@
-import { fingerprintQuery } from './query-fingerprint';
+import { fingerprintQuery } from "./query-fingerprint";
 
 export interface DatabaseLatencyContributionTrace {
   timestamp: string;
@@ -31,7 +31,7 @@ export interface DatabaseLatencyContributionSignal {
 
 export interface DatabaseLatencyContributionCandidate {
   serviceName: string;
-  identity: ReturnType<typeof fingerprintQuery>['identity'];
+  identity: ReturnType<typeof fingerprintQuery>["identity"];
   query: string;
   querySummary?: string;
   queryOperation?: string;
@@ -41,11 +41,12 @@ export interface DatabaseLatencyContributionCandidate {
   samples: DatabaseLatencyContributionTrace[];
 }
 
-export const DEFAULT_DATABASE_LATENCY_CONTRIBUTION_THRESHOLDS: DatabaseLatencyContributionThresholds = {
-  minimumSamples: 10,
-  minimumP95ContributionPercent: 50,
-  minimumP95DurationMs: 100,
-};
+export const DEFAULT_DATABASE_LATENCY_CONTRIBUTION_THRESHOLDS: DatabaseLatencyContributionThresholds =
+  {
+    minimumSamples: 10,
+    minimumP95ContributionPercent: 50,
+    minimumP95DurationMs: 100,
+  };
 
 export function detectDatabaseLatencyContribution(
   traces: DatabaseLatencyContributionTrace[],
@@ -55,15 +56,17 @@ export function detectDatabaseLatencyContribution(
 
   for (const trace of traces) {
     if (
-      trace.dependencyType !== 'database' ||
+      trace.dependencyType !== "database" ||
       !Number.isFinite(trace.duration) ||
       trace.duration <= 0 ||
       !Number.isFinite(trace.traceDuration) ||
       trace.traceDuration <= 0 ||
       trace.duration > trace.traceDuration
-    ) continue;
+    )
+      continue;
 
-    const query = trace.dbQueryText ?? trace.dbQuerySummary ?? trace.dbOperationName;
+    const query =
+      trace.dbQueryText ?? trace.dbQuerySummary ?? trace.dbOperationName;
     if (!query) continue;
 
     const identity = fingerprintQuery(query, trace.dbSystemName).identity;
@@ -71,8 +74,8 @@ export function detectDatabaseLatencyContribution(
       trace.service,
       identity.fingerprintVersion,
       identity.fingerprint,
-      trace.dbSystemName ?? '',
-    ].join('\0');
+      trace.dbSystemName ?? "",
+    ].join("\0");
 
     const existing = groups.get(key) ?? [];
     existing.push(trace);
@@ -84,18 +87,27 @@ export function detectDatabaseLatencyContribution(
       const first = samples[0];
       if (!first) return [];
 
-      const contributions = samples
-        .reduce((map, sample) => {
-          const current = map.get(sample.traceId) ?? {
-            duration: 0,
-            traceDuration: sample.traceDuration,
-            sample,
-          };
-          current.duration += sample.duration;
-          current.traceDuration = Math.max(current.traceDuration, sample.traceDuration);
-          map.set(sample.traceId, current);
-          return map;
-        }, new Map<string, { duration: number; traceDuration: number; sample: DatabaseLatencyContributionTrace }>());
+      const contributions = samples.reduce((map, sample) => {
+        const current = map.get(sample.traceId) ?? {
+          duration: 0,
+          traceDuration: sample.traceDuration,
+          sample,
+        };
+        current.duration += sample.duration;
+        current.traceDuration = Math.max(
+          current.traceDuration,
+          sample.traceDuration,
+        );
+        map.set(sample.traceId, current);
+        return map;
+      }, new Map<
+        string,
+        {
+          duration: number;
+          traceDuration: number;
+          sample: DatabaseLatencyContributionTrace;
+        }
+      >());
 
       const observations = Array.from(contributions.values())
         .map((value) => ({
@@ -106,7 +118,9 @@ export function detectDatabaseLatencyContribution(
 
       if (observations.length < thresholds.minimumSamples) return [];
 
-      const contributionValues = observations.map((value) => value.contributionPercent);
+      const contributionValues = observations.map(
+        (value) => value.contributionPercent,
+      );
       const durationValues = observations.map((value) => value.duration);
       const p50ContributionPercent = percentile(contributionValues, 50);
       const p95ContributionPercent = percentile(contributionValues, 95);
@@ -115,32 +129,49 @@ export function detectDatabaseLatencyContribution(
       if (
         p95ContributionPercent < thresholds.minimumP95ContributionPercent ||
         p95DurationMs < thresholds.minimumP95DurationMs
-      ) return [];
+      )
+        return [];
 
-      const query = first.dbQueryText ?? first.dbQuerySummary ?? first.dbOperationName;
+      const query =
+        first.dbQueryText ?? first.dbQuerySummary ?? first.dbOperationName;
       if (!query) return [];
 
-      return [{
-        serviceName: first.service,
-        identity: fingerprintQuery(query, first.dbSystemName).identity,
-        query,
-        ...(first.dbQuerySummary ? { querySummary: first.dbQuerySummary } : {}),
-        ...(first.dbOperationName ? { queryOperation: first.dbOperationName } : {}),
-        ...(first.dbSystemName ? { databaseSystem: first.dbSystemName } : {}),
-        ...(first.dbCollectionName ? { collectionName: first.dbCollectionName } : {}),
-        signal: {
-          sampleCount: observations.length,
-          p50ContributionPercent,
-          p95ContributionPercent,
-          p95DurationMs,
+      return [
+        {
+          serviceName: first.service,
+          identity: fingerprintQuery(query, first.dbSystemName).identity,
+          query,
+          ...(first.dbQuerySummary
+            ? { querySummary: first.dbQuerySummary }
+            : {}),
+          ...(first.dbOperationName
+            ? { queryOperation: first.dbOperationName }
+            : {}),
+          ...(first.dbSystemName ? { databaseSystem: first.dbSystemName } : {}),
+          ...(first.dbCollectionName
+            ? { collectionName: first.dbCollectionName }
+            : {}),
+          signal: {
+            sampleCount: observations.length,
+            p50ContributionPercent,
+            p95ContributionPercent,
+            p95DurationMs,
+          },
+          samples: observations
+            .sort(
+              (left, right) =>
+                right.contributionPercent - left.contributionPercent,
+            )
+            .slice(0, 10)
+            .map((observation) => observation.sample),
         },
-        samples: observations
-          .sort((left, right) => right.contributionPercent - left.contributionPercent)
-          .slice(0, 10)
-          .map((observation) => observation.sample),
-      }];
+      ];
     })
-    .sort((left, right) => right.signal.p95ContributionPercent - left.signal.p95ContributionPercent)
+    .sort(
+      (left, right) =>
+        right.signal.p95ContributionPercent -
+        left.signal.p95ContributionPercent,
+    )
     .slice(0, 100);
 }
 

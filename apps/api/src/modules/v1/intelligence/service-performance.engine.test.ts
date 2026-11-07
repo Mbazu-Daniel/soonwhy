@@ -1,9 +1,12 @@
-import { describe, expect, it } from 'vitest';
-import { evaluateServicePerformance, type PerformanceWindow } from './service-performance.engine';
+import { describe, expect, it } from "vitest";
+import {
+  evaluateServicePerformance,
+  type PerformanceWindow,
+} from "./service-performance.engine";
 
 const sample: PerformanceWindow = {
-  serviceName: 'api',
-  endpoint: 'GET /users',
+  serviceName: "api",
+  endpoint: "GET /users",
   sampleCount: 100,
   p50: 40,
   p95: 700,
@@ -12,17 +15,19 @@ const sample: PerformanceWindow = {
   throughputPerMinute: 120,
 };
 
-describe('service performance engine', () => {
-  it('keeps p50, p95 and p99 as one evidence set', () => {
+describe("service performance engine", () => {
+  it("keeps p50, p95 and p99 as one evidence set", () => {
     const signal = evaluateServicePerformance(sample);
     expect(signal?.latency).toMatchObject({ p50: 40, p95: 700, p99: 2_000 });
   });
 
-  it('does not signal from an undersampled window', () => {
-    expect(evaluateServicePerformance({ ...sample, sampleCount: 19 })).toBeUndefined();
+  it("does not signal from an undersampled window", () => {
+    expect(
+      evaluateServicePerformance({ ...sample, sampleCount: 19 }),
+    ).toBeUndefined();
   });
 
-  it('correlates latency, errors and CPU into one signal', () => {
+  it("correlates latency, errors and CPU into one signal", () => {
     const signal = evaluateServicePerformance({
       ...sample,
       p95: 1_200,
@@ -30,18 +35,18 @@ describe('service performance engine', () => {
       cpuUtilization: 0.97,
     });
 
-    expect(signal?.severity).toBe('critical');
+    expect(signal?.severity).toBe("critical");
     expect(signal?.reasons).toEqual([
-      'p95 latency is elevated',
-      'p95 latency is critical',
-      'error rate is elevated',
-      'error rate is critical',
-      'CPU utilization is elevated',
-      'CPU utilization is critical',
+      "p95 latency is elevated",
+      "p95 latency is critical",
+      "error rate is elevated",
+      "error rate is critical",
+      "CPU utilization is elevated",
+      "CPU utilization is critical",
     ]);
   });
 
-  it('records latency regression against a baseline', () => {
+  it("records latency regression against a baseline", () => {
     const signal = evaluateServicePerformance(sample, {
       p50: 30,
       p95: 400,

@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
-import { db } from '../../../common/db';
-import { organizations } from '../../../common/db/schema';
+import { Injectable } from "@nestjs/common";
+import { eq } from "drizzle-orm";
+import { db } from "../../../common/db";
+import { organizations } from "../../../common/db/schema";
 
 @Injectable()
 export class OrganizationsRepository {
@@ -17,12 +17,19 @@ export class OrganizationsRepository {
     });
   }
 
-  async createOrganization(data: { name: string; slug: string; logo?: string }) {
+  async createOrganization(data: {
+    name: string;
+    slug: string;
+    logo?: string;
+  }) {
     const [org] = await db.insert(organizations).values(data).returning();
     return org;
   }
 
-  async updateOrganization(id: string, data: { name?: string; slug?: string; logo?: string }) {
+  async updateOrganization(
+    id: string,
+    data: { name?: string; slug?: string; logo?: string },
+  ) {
     const [updated] = await db
       .update(organizations)
       .set({ ...data, updatedAt: new Date() })

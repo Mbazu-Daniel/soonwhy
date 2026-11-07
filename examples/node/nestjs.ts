@@ -1,26 +1,29 @@
-import { initNode } from '@soonwhy/sdk/node';
+import { initNode } from "@soonwhy/sdk/node";
+
+const apiKey = process.env.SOONWHY_API_KEY;
+if (!apiKey) throw new Error("SOONWHY_API_KEY is required");
 
 const sdk = initNode({
-  apiKey: process.env.SOONWHY_API_KEY ?? '',
+  apiKey,
   endpoint: process.env.SOONWHY_ENDPOINT,
-  serviceName: 'soonwhy-example-nestjs',
-  environment: '4c-validation',
+  serviceName: "soonwhy-example-nestjs",
+  environment: "4c-validation",
 });
 
-const { Controller, Get, Module } = await import('@nestjs/common');
-const { NestFactory } = await import('@nestjs/core');
-await import('reflect-metadata');
+const { Controller, Get, Module } = await import("@nestjs/common");
+const { NestFactory } = await import("@nestjs/core");
+await import("reflect-metadata");
 
 @Controller()
 class ExampleController {
-  @Get('/health')
+  @Get("/health")
   health() {
     return { ok: true };
   }
 
-  @Get('/failure')
+  @Get("/failure")
   failure(): never {
-    throw new Error('4C NestJS example failure');
+    throw new Error("4C NestJS example failure");
   }
 }
 
@@ -35,7 +38,7 @@ const close = async () => {
   await sdk.shutdown();
 };
 
-process.once('SIGINT', () => void close());
-process.once('SIGTERM', () => void close());
+process.once("SIGINT", () => void close());
+process.once("SIGTERM", () => void close());
 
-console.log('NestJS example listening on http://localhost:3001');
+console.log("NestJS example listening on http://localhost:3001");

@@ -1,66 +1,68 @@
-import { describe, expect, it } from 'vitest';
-import type { IssueCandidate } from './evidence.types';
+import { describe, expect, it } from "vitest";
+import type { IssueCandidate } from "./evidence.types";
 
-describe('evidence model', () => {
-  it('keeps identity separate from observations', () => {
+describe("evidence model", () => {
+  it("keeps identity separate from observations", () => {
     const candidate = {
       identity: {
-        domain: 'database',
-        fingerprint: 'abc',
+        domain: "database",
+        fingerprint: "abc",
         fingerprintVersion: 1,
-        serviceName: 'checkout',
+        serviceName: "checkout",
       },
       evidence: {
         observations: [
           {
-            name: 'latency.p95',
+            name: "latency.p95",
             value: 1200,
-            unit: 'ms',
-            source: 'database',
-            observedAt: '2026-09-28T00:00:00.000Z',
+            unit: "ms",
+            source: "database",
+            observedAt: "2026-09-28T00:00:00.000Z",
           },
         ],
         window: {
-          start: '2026-09-28T00:00:00.000Z',
-          end: '2026-09-28T00:15:00.000Z',
+          start: "2026-09-28T00:00:00.000Z",
+          end: "2026-09-28T00:15:00.000Z",
         },
       },
-      status: 'candidate',
+      status: "candidate",
     } satisfies IssueCandidate;
 
-    expect(candidate.identity.fingerprint).toBe('abc');
-    expect(candidate.evidence.observations[0]?.name).toBe('latency.p95');
+    expect(candidate.identity.fingerprint).toBe("abc");
+    expect(candidate.evidence.observations[0]?.name).toBe("latency.p95");
   });
 
-  it('allows contextual dimensions without changing issue identity', () => {
+  it("allows contextual dimensions without changing issue identity", () => {
     const candidate = {
       identity: {
-        domain: 'database',
-        fingerprint: 'abc',
+        domain: "database",
+        fingerprint: "abc",
         fingerprintVersion: 1,
       },
       evidence: {
         observations: [
           {
-            name: 'query.count',
+            name: "query.count",
             value: 47,
-            source: 'database',
-            observedAt: '2026-09-28T00:00:00.000Z',
+            source: "database",
+            observedAt: "2026-09-28T00:00:00.000Z",
             dimensions: {
-              endpoint: 'GET /users',
-              cardinalityBucket: '11-100',
+              endpoint: "GET /users",
+              cardinalityBucket: "11-100",
             },
           },
         ],
         window: {
-          start: '2026-09-28T00:00:00.000Z',
-          end: '2026-09-28T00:15:00.000Z',
+          start: "2026-09-28T00:00:00.000Z",
+          end: "2026-09-28T00:15:00.000Z",
         },
       },
-      status: 'candidate',
+      status: "candidate",
     } satisfies IssueCandidate;
 
-    expect(candidate.identity.fingerprint).toBe('abc');
-    expect(candidate.evidence.observations[0]?.dimensions?.endpoint).toBe('GET /users');
+    expect(candidate.identity.fingerprint).toBe("abc");
+    expect(candidate.evidence.observations[0]?.dimensions?.endpoint).toBe(
+      "GET /users",
+    );
   });
 });

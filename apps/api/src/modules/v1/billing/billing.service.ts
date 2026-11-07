@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { BillingRepository } from './billing.repository';
-import { DEFAULT_USAGE_LIMITS, type BillingPlan } from './billing.constants';
-import type { UsageMetric } from '../../../common/db/schema/billing';
+import { Injectable } from "@nestjs/common";
+import { BillingRepository } from "./billing.repository";
+import { DEFAULT_USAGE_LIMITS, type BillingPlan } from "./billing.constants";
+import type { UsageMetric } from "../../../common/db/schema/billing";
 
 @Injectable()
 export class BillingService {
@@ -18,7 +18,7 @@ export class BillingService {
     metadata?: Record<string, string | number | boolean | null>;
   }) {
     if (!Number.isInteger(input.quantity) || input.quantity <= 0) {
-      throw new Error('Usage quantity must be a positive integer');
+      throw new Error("Usage quantity must be a positive integer");
     }
 
     const limit = await this.getUsageLimit(input.orgId, input.metric);
@@ -34,27 +34,38 @@ export class BillingService {
     const subscription = await this.repository.getSubscription(orgId);
     if (!subscription) return null;
 
-    const configuredQuota = await this.repository.getQuota(subscription.subscription.planId, metric);
-    const configuredLimit = configuredQuota?.limit ?? null;
-    const fallback = DEFAULT_USAGE_LIMITS[subscription.plan.name as BillingPlan]?.find(
-      (item) => item.metric === metric,
+    const configuredQuota = await this.repository.getQuota(
+      subscription.subscription.planId,
+      metric,
     );
+    const configuredLimit = configuredQuota?.limit ?? null;
+    const fallback = DEFAULT_USAGE_LIMITS[
+      subscription.plan.name as BillingPlan
+    ]?.find((item) => item.metric === metric);
     return configuredLimit ?? fallback?.limit ?? null;
   }
 
-  async assertQuota(orgId: string, metric: UsageMetric, additional = 0, at = new Date()) {
+  async assertQuota(
+    orgId: string,
+    metric: UsageMetric,
+    additional = 0,
+    at = new Date(),
+  ) {
     if (!Number.isInteger(additional) || additional < 0) {
-      throw new Error('Additional usage must be a non-negative integer');
+      throw new Error("Additional usage must be a non-negative integer");
     }
 
     const subscription = await this.repository.getSubscription(orgId);
     if (!subscription) return;
 
-    const configuredQuota = await this.repository.getQuota(subscription.subscription.planId, metric);
-    const configuredLimit = configuredQuota?.limit ?? null;
-    const fallback = DEFAULT_USAGE_LIMITS[subscription.plan.name as BillingPlan]?.find(
-      (item) => item.metric === metric,
+    const configuredQuota = await this.repository.getQuota(
+      subscription.subscription.planId,
+      metric,
     );
+    const configuredLimit = configuredQuota?.limit ?? null;
+    const fallback = DEFAULT_USAGE_LIMITS[
+      subscription.plan.name as BillingPlan
+    ]?.find((item) => item.metric === metric);
     const limit = configuredLimit ?? fallback?.limit ?? null;
     if (limit === null) return;
 
@@ -66,21 +77,34 @@ export class BillingService {
     if (current + additional > limit) {
       await this.repository.recordBillingEvent({
         orgId,
-        type: 'quota_exceeded',
+        type: "quota_exceeded",
         metric,
         quantity: additional,
         periodStart,
         periodEnd,
-        status: 'rejected',
+        status: "rejected",
         metadata: { current, limit },
       });
       throw new Error(`Usage quota exceeded for ${metric}`);
     }
   }
 
-  async getUsage(orgId: string, periodStart: Date, periodEnd: Date, projectId?: string) {
-    const usage = await this.repository.getUsage(orgId, periodStart, periodEnd, projectId);
-    return usage.map((item) => ({ metric: item.metric, quantity: Number(item.quantity) }));
+  async getUsage(
+    orgId: string,
+    periodStart: Date,
+    periodEnd: Date,
+    projectId?: string,
+  ) {
+    const usage = await this.repository.getUsage(
+      orgId,
+      periodStart,
+      periodEnd,
+      projectId,
+    );
+    return usage.map((item) => ({
+      metric: item.metric,
+      quantity: Number(item.quantity),
+    }));
   }
 
   async getSubscription(orgId: string) {
@@ -104,7 +128,9 @@ export class BillingService {
       };
     }
 
-    const quotas = await this.repository.getQuotas(subscription.subscription.planId);
+    const quotas = await this.repository.getQuotas(
+      subscription.subscription.planId,
+    );
     return {
       subscription,
       period: { start: periodStart, end: periodEnd },

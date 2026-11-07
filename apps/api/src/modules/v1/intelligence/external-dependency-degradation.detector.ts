@@ -1,4 +1,4 @@
-import { createTelemetryIdentity } from './telemetry-identity';
+import { createTelemetryIdentity } from "./telemetry-identity";
 
 const MIN_SAMPLES = 5;
 const LATENCY_THRESHOLD_MS = 500;
@@ -13,7 +13,7 @@ export interface ExternalDependencyTrace {
   traceId: string;
   spanId: string;
   duration: number;
-  dependencyType: 'http' | 'rpc';
+  dependencyType: "http" | "rpc";
   dependencyName: string;
   statusCode?: number;
   errorType?: string;
@@ -30,7 +30,7 @@ interface Signal {
   baselineErrorRate?: number;
   errorRateChangePercent?: number;
   degradationSignals: string[];
-  confidence: 'medium' | 'high';
+  confidence: "medium" | "high";
 }
 
 export interface ExternalDependencyCandidate {
@@ -55,43 +55,68 @@ export function detectExternalDependencyDegradation(
     if (samples.length < MIN_SAMPLES) continue;
 
     const baselineSamples = baselineGroups.get(key) ?? [];
-    const currentP95 = percentile(samples.map((sample) => sample.duration), 0.95);
-    const currentP50 = percentile(samples.map((sample) => sample.duration), 0.5);
-    const currentP99 = percentile(samples.map((sample) => sample.duration), 0.99);
+    const currentP95 = percentile(
+      samples.map((sample) => sample.duration),
+      0.95,
+    );
+    const currentP50 = percentile(
+      samples.map((sample) => sample.duration),
+      0.5,
+    );
+    const currentP99 = percentile(
+      samples.map((sample) => sample.duration),
+      0.99,
+    );
     const errorCount = samples.filter(isError).length;
     const errorRate = errorCount / samples.length;
-    const baselineP95 = baselineSamples.length >= MIN_SAMPLES
-      ? percentile(baselineSamples.map((sample) => sample.duration), 0.95)
-      : undefined;
+    const baselineP95 =
+      baselineSamples.length >= MIN_SAMPLES
+        ? percentile(
+            baselineSamples.map((sample) => sample.duration),
+            0.95,
+          )
+        : undefined;
     const baselineErrorCount = baselineSamples.filter(isError).length;
-    const baselineErrorRate = baselineSamples.length >= MIN_SAMPLES
-      ? baselineErrorCount / baselineSamples.length
-      : undefined;
-    const errorRateChangePercent = baselineErrorRate !== undefined && baselineErrorRate > 0
-      ? ((errorRate - baselineErrorRate) / baselineErrorRate) * 100
-      : undefined;
-    const p95DurationChangePercent = baselineP95 !== undefined && baselineP95 > 0
-      ? ((currentP95 - baselineP95) / baselineP95) * 100
-      : undefined;
+    const baselineErrorRate =
+      baselineSamples.length >= MIN_SAMPLES
+        ? baselineErrorCount / baselineSamples.length
+        : undefined;
+    const errorRateChangePercent =
+      baselineErrorRate !== undefined && baselineErrorRate > 0
+        ? ((errorRate - baselineErrorRate) / baselineErrorRate) * 100
+        : undefined;
+    const p95DurationChangePercent =
+      baselineP95 !== undefined && baselineP95 > 0
+        ? ((currentP95 - baselineP95) / baselineP95) * 100
+        : undefined;
 
     const degradationSignals: string[] = [];
     if (
       currentP95 >= LATENCY_THRESHOLD_MS ||
-      (p95DurationChangePercent !== undefined && p95DurationChangePercent >= LATENCY_REGRESSION_PERCENT)
+      (p95DurationChangePercent !== undefined &&
+        p95DurationChangePercent >= LATENCY_REGRESSION_PERCENT)
     ) {
-      degradationSignals.push('latency');
+      degradationSignals.push("latency");
     }
     if (
       errorRate >= ERROR_RATE_THRESHOLD ||
-      (baselineErrorRate !== undefined && errorRate > baselineErrorRate && errorRate >= ERROR_RATE_THRESHOLD)
+      (baselineErrorRate !== undefined &&
+        errorRate > baselineErrorRate &&
+        errorRate >= ERROR_RATE_THRESHOLD)
     ) {
-      degradationSignals.push('errors');
+      degradationSignals.push("errors");
     }
 
     if (degradationSignals.length < 2) continue;
 
-    const [serviceName, dependencyType, dependencyName] = key.split('|');
-    if (!serviceName || !dependencyType || !dependencyName || !['http', 'rpc'].includes(dependencyType)) continue;
+    const [serviceName, dependencyType, dependencyName] = key.split("|");
+    if (
+      !serviceName ||
+      !dependencyType ||
+      !dependencyName ||
+      !["http", "rpc"].includes(dependencyType)
+    )
+      continue;
 
     candidates.push({
       serviceName,
@@ -104,15 +129,23 @@ export function detectExternalDependencyDegradation(
         p99Duration: currentP99,
         errorCount,
         errorRate,
-        ...(p95DurationChangePercent !== undefined ? { p95DurationChangePercent } : {}),
+        ...(p95DurationChangePercent !== undefined
+          ? { p95DurationChangePercent }
+          : {}),
         ...(baselineErrorRate !== undefined ? { baselineErrorRate } : {}),
-        ...(errorRateChangePercent !== undefined ? { errorRateChangePercent } : {}),
+        ...(errorRateChangePercent !== undefined
+          ? { errorRateChangePercent }
+          : {}),
         degradationSignals,
-        confidence: degradationSignals.length >= 2 ? 'medium' : 'high',
+        confidence: degradationSignals.length >= 2 ? "medium" : "high",
       },
-      samples: samples.filter((sample) => Number.isFinite(sample.duration) && sample.duration >= 0).slice(0, 20),
+      samples: samples
+        .filter(
+          (sample) => Number.isFinite(sample.duration) && sample.duration >= 0,
+        )
+        .slice(0, 20),
       identity: createTelemetryIdentity({
-        domain: 'dependency',
+        domain: "dependency",
         serviceName,
         operationName: dependencyName,
         identityAttributes: {
@@ -127,11 +160,18 @@ export function detectExternalDependencyDegradation(
   return candidates;
 }
 
-function groupByDependency(samples: ExternalDependencyTrace[]): Map<string, ExternalDependencyTrace[]> {
+function groupByDependency(
+  samples: ExternalDependencyTrace[],
+): Map<string, ExternalDependencyTrace[]> {
   const groups = new Map<string, ExternalDependencyTrace[]>();
   for (const sample of samples) {
-    if (!sample.service || !sample.dependencyName || !sample.dependencyType) continue;
-    const key = [sample.service, sample.dependencyType, sample.dependencyName].join('|');
+    if (!sample.service || !sample.dependencyName || !sample.dependencyType)
+      continue;
+    const key = [
+      sample.service,
+      sample.dependencyType,
+      sample.dependencyName,
+    ].join("|");
     const group = groups.get(key) ?? [];
     group.push(sample);
     groups.set(key, group);
@@ -140,7 +180,11 @@ function groupByDependency(samples: ExternalDependencyTrace[]): Map<string, Exte
 }
 
 function isError(sample: ExternalDependencyTrace): boolean {
-  return sample.errorType !== undefined || sample.statusCode === 2 || (sample.statusCode !== undefined && sample.statusCode >= 500);
+  return (
+    sample.errorType !== undefined ||
+    sample.statusCode === 2 ||
+    (sample.statusCode !== undefined && sample.statusCode >= 500)
+  );
 }
 
 function percentile(values: number[], rank: number): number {
@@ -150,13 +194,16 @@ function percentile(values: number[], rank: number): number {
   const lower = Math.floor(index);
   const upper = Math.ceil(index);
   if (lower === upper) return sorted[lower] ?? 0;
-  return (sorted[lower] ?? 0) + ((sorted[upper] ?? 0) - (sorted[lower] ?? 0)) * (index - lower);
+  return (
+    (sorted[lower] ?? 0) +
+    ((sorted[upper] ?? 0) - (sorted[lower] ?? 0)) * (index - lower)
+  );
 }
 
 function recommendationFor(dependencyType: string): string {
-  if (dependencyType === 'http') {
-    return 'Inspect downstream latency, HTTP errors, retries, timeouts, and payload size. Check whether repeated calls can be avoided or batched and verify retry behavior is not amplifying load.';
+  if (dependencyType === "http") {
+    return "Inspect downstream latency, HTTP errors, retries, timeouts, and payload size. Check whether repeated calls can be avoided or batched and verify retry behavior is not amplifying load.";
   }
 
-  return 'Inspect downstream RPC latency, status or error patterns, retries, timeouts, and connection reuse. Check whether repeated calls can be avoided or combined.';
+  return "Inspect downstream RPC latency, status or error patterns, retries, timeouts, and connection reuse. Check whether repeated calls can be avoided or combined.";
 }

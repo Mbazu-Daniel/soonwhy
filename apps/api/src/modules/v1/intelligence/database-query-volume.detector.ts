@@ -1,4 +1,4 @@
-import { fingerprintQuery } from './query-fingerprint';
+import { fingerprintQuery } from "./query-fingerprint";
 
 export interface DatabaseQueryVolumeTrace {
   timestamp: string;
@@ -32,7 +32,7 @@ export interface DatabaseQueryVolumeSignal {
 
 export interface DatabaseQueryVolumeCandidate {
   serviceName: string;
-  identity: ReturnType<typeof fingerprintQuery>['identity'];
+  identity: ReturnType<typeof fingerprintQuery>["identity"];
   query: string;
   querySummary?: string;
   queryOperation?: string;
@@ -42,12 +42,13 @@ export interface DatabaseQueryVolumeCandidate {
   samples: DatabaseQueryVolumeTrace[];
 }
 
-export const DEFAULT_DATABASE_QUERY_VOLUME_THRESHOLDS: DatabaseQueryVolumeThresholds = {
-  minimumBaselineSamples: 20,
-  minimumCurrentSamples: 20,
-  minimumAbsoluteIncrease: 20,
-  minimumRelativeIncrease: 1,
-};
+export const DEFAULT_DATABASE_QUERY_VOLUME_THRESHOLDS: DatabaseQueryVolumeThresholds =
+  {
+    minimumBaselineSamples: 20,
+    minimumCurrentSamples: 20,
+    minimumAbsoluteIncrease: 20,
+    minimumRelativeIncrease: 1,
+  };
 
 export function detectDatabaseQueryVolume(
   current: DatabaseQueryVolumeTrace[],
@@ -63,7 +64,8 @@ export function detectDatabaseQueryVolume(
     if (
       currentSamples.length < thresholds.minimumCurrentSamples ||
       baselineSamples.length < thresholds.minimumBaselineSamples
-    ) continue;
+    )
+      continue;
 
     const absoluteIncrease = currentSamples.length - baselineSamples.length;
     const relativeIncrease = absoluteIncrease / baselineSamples.length;
@@ -71,12 +73,14 @@ export function detectDatabaseQueryVolume(
     if (
       absoluteIncrease < thresholds.minimumAbsoluteIncrease ||
       relativeIncrease < thresholds.minimumRelativeIncrease
-    ) continue;
+    )
+      continue;
 
     const first = currentSamples[0];
     if (!first) continue;
 
-    const query = first.dbQueryText ?? first.dbQuerySummary ?? first.dbOperationName;
+    const query =
+      first.dbQueryText ?? first.dbQuerySummary ?? first.dbOperationName;
     if (!query) continue;
 
     const identity = fingerprintQuery(query, first.dbSystemName).identity;
@@ -86,9 +90,13 @@ export function detectDatabaseQueryVolume(
       identity,
       query,
       ...(first.dbQuerySummary ? { querySummary: first.dbQuerySummary } : {}),
-      ...(first.dbOperationName ? { queryOperation: first.dbOperationName } : {}),
+      ...(first.dbOperationName
+        ? { queryOperation: first.dbOperationName }
+        : {}),
       ...(first.dbSystemName ? { databaseSystem: first.dbSystemName } : {}),
-      ...(first.dbCollectionName ? { collectionName: first.dbCollectionName } : {}),
+      ...(first.dbCollectionName
+        ? { collectionName: first.dbCollectionName }
+        : {}),
       signal: {
         currentCount: currentSamples.length,
         baselineCount: baselineSamples.length,
@@ -100,25 +108,32 @@ export function detectDatabaseQueryVolume(
   }
 
   return candidates
-    .sort((left, right) => right.signal.absoluteIncrease - left.signal.absoluteIncrease)
+    .sort(
+      (left, right) =>
+        right.signal.absoluteIncrease - left.signal.absoluteIncrease,
+    )
     .slice(0, 100);
 }
 
-function groupQueries(samples: DatabaseQueryVolumeTrace[]): Map<string, DatabaseQueryVolumeTrace[]> {
+function groupQueries(
+  samples: DatabaseQueryVolumeTrace[],
+): Map<string, DatabaseQueryVolumeTrace[]> {
   const groups = new Map<string, DatabaseQueryVolumeTrace[]>();
 
   for (const sample of samples) {
     if (
-      sample.dependencyType !== 'database' ||
+      sample.dependencyType !== "database" ||
       !Number.isFinite(sample.duration) ||
       sample.duration <= 0
-    ) continue;
+    )
+      continue;
 
-    const query = sample.dbQueryText ?? sample.dbQuerySummary ?? sample.dbOperationName;
+    const query =
+      sample.dbQueryText ?? sample.dbQuerySummary ?? sample.dbOperationName;
     if (!query) continue;
 
     const identity = fingerprintQuery(query, sample.dbSystemName).identity;
-    const key = sample.service + '\0' + identity.fingerprint;
+    const key = sample.service + "\0" + identity.fingerprint;
     const existing = groups.get(key) ?? [];
     existing.push(sample);
     groups.set(key, existing);

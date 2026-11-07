@@ -1,6 +1,6 @@
-import type { ParsedResource } from './resource';
+import type { ParsedResource } from "./resource";
 
-export type MetricType = 'gauge' | 'sum';
+export type MetricType = "gauge" | "sum";
 
 export interface ParsedMetricPoint {
   timestamp: string;

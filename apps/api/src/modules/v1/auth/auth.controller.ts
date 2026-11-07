@@ -10,17 +10,23 @@ import {
   HttpStatus,
   Query,
   Res,
-} from '@nestjs/common';
-import type { Response } from 'express';
-import { auth, githubEnabled, googleEnabled } from '../../../common/config/better-auth.config';
-import { signInSchema, signUpSchema } from '../../../shared';
+  Req,
+} from "@nestjs/common";
+import type { Request, Response } from "express";
+import {
+  auth,
+  githubEnabled,
+  googleEnabled,
+} from "../../../common/config/better-auth.config";
+import { signInSchema, signUpSchema } from "../../../shared";
+import { recordAuditEvent } from "../../../common/audit-logs";
 
-const SOCIAL_PROVIDERS = ['github', 'google'] as const;
+const SOCIAL_PROVIDERS = ["github", "google"] as const;
 type SocialProvider = (typeof SOCIAL_PROVIDERS)[number];
 
-@Controller('auth')
+@Controller("auth")
 export class AuthController {
-  @Get('providers')
+  @Get("providers")
   getProviders() {
     return {
       emailAndPassword: true,
@@ -29,65 +35,100 @@ export class AuthController {
     };
   }
 
-  @Get('social/:provider')
+  @Get("social/:provider")
   async socialSignIn(
-    @Param('provider') provider: string,
-    @Query('callbackURL') callbackURL: string | undefined,
+    @Param("provider") provider: string,
+    @Query("callbackURL") callbackURL: string | undefined,
     @Res() response: Response,
   ) {
     if (!SOCIAL_PROVIDERS.includes(provider as SocialProvider)) {
-      throw new BadRequestException('Unsupported social provider');
+      throw new BadRequestException("Unsupported social provider");
     }
 
-    const enabled = provider === 'github' ? githubEnabled : googleEnabled;
+    const enabled = provider === "github" ? githubEnabled : googleEnabled;
     if (!enabled) {
-      throw new BadRequestException(`${provider} authentication is not configured`);
+      throw new BadRequestException(
+        `${provider} authentication is not configured`,
+      );
     }
 
     const result = await auth.api.signInSocial({
       body: {
         provider: provider as SocialProvider,
-        callbackURL: callbackURL || process.env.FRONTEND_URL || 'http://localhost:3000',
+        callbackURL:
+          callbackURL || process.env.FRONTEND_URL || "http://localhost:3000",
       },
     });
 
     if (!result?.url) {
-      throw new BadRequestException('Unable to start social authentication');
+      throw new BadRequestException("Unable to start social authentication");
     }
 
     return response.redirect(result.url);
   }
 
-  @Post('sign-up')
-  async signUp(@Body() body: unknown) {
+  @Post("sign-up")
+  async signUp(@Body() body: unknown, @Req() req: Request) {
     const parsed = signUpSchema.parse(body);
-    return auth.api.signUpEmail({
+    const result = await auth.api.signUpEmail({
       body: {
         email: parsed.email,
         password: parsed.password,
-        name: parsed.email.split('@')[0] ?? parsed.email,
+        name: parsed.email.split("@")[0] ?? parsed.email,
       },
     });
+
+    await recordAuditEvent({
+      userId: result?.user?.id,
+      action: "user.signUp",
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+    });
+
+    return result;
   }
 
-  @Post('sign-in')
+  @Post("sign-in")
   @HttpCode(HttpStatus.OK)
-  async signIn(@Body() body: unknown) {
+  async signIn(@Body() body: unknown, @Req() req: Request) {
     const parsed = signInSchema.parse(body);
-    return auth.api.signInEmail({
+    const result = await auth.api.signInEmail({
       body: { email: parsed.email, password: parsed.password },
     });
+
+    await recordAuditEvent({
+      userId: result?.user?.id,
+      action: "user.signIn",
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+    });
+
+    return result;
   }
 
-  @Post('sign-out')
+  @Post("sign-out")
   @HttpCode(HttpStatus.OK)
-  async signOut(@Headers() headers: Record<string, string>) {
+  async signOut(
+    @Headers() headers: Record<string, string>,
+    @Req() req: Request,
+  ) {
+    const session = await auth.api.getSession({
+      headers: authHeaders(headers),
+    });
+
+    await recordAuditEvent({
+      userId: session?.user?.id,
+      action: "user.signOut",
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+    });
+
     return auth.api.signOut({
       headers: authHeaders(headers),
     });
   }
 
-  @Get('session')
+  @Get("session")
   async getSession(@Headers() headers: Record<string, string>) {
     return auth.api.getSession({
       headers: authHeaders(headers),

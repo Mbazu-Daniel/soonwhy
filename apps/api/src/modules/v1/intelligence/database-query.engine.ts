@@ -1,6 +1,6 @@
-import type { DatabaseQueryIdentity } from './database-query';
+import type { DatabaseQueryIdentity } from "./database-query";
 
-export type DatabaseQuerySeverity = 'warning' | 'critical';
+export type DatabaseQuerySeverity = "warning" | "critical";
 
 export interface DatabaseQuerySample {
   identity: DatabaseQueryIdentity;
@@ -61,10 +61,13 @@ export function evaluateDatabaseQuery(
 
   if (thresholdBreach) {
     return {
-      severity: criticalThresholdBreach ? 'critical' : 'warning',
+      severity: criticalThresholdBreach ? "critical" : "warning",
       observedValue: observedP95Ms,
-      threshold: criticalThresholdBreach ? thresholds.criticalMs : thresholds.warningMs,
-      ...(baselineP95Ms !== undefined && baselineSamples >= thresholds.minimumBaselineSamples
+      threshold: criticalThresholdBreach
+        ? thresholds.criticalMs
+        : thresholds.warningMs,
+      ...(baselineP95Ms !== undefined &&
+      baselineSamples >= thresholds.minimumBaselineSamples
         ? {
             baselineValue: baselineP95Ms,
             changePercent: percentChange(observedP95Ms, baselineP95Ms),
@@ -94,7 +97,10 @@ export function evaluateDatabaseQuery(
   }
 
   return {
-    severity: relativeIncrease >= thresholds.criticalRegressionRelative ? 'critical' : 'warning',
+    severity:
+      relativeIncrease >= thresholds.criticalRegressionRelative
+        ? "critical"
+        : "warning",
     observedValue: observedP95Ms,
     threshold: thresholds.warningMs,
     baselineValue: baselineP95Ms,
@@ -103,20 +109,28 @@ export function evaluateDatabaseQuery(
   };
 }
 
-export function databaseQueryDistribution(values: number[]): DatabaseQueryDistribution | undefined {
+export function databaseQueryDistribution(
+  values: number[],
+): DatabaseQueryDistribution | undefined {
   const finite = values.filter((value) => Number.isFinite(value) && value >= 0);
   if (!finite.length) return undefined;
 
   const p50 = percentile(finite, 0.5);
   const p95 = percentile(finite, 0.95);
   const p99 = percentile(finite, 0.99);
-  if (p50 === undefined || p95 === undefined || p99 === undefined) return undefined;
+  if (p50 === undefined || p95 === undefined || p99 === undefined)
+    return undefined;
 
   return { p50, p95, p99, sampleCount: finite.length };
 }
 
-export function percentile(values: number[], percentileRank: number): number | undefined {
-  const finite = values.filter((value) => Number.isFinite(value) && value >= 0).sort((a, b) => a - b);
+export function percentile(
+  values: number[],
+  percentileRank: number,
+): number | undefined {
+  const finite = values
+    .filter((value) => Number.isFinite(value) && value >= 0)
+    .sort((a, b) => a - b);
   if (!finite.length) return undefined;
 
   const rank = Math.min(1, Math.max(0, percentileRank));

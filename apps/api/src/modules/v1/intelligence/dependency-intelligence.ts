@@ -1,12 +1,21 @@
-import { createTelemetryIdentity } from './telemetry-identity';
+import { createTelemetryIdentity } from "./telemetry-identity";
 
-export type DependencyType = 'database' | 'cache' | 'queue' | 'http' | 'grpc' | 'other';
+export type DependencyType =
+  | "database"
+  | "cache"
+  | "redis"
+  | "memcached"
+  | "queue"
+  | "http"
+  | "rpc"
+  | "grpc"
+  | "other";
 export type DependencySignal =
-  | 'latency'
-  | 'latency_regression'
-  | 'errors'
-  | 'error_regression'
-  | 'throughput_regression';
+  | "latency"
+  | "latency_regression"
+  | "errors"
+  | "error_regression"
+  | "throughput_regression";
 
 export interface DependencyObservation {
   serviceName: string;
@@ -33,7 +42,7 @@ export interface DependencyFinding {
   dependencyName: string;
   operationName?: string;
   signals: DependencySignal[];
-  confidence: 'medium' | 'high';
+  confidence: "medium" | "high";
   latencyRegressionPercent?: number;
   errorRegressionPercent?: number;
   throughputRegressionPercent?: number;
@@ -60,23 +69,28 @@ export function evaluateDependency(
   const errorRate = finiteRate(observation.errorRate);
   const baselineErrorRate = finiteRate(observation.baselineErrorRate);
   const throughput = finiteNonNegative(observation.throughputPerMinute);
-  const baselineThroughput = finitePositive(observation.baselineThroughputPerMinute);
+  const baselineThroughput = finitePositive(
+    observation.baselineThroughputPerMinute,
+  );
 
-  if (p95 !== undefined && p95 >= LATENCY_SIGNAL_MS) signals.push('latency');
+  if (p95 !== undefined && p95 >= LATENCY_SIGNAL_MS) signals.push("latency");
 
   const latencyRegressionPercent = percentageIncrease(p95, baselineP95);
   if (
     latencyRegressionPercent !== undefined &&
     latencyRegressionPercent >= LATENCY_REGRESSION_PERCENT
   ) {
-    signals.push('latency_regression');
+    signals.push("latency_regression");
   }
 
   if (errorRate !== undefined && errorRate >= ERROR_SIGNAL_RATE) {
-    signals.push('errors');
+    signals.push("errors");
   }
 
-  const errorRegressionPercent = percentageIncrease(errorRate, baselineErrorRate);
+  const errorRegressionPercent = percentageIncrease(
+    errorRate,
+    baselineErrorRate,
+  );
   const errorDelta =
     errorRate !== undefined && baselineErrorRate !== undefined
       ? errorRate - baselineErrorRate
@@ -88,22 +102,25 @@ export function evaluateDependency(
     errorRegressionPercent >= ERROR_REGRESSION_PERCENT &&
     errorDelta >= ERROR_REGRESSION_DELTA
   ) {
-    signals.push('error_regression');
+    signals.push("error_regression");
   }
 
-  const throughputRegressionPercent = percentageDecrease(throughput, baselineThroughput);
+  const throughputRegressionPercent = percentageDecrease(
+    throughput,
+    baselineThroughput,
+  );
   if (
     throughputRegressionPercent !== undefined &&
     throughputRegressionPercent >= THROUGHPUT_REGRESSION_PERCENT
   ) {
-    signals.push('throughput_regression');
+    signals.push("throughput_regression");
   }
 
   if (!signals.length) return null;
 
   const operationName = observation.operationName?.trim();
   const identity = createTelemetryIdentity({
-    domain: 'dependency',
+    domain: "dependency",
     serviceName: observation.serviceName.trim(),
     ...(operationName ? { operationName } : {}),
     resourceName: observation.dependencyName.trim(),
@@ -115,9 +132,9 @@ export function evaluateDependency(
 
   const signalFamilies = new Set(
     signals.map((signal) => {
-      if (signal.startsWith('latency')) return 'latency';
-      if (signal.startsWith('error')) return 'errors';
-      return 'throughput';
+      if (signal.startsWith("latency")) return "latency";
+      if (signal.startsWith("error")) return "errors";
+      return "throughput";
     }),
   );
 
@@ -128,11 +145,15 @@ export function evaluateDependency(
     dependencyName: observation.dependencyName.trim(),
     ...(operationName ? { operationName } : {}),
     signals,
-    confidence: signalFamilies.size >= 2 ? 'high' : 'medium',
-    ...(latencyRegressionPercent !== undefined ? { latencyRegressionPercent } : {}),
+    confidence: signalFamilies.size >= 2 ? "high" : "medium",
+    ...(latencyRegressionPercent !== undefined
+      ? { latencyRegressionPercent }
+      : {}),
     ...(errorRegressionPercent !== undefined ? { errorRegressionPercent } : {}),
-    ...(throughputRegressionPercent !== undefined ? { throughputRegressionPercent } : {}),
-    summary: `${observation.dependencyType} dependency ${observation.dependencyName.trim()} in ${observation.serviceName.trim()} shows ${signals.join(', ')}.`,
+    ...(throughputRegressionPercent !== undefined
+      ? { throughputRegressionPercent }
+      : {}),
+    summary: `${observation.dependencyType} dependency ${observation.dependencyName.trim()} in ${observation.serviceName.trim()} shows ${signals.join(", ")}.`,
   };
 }
 
@@ -179,13 +200,21 @@ function hasValidObservation(observation: DependencyObservation): boolean {
   );
 }
 
-function percentageIncrease(current: number | undefined, baseline: number | undefined): number | undefined {
-  if (current === undefined || baseline === undefined || baseline <= 0) return undefined;
+function percentageIncrease(
+  current: number | undefined,
+  baseline: number | undefined,
+): number | undefined {
+  if (current === undefined || baseline === undefined || baseline <= 0)
+    return undefined;
   return ((current - baseline) / baseline) * 100;
 }
 
-function percentageDecrease(current: number | undefined, baseline: number | undefined): number | undefined {
-  if (current === undefined || baseline === undefined || baseline <= 0) return undefined;
+function percentageDecrease(
+  current: number | undefined,
+  baseline: number | undefined,
+): number | undefined {
+  if (current === undefined || baseline === undefined || baseline <= 0)
+    return undefined;
   return ((baseline - current) / baseline) * 100;
 }
 
@@ -194,15 +223,22 @@ function validMetric(value: number | undefined): boolean {
 }
 
 function finiteNonNegative(value: number | undefined): number | undefined {
-  return value !== undefined && Number.isFinite(value) && value >= 0 ? value : undefined;
+  return value !== undefined && Number.isFinite(value) && value >= 0
+    ? value
+    : undefined;
 }
 
 function finitePositive(value: number | undefined): number | undefined {
-  return value !== undefined && Number.isFinite(value) && value > 0 ? value : undefined;
+  return value !== undefined && Number.isFinite(value) && value > 0
+    ? value
+    : undefined;
 }
 
 function finiteRate(value: number | undefined): number | undefined {
-  return value !== undefined && Number.isFinite(value) && value >= 0 && value <= 1
+  return value !== undefined &&
+    Number.isFinite(value) &&
+    value >= 0 &&
+    value <= 1
     ? value
     : undefined;
 }

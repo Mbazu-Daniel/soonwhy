@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+} from "@nestjs/common";
 
 @Injectable()
 export class TenantGuard implements CanActivate {
@@ -6,7 +11,7 @@ export class TenantGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
 
     if (!request.orgId) {
-      throw new UnauthorizedException('Organization context required.');
+      throw new UnauthorizedException("Organization context required.");
     }
 
     return true;

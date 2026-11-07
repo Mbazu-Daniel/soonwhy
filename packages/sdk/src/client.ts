@@ -1,6 +1,6 @@
-import { resolveOptions, type ResolvedOptions } from './config.js';
-import { TelemetryBatcher } from './batcher.js';
-import { HttpTelemetryTransport } from './transport.js';
+import { resolveOptions, type ResolvedOptions } from "./config.js";
+import { TelemetryBatcher } from "./batcher.js";
+import { HttpTelemetryTransport } from "./transport.js";
 import type {
   ErrorInput,
   FlushResult,
@@ -9,9 +9,9 @@ import type {
   SdkStats,
   SoonwhyClient,
   SoonwhyOptions,
-} from './types.js';
+} from "./types.js";
 
-export const SDK_VERSION = '0.1.0';
+export const SDK_VERSION = "0.1.0";
 
 export class Client implements SoonwhyClient {
   private readonly options: ResolvedOptions;
@@ -33,9 +33,10 @@ export class Client implements SoonwhyClient {
       new HttpTelemetryTransport(this.options),
     );
 
-    this.interval = this.options.flushIntervalMs > 0
-      ? setInterval(() => void this.flush(), this.options.flushIntervalMs)
-      : undefined;
+    this.interval =
+      this.options.flushIntervalMs > 0
+        ? setInterval(() => void this.flush(), this.options.flushIntervalMs)
+        : undefined;
 
     if (this.options.registerShutdownHandlers) this.registerShutdownHandlers();
   }
@@ -69,8 +70,10 @@ export class Client implements SoonwhyClient {
   }
 
   private registerShutdownHandlers(): void {
-    for (const signal of ['SIGINT', 'SIGTERM'] as const) {
-      const handler = () => { void this.close(); };
+    for (const signal of ["SIGINT", "SIGTERM"] as const) {
+      const handler = () => {
+        void this.close();
+      };
       process.once(signal, handler);
       this.shutdownHandlers.push(() => process.removeListener(signal, handler));
     }

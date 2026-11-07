@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const getRequestsStatsSchema = z.object({
   projectId: z.string().min(1),

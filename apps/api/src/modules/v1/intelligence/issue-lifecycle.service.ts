@@ -1,14 +1,11 @@
-import type { Issue } from './issue.types';
+import { Injectable } from "@nestjs/common";
+import type { Issue } from "./issue.types";
 import {
   applyIssueLifecycle,
   type IssueLifecycleResult,
-} from './issue-lifecycle.coordinator';
-import { createIssueKey } from './issue-lifecycle.engine';
-import {
-  IssueLifecycleRepository,
-  type SaveIssueLifecycleInput,
-} from './issue-lifecycle.repository';
-import type { IssueLifecycle } from './issue-lifecycle.types';
+} from "./issue-lifecycle.coordinator";
+import { createIssueKey } from "./issue-lifecycle.engine";
+import { IssueLifecycleRepository } from "./issue-lifecycle.repository";
 
 export interface PersistIssueLifecycleInput {
   orgId: string;
@@ -16,19 +13,19 @@ export interface PersistIssueLifecycleInput {
   issue: Issue;
 }
 
-interface IssueLifecycleRepositoryPort {
-  find(orgId: string, projectId: string, issueKey: string): Promise<IssueLifecycle | undefined>;
-  save(input: SaveIssueLifecycleInput): Promise<IssueLifecycle>;
-}
-
+@Injectable()
 export class IssueLifecycleService {
-  constructor(
-    private readonly repository: IssueLifecycleRepositoryPort = new IssueLifecycleRepository(),
-  ) {}
+  constructor(private readonly repository: IssueLifecycleRepository) {}
 
-  async apply(input: PersistIssueLifecycleInput): Promise<IssueLifecycleResult> {
+  async apply(
+    input: PersistIssueLifecycleInput,
+  ): Promise<IssueLifecycleResult> {
     const issueKey = createIssueKey(input.issue.identity);
-    const current = await this.repository.find(input.orgId, input.projectId, issueKey);
+    const current = await this.repository.find(
+      input.orgId,
+      input.projectId,
+      issueKey,
+    );
     const result = applyIssueLifecycle(input.issue, current);
 
     if (!result.lifecycle) return result;

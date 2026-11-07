@@ -1,35 +1,41 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, BadRequestException } from "@nestjs/common";
 import {
   QuickwitService,
   QUICKWIT_INDEX_CONFIG,
   QUICKWIT_INDEXES,
   NatsService,
   type NatsMessageHandler,
-} from '@soonwhy/shared';
-import { IngestStats } from './stats';
+  type CaptureSettings,
+} from "@soonwhy/shared";
+import { IngestStats } from "./stats";
 import {
   mapLogToRow,
   mapMetricToRow,
   mapSpanToRequestRow,
   mapSpanToTraceRow,
-} from '../parse/mappers';
+} from "../parse/mappers";
 import type {
   ParsedLogRecord,
   ParsedMetricPoint,
   ParsedSpan,
-  TenantContext,
-} from '../interfaces';
+  OrganizationContext,
+} from "../interfaces";
 
 type JsMsg = Parameters<NatsMessageHandler>[0];
 
 const MAX_DELIVERY_ATTEMPTS = 5;
 
-type Signal = 'trace' | 'log' | 'metric';
+type Signal = "trace" | "log" | "metric";
+
+type IngestPayload = {
+  projectId: string;
+  organizationId: string;
+  captureSettings?: CaptureSettings;
+  [key: string]: unknown;
+};
 
 @Injectable()
 export class IngestConsumer implements OnModuleInit {
-  private readonly logger = new Logger(IngestConsumer.name);
-
   constructor(
     private readonly nats: NatsService,
     private readonly quickwit: QuickwitService,
@@ -37,8 +43,12 @@ export class IngestConsumer implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    const signals: Signal[] = ['trace', 'log', 'metric'];
-    await Promise.all(Object.values(QUICKWIT_INDEXES).map((indexId) => this.quickwit.ensureIndex(indexId, QUICKWIT_INDEX_CONFIG)));
+    const signals: Signal[] = ["trace", "log", "metric"];
+    await Promise.all(
+      Object.values(QUICKWIT_INDEXES).map((indexId) =>
+        this.quickwit.ensureIndex(indexId, QUICKWIT_INDEX_CONFIG),
+      ),
+    );
     for (const signal of signals) {
       await this.nats.subscribe(
         `ingest.*.${signal}`,
@@ -50,47 +60,45 @@ export class IngestConsumer implements OnModuleInit {
       );
     }
 
-    // DLQ consumer: log dead-lettered payloads for ops visibility
     await this.nats.subscribe(
-      'ingest.dlq.>',
+      "ingest.dlq.>",
       async (msg) => {
-        this.logger.warn(`DLQ message on ${msg.subject}`);
         msg.ack();
       },
-      { durable: 'ingest-dlq', maxDeliver: 3 },
+      { durable: "ingest-dlq", maxDeliver: 3 },
     );
 
     this.metrics.startPeriodicLogging();
-    this.logger.log('OTLP consumer started');
   }
 
   private async handleMessage(signal: Signal, msg: JsMsg) {
     const deliveryCount = msg.info.deliveryCount || 1;
 
     if (deliveryCount > MAX_DELIVERY_ATTEMPTS) {
-      await this.sendToDlq(signal, msg.data, deliveryCount, 'max delivery attempts');
+      await this.sendToDlq(
+        signal,
+        msg.data,
+        deliveryCount,
+        "max delivery attempts",
+      );
       msg.ack();
       this.metrics.recordDlq(1);
       return;
     }
 
     try {
-      const payload = JSON.parse(new TextDecoder().decode(msg.data)) as Record<
-        string,
-        unknown
-      >;
+      const payload = JSON.parse(new TextDecoder().decode(msg.data)) as IngestPayload;
       await this.insertOne(signal, payload);
       msg.ack();
       this.metrics.recordInserted(1);
     } catch (error) {
-      this.logger.error(`Failed to insert ${signal}`, error as Error);
       this.metrics.recordError();
       if (deliveryCount >= MAX_DELIVERY_ATTEMPTS) {
         await this.sendToDlq(
           signal,
           msg.data,
           deliveryCount,
-          error instanceof Error ? error.message : 'insert failed',
+          error instanceof Error ? error.message : "insert failed",
         );
         msg.ack();
         this.metrics.recordDlq(1);
@@ -117,46 +125,51 @@ export class IngestConsumer implements OnModuleInit {
       `ingest.dlq.${signal}`,
       new TextEncoder().encode(JSON.stringify(envelope)),
     );
-    this.logger.warn(`Sent ${signal} message to DLQ: ${reason}`);
   }
 
-  private tenantFrom(payload: Record<string, unknown>): TenantContext {
-    const rawSettings = payload.captureSettings as Partial<TenantContext['captureSettings']> | undefined;
+  private organizationFrom(payload: IngestPayload): OrganizationContext {
     return {
-      projectId: String(payload.projectId || ''),
-      organizationId: String(payload.organizationId || ''),
-      captureSettings: {
-        redactSensitiveData: rawSettings?.redactSensitiveData ?? true,
-        captureRequestHeaders: rawSettings?.captureRequestHeaders ?? false,
-        captureRequestBody: rawSettings?.captureRequestBody ?? false,
-        captureResponseBody: rawSettings?.captureResponseBody ?? false,
-        maxAttributeCount: rawSettings?.maxAttributeCount ?? 100,
-        maxAttributeValueLength: rawSettings?.maxAttributeValueLength ?? 4096,
+      projectId: payload.projectId,
+      organizationId: payload.organizationId,
+      captureSettings: payload.captureSettings ?? {
+        redactSensitiveData: true,
+        captureRequestHeaders: false,
+        captureRequestBody: false,
+        captureResponseBody: false,
+        maxAttributeCount: 100,
+        maxAttributeValueLength: 4096,
       },
     };
   }
 
-  private async insertOne(signal: Signal, payload: Record<string, unknown>) {
-    const tenant = this.tenantFrom(payload);
-    if (!tenant.projectId || !tenant.organizationId) {
-      throw new Error('Missing tenant on ingest payload');
+  private async insertOne(signal: Signal, payload: IngestPayload) {
+    const organization = this.organizationFrom(payload);
+    if (!organization.projectId || !organization.organizationId) {
+      throw new BadRequestException("Missing organization on ingest payload");
     }
 
-    if (signal === 'trace') {
-      const span = payload as unknown as ParsedSpan & TenantContext;
-      await this.quickwit.ingest(QUICKWIT_INDEXES.traces, [mapSpanToTraceRow(span, tenant)]);
-      const request = mapSpanToRequestRow(span, tenant);
-      if (request) await this.quickwit.ingest(QUICKWIT_INDEXES.requests, [request]);
+    if (signal === "trace") {
+      const span = payload as unknown as ParsedSpan & OrganizationContext;
+      await this.quickwit.ingest(QUICKWIT_INDEXES.traces, [
+        mapSpanToTraceRow(span, organization),
+      ]);
+      const request = mapSpanToRequestRow(span, organization);
+      if (request)
+        await this.quickwit.ingest(QUICKWIT_INDEXES.requests, [request]);
       return;
     }
 
-    if (signal === 'log') {
-      const record = payload as unknown as ParsedLogRecord & TenantContext;
-      await this.quickwit.ingest(QUICKWIT_INDEXES.logs, [mapLogToRow(record, tenant)]);
+    if (signal === "log") {
+      const record = payload as unknown as ParsedLogRecord & OrganizationContext;
+      await this.quickwit.ingest(QUICKWIT_INDEXES.logs, [
+        mapLogToRow(record, organization),
+      ]);
       return;
     }
 
-    const point = payload as unknown as ParsedMetricPoint & TenantContext;
-    await this.quickwit.ingest(QUICKWIT_INDEXES.metrics, [mapMetricToRow(point, tenant)]);
+    const point = payload as unknown as ParsedMetricPoint & OrganizationContext;
+    await this.quickwit.ingest(QUICKWIT_INDEXES.metrics, [
+      mapMetricToRow(point, organization),
+    ]);
   }
 }

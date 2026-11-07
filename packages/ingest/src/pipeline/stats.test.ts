@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { IngestStats } from './stats';
+import { describe, expect, it } from "vitest";
+import { IngestStats } from "./stats";
 
-describe('IngestStats', () => {
-  it('tracks in-flight and peak request capacity', () => {
+describe("IngestStats", () => {
+  it("tracks in-flight and peak request capacity", () => {
     const stats = new IngestStats();
     stats.beginRequest();
     stats.beginRequest();

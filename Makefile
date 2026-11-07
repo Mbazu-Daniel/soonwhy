@@ -1,7 +1,7 @@
 .PHONY: local local-build local-down local-logs local-api-logs \
         observability observability-build observability-down \
         observability-logs observability-api-logs observability-ingest-logs \
-        observability-quickwit-logs observability-minio-logs \
+        observability-quickwit-logs \
         observability-postgres-logs observability-redis-logs \
         observability-api observability-api-build observability-api-down \
         observability-api-stack-logs logs
@@ -53,9 +53,6 @@ observability-ingest-logs:
 observability-quickwit-logs:
 	$(OBS_COMPOSE) logs -f quickwit
 
-observability-minio-logs:
-	$(OBS_COMPOSE) logs -f minio
-
 observability-postgres-logs:
 	$(OBS_COMPOSE) logs -f postgres
 
@@ -69,16 +66,16 @@ observability-redis-logs:
 # -------------------------
 
 observability-api:
-	$(OBS_COMPOSE) up -d postgres redis minio minio-init quickwit api ingest cron
+	$(OBS_COMPOSE) up -d postgres redis localstack quickwit api ingest cron
 
 observability-api-build:
-	$(OBS_COMPOSE) up -d --build postgres redis minio minio-init quickwit api ingest cron
+	$(OBS_COMPOSE) up -d --build postgres redis localstack quickwit api ingest cron
 
 observability-api-down:
-	$(OBS_COMPOSE) stop postgres redis minio minio-init quickwit api ingest cron
+	$(OBS_COMPOSE) stop postgres redis localstack quickwit api ingest cron
 
 observability-api-stack-logs:
-	$(OBS_COMPOSE) logs -f postgres redis minio minio-init quickwit api ingest cron
+	$(OBS_COMPOSE) logs -f postgres redis localstack quickwit api ingest cron
 
 # -------------------------
 # Convenience

@@ -1,133 +1,223 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { db } from '../../../common/db';
-import type { DetectionEvidence } from '../../../common/db/schema/findings';
-import type { QuickwitService } from '@soonwhy/shared';
-import type { ProjectsRepository } from '../projects/projects.repository';
-import { DetectionService } from './detection.service';
-import { checkoutRegressionFixture } from './detection.fixtures';
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { db } from "../../../common/db";
+import type { DetectionEvidence } from "../../../common/db/schema/findings";
+import type { QuickwitService } from "@soonwhy/shared";
+import type { ProjectsRepository } from "../projects/projects.repository";
+import { DetectionService } from "./detection.service";
+import { checkoutRegressionFixture } from "./detection.fixtures";
 
-vi.mock('../../../common/db', () => ({
+vi.mock("../../../common/db", () => ({
   db: {
     insert: vi.fn(),
     update: vi.fn(),
   },
 }));
 
-describe('DetectionService realistic telemetry scenarios', () => {
+describe("DetectionService realistic telemetry scenarios", () => {
   const search = vi.fn();
   const quickwit = { search } as unknown as QuickwitService;
   const getProjectById = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
-    getProjectById.mockResolvedValue({ id: 'project-1', orgId: 'org-1' });
+    getProjectById.mockResolvedValue({ id: "project-1", orgId: "org-1" });
 
     let sequence = 0;
-    vi.mocked(db.insert).mockImplementation(() => ({
-      values: vi.fn().mockImplementation((input: { type: string; evidence?: DetectionEvidence[] }) => ({
-        returning: vi.fn().mockResolvedValue([{
-          id: 'finding-' + (++sequence),
-          projectId: 'project-1',
-          serviceName: 'checkout-api',
-          type: input.type,
-          severity: input.type === 'bottleneck' ? 'critical' : 'warning',
-          title: input.type,
-          description: input.type,
-          observedValue: 1_600,
-          threshold: 1_000,
-          unit: 'ms',
-          windowStart: new Date('2026-09-20T18:00:00.000Z'),
-          windowEnd: new Date('2026-09-20T18:15:00.000Z'),
-          evidence: input.evidence ?? [],
-        }]),
-      })),
-    } as never));
+    vi.mocked(db.insert).mockImplementation(
+      () =>
+        ({
+          values: vi
+            .fn()
+            .mockImplementation(
+              (input: { type: string; evidence?: DetectionEvidence[] }) => ({
+                returning: vi.fn().mockResolvedValue([
+                  {
+                    id: "finding-" + ++sequence,
+                    projectId: "project-1",
+                    serviceName: "checkout-api",
+                    type: input.type,
+                    severity:
+                      input.type === "bottleneck" ? "critical" : "warning",
+                    title: input.type,
+                    description: input.type,
+                    observedValue: 1_600,
+                    threshold: 1_000,
+                    unit: "ms",
+                    windowStart: new Date("2026-09-20T18:00:00.000Z"),
+                    windowEnd: new Date("2026-09-20T18:15:00.000Z"),
+                    evidence: input.evidence ?? [],
+                  },
+                ]),
+              }),
+            ),
+        }) as never,
+    );
 
     search.mockResolvedValue({ hits: [], aggregations: {} });
 
-    vi.mocked(db.update).mockImplementation(() => ({
-      set: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([{
-            id: 'run-1',
-            status: 'completed',
-          }]),
-        }),
-      }),
-    } as never));
+    vi.mocked(db.update).mockImplementation(
+      () =>
+        ({
+          set: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              returning: vi.fn().mockResolvedValue([
+                {
+                  id: "run-1",
+                  status: "completed",
+                },
+              ]),
+            }),
+          }),
+        }) as never,
+    );
   });
 
-  it('correlates a realistic slow-checkout scenario into one bottleneck', async () => {
-    const projectsRepository = { getProjectById } as unknown as ProjectsRepository;
+  it("correlates a realistic slow-checkout scenario into one bottleneck", async () => {
+    const projectsRepository = {
+      getProjectById,
+    } as unknown as ProjectsRepository;
     const serviceBuckets = [
       checkoutRegressionFixture.service.current,
       checkoutRegressionFixture.service.baseline,
     ];
     const endpointBuckets = [
       {
-        key: 'checkout-api',
-        endpoints: { buckets: [{ key: '/checkout', methods: { buckets: [{ key: 'POST', doc_count: 60, latency: { values: { '95.0': 1_600 } }, errors: { doc_count: 10 } }] } }] },
+        key: "checkout-api",
+        endpoints: {
+          buckets: [
+            {
+              key: "/checkout",
+              methods: {
+                buckets: [
+                  {
+                    key: "POST",
+                    doc_count: 60,
+                    latency: { values: { "95.0": 1_600 } },
+                    errors: { doc_count: 10 },
+                  },
+                ],
+              },
+            },
+          ],
+        },
       },
       {
-        key: 'checkout-api',
-        endpoints: { buckets: [{ key: '/checkout', methods: { buckets: [{ key: 'POST', doc_count: 120, latency: { values: { '95.0': 700 } }, errors: { doc_count: 2 } }] } }] },
+        key: "checkout-api",
+        endpoints: {
+          buckets: [
+            {
+              key: "/checkout",
+              methods: {
+                buckets: [
+                  {
+                    key: "POST",
+                    doc_count: 120,
+                    latency: { values: { "95.0": 700 } },
+                    errors: { doc_count: 2 },
+                  },
+                ],
+              },
+            },
+          ],
+        },
       },
     ];
     const dependencyBuckets = [
       checkoutRegressionFixture.dependency.current,
       checkoutRegressionFixture.dependency.baseline,
     ];
-    const requestEvidence = { hits: [{
-      _source: {
-        service: 'checkout-api',
-        method: 'POST',
-        url: '/checkout',
-        duration: 1_600,
-        traceId: 'trace-checkout-001',
-        timestamp: '2026-09-20T18:10:00.000Z',
-      },
-    }] };
+    const requestEvidence = {
+      hits: [
+        {
+          _source: {
+            service: "checkout-api",
+            method: "POST",
+            url: "/checkout",
+            duration: 1_600,
+            traceId: "trace-checkout-001",
+            timestamp: "2026-09-20T18:10:00.000Z",
+          },
+        },
+      ],
+    };
 
     let serviceIndex = 0;
     let endpointIndex = 0;
     let dependencyIndex = 0;
-    const pick = <T,>(values: T[], index: number): T =>
+    const pick = <T>(values: T[], index: number): T =>
       values[Math.min(index, values.length - 1)] as T;
 
-    search.mockImplementation(async (index: string, input: Record<string, any>) => {
-      const aggregations = input?.aggregations ?? {};
-      if (aggregations.services?.aggs?.endpoints) {
-        return { aggregations: { services: { buckets: [pick(endpointBuckets, endpointIndex++)] } } };
-      }
-      if (aggregations.services) {
-        return { aggregations: { services: { buckets: [pick(serviceBuckets, serviceIndex++)] } } };
-      }
-      if (aggregations.dependencies) {
-        return { aggregations: { dependencies: { buckets: [{ key: 'checkout-api', dependencies: { buckets: [pick(dependencyBuckets, dependencyIndex++).dependency] } }] } } };
-      }
-      if (index === 'telemetry-requests' && input?.maxHits === 5) return requestEvidence;
-      if (index === 'telemetry-traces') return checkoutRegressionFixture.trace;
-      return { hits: [] };
-    });
+    search.mockImplementation(
+      async (index: string, input: Record<string, any>) => {
+        const aggregations = input?.aggregations ?? {};
+        if (aggregations.services?.aggs?.endpoints) {
+          return {
+            aggregations: {
+              services: { buckets: [pick(endpointBuckets, endpointIndex++)] },
+            },
+          };
+        }
+        if (aggregations.services) {
+          return {
+            aggregations: {
+              services: { buckets: [pick(serviceBuckets, serviceIndex++)] },
+            },
+          };
+        }
+        if (aggregations.dependencies) {
+          return {
+            aggregations: {
+              dependencies: {
+                buckets: [
+                  {
+                    key: "checkout-api",
+                    dependencies: {
+                      buckets: [
+                        pick(dependencyBuckets, dependencyIndex++).dependency,
+                      ],
+                    },
+                  },
+                ],
+              },
+            },
+          };
+        }
+        if (index === "telemetry-requests" && input?.maxHits === 5)
+          return requestEvidence;
+        if (index === "telemetry-traces")
+          return checkoutRegressionFixture.trace;
+        return { hits: [] };
+      },
+    );
 
-    const issueLifecycleService = { apply: vi.fn().mockResolvedValue({ action: 'created' }) };
+    const issueLifecycleService = {
+      apply: vi.fn().mockResolvedValue({ action: "created" }),
+    };
     const service = new DetectionService(
       quickwit,
       projectsRepository,
       issueLifecycleService as never,
     );
-    const result = await service.run('org-1', 'project-1');
+    const result = await service.run("org-1", "project-1");
 
-    expect(result.some((finding) => finding.type === 'bottleneck')).toBe(true);
-    const bottleneck = result.find((finding) => finding.type === 'bottleneck');
+    expect(result.some((finding) => finding.type === "bottleneck")).toBe(true);
+    const bottleneck = result.find((finding) => finding.type === "bottleneck");
     expect(bottleneck).toMatchObject({
-      type: 'bottleneck',
-      serviceName: 'checkout-api',
-      severity: 'critical',
+      type: "bottleneck",
+      serviceName: "checkout-api",
+      severity: "critical",
     });
-    expect(bottleneck?.evidence).toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: 'correlated-trace', value: 'trace-checkout-001' }),
-      expect.objectContaining({ label: 'optimization-guidance', kind: 'recommendation' }),
-    ]));
+    expect(bottleneck?.evidence).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          label: "correlated-trace",
+          value: "trace-checkout-001",
+        }),
+        expect.objectContaining({
+          label: "optimization-guidance",
+          kind: "recommendation",
+        }),
+      ]),
+    );
   });
 });

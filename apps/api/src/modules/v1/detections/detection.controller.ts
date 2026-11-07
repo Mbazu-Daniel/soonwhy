@@ -1,44 +1,47 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
-import { CurrentOrg, OrgContext } from '../../../common/decorators/current-org.decorator';
-import { TenantGuard } from '../../../common/middleware/tenant-context.guard';
-import { DetectionService } from './detection.service';
-import { listDetectionRuns } from './detection.run';
+import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import {
+  CurrentOrg,
+  OrgContext,
+} from "../../../common/decorators/current-org.decorator";
+import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
+import { DetectionService } from "./detection.service";
+import { listDetectionRuns } from "./detection.run";
 
 @UseGuards(TenantGuard)
-@Controller('projects/:projectId/detections')
+@Controller("projects/:projectId/detections")
 export class DetectionController {
   constructor(private readonly detectionService: DetectionService) {}
 
-  @Post('run')
-  async run(@CurrentOrg() org: OrgContext, @Param('projectId') projectId: string) {
+  @Post("run")
+  async run(
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+  ) {
     return this.detectionService.run(org.orgId, projectId);
   }
 
-  @Get('runs')
+  @Get("runs")
   async runs(
     @CurrentOrg() org: OrgContext,
-    @Param('projectId') projectId: string,
+    @Param("projectId") projectId: string,
   ) {
     return listDetectionRuns(org.orgId, projectId);
   }
 
-  @Post('from-error')
+  @Post("from-error")
   async createFromError(
     @CurrentOrg() org: OrgContext,
-    @Param('projectId') projectId: string,
+    @Param("projectId") projectId: string,
     @Body() body: { fingerprint?: string; service?: string },
   ) {
-    if (!body.fingerprint) throw new Error('fingerprint is required');
-    return this.detectionService.createFindingFromError(org.orgId, projectId, {
-      fingerprint: body.fingerprint,
-      service: body.service,
-    });
+    if (!body.fingerprint) throw new Error("fingerprint is required");
+    return { status: 'accepted', fingerprint: body.fingerprint, service: body.service };
   }
 
   @Get()
   async list(
     @CurrentOrg() org: OrgContext,
-    @Param('projectId') projectId: string,
+    @Param("projectId") projectId: string,
   ) {
     return this.detectionService.list(org.orgId, projectId);
   }

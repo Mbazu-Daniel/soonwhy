@@ -1,11 +1,15 @@
-import type { Issue } from './issue.types';
+import type { Issue } from "./issue.types";
 import {
   createIssueLifecycle,
   updateIssueLifecycle,
-} from './issue-lifecycle.engine';
-import type { IssueLifecycle } from './issue-lifecycle.types';
+} from "./issue-lifecycle.engine";
+import type { IssueLifecycle } from "./issue-lifecycle.types";
 
-export type IssueLifecycleAction = 'created' | 'updated' | 'reopened' | 'ignored';
+export type IssueLifecycleAction =
+  | "created"
+  | "updated"
+  | "reopened"
+  | "ignored";
 
 export interface IssueLifecycleResult {
   action: IssueLifecycleAction;
@@ -18,7 +22,7 @@ export function applyIssueLifecycle(
 ): IssueLifecycleResult {
   if (!current) {
     return {
-      action: 'created',
+      action: "created",
       lifecycle: createIssueLifecycle(issue),
     };
   }
@@ -26,11 +30,11 @@ export function applyIssueLifecycle(
   const updated = updateIssueLifecycle(current, issue);
 
   if (!updated) {
-    return { action: 'ignored' };
+    return { action: "ignored" };
   }
 
   return {
-    action: current.status === 'resolved' ? 'reopened' : 'updated',
+    action: current.status === "resolved" ? "reopened" : "updated",
     lifecycle: updated,
   };
 }

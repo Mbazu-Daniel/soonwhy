@@ -1,4 +1,4 @@
-declare module '@opentelemetry/sdk-node' {
+declare module "@opentelemetry/sdk-node" {
   export class NodeSDK {
     constructor(configuration: Record<string, unknown>);
     start(): void;
@@ -6,7 +6,7 @@ declare module '@opentelemetry/sdk-node' {
   }
 }
 
-declare module '@opentelemetry/exporter-trace-otlp-proto' {
+declare module "@opentelemetry/exporter-trace-otlp-proto" {
   export class OTLPTraceExporter {
     constructor(options: {
       url: string;
@@ -17,20 +17,22 @@ declare module '@opentelemetry/exporter-trace-otlp-proto' {
   }
 }
 
-declare module '@opentelemetry/auto-instrumentations-node' {
+declare module "@opentelemetry/auto-instrumentations-node" {
   export function getNodeAutoInstrumentations(
     configuration?: Record<string, Record<string, unknown>>,
   ): unknown;
 }
 
-declare module '@opentelemetry/resources' {
+declare module "@opentelemetry/resources" {
   export function defaultResource(): {
     merge(other: unknown): unknown;
   };
-  export function resourceFromAttributes(attributes: Record<string, unknown>): unknown;
+  export function resourceFromAttributes(
+    attributes: Record<string, unknown>,
+  ): unknown;
 }
 
-declare module '@opentelemetry/sdk-trace-base' {
+declare module "@opentelemetry/sdk-trace-base" {
   export class AlwaysOnSampler {}
   export class AlwaysOffSampler {}
   export class TraceIdRatioBasedSampler {
