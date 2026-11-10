@@ -1,1489 +1,248 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { and, desc, eq } from 'drizzle-orm';
 import { QUICKWIT_INDEXES, QuickwitService } from '@soonwhy/shared';
+import { DetectorSettingsService } from '../detector-settings/detector-settings.service';
+import { DetectionTelemetryService } from './detection-telemetry.service';
 import { db } from '../../../common/db';
-import { findings, type DetectionEvidence } from '../../../common/db/schema/findings';
-import { deployments, services } from '../../../common/db/schema';
-import { quickwitTenantQuery, quickwitTerm, sanitizeRequestUrl } from '../../../common/quickwit/query';
+import { findings } from '../../../common/db/schema/findings';
+import { quickwitTenantQuery, quickwitTerm } from '../../../common/quickwit/query';
+import { completeDetectionRun, enqueueDetectionRun, failDetectionRun, startDetectionRun, claimQueuedDetectionRun } from './detection.run';
+import { recordDetectionRun } from '../../../common/telemetry/otel-metrics';
+import type { DetectionFinding } from './detection.types';
 import { ProjectsRepository } from '../projects/projects.repository';
-import { createIssueFromDetection } from '../intelligence/detection-issue.adapter';
-import { IssueLifecycleService } from '../intelligence/issue-lifecycle.service';
-import { detectDatabaseQueries, type DatabaseQueryTrace } from '../intelligence/database-query.detector';
-import { detectNPlusOne, type NPlusOneTrace } from '../intelligence/n-plus-one.detector';
-import { detectDatabaseQueryVolume, type DatabaseQueryVolumeTrace } from '../intelligence/database-query-volume.detector';
-import { detectDatabaseErrors, type DatabaseErrorTrace } from '../intelligence/database-error.detector';
-import { detectDatabaseLatencyContribution, type DatabaseLatencyContributionTrace, type DatabaseLatencyContributionCandidate } from '../intelligence/database-latency-contribution.detector';
-import { detectDatabaseConnectionPool, type DatabaseConnectionPoolSample } from '../intelligence/database-connection-pool.detector';
-import { detectDatabaseTimeouts, type DatabaseTimeoutTrace } from '../intelligence/database-timeout.detector';
-import { detectDatabaseResultSets, type DatabaseResultSetTrace } from '../intelligence/database-result-set.detector';
-import { detectDatabaseConnectionWait, type DatabaseConnectionWaitCandidate } from '../intelligence/database-connection-wait.detector';
-import { detectDatabaseBatches, type DatabaseBatchTrace, type DatabaseBatchCandidate } from '../intelligence/database-batch.detector';
-import { detectDatabaseDependencyDegradation, type DatabaseDependencyTrace } from '../intelligence/database-dependency-degradation.detector';
-import { evaluateEndpointPerformance } from './performance-detection';
-import { correlateFindings } from './detection.correlation';
-import { completeDetectionRun, failDetectionRun, startDetectionRun } from './detection.run';
-import { evaluateSignal, evaluateThroughput, evaluateTraceSpan } from './detection.engine';
-import { evaluateServicePerformance } from '../intelligence/service-performance.engine';
-import { evaluateDependency } from '../intelligence/dependency-intelligence';
-import type { DetectionFinding, DetectionWindow, FindingSeverity, FindingType, RequestSource, TraceSource, ServiceBucket, EndpointAggregations } from './detection.types';
-import type { DeploymentInfo } from './detection.correlation';
-
-// Modular method imports (Sprint 2 extraction)
-import { searchServiceBuckets } from '../detections/detection-search.methods';
-import { searchEndpointBuckets } from '../detections/detection-search.methods';
-import { searchDependencyBuckets } from '../detections/detection-search.methods';
-import { searchDatabaseConnectionPoolMetrics } from '../detections/detection-search.methods';
-import { searchDatabaseConnectionWaitMetrics } from '../detections/detection-search.methods';
-import { searchRequestEndpoints } from '../detections/detection-search.methods';
-import { searchDatabaseQuerySpans } from '../detections/detection-search.methods';
-import { searchTraceDurations } from '../detections/detection-search.methods';
-import { searchTraceSpanCandidates } from '../detections/detection-search.methods';
-import { describeDatabaseQuery } from '../detections/detection-description.methods';
-import { describeDatabaseLatencyContribution } from '../detections/detection-description.methods';
-import { describeDatabaseResultSet } from '../detections/detection-description.methods';
-import { describeDatabaseBatch } from '../detections/detection-description.methods';
-import { describeDatabaseTimeout } from '../detections/detection-description.methods';
-import { describeDatabaseError } from '../detections/detection-description.methods';
-import { describeDatabaseQueryVolume } from '../detections/detection-description.methods';
-import { describeDatabaseConnectionWait } from '../detections/detection-description.methods';
-import { describeDatabaseConnectionPool } from '../detections/detection-description.methods';
-import { assertProjectAccess } from '../detections/detection-description.methods';
-import { createFindingFromError } from '../detections/detection-description.methods';
-import { describeNPlusOne } from '../detections/detection-description.methods';
-import { describePerformanceSignal } from '../detections/detection-description.methods';
-import { describeSignal } from '../detections/detection-description.methods';
-import { describeThroughputSignal } from '../detections/detection-description.methods';
-import { getPercentile, getLatency, getErrorRate } from '../detections/detection-utility.methods';
-import { metricString } from '../detections/detection-utility.methods';
-import { dependencyRecommendation } from '../detections/detection-utility.methods';
-import { dependencyEvidence } from '../detections/detection-evidence.methods';
-import { requestEvidence } from '../detections/detection-evidence.methods';
-import { toDetectionFinding, persistFinding } from '../detections/detection-evidence.methods';
-
-const WINDOW_MS = 15 * 60_000;
+import { DetectionPipeline } from './detection.pipeline';
+import { WINDOW_MS } from './detection.stage';
 
 @Injectable()
 export class DetectionService {
   constructor(
+    private readonly pipeline: DetectionPipeline,
     private readonly quickwit: QuickwitService,
     private readonly projectsRepository: ProjectsRepository,
-    private readonly issueLifecycleService: IssueLifecycleService,
+    private readonly detectorSettings: DetectorSettingsService,
+    private readonly detectionTelemetry: DetectionTelemetryService,
   ) {}
 
   async run(orgId: string, projectId: string): Promise<DetectionFinding[]> {
+    const settings = await this.detectorSettings.get(orgId);
+    if (!this.detectorSettings.featureEnabled(settings, 'detections.enabled')) {
+      throw new ForbiddenException('Detections are disabled for this organisation');
+    }
+
     await this.assertProjectAccess(orgId, projectId);
     const end = new Date();
     const start = new Date(end.getTime() - WINDOW_MS);
     const run = await startDetectionRun(orgId, projectId, start, end);
 
+    return this.processDetectionRun({
+      id: run.id,
+      orgId,
+      projectId,
+      windowStart: start,
+      windowEnd: end,
+    }, settings);
+  }
+
+  async enqueue(
+    orgId: string,
+    projectId: string,
+  ): Promise<{ id: string; status: 'queued'; windowStart: Date; windowEnd: Date }> {
+    const settings = await this.detectorSettings.get(orgId);
+    if (!this.detectorSettings.featureEnabled(settings, 'detections.enabled')) {
+      throw new ForbiddenException('Detections are disabled for this organisation');
+    }
+    if (!this.detectorSettings.featureEnabled(settings, 'detections.async')) {
+      throw new ForbiddenException('Async detection runs are disabled for this organisation');
+    }
+
+    await this.assertProjectAccess(orgId, projectId);
+    const end = new Date();
+    const start = new Date(end.getTime() - WINDOW_MS);
+    const run = await enqueueDetectionRun(orgId, projectId, start, end);
+
+    return {
+      id: run.id,
+      status: 'queued',
+      windowStart: start,
+      windowEnd: end,
+    };
+  }
+
+  async claimAndRunOne(): Promise<string | undefined> {
+    const claimed = await claimQueuedDetectionRun();
+    if (!claimed) return undefined;
+
+    const settings = await this.detectorSettings.get(claimed.orgId);
+    await this.assertProjectAccess(claimed.orgId, claimed.projectId);
+    await this.processDetectionRun(claimed, settings);
+    return claimed.id;
+  }
+
+  private async processDetectionRun(
+    run: { id: string; orgId: string; projectId: string; windowStart: Date; windowEnd: Date },
+    settings: Awaited<ReturnType<DetectorSettingsService['get']>>,
+  ): Promise<DetectionFinding[]> {
+    const startedAt = Date.now();
+    await this.detectionTelemetry.runStarted({
+      orgId: run.orgId,
+      projectId: run.projectId,
+      runId: run.id,
+      windowStart: run.windowStart,
+      windowEnd: run.windowEnd,
+    });
+
     try {
-      const findings = await this.executeDetection(orgId, projectId, start, end);
+      const findings = await this.pipeline.execute(
+        run.orgId,
+        run.projectId,
+        run.windowStart,
+        run.windowEnd,
+        settings,
+      );
       await completeDetectionRun(run.id, findings.length);
+      recordDetectionRun('success', Date.now() - startedAt);
+      await this.detectionTelemetry.runCompleted({
+        orgId: run.orgId,
+        projectId: run.projectId,
+        runId: run.id,
+        findingsCount: findings.length,
+        durationMs: Date.now() - startedAt,
+        windowStart: run.windowStart,
+        windowEnd: run.windowEnd,
+      });
       return findings;
     } catch (error) {
-      await failDetectionRun(run.id, error instanceof Error ? error.message : 'Detection failed');
-      throw error;
-    }
-  }
-
-  private async executeDetection(
-    orgId: string,
-    projectId: string,
-    start: Date,
-    end: Date,
-  ): Promise<DetectionFinding[]> {
-    const endTimestamp = Math.floor(end.getTime() / 1000);
-    const startTimestamp = Math.floor(start.getTime() / 1000);
-
-    const [currentBuckets, baselineBuckets] = await Promise.all([
-      this.searchServiceBuckets(orgId, projectId, startTimestamp, endTimestamp),
-      this.searchServiceBuckets(
-        orgId,
-        projectId,
-        startTimestamp - Math.floor(WINDOW_MS / 1000),
-        startTimestamp,
-      ),
-    ]);
-    const baselineByService = new Map(
-      baselineBuckets.map((bucket) => [
-        bucket.key,
-        {
-          p50: this.getPercentile(bucket, '50.0'),
-          p95: this.getPercentile(bucket, '95.0'),
-          p99: this.getPercentile(bucket, '99.0'),
-          latency: this.getLatency(bucket),
-          errorRate: this.getErrorRate(bucket),
-          requests: bucket.doc_count,
-          samples: bucket.doc_count,
-        },
-      ]),
-    );
-    const detected: DetectionFinding[] = [];
-
-    for (const bucket of currentBuckets) {
-      const p50 = this.getPercentile(bucket, '50.0');
-      const p95 = this.getPercentile(bucket, '95.0');
-      const p99 = this.getPercentile(bucket, '99.0');
-      const errorRate = this.getErrorRate(bucket);
-      const baseline = baselineByService.get(bucket.key);
-
-      const performanceSignal = evaluateServicePerformance(
-        {
-          serviceName: bucket.key,
-          endpoint: 'service:' + bucket.key,
-          sampleCount: bucket.doc_count,
-          p50,
-          p95,
-          p99,
-          errorRate: errorRate / 100,
-          throughputPerMinute: bucket.doc_count / 15,
-        },
-        baseline
-          ? {
-              p50: baseline.p50,
-              p95: baseline.p95,
-              p99: baseline.p99,
-              errorRate: baseline.errorRate / 100,
-              throughputPerMinute: baseline.requests / 15,
-            }
-          : undefined,
-      );
-
-      if (performanceSignal) {
-        detected.push(await this.persistFinding({
-          orgId,
-          projectId,
-          serviceName: bucket.key,
-          type: 'latency',
-          severity: performanceSignal.severity,
-          title: 'Service performance degradation in ' + bucket.key,
-          description: this.describePerformanceSignal(performanceSignal),
-          observedValue: p95,
-          threshold: 500,
-          unit: 'ms',
-          start,
-          end,
-          evidence: [
-            {
-              kind: 'metric',
-              label: 'performance-profile',
-              value: p95,
-              context: {
-                service: bucket.key,
-                p50,
-                p95,
-                p99,
-                errorRate,
-                throughputPerMinute: bucket.doc_count / 15,
-                sampleCount: bucket.doc_count,
-                reasons: performanceSignal.reasons.join('; '),
-                ...(performanceSignal.latency.p95ChangePercent !== undefined
-                  ? { p95ChangePercent: performanceSignal.latency.p95ChangePercent }
-                  : {}),
-                ...(performanceSignal.latency.p99ChangePercent !== undefined
-                  ? { p99ChangePercent: performanceSignal.latency.p99ChangePercent }
-                  : {}),
-              },
-            },
-            ...(await this.requestEvidence(
-              orgId,
-              projectId,
-              bucket.key,
-              startTimestamp,
-              endTimestamp,
-              'latency',
-            )),
-          ],
-        }));
-      }
-
-      const throughputSignal = evaluateThroughput(
-        bucket.doc_count,
-        baseline
-          ? { value: baseline.requests, samples: baseline.requests }
-          : undefined,
-      );
-
-      if (throughputSignal) {
-        detected.push(await this.persistFinding({
-          orgId,
-          projectId,
-          serviceName: bucket.key,
-          type: throughputSignal.type,
-          severity: throughputSignal.severity,
-          title: 'Throughput degradation detected in ' + bucket.key,
-          description: this.describeThroughputSignal(throughputSignal),
-          observedValue: throughputSignal.observedValue,
-          threshold: throughputSignal.threshold,
-          unit: throughputSignal.unit,
-          start,
-          end,
-          evidence: [
-            {
-              kind: 'metric',
-              label: 'throughput-regression',
-              value: throughputSignal.observedValue,
-              context: {
-                service: bucket.key,
-                baselineRequests: throughputSignal.baselineValue ?? 0,
-                changePercent: throughputSignal.changePercent ?? 0,
-                p50,
-                p95,
-                p99,
-              },
-            },
-          ],
-        }));
-      }
-    }
-
-    const [currentEndpoints, baselineEndpoints] = await Promise.all([
-      this.searchEndpointBuckets(orgId, projectId, startTimestamp, endTimestamp),
-      this.searchEndpointBuckets(
-        orgId,
-        projectId,
-        startTimestamp - Math.floor(WINDOW_MS / 1000),
-        startTimestamp,
-      ),
-    ]);
-
-    const baselineByEndpoint = new Map(
-      baselineEndpoints.map((endpoint) => [
-        endpoint.key,
-        endpoint,
-      ]),
-    );
-
-    for (const endpoint of currentEndpoints) {
-      const baseline = baselineByEndpoint.get(endpoint.key);
-      const [serviceName, method, url] = endpoint.key.split('|');
-      if (!serviceName || !method || !url) continue;
-
-      const performance = evaluateEndpointPerformance(
-        {
-          serviceName,
-          endpointName: method + ' ' + sanitizeRequestUrl(url),
-          sampleCount: endpoint.doc_count,
-          p95Duration: endpoint.latency,
-          throughputPerMinute: endpoint.doc_count / 15,
-          errorRate: endpoint.errorRate,
-        },
-        baseline
-          ? {
-              serviceName,
-              endpointName: method + ' ' + sanitizeRequestUrl(url),
-              sampleCount: baseline.doc_count,
-              p95Duration: baseline.latency,
-              throughputPerMinute: baseline.doc_count / 15,
-              errorRate: baseline.errorRate,
-            }
-          : undefined,
-      );
-
-      if (!performance) continue;
-
-      const endpointEvidence = {
-        kind: 'request' as const,
-        label: 'performance-endpoint',
-        value: performance.identity.fingerprint,
-        context: {
-          service: serviceName,
-          endpointName: performance.endpointName,
-          fingerprint: performance.identity.fingerprint,
-          signals: performance.signals.join(','),
-          latencyRegressionPercent: performance.latencyRegressionPercent ?? null,
-          throughputRegressionPercent: performance.throughputRegressionPercent ?? null,
-          errorRegressionPercent: performance.errorRegressionPercent ?? null,
-        },
-      };
-
-      if (performance.signals.some((signal) => signal === 'latency' || signal === 'latency_regression')) {
-        detected.push(await this.persistFinding({
-          orgId,
-          projectId,
-          serviceName,
-          type: 'latency',
-          severity: performance.confidence === 'high' ? 'critical' : 'warning',
-          title: 'Endpoint latency detected in ' + serviceName,
-          description: performance.summary,
-          observedValue: endpoint.latency,
-          threshold: 100,
-          unit: 'ms',
-          start,
-          end,
-          evidence: [
-            endpointEvidence,
-            ...(await this.endpointPerformanceEvidence(
-              orgId,
-              projectId,
-              serviceName,
-              method,
-              url,
-              startTimestamp,
-              endTimestamp,
-            )),
-          ],
-        }));
-      }
-
-      if (performance.signals.includes('throughput_regression')) {
-        detected.push(await this.persistFinding({
-          orgId,
-          projectId,
-          serviceName,
-          type: 'throughput',
-          severity: performance.confidence === 'high' ? 'critical' : 'warning',
-          title: 'Endpoint throughput degradation in ' + serviceName,
-          description: performance.summary,
-          observedValue: endpoint.doc_count,
-          threshold: baseline?.doc_count ?? endpoint.doc_count,
-          unit: 'requests',
-          start,
-          end,
-          evidence: [endpointEvidence],
-        }));
-      }
-
-      if (performance.signals.includes('error_regression')) {
-        detected.push(await this.persistFinding({
-          orgId,
-          projectId,
-          serviceName,
-          type: 'error_rate',
-          severity: performance.confidence === 'high' ? 'critical' : 'warning',
-          title: 'Endpoint error-rate regression in ' + serviceName,
-          description: performance.summary,
-          observedValue: endpoint.errorRate,
-          threshold: baseline?.errorRate ?? endpoint.errorRate,
-          unit: '%',
-          start,
-          end,
-          evidence: [endpointEvidence],
-        }));
-      }
-    }
-
-    const [currentDependencies, baselineDependencies] = await Promise.all([
-      this.searchDependencyBuckets(orgId, projectId, startTimestamp, endTimestamp),
-      this.searchDependencyBuckets(
-        orgId,
-        projectId,
-        startTimestamp - Math.floor(WINDOW_MS / 1000),
-        startTimestamp,
-      ),
-    ]);
-
-    const baselineByDependency = new Map(
-      baselineDependencies.map((dependency) => [
-        dependency.key,
-        dependency,
-      ]),
-    );
-
-    for (const dependency of currentDependencies) {
-      const baseline = baselineByDependency.get(dependency.key);
-      const { serviceName, dependencyType, dependencyName } = dependency;
-      const finding = evaluateDependency({
-        serviceName,
-        dependencyType,
-        dependencyName,
-        sampleCount: dependency.samples,
-        ...(baseline ? { baselineSampleCount: baseline.samples } : {}),
-        p95Duration: dependency.latency,
-        ...(baseline ? { baselineP95Duration: baseline.latency } : {}),
-        errorCount: dependency.errorCount,
-        errorRate: dependency.errorRate,
-        ...(baseline ? { baselineErrorRate: baseline.errorRate } : {}),
+      const message = error instanceof Error ? error.message : 'Detection failed';
+      await failDetectionRun(run.id, message);
+      recordDetectionRun('failure', Date.now() - startedAt);
+      await this.detectionTelemetry.runFailed({
+        orgId: run.orgId,
+        projectId: run.projectId,
+        runId: run.id,
+        error,
+        durationMs: Date.now() - startedAt,
+        windowStart: run.windowStart,
+        windowEnd: run.windowEnd,
       });
-
-      if (!finding) continue;
-
-      detected.push(await this.persistFinding({
-        orgId,
-        projectId,
-        serviceName,
-        type: 'dependency_latency',
-        severity: finding.confidence === 'high' ? 'critical' : 'warning',
-        title: 'Dependency degradation in ' + serviceName,
-        description: finding.summary,
-        observedValue: dependency.latency,
-        threshold: 100,
-        unit: 'ms',
-        start,
-        end,
-        evidence: [
-          ...(await this.dependencyEvidence(
-            orgId,
-            projectId,
-            serviceName,
-            dependencyType,
-            dependencyName,
-            startTimestamp,
-            endTimestamp,
-          )),
-          {
-            kind: 'metric',
-            label: 'dependency-profile',
-            value: dependency.latency,
-            context: {
-              dependencyType,
-              dependencyName,
-              sampleCount: dependency.samples,
-              errorCount: dependency.errorCount,
-              errorRate: dependency.errorRate,
-              ...(finding.latencyRegressionPercent !== undefined
-                ? { latencyRegressionPercent: finding.latencyRegressionPercent }
-                : {}),
-              ...(finding.errorRegressionPercent !== undefined
-                ? { errorRegressionPercent: finding.errorRegressionPercent }
-                : {}),
-              ...(finding.throughputRegressionPercent !== undefined
-                ? { throughputRegressionPercent: finding.throughputRegressionPercent }
-                : {}),
-              signals: finding.signals.join(','),
-              confidence: finding.confidence,
-            },
-          },
-          {
-            kind: 'recommendation',
-            label: 'optimization-guidance',
-            value: this.dependencyRecommendation(dependencyType),
-            context: {
-              dependencyType,
-              dependencyName,
-            },
-          },
-        ],
-      }));
+      throw error;
+    } finally {
+      await this.detectionTelemetry.flush();
     }
-
-    const [currentDatabaseSpans, baselineDatabaseSpans] = await Promise.all([
-      this.searchDatabaseQuerySpans(orgId, projectId, startTimestamp, endTimestamp),
-      this.searchDatabaseQuerySpans(
-        orgId,
-        projectId,
-        startTimestamp - Math.floor(WINDOW_MS / 1000),
-        startTimestamp,
-      ),
-    ]);
-
-    for (const candidate of detectDatabaseQueries(currentDatabaseSpans, baselineDatabaseSpans)) {
-      detected.push(await this.persistFinding({
-        orgId,
-        projectId,
-        serviceName: candidate.serviceName,
-        type: 'database_query',
-        severity: candidate.signal.severity ?? 'warning',
-        title: 'Slow database query in ' + candidate.serviceName,
-        description: this.describeDatabaseQuery(candidate),
-        observedValue: candidate.signal.observedValue,
-        threshold: candidate.signal.threshold,
-        unit: 'ms',
-        start,
-        end,
-        evidence: candidate.samples.map((sample) => ({
-          kind: 'trace',
-          label: 'database-query-span',
-          value: sample.duration,
-          context: {
-            service: sample.service,
-            traceId: sample.traceId,
-            spanId: sample.spanId,
-            timestamp: sample.timestamp,
-            fingerprint: candidate.identity.fingerprint,
-            databaseSystem: candidate.databaseSystem ?? '',
-            dependencyName: sample.dependencyName,
-            ...(candidate.queryOperation ? { queryOperation: candidate.queryOperation } : {}),
-            ...(candidate.querySummary ? { querySummary: candidate.querySummary } : {}),
-            ...(candidate.collectionName ? { collectionName: candidate.collectionName } : {}),
-            ...(sample.dbQueryText ? { query: sample.dbQueryText } : {}),
-            ...(sample.dbReturnedRows !== undefined ? { returnedRows: sample.dbReturnedRows } : {}),
-          },
-        })),
-      }));
-    }
-
-    const traceDurations = await this.searchTraceDurations(
-      orgId,
-      projectId,
-      startTimestamp,
-      endTimestamp,
-    );
-
-    const databaseLatencyContributionTraces: DatabaseLatencyContributionTrace[] = currentDatabaseSpans.flatMap((sample) => {
-      const traceDuration = traceDurations.get(sample.traceId);
-      if (traceDuration === undefined) return [];
-
-      return [{
-        timestamp: sample.timestamp,
-        service: sample.service,
-        traceId: sample.traceId,
-        spanId: sample.spanId,
-        duration: sample.duration,
-        traceDuration,
-        dependencyType: sample.dependencyType,
-        dependencyName: sample.dependencyName,
-        ...(sample.dbQueryText ? { dbQueryText: sample.dbQueryText } : {}),
-        ...(sample.dbQuerySummary ? { dbQuerySummary: sample.dbQuerySummary } : {}),
-        ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
-        ...(sample.dbSystemName ? { dbSystemName: sample.dbSystemName } : {}),
-        ...(sample.dbCollectionName ? { dbCollectionName: sample.dbCollectionName } : {}),
-      }];
-    });
-
-    for (const candidate of detectDatabaseLatencyContribution(databaseLatencyContributionTraces)) {
-      detected.push(await this.persistFinding({
-        orgId,
-        projectId,
-        serviceName: candidate.serviceName,
-        type: 'database_latency_contribution',
-        severity: candidate.signal.p95ContributionPercent >= 75 ? 'critical' : 'warning',
-        title: 'Database latency dominates traces in ' + candidate.serviceName,
-        description: describeDatabaseLatencyContribution(candidate),
-        observedValue: candidate.signal.p95ContributionPercent,
-        threshold: 50,
-        unit: '% of trace duration',
-        start,
-        end,
-        evidence: candidate.samples.map((sample) => ({
-          kind: 'trace' as const,
-          label: 'database-latency-contribution',
-          value: sample.duration,
-          context: {
-            service: sample.service,
-            traceId: sample.traceId,
-            spanId: sample.spanId,
-            traceDurationMs: sample.traceDuration,
-            contributionPercent: (sample.duration / sample.traceDuration) * 100,
-            fingerprint: candidate.identity.fingerprint,
-            databaseSystem: candidate.databaseSystem ?? '',
-            dependencyName: sample.dependencyName,
-            ...(candidate.queryOperation ? { queryOperation: candidate.queryOperation } : {}),
-            ...(candidate.querySummary ? { querySummary: candidate.querySummary } : {}),
-            ...(sample.dbQueryText ? { query: sample.dbQueryText } : {}),
-          },
-        })),
-      }));
-    }
-
-    const databasePoolMetrics = await this.searchDatabaseConnectionPoolMetrics(
-      orgId,
-      projectId,
-      startTimestamp,
-      endTimestamp,
-    );
-
-    for (const candidate of detectDatabaseConnectionPool(databasePoolMetrics)) {
-      const observed = candidate.signal.p95PendingRequests !== undefined
-        ? { value: candidate.signal.p95PendingRequests, threshold: 1, unit: 'pending requests' }
-        : candidate.signal.p95UtilizationPercent !== undefined
-          ? { value: candidate.signal.p95UtilizationPercent, threshold: 80, unit: '% utilization' }
-          : { value: candidate.signal.timeoutIncrease ?? 0, threshold: 1, unit: 'timeouts' };
-
-      detected.push(await this.persistFinding({
-        orgId,
-        projectId,
-        serviceName: candidate.serviceName,
-        type: 'database_connection_pool',
-        severity: candidate.signal.severity ?? 'warning',
-        title: 'Database connection pool pressure in ' + candidate.serviceName,
-        description: describeDatabaseConnectionPool(candidate),
-        observedValue: observed.value,
-        threshold: observed.threshold,
-        unit: observed.unit,
-        start,
-        end,
-        evidence: candidate.samples.map((sample) => ({
-          kind: 'metric' as const,
-          label: 'database-connection-pool',
-          value: sample.pendingRequests ?? sample.usedConnections ?? sample.connectionTimeouts ?? 0,
-          context: {
-            service: sample.service,
-            poolName: sample.poolName,
-            timestamp: sample.timestamp,
-            ...(sample.usedConnections !== undefined ? { usedConnections: sample.usedConnections } : {}),
-            ...(sample.maxConnections !== undefined ? { maxConnections: sample.maxConnections } : {}),
-            ...(sample.pendingRequests !== undefined ? { pendingRequests: sample.pendingRequests } : {}),
-            ...(sample.connectionTimeouts !== undefined ? { connectionTimeouts: sample.connectionTimeouts } : {}),
-            ...(candidate.signal.p95UtilizationPercent !== undefined ? { p95UtilizationPercent: candidate.signal.p95UtilizationPercent } : {}),
-            ...(candidate.signal.p95PendingRequests !== undefined ? { p95PendingRequests: candidate.signal.p95PendingRequests } : {}),
-            ...(candidate.signal.timeoutIncrease !== undefined ? { timeoutIncrease: candidate.signal.timeoutIncrease } : {}),
-          },
-        })),
-      }));
-    }
-
-    const [databaseConnectionWaitMetrics, baselineDatabaseConnectionWaitMetrics] = await Promise.all([
-      searchDatabaseConnectionWaitMetrics(orgId, projectId, startTimestamp, endTimestamp),
-      searchDatabaseConnectionWaitMetrics(
-        orgId,
-        projectId,
-        startTimestamp - Math.floor(WINDOW_MS / 1000),
-        startTimestamp,
-      ),
-    ]);
-
-    for (const candidate of detectDatabaseConnectionWait(
-      databaseConnectionWaitMetrics,
-      baselineDatabaseConnectionWaitMetrics,
-    )) {
-
-      detected.push(await this.persistFinding({
-        orgId,
-        projectId,
-        serviceName: candidate.serviceName,
-        type: 'database_connection_wait',
-        severity: candidate.signal.severity ?? 'warning',
-        title: 'Database connection wait in ' + candidate.serviceName,
-        description: this.describeDatabaseConnectionWait(candidate),
-        observedValue: candidate.signal.p95WaitMs,
-        threshold: 50,
-        unit: 'ms',
-        start,
-        end,
-        evidence: candidate.samples.map((sample) => ({
-          kind: 'metric' as const,
-          label: 'database-connection-wait',
-          value: sample.waitTimeMs,
-          context: {
-            service: sample.service,
-            poolName: sample.poolName,
-            timestamp: sample.timestamp,
-            waitTimeMs: sample.waitTimeMs,
-            p50WaitMs: candidate.signal.p50WaitMs,
-            p95WaitMs: candidate.signal.p95WaitMs,
-            p99WaitMs: candidate.signal.p99WaitMs,
-            ...(candidate.signal.baselineP95WaitMs !== undefined ? { baselineP95WaitMs: candidate.signal.baselineP95WaitMs } : {}),
-            ...(candidate.signal.p95ChangePercent !== undefined ? { p95ChangePercent: candidate.signal.p95ChangePercent } : {}),
-            regressionDetected: candidate.signal.regressionDetected,
-          },
-        })),
-      }));
-    }
-
-    const databaseBatchTraces: DatabaseBatchTrace[] = currentDatabaseSpans.map((sample) => ({
-      timestamp: sample.timestamp,
-      service: sample.service,
-      traceId: sample.traceId,
-      spanId: sample.spanId,
-      duration: sample.duration,
-      ...(traceDurations.get(sample.traceId) !== undefined ? { traceDuration: traceDurations.get(sample.traceId) } : {}),
-      dependencyType: sample.dependencyType,
-      dependencyName: sample.dependencyName,
-      ...(sample.dbBatchSize !== undefined ? { batchSize: sample.dbBatchSize } : {}),
-      ...(sample.dbQueryText ? { dbQueryText: sample.dbQueryText } : {}),
-      ...(sample.dbQuerySummary ? { dbQuerySummary: sample.dbQuerySummary } : {}),
-      ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
-      ...(sample.dbSystemName ? { dbSystemName: sample.dbSystemName } : {}),
-      ...(sample.dbCollectionName ? { dbCollectionName: sample.dbCollectionName } : {}),
-      ...(sample.httpRoute ? { endpoint: sample.httpRoute } : {}),
-    }));
-
-    const baselineBatchTraces: DatabaseBatchTrace[] = baselineDatabaseSpans.map((sample) => ({
-      timestamp: sample.timestamp,
-      service: sample.service,
-      traceId: sample.traceId,
-      spanId: sample.spanId,
-      duration: sample.duration,
-      dependencyType: sample.dependencyType,
-      dependencyName: sample.dependencyName,
-      ...(sample.dbBatchSize !== undefined ? { batchSize: sample.dbBatchSize } : {}),
-      ...(sample.dbQueryText ? { dbQueryText: sample.dbQueryText } : {}),
-      ...(sample.dbQuerySummary ? { dbQuerySummary: sample.dbQuerySummary } : {}),
-      ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
-      ...(sample.dbSystemName ? { dbSystemName: sample.dbSystemName } : {}),
-      ...(sample.dbCollectionName ? { dbCollectionName: sample.dbCollectionName } : {}),
-      ...(sample.httpRoute ? { endpoint: sample.httpRoute } : {}),
-    }));
-
-    for (const candidate of detectDatabaseBatches(databaseBatchTraces, baselineBatchTraces)) {
-      detected.push(await this.persistFinding({
-        orgId,
-        projectId,
-        serviceName: candidate.serviceName,
-        type: 'database_batch',
-        severity: candidate.signal.regressionDetected && ((candidate.signal.p95DurationChangePercent ?? 0) >= 100 || (candidate.signal.p99DurationChangePercent ?? 0) >= 100)
-          ? 'critical'
-          : 'warning',
-        title: candidate.signal.regressionDetected
-          ? 'Database batch regression in ' + candidate.serviceName
-          : 'Database batch latency contribution in ' + candidate.serviceName,
-        description: describeDatabaseBatch(candidate as any),
-        observedValue: candidate.signal.regressionDetected
-          ? candidate.signal.p95DurationChangePercent ?? candidate.signal.p99DurationChangePercent ?? 0
-          : candidate.signal.p95TraceContributionPercent ?? 0,
-        threshold: 50,
-        unit: candidate.signal.regressionDetected ? '% duration regression' : '% of trace duration',
-        start,
-        end,
-        evidence: candidate.samples.map((sample) => ({
-          kind: 'trace' as const,
-          label: 'database-batch-operation',
-          value: sample.duration,
-          context: {
-            service: sample.service,
-            traceId: sample.traceId,
-            spanId: sample.spanId,
-            timestamp: sample.timestamp,
-            ...(sample.batchSize !== undefined ? { batchSize: sample.batchSize } : {}),
-            logicalOperationCount: candidate.signal.logicalOperationCount,
-            averageBatchSize: candidate.signal.averageBatchSize,
-            p50BatchSize: candidate.signal.p50BatchSize,
-            p95BatchSize: candidate.signal.p95BatchSize,
-            p99BatchSize: candidate.signal.p99BatchSize,
-            p50Duration: candidate.signal.p50Duration,
-            p95Duration: candidate.signal.p95Duration,
-            p99Duration: candidate.signal.p99Duration,
-            ...(candidate.signal.baselineSampleCount !== undefined ? { baselineSampleCount: candidate.signal.baselineSampleCount } : {}),
-            ...(candidate.signal.p95BatchSizeChangePercent !== undefined ? { p95BatchSizeChangePercent: candidate.signal.p95BatchSizeChangePercent } : {}),
-            ...(candidate.signal.p99BatchSizeChangePercent !== undefined ? { p99BatchSizeChangePercent: candidate.signal.p99BatchSizeChangePercent } : {}),
-            ...(candidate.signal.p95DurationChangePercent !== undefined ? { p95DurationChangePercent: candidate.signal.p95DurationChangePercent } : {}),
-            ...(candidate.signal.p99DurationChangePercent !== undefined ? { p99DurationChangePercent: candidate.signal.p99DurationChangePercent } : {}),
-            ...(candidate.signal.p95TraceContributionPercent !== undefined ? { p95TraceContributionPercent: candidate.signal.p95TraceContributionPercent } : {}),
-            fingerprint: candidate.identity.fingerprint,
-            databaseSystem: candidate.databaseSystem ?? '',
-            dependencyName: sample.dependencyName,
-            ...(candidate.queryOperation ? { queryOperation: candidate.queryOperation } : {}),
-            ...(candidate.querySummary ? { querySummary: candidate.querySummary } : {}),
-            ...(candidate.collectionName ? { collectionName: candidate.collectionName } : {}),
-            ...(sample.dbQueryText ? { query: sample.dbQueryText } : {}),
-          },
-        })),
-      }));
-    }
-
-    const databaseDependencyTraces: DatabaseDependencyTrace[] = currentDatabaseSpans.map((sample) => ({
-      timestamp: sample.timestamp,
-      service: sample.service,
-      traceId: sample.traceId,
-      spanId: sample.spanId,
-      duration: sample.duration,
-      dependencyType: sample.dependencyType,
-      dependencyName: sample.dependencyName,
-      ...(sample.statusCode !== undefined ? { statusCode: sample.statusCode } : {}),
-      ...(sample.errorType ? { errorType: sample.errorType } : {}),
-      ...(sample.dbQueryText ? { dbQueryText: sample.dbQueryText } : {}),
-      ...(sample.dbQuerySummary ? { dbQuerySummary: sample.dbQuerySummary } : {}),
-      ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
-      ...(sample.dbSystemName ? { dbSystemName: sample.dbSystemName } : {}),
-      ...(sample.dbBatchSize !== undefined ? { dbBatchSize: sample.dbBatchSize } : {}),
-    }));
-
-    for (const candidate of detectDatabaseDependencyDegradation(
-      databaseDependencyTraces,
-      baselineDatabaseSpans,
-      databasePoolMetrics,
-      databaseConnectionWaitMetrics,
-    )) {
-      detected.push(await this.persistFinding({
-        orgId,
-        projectId,
-        serviceName: candidate.serviceName,
-        type: 'database_dependency_degradation',
-        severity: candidate.signal.degradationSignals.length >= 3 ? 'critical' : 'warning',
-        title: 'Database dependency degradation in ' + candidate.serviceName,
-        description: candidate.dependencyName + ' shows correlated ' +
-          candidate.signal.degradationSignals.join(', ') + ' degradation across ' +
-          candidate.signal.sampleCount + ' database operations.',
-        observedValue: candidate.signal.p95Duration,
-        threshold: 500,
-        unit: 'ms',
-        start,
-        end,
-        evidence: [
-          ...candidate.samples.map((sample) => ({
-          kind: 'trace' as const,
-          label: 'database-dependency-degradation',
-          value: sample.duration,
-          context: {
-            service: sample.service,
-            traceId: sample.traceId,
-            spanId: sample.spanId,
-            timestamp: sample.timestamp,
-            dependencyName: sample.dependencyName,
-            databaseSystem: candidate.databaseSystem ?? '',
-            p50Duration: candidate.signal.p50Duration,
-            p95Duration: candidate.signal.p95Duration,
-            p99Duration: candidate.signal.p99Duration,
-            errorCount: candidate.signal.errorCount,
-            errorRate: candidate.signal.errorRate,
-            ...(candidate.signal.p95DurationChangePercent !== undefined ? { p95DurationChangePercent: candidate.signal.p95DurationChangePercent } : {}),
-            poolPressure: candidate.signal.poolPressure,
-            connectionWaitPressure: candidate.signal.connectionWaitPressure,
-            batchOperationCount: candidate.signal.batchOperationCount,
-            batchRate: candidate.signal.batchRate,
-            ...(candidate.signal.averageBatchSize !== undefined ? { averageBatchSize: candidate.signal.averageBatchSize } : {}),
-            queryFingerprintCount: candidate.signal.queryFingerprintCount,
-            degradationSignals: candidate.signal.degradationSignals.join(','),
-            confidence: candidate.signal.confidence,
-          },
-          })),
-          {
-            kind: 'recommendation',
-            label: 'database-dependency-guidance',
-          value: candidate.recommendation,
-          context: {
-            dependencyName: candidate.dependencyName,
-            databaseSystem: candidate.databaseSystem ?? '',
-          },
-          },
-        ],
-      }));
-    }
-
-    const databaseTimeoutTraces: DatabaseTimeoutTrace[] = currentDatabaseSpans.map((sample) => ({
-      timestamp: sample.timestamp,
-      service: sample.service,
-      traceId: sample.traceId,
-      spanId: sample.spanId,
-      duration: sample.duration,
-      dependencyType: sample.dependencyType,
-      dependencyName: sample.dependencyName,
-      ...(sample.errorType ? { errorType: sample.errorType } : {}),
-      ...(sample.dbQueryText ? { dbQueryText: sample.dbQueryText } : {}),
-      ...(sample.dbQuerySummary ? { dbQuerySummary: sample.dbQuerySummary } : {}),
-      ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
-      ...(sample.dbSystemName ? { dbSystemName: sample.dbSystemName } : {}),
-    }));
-
-    for (const candidate of detectDatabaseTimeouts(databaseTimeoutTraces)) {
-      detected.push(await this.persistFinding({
-        orgId,
-        projectId,
-        serviceName: candidate.serviceName,
-        type: 'database_timeout',
-        severity: candidate.signal.timeoutRate >= 0.5 ? 'critical' : 'warning',
-        title: 'Database timeouts detected in ' + candidate.serviceName,
-        description: this.describeDatabaseTimeout(candidate),
-        observedValue: candidate.signal.timeoutRate * 100,
-        threshold: 10,
-        unit: '% timeout rate',
-        start,
-        end,
-        evidence: candidate.samples.map((sample) => ({
-          kind: 'trace' as const,
-          label: 'database-timeout',
-          value: sample.duration,
-          context: {
-            service: sample.service,
-            traceId: sample.traceId,
-            spanId: sample.spanId,
-            timestamp: sample.timestamp,
-            errorType: sample.errorType ?? 'timeout',
-            fingerprint: candidate.identity.fingerprint,
-            databaseSystem: candidate.databaseSystem ?? '',
-            dependencyName: sample.dependencyName,
-            ...(candidate.queryOperation ? { queryOperation: candidate.queryOperation } : {}),
-            ...(candidate.querySummary ? { querySummary: candidate.querySummary } : {}),
-            ...(sample.dbQueryText ? { query: sample.dbQueryText } : {}),
-          },
-        })),
-      }));
-    }
-
-    const [currentEndpointByTrace, baselineEndpointByTrace] = await Promise.all([
-      this.searchRequestEndpoints(orgId, projectId, startTimestamp, endTimestamp),
-      this.searchRequestEndpoints(
-        orgId,
-        projectId,
-        startTimestamp - Math.floor(WINDOW_MS / 1000),
-        startTimestamp,
-      ),
-    ]);
-
-    const currentResultSetSpans = currentDatabaseSpans.map((sample) => ({
-      ...sample,
-      ...(currentEndpointByTrace.get(sample.traceId) ? { httpRoute: currentEndpointByTrace.get(sample.traceId) } : {}),
-    }));
-
-    const baselineResultSetSpans = baselineDatabaseSpans.map((sample) => ({
-      ...sample,
-      ...(baselineEndpointByTrace.get(sample.traceId) ? { httpRoute: baselineEndpointByTrace.get(sample.traceId) } : {}),
-    }));
-
-    const resultSetTraces: DatabaseResultSetTrace[] = currentResultSetSpans.map((sample) => ({
-      timestamp: sample.timestamp,
-      service: sample.service,
-      traceId: sample.traceId,
-      spanId: sample.spanId,
-      duration: sample.duration,
-      dependencyType: sample.dependencyType,
-      dependencyName: sample.dependencyName,
-      ...(traceDurations.get(sample.traceId) !== undefined ? { traceDuration: traceDurations.get(sample.traceId) } : {}),
-      ...(sample.dbReturnedRows !== undefined ? { returnedRows: sample.dbReturnedRows } : {}),
-      ...(sample.dbResponseBytes !== undefined ? { responseBytes: sample.dbResponseBytes } : {}),
-      ...(sample.dbQueryText ? { dbQueryText: sample.dbQueryText } : {}),
-      ...(sample.dbQuerySummary ? { dbQuerySummary: sample.dbQuerySummary } : {}),
-      ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
-      ...(sample.dbSystemName ? { dbSystemName: sample.dbSystemName } : {}),
-      ...(sample.dbCollectionName ? { dbCollectionName: sample.dbCollectionName } : {}),
-      ...(sample.httpRoute ? { endpoint: sample.httpRoute } : {}),
-      ...(sample.endpoint ? { endpoint: sample.endpoint } : {}),
-    }));
-    
-    const baselineResultSetTraces: DatabaseResultSetTrace[] = baselineResultSetSpans.map((sample) => ({
-      timestamp: sample.timestamp,
-      service: sample.service,
-      traceId: sample.traceId,
-      spanId: sample.spanId,
-      duration: sample.duration,
-      dependencyType: sample.dependencyType,
-      dependencyName: sample.dependencyName,
-      ...(sample.dbReturnedRows !== undefined ? { returnedRows: sample.dbReturnedRows } : {}),
-      ...(sample.dbResponseBytes !== undefined ? { responseBytes: sample.dbResponseBytes } : {}),
-      ...(sample.dbQueryText ? { dbQueryText: sample.dbQueryText } : {}),
-      ...(sample.dbQuerySummary ? { dbQuerySummary: sample.dbQuerySummary } : {}),
-      ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
-      ...(sample.dbSystemName ? { dbSystemName: sample.dbSystemName } : {}),
-      ...(sample.dbCollectionName ? { dbCollectionName: sample.dbCollectionName } : {}),
-      ...(sample.httpRoute ? { endpoint: sample.httpRoute } : {}),
-      ...(sample.endpoint ? { endpoint: sample.endpoint } : {}),
-    }));
-
-    const resultSetDetection = detectDatabaseResultSets(resultSetTraces, baselineResultSetTraces);
-    for (const candidate of resultSetDetection.candidates) {
-      const severity =
-        candidate.signal.p99ReturnedRows >= 5000 ||
-        candidate.signal.p95TraceContributionPercent !== undefined && candidate.signal.p95TraceContributionPercent >= 75 ||
-        candidate.signal.p95RowsChangePercent !== undefined && candidate.signal.p95RowsChangePercent >= 200
-          ? 'critical'
-          : 'warning';
-
-      detected.push(await this.persistFinding({
-        orgId,
-        projectId,
-        serviceName: candidate.serviceName,
-        type: 'database_result_set',
-        severity,
-        title: 'Large database result set in ' + candidate.serviceName,
-        description: this.describeDatabaseResultSet(candidate),
-        observedValue: candidate.signal.p95ReturnedRows,
-        threshold: candidate.signal.largeResultRows,
-        unit: 'returned rows',
-        start,
-        end,
-        evidence: [
-          ...candidate.samples.slice(0, 10).map((sample) => ({
-            kind: 'trace' as const,
-            label: 'database-result-set',
-            value: sample.returnedRows ?? 0,
-            context: {
-              service: sample.service,
-              traceId: sample.traceId,
-              spanId: sample.spanId,
-              timestamp: sample.timestamp,
-              fingerprint: candidate.identity.fingerprint,
-              fingerprintVersion: candidate.identity.fingerprintVersion,
-              databaseSystem: candidate.databaseSystem ?? '',
-              dependencyName: sample.dependencyName,
-              returnedRows: sample.returnedRows ?? 0,
-              durationMs: sample.duration,
-              ...(sample.endpoint ? { endpoint: sample.endpoint } : {}),
-              ...(sample.responseBytes !== undefined ? { responseBytes: sample.responseBytes } : {}),
-              ...(candidate.queryOperation ? { queryOperation: candidate.queryOperation } : {}),
-              ...(candidate.querySummary ? { querySummary: candidate.querySummary } : {}),
-              ...(candidate.collectionName ? { collectionName: candidate.collectionName } : {}),
-              ...(sample.dbQueryText ? { query: sample.dbQueryText } : {}),
-            },
-          })),
-          {
-            kind: 'metric' as const,
-            label: 'database-result-set-profile',
-            value: candidate.signal.p95ReturnedRows,
-            context: {
-              sampleCount: candidate.signal.sampleCount,
-              p50ReturnedRows: candidate.signal.p50ReturnedRows,
-              p95ReturnedRows: candidate.signal.p95ReturnedRows,
-              p99ReturnedRows: candidate.signal.p99ReturnedRows,
-              p50Duration: candidate.signal.p50Duration,
-              p95Duration: candidate.signal.p95Duration,
-              p99Duration: candidate.signal.p99Duration,
-              largeResultRate: candidate.signal.largeResultRate,
-              ...(candidate.signal.baselineSampleCount !== undefined ? { baselineSampleCount: candidate.signal.baselineSampleCount } : {}),
-              ...(candidate.signal.p95RowsChangePercent !== undefined ? { p95RowsChangePercent: candidate.signal.p95RowsChangePercent } : {}),
-              ...(candidate.signal.p99RowsChangePercent !== undefined ? { p99RowsChangePercent: candidate.signal.p99RowsChangePercent } : {}),
-              ...(candidate.signal.p95DurationChangePercent !== undefined ? { p95DurationChangePercent: candidate.signal.p95DurationChangePercent } : {}),
-              ...(candidate.signal.p99DurationChangePercent !== undefined ? { p99DurationChangePercent: candidate.signal.p99DurationChangePercent } : {}),
-              ...(candidate.signal.p95TraceContributionPercent !== undefined ? { p95TraceContributionPercent: candidate.signal.p95TraceContributionPercent } : {}),
-              ...(candidate.signal.p99TraceContributionPercent !== undefined ? { p99TraceContributionPercent: candidate.signal.p99TraceContributionPercent } : {}),
-              regressionDetected: candidate.signal.regressionDetected,
-              confidence: candidate.signal.confidence,
-              evidenceReasons: candidate.signal.evidenceReasons.join(';'),
-              ...(candidate.endpoint ? { endpoint: candidate.endpoint } : {}),
-              ...(candidate.payloadBytes ? {
-                payloadP50Bytes: candidate.payloadBytes.p50,
-                payloadP95Bytes: candidate.payloadBytes.p95,
-                payloadP99Bytes: candidate.payloadBytes.p99,
-              } : {}),
-            },
-          },
-          {
-            kind: 'recommendation' as const,
-            label: 'database-result-set-guidance',
-            value: candidate.recommendation.guidance,
-            context: {
-              action: candidate.recommendation.action,
-              validation: candidate.recommendation.validation,
-              ...(candidate.endpoint ? { endpoint: candidate.endpoint } : {}),
-              fingerprint: candidate.identity.fingerprint,
-            },
-          },
-        ],
-      }));
-    }
-
-    const databaseErrorTraces = (spans: DatabaseQueryTrace[]): DatabaseErrorTrace[] =>
-      spans.map((sample) => ({
-        timestamp: sample.timestamp,
-        service: sample.service,
-        traceId: sample.traceId,
-        spanId: sample.spanId,
-        duration: sample.duration,
-        dependencyType: sample.dependencyType,
-        dependencyName: sample.dependencyName,
-        ...(sample.statusCode !== undefined ? { statusCode: sample.statusCode } : {}),
-        ...(sample.statusMessage ? { statusMessage: sample.statusMessage } : {}),
-        ...(sample.dbQueryText ? { dbQueryText: sample.dbQueryText } : {}),
-        ...(sample.dbQuerySummary ? { dbQuerySummary: sample.dbQuerySummary } : {}),
-        ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
-        ...(sample.dbSystemName ? { dbSystemName: sample.dbSystemName } : {}),
-        ...(sample.dbCollectionName ? { dbCollectionName: sample.dbCollectionName } : {}),
-      }));
-
-    for (const candidate of detectDatabaseErrors(databaseErrorTraces(currentDatabaseSpans))) {
-      detected.push(await this.persistFinding({
-        orgId,
-        projectId,
-        serviceName: candidate.serviceName,
-        type: 'database_error',
-        severity: candidate.signal.errorRate >= 0.5 ? 'critical' : 'warning',
-        title: 'Database errors increased in ' + candidate.serviceName,
-        description: this.describeDatabaseError(candidate),
-        observedValue: candidate.signal.errorRate * 100,
-        threshold: 10,
-        unit: '% error rate',
-        start,
-        end,
-        evidence: [
-          ...candidate.samples.map((sample) => ({
-            kind: 'trace' as const,
-            label: 'database-error-sample',
-            value: sample.duration,
-            context: {
-              service: sample.service,
-              traceId: sample.traceId,
-              spanId: sample.spanId,
-              statusCode: sample.statusCode ?? 0,
-              statusMessage: sample.statusMessage ?? '',
-              fingerprint: candidate.identity.fingerprint,
-              databaseSystem: candidate.databaseSystem ?? '',
-              dependencyName: sample.dependencyName,
-              ...(candidate.queryOperation ? { queryOperation: candidate.queryOperation } : {}),
-              ...(candidate.querySummary ? { querySummary: candidate.querySummary } : {}),
-              ...(sample.dbQueryText ? { query: sample.dbQueryText } : {}),
-            },
-          })),
-          {
-            kind: 'recommendation' as const,
-            label: 'database-error-guidance',
-            value: 'Inspect the database error pattern, query parameters, schema changes, locks, constraints, and recent deployments before changing the query or retry behavior.',
-            context: {
-              errorCount: candidate.signal.errorCount,
-              totalCount: candidate.signal.totalCount,
-              errorRate: candidate.signal.errorRate,
-            },
-          },
-        ],
-      }));
-    }
-
-    const queryVolumeTraces = (spans: DatabaseQueryTrace[]): DatabaseQueryVolumeTrace[] =>
-      spans.map((sample) => ({
-        timestamp: sample.timestamp,
-        service: sample.service,
-        traceId: sample.traceId,
-        spanId: sample.spanId,
-        duration: sample.duration,
-        dependencyType: sample.dependencyType,
-        dependencyName: sample.dependencyName,
-        ...(sample.dbQueryText ? { dbQueryText: sample.dbQueryText } : {}),
-        ...(sample.dbQuerySummary ? { dbQuerySummary: sample.dbQuerySummary } : {}),
-        ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
-        ...(sample.dbSystemName ? { dbSystemName: sample.dbSystemName } : {}),
-        ...(sample.dbCollectionName ? { dbCollectionName: sample.dbCollectionName } : {}),
-        ...(sample.dbReturnedRows !== undefined ? { dbReturnedRows: sample.dbReturnedRows } : {}),
-      }));
-
-    for (const candidate of detectDatabaseQueryVolume(
-      queryVolumeTraces(currentDatabaseSpans),
-      queryVolumeTraces(baselineDatabaseSpans),
-    )) {
-      detected.push(await this.persistFinding({
-        orgId,
-        projectId,
-        serviceName: candidate.serviceName,
-        type: 'database_query_volume',
-        severity: candidate.signal.relativeIncrease >= 2 ? 'critical' : 'warning',
-        title: 'Database query volume increased in ' + candidate.serviceName,
-        description: this.describeDatabaseQueryVolume(candidate),
-        observedValue: candidate.signal.currentCount,
-        threshold: candidate.signal.baselineCount,
-        unit: ' queries',
-        start,
-        end,
-        evidence: [
-          ...candidate.samples.map((sample) => ({
-            kind: 'trace' as const,
-            label: 'database-query-volume-sample',
-            value: sample.duration,
-            context: {
-              service: sample.service,
-              traceId: sample.traceId,
-              spanId: sample.spanId,
-              timestamp: sample.timestamp,
-              fingerprint: candidate.identity.fingerprint,
-              databaseSystem: candidate.databaseSystem ?? '',
-              dependencyName: sample.dependencyName,
-              currentCount: candidate.signal.currentCount,
-              baselineCount: candidate.signal.baselineCount,
-              absoluteIncrease: candidate.signal.absoluteIncrease,
-              relativeIncrease: candidate.signal.relativeIncrease,
-              ...(candidate.queryOperation ? { queryOperation: candidate.queryOperation } : {}),
-              ...(candidate.querySummary ? { querySummary: candidate.querySummary } : {}),
-              ...(sample.dbQueryText ? { query: sample.dbQueryText } : {}),
-            },
-          })),
-          {
-            kind: 'recommendation' as const,
-            label: 'query-volume-guidance',
-            value: 'Check whether the increased query volume comes from repeated reads, pagination, fan-out, or a new access path. Compare the query count with request volume before changing the query or schema.',
-            context: {
-              currentCount: candidate.signal.currentCount,
-              baselineCount: candidate.signal.baselineCount,
-              relativeIncrease: candidate.signal.relativeIncrease,
-            },
-          },
-        ],
-      }));
-    }
-
-    const nPlusOneTraces: NPlusOneTrace[] = currentDatabaseSpans.flatMap((sample) => {
-      if (!sample.parentSpanId) return [];
-
-      return [{
-        timestamp: sample.timestamp,
-        service: sample.service,
-        traceId: sample.traceId,
-        spanId: sample.spanId,
-        parentSpanId: sample.parentSpanId,
-        duration: sample.duration,
-        dependencyType: sample.dependencyType,
-        dependencyName: sample.dependencyName,
-        ...(sample.dbQueryText ? { dbQueryText: sample.dbQueryText } : {}),
-        ...(sample.dbQuerySummary ? { dbQuerySummary: sample.dbQuerySummary } : {}),
-        ...(sample.dbOperationName ? { dbOperationName: sample.dbOperationName } : {}),
-        ...(sample.dbSystemName ? { dbSystemName: sample.dbSystemName } : {}),
-        ...(sample.dbCollectionName ? { dbCollectionName: sample.dbCollectionName } : {}),
-        ...(sample.dbBatchSize !== undefined ? { dbBatchSize: sample.dbBatchSize } : {}),
-      }];
-    });
-
-    for (const candidate of detectNPlusOne(nPlusOneTraces)) {
-      detected.push(await this.persistFinding({
-        orgId,
-        projectId,
-        serviceName: candidate.serviceName,
-        type: 'database_n_plus_one',
-        severity: 'warning',
-        title: 'Repeated database query detected in ' + candidate.serviceName,
-        description: this.describeNPlusOne(candidate),
-        observedValue: candidate.signal.occurrences,
-        threshold: 3,
-        unit: ' occurrences',
-        start,
-        end,
-        evidence: [
-          ...candidate.samples.map((sample) => ({
-            kind: 'trace' as const,
-            label: 'n-plus-one-query',
-            value: sample.duration,
-            context: {
-              service: sample.service,
-              traceId: sample.traceId,
-              spanId: sample.spanId,
-              parentSpanId: sample.parentSpanId,
-              timestamp: sample.timestamp,
-              fingerprint: candidate.identity.fingerprint,
-              databaseSystem: candidate.databaseSystem ?? '',
-              dependencyName: sample.dependencyName,
-              ...(candidate.queryOperation ? { queryOperation: candidate.queryOperation } : {}),
-              ...(candidate.querySummary ? { querySummary: candidate.querySummary } : {}),
-              ...(sample.dbQueryText ? { query: sample.dbQueryText } : {}),
-            },
-          })),
-          {
-            kind: 'recommendation' as const,
-            label: 'n-plus-one-guidance',
-            value: 'Check whether the repeated query can be loaded with the parent records in one query or replaced with a batched operation. Confirm the query plan before changing the access pattern.',
-            context: {
-              occurrences: candidate.signal.occurrences,
-              totalDurationMs: candidate.signal.totalDurationMs,
-              traceId: candidate.traceId,
-              parentSpanId: candidate.parentSpanId,
-            },
-          },
-        ],
-      }));
-    }
-
-    const traceSpans = await this.searchTraceSpanCandidates(
-      orgId,
-      projectId,
-      startTimestamp,
-      endTimestamp,
-    );
-    const deploymentsFromDb = await db
-      .select({
-        id: deployments.id,
-        version: deployments.version,
-        deployedAt: deployments.deployedAt,
-        serviceName: services.name,
-      })
-      .from(deployments)
-      .innerJoin(services, eq(deployments.serviceId, services.id))
-      .where(eq(services.projectId, projectId));
-    const deploymentInfos: DeploymentInfo[] = deploymentsFromDb.map((d) => ({
-      deploymentId: d.id,
-      version: d.version ?? '',
-      deployedAt: d.deployedAt ?? new Date(0),
-      serviceName: d.serviceName,
-    }));
-
-    for (const candidate of traceSpans) {
-      const signal = evaluateTraceSpan(candidate.spanDuration, candidate.traceDuration);
-      if (!signal) continue;
-
-      detected.push(await this.persistFinding({
-        orgId,
-        projectId,
-        serviceName: candidate.serviceName,
-        type: signal.type,
-        severity: signal.severity,
-        title: 'Span dominates trace latency in ' + candidate.serviceName,
-        description:
-          candidate.spanName +
-          ' accounts for ' +
-          signal.observedValue.toFixed(0) +
-          '% of the trace duration.',
-        observedValue: signal.observedValue,
-        threshold: signal.threshold,
-        unit: signal.unit,
-        start,
-        end,
-        evidence: [
-          {
-            kind: 'trace',
-            label: 'dominant-span',
-            value: candidate.spanDuration,
-            context: {
-              traceId: candidate.traceId,
-              spanId: candidate.spanId,
-              spanName: candidate.spanName,
-              traceDurationMs: candidate.traceDuration,
-              contributionPercent: signal.observedValue,
-            },
-          },
-        ],
-      }));
-    }
-
-    const correlated = correlateFindings(detected, deploymentInfos);
-
-    for (const bottleneck of correlated) {
-      const dependencyDescription = bottleneck.dependencyName
-        ? ' The correlated dependency is ' + bottleneck.dependencyName + '.'
-        : '';
-      const supportingTypes = bottleneck.supportingFindings
-        .map((finding) => finding.type)
-        .filter((type, index, types) => types.indexOf(type) === index)
-        .join(', ');
-
-      detected.push(await this.persistFinding({
-        orgId,
-        projectId,
-        serviceName: bottleneck.serviceName,
-        type: 'bottleneck',
-        severity: bottleneck.supportingFindings.some((finding) => finding.severity === 'critical')
-          ? 'critical'
-          : bottleneck.latency.severity,
-        title: 'Correlated bottleneck in ' + bottleneck.serviceName,
-        description:
-          'Request latency is correlated with ' +
-          supportingTypes +
-          '.' +
-          dependencyDescription +
-          ' The evidence points to the dependency or operation captured in the trace rather than the API boundary alone.',
-        observedValue: bottleneck.latency.observedValue,
-        threshold: bottleneck.latency.threshold,
-        unit: bottleneck.latency.unit,
-        start,
-        end,
-        evidence: [
-          {
-            kind: 'metric',
-            label: 'correlated-signal',
-            value: bottleneck.latency.observedValue,
-            context: {
-              service: bottleneck.serviceName,
-              sourceFindingId: bottleneck.latency.id,
-              sourceFindingType: bottleneck.latency.type,
-            },
-          },
-          ...bottleneck.supportingFindings.map((finding) => ({
-            kind: 'metric' as const,
-            label: 'supporting-finding',
-            value: finding.observedValue,
-            context: {
-              findingId: finding.id,
-              findingType: finding.type,
-              severity: finding.severity,
-              service: finding.serviceName,
-            },
-          })),
-          ...bottleneck.traceIds.map((traceId) => ({
-            kind: 'trace' as const,
-            label: 'correlated-trace',
-            value: traceId,
-            context: {
-              traceId,
-              service: bottleneck.serviceName,
-            },
-          })),
-          {
-            kind: 'recommendation',
-            label: 'optimization-guidance',
-            value: bottleneck.recommendation,
-            context: {
-              dependencyType: bottleneck.dependencyType ?? null,
-              dependencyName: bottleneck.dependencyName ?? null,
-              source: 'deterministic-correlation',
-            },
-          },
-        ],
-      }));
-    }
-
-    await this.persistIssueLifecycles(orgId, projectId, detected);
-    return detected;
   }
 
-  private async persistIssueLifecycles(
-    orgId: string,
-    projectId: string,
-    findings: DetectionFinding[],
-  ): Promise<void> {
-    return this.persistIssueLifecycles(orgId, projectId, findings);
-  }
-
-  private async findOrCreateErrorGroup(
-    orgId: string,
-    projectId: string,
-    input: { fingerprint: string; service?: string },
-  ): Promise<DetectionFinding> {
-    const queryParts = [
-      quickwitTenantQuery(orgId, projectId),
-      quickwitTerm('fingerprint', input.fingerprint),
-      input.service ? quickwitTerm('service', input.service) : '',
-      'level:error',
-    ].filter(Boolean);
-    const result = await this.quickwit.search<RequestSource & { fingerprint?: string; message?: string; errorType?: string }>(
-      QUICKWIT_INDEXES.logs,
-      {
-        query: queryParts.join(' AND '),
-        startTimestamp: Math.floor((Date.now() - 86_400_000) / 1000),
-        endTimestamp: Math.floor(Date.now() / 1000),
-        maxHits: 100,
-        sortBy: ['-timestamp'],
-      },
-    );
-
-    if (!result.hits.length) {
-      throw new NotFoundException('Error group not found in telemetry');
+  async telemetry(orgId: string, projectId: string) {
+    const settings = await this.detectorSettings.get(orgId);
+    if (!this.detectorSettings.featureEnabled(settings, 'detections.telemetry')) {
+      return {
+        configured: false,
+        detections: [],
+        runs: [],
+        recent: [],
+        stats: { buffered: 0, published: 0, dropped: 0, batches: 0 },
+      };
     }
 
-    const sources = result.hits
-      .map((hit) => hit._source)
-      .filter((source): source is RequestSource & { fingerprint?: string; message?: string; errorType?: string } => !!source);
+    const endTimestamp = Math.floor(Date.now() / 1000);
+    const startTimestamp = endTimestamp - 3_600;
 
-    const firstTimestamp = sources
-      .map((source) => new Date(String(source.timestamp ?? '')).getTime())
-      .filter(Number.isFinite)
-      .reduce((value, timestamp) => Math.min(value, timestamp), Date.now());
+    const [detections, runs] = await Promise.all([
+      this.searchDetections(orgId, projectId, startTimestamp, endTimestamp),
+      this.searchDetectionRuns(orgId, projectId, startTimestamp, endTimestamp),
+    ]);
 
-    const lastTimestamp = sources
-      .map((source) => new Date(String(source.timestamp ?? '')).getTime())
-      .filter(Number.isFinite)
-      .reduce((value, timestamp) => Math.max(value, timestamp), Date.now());
+    return {
+      configured: true,
+      windowStart: new Date(startTimestamp * 1000).toISOString(),
+      windowEnd: new Date(endTimestamp * 1000).toISOString(),
+      detections,
+      runs,
+      recent: runs.flatMap((run) => {
+        if (run.kind !== 'run_completed' && run.kind !== 'run_failed') return [];
+        return [
+          {
+            runId: run.runId,
+            kind: run.kind,
+            completedAt: run.timestamp,
+            findingsCount: run.findingsCount ?? 0,
+            durationMs: run.durationMs ?? null,
+            error: run.error ?? null,
+          },
+        ];
+      }),
+      stats: detections.length > 0 ? { detections: detections.length, runs: runs.length } : { detections: 0, runs: runs.length },
+    };
+  }
 
-    const serviceName = String(input.service ?? sources[0]?.service ?? 'unknown');
-    const errorType = String(sources[0]?.errorType ?? 'Error');
-    const message = String(sources[0]?.message ?? input.fingerprint);
-    const traceIds = [...new Set(sources.map((source) => source.traceId).filter((id): id is string => !!id))].slice(0, 20);
+  private async searchDetections(
+    orgId: string,
+    projectId: string,
+    startTimestamp: number,
+    endTimestamp: number,
+  ) {
+    const result = await this.quickwit.search<Record<string, unknown>>(QUICKWIT_INDEXES.detections, {
+      query: quickwitTenantQuery(orgId, projectId, quickwitTerm('kind', 'finding')),
+      startTimestamp,
+      endTimestamp,
+      maxHits: 500,
+      sortBy: ['-timestamp'],
+    });
 
-    const existing = await db
-      .select()
-      .from(findings)
-      .where(and(
-        eq(findings.orgId, orgId),
-        eq(findings.projectId, projectId),
-        eq(findings.type, 'error_group'),
-        eq(findings.serviceName, serviceName),
-        eq(findings.title, 'Error group: ' + message),
-      ))
-      .limit(1);
-
-    if (existing[0]) return this.toDetectionFinding(existing[0]);
-
-    return this.persistFinding({
-      orgId,
-      projectId,
-      serviceName,
-      type: 'error_group',
-      severity: 'warning',
-      title: 'Error group: ' + message,
-      description:
-        errorType +
-        ' occurred ' +
-        sources.length +
-        ' time' +
-        (sources.length === 1 ? '' : 's') +
-        ' in ' +
-        serviceName +
-        ' during the last 24 hours.',
-      observedValue: sources.length,
-      threshold: 0,
-      unit: ' occurrences',
-      start: new Date(firstTimestamp),
-      end: new Date(lastTimestamp),
-      evidence: [
+    return (result.hits ?? []).flatMap((hit) => {
+      const source = hit._source as Record<string, unknown> | undefined;
+      if (!source) return [];
+      return [
         {
-          kind: 'log',
-          label: 'error-group',
-          value: message,
-          context: {
-            fingerprint: input.fingerprint,
-            errorType,
-            occurrences: sources.length,
-            service: serviceName,
-          },
+          eventId: String(source.eventId ?? ''),
+          kind: String(source.kind ?? ''),
+          detector: String(source.detector ?? ''),
+          findingId: String(source.findingId ?? ''),
+          runId: String(source.runId ?? ''),
+          service: String(source.service ?? ''),
+          type: String(source.type ?? ''),
+          severity: String(source.severity ?? ''),
+          title: String(source.title ?? ''),
+          observedValue: typeof source.observedValue === 'number' ? source.observedValue : null,
+          threshold: typeof source.threshold === 'number' ? source.threshold : null,
+          unit: String(source.unit ?? ''),
+          windowStart: source.windowStart,
+          windowEnd: source.windowEnd,
+          timestamp: source.timestamp,
         },
-        ...traceIds.map((traceId) => ({
-          kind: 'trace' as const,
-          label: 'error-trace',
-          value: traceId,
-          context: { traceId, service: serviceName },
-        })),
-      ],
+      ];
+    });
+  }
+
+  private async searchDetectionRuns(
+    orgId: string,
+    projectId: string,
+    startTimestamp: number,
+    endTimestamp: number,
+  ) {
+    const result = await this.quickwit.search<Record<string, unknown>>(QUICKWIT_INDEXES.detections, {
+      query: quickwitTenantQuery(orgId, projectId, 'kind:(run_started OR run_completed OR run_failed)'),
+      startTimestamp,
+      endTimestamp,
+      maxHits: 500,
+      sortBy: ['-timestamp'],
+    });
+
+    return (result.hits ?? []).flatMap((hit) => {
+      const source = hit._source as Record<string, unknown> | undefined;
+      if (!source) return [];
+      return [
+        {
+          eventId: String(source.eventId ?? ''),
+          kind: String(source.kind ?? ''),
+          status: String(source.status ?? ''),
+          runId: String(source.runId ?? ''),
+          findingsCount: typeof source.findingsCount === 'number' ? source.findingsCount : null,
+          durationMs: typeof source.durationMs === 'number' ? source.durationMs : null,
+          error: String(source.error ?? ''),
+          windowStart: source.windowStart,
+          windowEnd: source.windowEnd,
+          timestamp: source.timestamp,
+        },
+      ];
     });
   }
 
@@ -1498,534 +257,8 @@ export class DetectionService {
       .limit(Math.min(Math.max(limit, 1), 100));
   }
 
-  private async searchServiceBuckets(
-    orgId: string,
-    projectId: string,
-    startTimestamp: number,
-    endTimestamp: number,
-  ): Promise<ServiceBucket[]> {
-    return searchServiceBuckets(orgId, projectId, startTimestamp, endTimestamp);
-  }
-
-  private getPercentile(bucket: ServiceBucket, percentile: string): number {
-    const value = bucket.latency?.values?.[percentile] ?? 0;
-    return Number.isFinite(value) && value >= 0 ? value : 0;
-  }
-
-  private getLatency(bucket: ServiceBucket): number {
-    return this.getPercentile(bucket, '95.0');
-  }
-
-  private getErrorRate(bucket: ServiceBucket): number {
-    const errors = bucket.errors?.doc_count ?? 0;
-    return bucket.doc_count ? (errors / bucket.doc_count) * 100 : 0;
-  }
-
-  private async endpointPerformanceEvidence(
-    orgId: string,
-    projectId: string,
-    serviceName: string,
-    method: string,
-    url: string,
-    startTimestamp: number,
-    endTimestamp: number,
-  ): Promise<DetectionEvidence[]> {
-    return this.endpointPerformanceEvidence(orgId, projectId, serviceName, method, url, startTimestamp, endTimestamp);
-  }
-
-  private async searchEndpointBuckets(
-    orgId: string,
-    projectId: string,
-    startTimestamp: number,
-    endTimestamp: number,
-  ): Promise<Array<{ key: string; latency: number; errorRate: number; doc_count: number }>> {
-    const result = await this.quickwit.search<never>(QUICKWIT_INDEXES.requests, {
-      query: quickwitTenantQuery(orgId, projectId),
-      startTimestamp,
-      endTimestamp,
-      maxHits: 0,
-      aggregations: {
-        services: {
-          terms: {
-            field: 'service',
-            size: 100,
-            order: { _count: 'desc' },
-          },
-          aggs: {
-            endpoints: {
-              terms: {
-                field: 'url',
-                size: 100,
-                order: { _count: 'desc' },
-              },
-              aggs: {
-                methods: {
-                  terms: {
-                    field: 'method',
-                    size: 20,
-                    order: { _key: 'asc' },
-                  },
-                  aggs: {
-                    latency: {
-                      percentiles: {
-                        field: 'duration',
-                        percents: [95],
-                      },
-                    },
-                    errors: {
-                      filter: {
-                        query: 'statusCode:[500 TO 599]',
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    const aggregation = ((result as unknown as { aggregations?: unknown }).aggregations as EndpointAggregations | undefined)?.services;
-    return (aggregation?.buckets ?? []).flatMap((serviceBucket) =>
-      (serviceBucket.endpoints?.buckets ?? []).flatMap((endpointBucket) =>
-        endpointBucket.methods?.buckets?.flatMap((methodBucket) => {
-          const latency = methodBucket.latency?.values?.['95.0'] ?? 0;
-          const errors = methodBucket.errors?.doc_count ?? 0;
-          if (!methodBucket.key || latency <= 0) return [];
-
-          return [{
-            key: serviceBucket.key + '|' + methodBucket.key + '|' + endpointBucket.key,
-            latency,
-            errorRate: methodBucket.doc_count ? errors / methodBucket.doc_count : 0,
-            doc_count: methodBucket.doc_count,
-          }];
-        }) ?? [],
-      ),
-    );
-  }
-
-  private async searchDependencyBuckets(
-    orgId: string,
-    projectId: string,
-    startTimestamp: number,
-    endTimestamp: number,
-  ): Promise<Array<{
-    key: string;
-    serviceName: string;
-    dependencyType: 'database' | 'cache' | 'queue' | 'http' | 'grpc' | 'other';
-    dependencyName: string;
-    latency: number;
-    samples: number;
-    errorCount: number;
-    errorRate: number;
-  }>> {
-    return (await searchDependencyBuckets(orgId, projectId, startTimestamp, endTimestamp)) as unknown as Array<{
-    key: string;
-    serviceName: string;
-    dependencyType: 'database' | 'cache' | 'queue' | 'http' | 'grpc' | 'other';
-    dependencyName: string;
-    latency: number;
-    samples: number;
-    errorCount: number;
-    errorRate: number;
-  }>;
-  }
-
-  private async searchDatabaseConnectionPoolMetrics(
-    orgId: string,
-    projectId: string,
-    startTimestamp: number,
-    endTimestamp: number,
-  ): Promise<DatabaseConnectionPoolSample[]> {
-    return searchDatabaseConnectionPoolMetrics(orgId, projectId, startTimestamp, endTimestamp);
-  }
-
-  private metricString(value: unknown): string | undefined {
-    return typeof value === 'string' && value.trim() ? value.trim() : undefined;
-  }
-
-  private describeDatabaseConnectionWait(
-    candidate: ReturnType<typeof detectDatabaseConnectionWait>[number],
-  ): string {
-    return describeDatabaseConnectionWait(candidate);
-  }
-
-  private async searchRequestEndpoints(
-    orgId: string,
-    projectId: string,
-    startTimestamp: number,
-    endTimestamp: number,
-  ): Promise<Map<string, string>> {
-    return searchRequestEndpoints(orgId, projectId, startTimestamp, endTimestamp);
-  }
-
-  private async searchDatabaseQuerySpans(
-    orgId: string,
-    projectId: string,
-    startTimestamp: number,
-    endTimestamp: number,
-  ): Promise<DatabaseQueryTrace[]> {
-    return searchDatabaseQuerySpans(orgId, projectId, startTimestamp, endTimestamp);
-  }
-
-  private describeDatabaseQuery(
-    candidate: ReturnType<typeof detectDatabaseQueries>[number],
-  ): string {
-    return describeDatabaseQuery(candidate as any);
-  }
-
-  private describeDatabaseResultSet(
-    candidate: ReturnType<typeof detectDatabaseResultSets>['candidates'][number],
-  ): string {
-    return describeDatabaseResultSet(candidate as any);
-  }
-
-  private describeDatabaseTimeout(
-    candidate: ReturnType<typeof detectDatabaseTimeouts>[number],
-  ): string {
-    return describeDatabaseTimeout(candidate as any);
-  }
-
-  private describeDatabaseError(candidate: ReturnType<typeof detectDatabaseErrors>[number]): string {
-    return describeDatabaseError(candidate as any);
-  }
-
-  private describeDatabaseQueryVolume(candidate: ReturnType<typeof detectDatabaseQueryVolume>[number]): string {
-    return describeDatabaseQueryVolume(candidate as any);
-  }
-
-  private describeNPlusOne(candidate: ReturnType<typeof detectNPlusOne>[number]): string {
-    return describeNPlusOne(candidate as any);
-  }
-
-  private async searchTraceDurations(
-    orgId: string,
-    projectId: string,
-    startTimestamp: number,
-    endTimestamp: number,
-  ): Promise<Map<string, number>> {
-    const result = await this.quickwit.search<TraceSource>(QUICKWIT_INDEXES.traces, {
-      query: quickwitTenantQuery(orgId, projectId),
-      startTimestamp,
-      endTimestamp,
-      maxHits: 5000,
-      sortBy: ['-duration'],
-    });
-
-    const traces = new Map<string, { start: number; end: number }>();
-
-    for (const hit of result.hits ?? []) {
-      const source = hit._source;
-      if (!source?.traceId) continue;
-
-      const start = new Date(String(source.timestamp ?? '')).getTime();
-      const duration = Number(source.duration ?? 0);
-      if (!Number.isFinite(start) || !Number.isFinite(duration) || duration <= 0) continue;
-
-      const end = start + duration;
-      const existing = traces.get(source.traceId);
-      if (!existing) {
-        traces.set(source.traceId, { start, end });
-        continue;
-      }
-
-      existing.start = Math.min(existing.start, start);
-      existing.end = Math.max(existing.end, end);
-    }
-
-    return new Map(
-      Array.from(traces.entries())
-        .map(([traceId, value]) => [traceId, value.end - value.start] as const)
-        .filter(([, duration]) => duration > 0),
-    );
-  }
-
-  private async searchTraceSpanCandidates(
-    orgId: string,
-    projectId: string,
-    startTimestamp: number,
-    endTimestamp: number,
-  ): Promise<Array<{
-    traceId: string;
-    spanId: string;
-    spanName: string;
-    serviceName: string;
-    spanDuration: number;
-    traceDuration: number;
-  }>> {
-    const result = await this.quickwit.search<TraceSource>(QUICKWIT_INDEXES.traces, {
-      query: quickwitTenantQuery(orgId, projectId),
-      startTimestamp,
-      endTimestamp,
-      maxHits: 5000,
-      sortBy: ['-duration'],
-    });
-
-    const traces = new Map<string, {
-      start: number;
-      end: number;
-      duration: number;
-      rootService: string;
-      spans: TraceSource[];
-    }>();
-
-    for (const hit of result.hits) {
-      const source = hit._source;
-      if (!source?.traceId) continue;
-
-      const trace = traces.get(source.traceId) ?? {
-        start: Number.POSITIVE_INFINITY,
-        end: 0,
-        duration: 0,
-        rootService: String(source.service ?? ''),
-        spans: [],
-      };
-      trace.spans.push(source);
-
-      const startMs = new Date(String(source.timestamp ?? '')).getTime();
-      const duration = Number(source.duration ?? 0);
-      if (Number.isFinite(startMs) && Number.isFinite(duration) && duration > 0) {
-        trace.start = Math.min(trace.start, startMs);
-        trace.end = Math.max(trace.end, startMs + duration);
-        trace.duration = trace.end - trace.start;
-      }
-
-      if (!source.parentSpanId) {
-        trace.rootService = String(source.service ?? trace.rootService);
-      }
-
-      traces.set(source.traceId, trace);
-    }
-
-    return Array.from(traces.entries()).flatMap(([traceId, trace]) => {
-      const starts = trace.spans
-        .map((span) => new Date(String(span.timestamp ?? '')).getTime())
-        .filter(Number.isFinite);
-      if (!starts.length || trace.duration <= Math.min(...starts)) return [];
-
-      const traceDuration = trace.duration - Math.min(...starts);
-      const candidate = trace.spans
-        .filter((span) => Number(span.duration ?? 0) > 0)
-        .sort((a, b) => Number(b.duration ?? 0) - Number(a.duration ?? 0))[0];
-
-      if (!candidate) return [];
-
-      return [{
-        traceId,
-        spanId: String(candidate.spanId ?? ''),
-        spanName: String(candidate.name ?? ''),
-        serviceName: String(candidate.service ?? trace.rootService),
-        spanDuration: Number(candidate.duration ?? 0),
-        traceDuration,
-      }];
-    });
-  }
-
-  private dependencyRecommendation(dependencyType: string): string {
-    switch (dependencyType) {
-      case 'database':
-        return 'Inspect the query shape and database plan first. Check for N+1 queries, missing indexes, excessive reads or selected fields, offset pagination, and repeated queries. Use EXPLAIN ANALYZE before changing the query or schema.';
-      case 'http':
-        return 'Inspect downstream latency, request payload size, retries, timeouts, and connection reuse. Avoid retry amplification and reduce unnecessary payload or downstream calls where possible.';
-      case 'rpc':
-        return 'Inspect downstream RPC latency, retry behavior, timeouts, connection reuse, and whether multiple calls can be batched or avoided.';
-      default:
-        return 'Inspect the downstream operation and trace its latency contribution before changing the caller. Check for repeated calls, unnecessary work, and connection or pooling issues.';
-    }
-  }
-
-  private async dependencyEvidence(
-    orgId: string,
-    projectId: string,
-    serviceName: string,
-    dependencyType: string,
-    dependencyName: string,
-    startTimestamp: number,
-    endTimestamp: number,
-  ): Promise<DetectionEvidence[]> {
-    const query = quickwitTenantQuery(
-      orgId,
-      projectId,
-      [
-        quickwitTerm('service', serviceName),
-        quickwitTerm('spanKind', '3'),
-        quickwitTerm('dependencyType', dependencyType),
-        quickwitTerm('dependencyName', dependencyName),
-      ].join(' AND '),
-    );
-
-    const result = await this.quickwit.search<TraceSource>(QUICKWIT_INDEXES.traces, {
-      query,
-      startTimestamp,
-      endTimestamp,
-      maxHits: 5,
-      sortBy: ['duration:desc'],
-    });
-
-    return (result.hits ?? []).flatMap((hit) => {
-      const source = hit._source;
-      if (!source) return [];
-
-      return [{
-        kind: 'trace',
-        label: 'slow-dependency-span',
-        value: Number(source.duration ?? 0),
-        context: {
-          service: String(source.service ?? serviceName),
-          dependencyType,
-          dependencyName,
-          traceId: String(source.traceId ?? ''),
-          spanId: String(source.spanId ?? ''),
-          spanName: String(source.name ?? ''),
-          timestamp: String(source.timestamp ?? ''),
-        },
-      }];
-    });
-  }
-
-  private describePerformanceSignal(signal: ReturnType<typeof evaluateServicePerformance>): string {
-    if (!signal) return 'Service performance degraded over the last 15 minutes.';
-
-    return describePerformanceSignal(signal);
-  }
-
-  private describeSignal(
-    description: string,
-    signal: ReturnType<typeof evaluateSignal>,
-  ): string {
-    if (signal?.baselineValue === undefined || signal.changePercent === undefined) {
-      return description;
-    }
-
-    return description + ' This is a ' + signal.changePercent.toFixed(0) + '% increase from the previous comparable window.';
-  }
-
-  private describeThroughputSignal(
-    signal: ReturnType<typeof evaluateThroughput>,
-  ): string {
-    if (!signal) return '';
-    return describeThroughputSignal(signal as { baselineValue: number; observedValue: number; changePercent: number });
-  }
-
   private async assertProjectAccess(orgId: string, projectId: string): Promise<void> {
-    return assertProjectAccess(orgId, projectId);
-  }
-
-  private async requestEvidence(
-    orgId: string,
-    projectId: string,
-    serviceName: string,
-    startTimestamp: number,
-    endTimestamp: number,
-    type: FindingType,
-  ): Promise<DetectionEvidence[]> {
-    const tenant = quickwitTenantQuery(orgId, projectId);
-    const service = quickwitTerm('service', serviceName);
-    const query = type === 'latency'
-      ? tenant + ' AND ' + service
-      : tenant + ' AND ' + service + ' AND statusCode:[500 TO 599]';
-
-    const result = await this.quickwit.search<RequestSource>(QUICKWIT_INDEXES.requests, {
-      query,
-      startTimestamp,
-      endTimestamp,
-      maxHits: 5,
-      sortBy: type === 'latency' ? ['duration:desc'] : ['timestamp:desc'],
-    });
-
-    return (result.hits ?? []).flatMap((hit) => {
-      const source = hit._source;
-      if (!source) return [];
-      return [{
-        kind: 'request',
-        label: type === 'latency' ? 'slow-request' : 'error-request',
-        value: type === 'latency' ? Number(source.duration ?? 0) : Number(source.statusCode ?? 0),
-        context: {
-          service: String(source.service ?? serviceName),
-          method: String(source.method ?? ''),
-          path: sanitizeRequestUrl(String(source.url ?? '')),
-          statusCode: Number(source.statusCode ?? 0),
-          traceId: String(source.traceId ?? ''),
-          timestamp: String(source.timestamp ?? ''),
-        },
-      }];
-    });
-  }
-
-  private toDetectionFinding(row: typeof findings.$inferSelect): DetectionFinding {
-    return {
-      id: row.id,
-      projectId: row.projectId,
-      serviceName: row.serviceName,
-      type: row.type as FindingType,
-      severity: row.severity as FindingSeverity,
-      title: row.title,
-      description: row.description,
-      observedValue: row.observedValue,
-      threshold: row.threshold,
-      unit: row.unit,
-      window: {
-        start: row.windowStart,
-        end: row.windowEnd,
-      },
-      evidence: row.evidence,
-    };
-  }
-
-  private async persistFinding(input: {
-    orgId: string;
-    projectId: string;
-    serviceName: string;
-    type: FindingType;
-    severity: FindingSeverity;
-    title: string;
-    description: string;
-    observedValue: number;
-    threshold: number;
-    unit: string;
-    start: Date;
-    end: Date;
-    evidence: DetectionEvidence[];
-  }): Promise<DetectionFinding> {
-    const [row] = await db
-      .insert(findings)
-      .values({
-        orgId: input.orgId,
-        projectId: input.projectId,
-        serviceName: input.serviceName,
-        type: input.type,
-        severity: input.severity,
-        title: input.title,
-        description: input.description,
-        observedValue: input.observedValue,
-        threshold: input.threshold,
-        unit: input.unit,
-        windowStart: input.start,
-        windowEnd: input.end,
-        evidence: input.evidence,
-      })
-      .returning();
-
-    if (!row) throw new Error('Failed to persist detection finding');
-
-    return {
-      id: row.id,
-      projectId: row.projectId,
-      serviceName: row.serviceName,
-      type: row.type as FindingType,
-      severity: row.severity as FindingSeverity,
-      title: row.title,
-      description: row.description,
-      observedValue: row.observedValue,
-      threshold: row.threshold,
-      unit: row.unit,
-      window: {
-        start: row.windowStart,
-        end: row.windowEnd,
-      } satisfies DetectionWindow,
-      evidence: row.evidence,
-    };
+    const project = await this.projectsRepository.getProjectById(projectId, orgId);
+    if (!project) throw new NotFoundException('Project not found');
   }
 }
-

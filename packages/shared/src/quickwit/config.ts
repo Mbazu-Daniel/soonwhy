@@ -3,6 +3,7 @@ export const QUICKWIT_INDEXES = {
   traces: "telemetry-traces",
   requests: "telemetry-requests",
   metrics: "telemetry-metrics",
+  detections: "telemetry-detections",
 } as const;
 
 export const QUICKWIT_INDEX_CONFIG = {
@@ -23,6 +24,9 @@ export const QUICKWIT_INDEX_CONFIG = {
       },
       { name: "org_id", type: "text", tokenizer: "raw", fast: true },
       { name: "project_id", type: "text", tokenizer: "raw", fast: true },
+      { name: "eventId", type: "text", tokenizer: "raw", fast: true },
+      { name: "name", type: "text", tokenizer: "raw", fast: true },
+      { name: "metricType", type: "text", tokenizer: "raw", fast: true },
       { name: "traceId", type: "text", tokenizer: "raw", fast: true },
       { name: "spanId", type: "text", tokenizer: "raw", fast: true },
       { name: "parentSpanId", type: "text", tokenizer: "raw", fast: true },
@@ -31,6 +35,12 @@ export const QUICKWIT_INDEX_CONFIG = {
       { name: "environment", type: "text", tokenizer: "raw", fast: true },
       { name: "region", type: "text", tokenizer: "raw", fast: true },
       { name: "route", type: "text", tokenizer: "raw", fast: true },
+      { name: "kind", type: "text", tokenizer: "raw", fast: true },
+      { name: "detector", type: "text", tokenizer: "raw", fast: true },
+      { name: "severity", type: "text", tokenizer: "raw", fast: true },
+      { name: "type", type: "text", tokenizer: "raw", fast: true },
+      { name: "runId", type: "text", tokenizer: "raw", fast: true },
+      { name: "findingId", type: "text", tokenizer: "raw", fast: true },
     ],
     timestamp_field: "timestamp",
     tag_fields: [
@@ -44,6 +54,9 @@ export const QUICKWIT_INDEX_CONFIG = {
       "environment",
       "region",
       "route",
+      "detector",
+      "kind",
+      "severity",
     ],
   },
   search_settings: {

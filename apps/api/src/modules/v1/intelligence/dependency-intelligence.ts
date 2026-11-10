@@ -49,19 +49,46 @@ export interface DependencyFinding {
   summary: string;
 }
 
-const MIN_SAMPLES = 5;
-const MIN_BASELINE_SAMPLES = 5;
-const LATENCY_REGRESSION_PERCENT = 50;
-const ERROR_REGRESSION_PERCENT = 50;
-const ERROR_REGRESSION_DELTA = 0.05;
-const THROUGHPUT_REGRESSION_PERCENT = 30;
-const LATENCY_SIGNAL_MS = 100;
-const ERROR_SIGNAL_RATE = 0.1;
+export type DependencyThresholds = Partial<{
+  minSamples: number;
+  minBaselineSamples: number;
+  latencySignalMs: number;
+  latencyRegressionPercent: number;
+  errorSignalRate: number;
+  errorRegressionPercent: number;
+  errorRegressionDelta: number;
+  throughputRegressionPercent: number;
+}>;
+
+const DEFAULT_MIN_SAMPLES = 5;
+const DEFAULT_MIN_BASELINE_SAMPLES = 5;
+const DEFAULT_LATENCY_REGRESSION_PERCENT = 50;
+const DEFAULT_ERROR_REGRESSION_PERCENT = 50;
+const DEFAULT_ERROR_REGRESSION_DELTA = 0.05;
+const DEFAULT_THROUGHPUT_REGRESSION_PERCENT = 30;
+const DEFAULT_LATENCY_SIGNAL_MS = 100;
+const DEFAULT_ERROR_SIGNAL_RATE = 0.1;
+
+function threshold(value: number | undefined, fallback: number): number {
+  return value !== undefined && Number.isFinite(value) ? value : fallback;
+}
 
 export function evaluateDependency(
   observation: DependencyObservation,
+  thresholds: DependencyThresholds = {},
 ): DependencyFinding | null {
-  if (!hasValidObservation(observation)) return null;
+  const normalizedThresholds = {
+    ...thresholds,
+    minSamples: threshold(thresholds.minSamples, DEFAULT_MIN_SAMPLES),
+    minBaselineSamples: threshold(thresholds.minBaselineSamples, DEFAULT_MIN_BASELINE_SAMPLES),
+    latencySignalMs: threshold(thresholds.latencySignalMs, DEFAULT_LATENCY_SIGNAL_MS),
+    latencyRegressionPercent: threshold(thresholds.latencyRegressionPercent, DEFAULT_LATENCY_REGRESSION_PERCENT),
+    errorSignalRate: threshold(thresholds.errorSignalRate, DEFAULT_ERROR_SIGNAL_RATE),
+    errorRegressionPercent: threshold(thresholds.errorRegressionPercent, DEFAULT_ERROR_REGRESSION_PERCENT),
+    errorRegressionDelta: threshold(thresholds.errorRegressionDelta, DEFAULT_ERROR_REGRESSION_DELTA),
+    throughputRegressionPercent: threshold(thresholds.throughputRegressionPercent, DEFAULT_THROUGHPUT_REGRESSION_PERCENT),
+  };
+  if (!hasValidObservation(observation, normalizedThresholds)) return null;
 
   const signals: DependencySignal[] = [];
   const p95 = finiteNonNegative(observation.p95Duration);
@@ -73,17 +100,17 @@ export function evaluateDependency(
     observation.baselineThroughputPerMinute,
   );
 
-  if (p95 !== undefined && p95 >= LATENCY_SIGNAL_MS) signals.push("latency");
+  if (p95 !== undefined && p95 >= normalizedThresholds.latencySignalMs) signals.push("latency");
 
   const latencyRegressionPercent = percentageIncrease(p95, baselineP95);
   if (
     latencyRegressionPercent !== undefined &&
-    latencyRegressionPercent >= LATENCY_REGRESSION_PERCENT
+    latencyRegressionPercent >= normalizedThresholds.latencyRegressionPercent
   ) {
     signals.push("latency_regression");
   }
 
-  if (errorRate !== undefined && errorRate >= ERROR_SIGNAL_RATE) {
+  if (errorRate !== undefined && errorRate >= normalizedThresholds.errorSignalRate) {
     signals.push("errors");
   }
 
@@ -99,8 +126,8 @@ export function evaluateDependency(
   if (
     errorRegressionPercent !== undefined &&
     errorDelta !== undefined &&
-    errorRegressionPercent >= ERROR_REGRESSION_PERCENT &&
-    errorDelta >= ERROR_REGRESSION_DELTA
+    errorRegressionPercent >= normalizedThresholds.errorRegressionPercent &&
+    errorDelta >= normalizedThresholds.errorRegressionDelta
   ) {
     signals.push("error_regression");
   }
@@ -111,7 +138,7 @@ export function evaluateDependency(
   );
   if (
     throughputRegressionPercent !== undefined &&
-    throughputRegressionPercent >= THROUGHPUT_REGRESSION_PERCENT
+    throughputRegressionPercent >= normalizedThresholds.throughputRegressionPercent
   ) {
     signals.push("throughput_regression");
   }
@@ -157,7 +184,10 @@ export function evaluateDependency(
   };
 }
 
-function hasValidObservation(observation: DependencyObservation): boolean {
+function hasValidObservation(
+  observation: DependencyObservation,
+  thresholds: DependencyThresholds,
+): boolean {
   const serviceName = observation.serviceName.trim();
   const dependencyName = observation.dependencyName.trim();
   const hasBaselineMetric =
@@ -169,11 +199,11 @@ function hasValidObservation(observation: DependencyObservation): boolean {
     !serviceName ||
     !dependencyName ||
     !Number.isInteger(observation.sampleCount) ||
-    observation.sampleCount < MIN_SAMPLES ||
+    observation.sampleCount < (thresholds.minSamples ?? DEFAULT_MIN_SAMPLES) ||
     (hasBaselineMetric &&
       (observation.baselineSampleCount === undefined ||
         !Number.isInteger(observation.baselineSampleCount) ||
-        observation.baselineSampleCount < MIN_BASELINE_SAMPLES)) ||
+        observation.baselineSampleCount < (thresholds.minBaselineSamples ?? DEFAULT_MIN_BASELINE_SAMPLES))) ||
     (!hasBaselineMetric && observation.baselineSampleCount !== undefined)
   ) {
     return false;

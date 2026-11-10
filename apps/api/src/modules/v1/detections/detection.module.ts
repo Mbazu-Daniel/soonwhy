@@ -1,23 +1,35 @@
-import { Module } from "@nestjs/common";
-import { ProjectsModule } from "../projects/projects.module";
-import { IssueLifecycleModule } from "../intelligence/issue-lifecycle.module";
-import { DetectionController } from "./detection.controller";
-import { DetectionService } from "./detection.service";
-import { RcaModule } from "./rca.module";
-import { RcaController } from "./rca.controller";
-import { RcaApiService } from "./rca.api";
-import { RcaAnalysisRepository } from "./rca.repository";
-import { RcaPersistenceService } from "./rca.persistence";
-import { TelemetryModule } from "../../../common/telemetry";
+import { Module } from '@nestjs/common';
+import { NatsService } from '@soonwhy/shared';
+import { DetectionService } from './detection.service';
+import { DetectionPipeline } from './detection.pipeline';
+import { DetectionTelemetryService } from './detection-telemetry.service';
+import { DetectionController } from './detection.controller';
+import { DetectionJobRunner } from './detection-job.runner';
+import { DetectorSettingsModule } from '../detector-settings/detector-settings.module';
+import { ProjectsModule } from '../projects/projects.module';
+import { IssueLifecycleModule } from '../intelligence/issue-lifecycle.module';
+import { CacheModule } from '../../../common/cache/cache.module';
+import { TelemetryModule } from '../../../common/telemetry/telemetry.module';
 
 @Module({
-  imports: [ProjectsModule, RcaModule, IssueLifecycleModule, TelemetryModule],
-  controllers: [DetectionController, RcaController],
+  imports: [
+    DetectorSettingsModule,
+    ProjectsModule,
+    IssueLifecycleModule,
+    CacheModule,
+    TelemetryModule,
+  ],
+  controllers: [DetectionController],
   providers: [
     DetectionService,
-    RcaApiService,
-    RcaAnalysisRepository,
-    RcaPersistenceService,
+    DetectionPipeline,
+    DetectionJobRunner,
+    DetectionTelemetryService,
+    {
+      provide: NatsService,
+      useValue: new NatsService(),
+    },
   ],
+  exports: [DetectionService],
 })
 export class DetectionModule {}

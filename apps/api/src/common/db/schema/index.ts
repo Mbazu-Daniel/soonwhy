@@ -1,5 +1,6 @@
 export { users, accounts, sessions, members, auditLogs } from "./auth";
 export { organizations } from "./organizations";
+export { detectorSettings, type DetectorConfigRow } from "./detector-settings";
 export { projects } from "./projects";
 export { projectSettings } from "./project-settings";
 export { services } from "./services";

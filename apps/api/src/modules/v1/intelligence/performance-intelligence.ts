@@ -31,12 +31,34 @@ export interface PerformanceFinding {
   summary: string;
 }
 
-const MIN_SAMPLES = 10;
-const MIN_BASELINE_SAMPLES = 10;
+export type PerformanceThresholds = Partial<{
+  minSamples: number;
+  minBaselineSamples: number;
+  latencySignalMs: number;
+  latencyRegressionPercent: number;
+  throughputRegressionPercent: number;
+  errorRegressionPercent: number;
+  errorRegressionDelta: number;
+}>;
+
+const DEFAULT_MIN_SAMPLES = 10;
+const DEFAULT_MIN_BASELINE_SAMPLES = 10;
+
+function finite(value: number | undefined, fallback: number): number {
+  return value !== undefined && Number.isFinite(value) ? value : fallback;
+}
 
 export function evaluatePerformance(
   observation: PerformanceObservation,
+  thresholds: PerformanceThresholds = {},
 ): PerformanceFinding | null {
+  const minSamples = finite(thresholds.minSamples, DEFAULT_MIN_SAMPLES);
+  const minBaselineSamples = finite(thresholds.minBaselineSamples, DEFAULT_MIN_BASELINE_SAMPLES);
+  const latencySignalMs = finite(thresholds.latencySignalMs, 100);
+  const latencyRegressionPercent = finite(thresholds.latencyRegressionPercent, 50);
+  const throughputRegressionPercent = finite(thresholds.throughputRegressionPercent, 30);
+  const errorRegressionPercent = finite(thresholds.errorRegressionPercent, 50);
+  const errorRegressionDelta = finite(thresholds.errorRegressionDelta, 0.05);
   const serviceName = observation.serviceName.trim();
   const endpointName = observation.endpointName.trim();
   const hasBaseline =
@@ -48,13 +70,13 @@ export function evaluatePerformance(
     !serviceName ||
     !endpointName ||
     !Number.isInteger(observation.sampleCount) ||
-    observation.sampleCount < MIN_SAMPLES
+    observation.sampleCount < minSamples
   )
     return null;
   if (
     hasBaseline &&
     (!Number.isInteger(observation.baselineSampleCount) ||
-      observation.baselineSampleCount! < MIN_BASELINE_SAMPLES)
+      observation.baselineSampleCount! < minBaselineSamples)
   )
     return null;
   if (!hasBaseline && observation.baselineSampleCount !== undefined)
@@ -80,26 +102,26 @@ export function evaluatePerformance(
     return null;
 
   const signals: PerformanceSignal[] = [];
-  if ((observation.p95Duration ?? 0) >= 100) signals.push("latency");
+  if ((observation.p95Duration ?? 0) >= latencySignalMs) signals.push("latency");
 
-  const latencyRegressionPercent = increase(
+  const regressionPercent = increase(
     observation.p95Duration,
     observation.baselineP95Duration,
   );
-  if (latencyRegressionPercent !== undefined && latencyRegressionPercent >= 50)
+  if (regressionPercent !== undefined && regressionPercent >= latencyRegressionPercent)
     signals.push("latency_regression");
 
-  const throughputRegressionPercent = decrease(
+  const throughputPercent = decrease(
     observation.throughputPerMinute,
     observation.baselineThroughputPerMinute,
   );
   if (
-    throughputRegressionPercent !== undefined &&
-    throughputRegressionPercent >= 30
+    throughputPercent !== undefined &&
+    throughputPercent >= throughputRegressionPercent
   )
     signals.push("throughput_regression");
 
-  const errorRegressionPercent = increase(
+  const errorPercent = increase(
     observation.errorRate,
     observation.baselineErrorRate,
   );
@@ -109,10 +131,10 @@ export function evaluatePerformance(
       ? observation.errorRate - observation.baselineErrorRate
       : undefined;
   if (
-    errorRegressionPercent !== undefined &&
+    errorPercent !== undefined &&
     errorDelta !== undefined &&
-    errorRegressionPercent >= 50 &&
-    errorDelta >= 0.05
+    errorPercent >= errorRegressionPercent &&
+    errorDelta >= errorRegressionDelta
   ) {
     signals.push("error_regression");
   }
@@ -142,13 +164,13 @@ export function evaluatePerformance(
     endpointName,
     signals,
     confidence: families.size >= 2 ? "high" : "medium",
-    ...(latencyRegressionPercent !== undefined
-      ? { latencyRegressionPercent }
+    ...(regressionPercent !== undefined
+      ? { latencyRegressionPercent: regressionPercent }
       : {}),
-    ...(throughputRegressionPercent !== undefined
-      ? { throughputRegressionPercent }
+    ...(throughputPercent !== undefined
+      ? { throughputRegressionPercent: throughputPercent }
       : {}),
-    ...(errorRegressionPercent !== undefined ? { errorRegressionPercent } : {}),
+    ...(errorPercent !== undefined ? { errorRegressionPercent: errorPercent } : {}),
     summary:
       serviceName +
       " endpoint " +

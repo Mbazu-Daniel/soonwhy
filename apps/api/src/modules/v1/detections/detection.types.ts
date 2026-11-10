@@ -140,4 +140,20 @@ export interface TraceSource {
   parentSpanId?: string;
   spanId?: string;
   name?: string;
+  statusCode?: number;
+  statusMessage?: string;
+  errorType?: string;
+  dependencyName?: string;
+  dependencyType?: string;
+  spanKind?: number;
+  dbQueryText?: string;
+  dbQuerySummary?: string;
+  dbOperationName?: string;
+  dbSystemName?: string;
+  dbCollectionName?: string;
+  dbReturnedRows?: number;
+  dbBatchSize?: number;
+  dbResponseBytes?: number;
+  httpRoute?: string;
+  endpoint?: string;
 }
