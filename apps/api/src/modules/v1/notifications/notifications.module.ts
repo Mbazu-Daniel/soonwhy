@@ -3,6 +3,7 @@ import { NotificationsController } from "./notifications.controller";
 import { OrgNotificationsController } from "./org-notifications.controller";
 import { CronController } from "./cron.controller";
 import { NotificationService } from "./notification.service";
+import { NotificationDispatcher } from "./notification-dispatcher";
 import { ZeptoMailService } from "./zepto-mail.service";
 import { SlackService } from "./slack.service";
 import { WebhookService } from "./webhook.service";
@@ -41,6 +42,7 @@ const getProjectsWithActiveChannels = async () => {
     EmailChannel,
     SlackChannel,
     WebhookChannel,
+    NotificationDispatcher,
     NotificationService,
     AlertRuleEngineService,
     AlertEvaluationService,

@@ -34,7 +34,17 @@ export const notificationLogs = pgTable(
     providerMessageId: text("provider_message_id"), // external id from zeptomail/slack
     error: text("error"),
     payload: jsonb("payload"), // what was sent
+    // Outbox pattern fields for idempotent delivery
+    idempotencyKey: text("idempotency_key")
+      .notNull()
+      .unique(),
+    attempts: text("attempts").default("0").notNull(), // retry count
+    lastAttemptAt: timestamp("last_attempt_at"),
+    nextAttemptAt: timestamp("next_attempt_at"),
+    leasedUntil: timestamp("leased_until"), // for claiming work
+    permanentFailure: text("permanent_failure"), // reason if permanently failed
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
     index("notification_logs_org_created_idx").on(table.orgId, table.createdAt),
@@ -43,8 +53,18 @@ export const notificationLogs = pgTable(
       table.status,
     ),
     index("notification_logs_incident_idx").on(table.incidentId),
+    index("notification_logs_next_attempt_idx").on(table.status, table.nextAttemptAt),
   ],
 );
+
+// NOTE: Database migration required for new outbox fields:
+// - idempotency_key (text, unique)
+// - attempts (text, default '0')
+// - last_attempt_at (timestamp)
+// - next_attempt_at (timestamp)
+// - leased_until (timestamp)
+// - permanent_failure (text)
+// - updated_at (timestamp)
 
 // Re-export for type use
 export { notificationChannels } from "./notification_channels";
