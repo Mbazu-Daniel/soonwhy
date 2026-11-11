@@ -8,7 +8,7 @@ export interface RetryOptions {
   onRetry?: (attempt: number, error: any) => void;
 }
 
-export const defaultRetryOptions: Required<RetryOptions> = {
+const defaultRetryOptions: Required<RetryOptions> = {
   maxAttempts: 3,
   initialDelayMs: 1000,
   maxDelayMs: 30000,

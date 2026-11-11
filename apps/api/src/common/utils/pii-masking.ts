@@ -75,8 +75,4 @@ export class PIIMaskingService {
 
     return masked;
   }
-
-  maskEvidence(evidence: any): any {
-    return this.maskObject(evidence);
-  }
 }

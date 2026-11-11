@@ -1,6 +1,6 @@
 import type { ThrottlerModuleOptions } from "@nestjs/throttler";
 
-export const THROTTLER_NAMES = {
+const THROTTLER_NAMES = {
   burst: "burst",
   sustained: "sustained",
 } as const;

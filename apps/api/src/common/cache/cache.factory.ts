@@ -1,7 +1,6 @@
 import { Logger } from "@nestjs/common";
 import { Redis } from "ioredis";
 
-export const CACHE_KEY_PREFIX = "soonwhy";
 
 export async function createRedisClient(): Promise<Redis> {
   const logger = new Logger("RedisClient");

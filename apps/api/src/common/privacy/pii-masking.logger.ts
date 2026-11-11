@@ -1,4 +1,6 @@
-import { ConsoleLogger, Injectable, LoggerService, LogLevel } from "@nestjs/common";
+// fallow-ignore-file unused-class-member
+// NestJS consumes this LoggerService through app.useLogger() at runtime; fallow cannot see the interface dispatch.
+import { ConsoleLogger, Injectable, LoggerService } from "@nestjs/common";
 import { maskPiiValue } from "./pii-masker";
 
 @Injectable()
@@ -32,16 +34,5 @@ export class PiiMaskingLogger implements LoggerService {
       maskPiiValue(message),
       ...optionalParams.map(maskPiiValue),
     );
-  }
-
-  fatal(message: unknown, ...optionalParams: unknown[]): void {
-    this.logger.fatal(
-      maskPiiValue(message),
-      ...optionalParams.map(maskPiiValue),
-    );
-  }
-
-  setLogLevels(levels: LogLevel[]): void {
-    this.logger.setLogLevels(levels);
   }
 }
