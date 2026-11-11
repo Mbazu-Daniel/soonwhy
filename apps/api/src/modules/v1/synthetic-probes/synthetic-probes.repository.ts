@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { db } from "../../../common/db";
 import { syntheticProbes, syntheticProbeResults } from "../../../common/db/schema";
-import { eq, desc, and, gte } from "drizzle-orm";
+import { eq, desc, and, gte, lt, isNull, or } from "drizzle-orm";
 
 @Injectable()
 export class SyntheticProbesRepository {
@@ -90,6 +90,20 @@ export class SyntheticProbesRepository {
       .where(eq(syntheticProbeResults.probeId, probeId))
       .orderBy(desc(syntheticProbeResults.checkedAt))
       .limit(limit);
+  }
+
+  /** Bounded retention: prune probe results older than `daysOld`. */
+  async cleanupOldResults(daysOld: number = 30): Promise<number> {
+    const cutoff = new Date(Date.now() - daysOld * 24 * 60 * 60 * 1000);
+    const deleted = await db
+      .delete(syntheticProbeResults)
+      .where(
+        or(
+          isNull(syntheticProbeResults.checkedAt),
+          lt(syntheticProbeResults.checkedAt, cutoff),
+        ),
+      );
+    return deleted.length;
   }
 
   async getEnabledProbes() {

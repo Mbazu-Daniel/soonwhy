@@ -6,7 +6,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { MetricsService } from "./metrics.service";
-import { getMetricsSchema } from "./dto";
+import { getMetricPercentilesSchema, getMetricsSchema } from "./dto";
 import {
   CurrentOrg,
   OrgContext,
@@ -18,6 +18,7 @@ const hostMetricsSchema = z.object({
   from: z.string().optional(),
   to: z.string().optional(),
   interval: z.string().optional(),
+  projectId: z.string().optional(),
 });
 
 @UseGuards(TenantGuard)
@@ -34,6 +35,16 @@ export class MetricsController {
     const parsed = getMetricsSchema.safeParse(query);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     return this.metricsService.getMetrics(orgId, parsed.data);
+  }
+
+  @Get("percentiles")
+  async getMetricPercentiles(
+    @CurrentOrg() org: OrgContext,
+    @Query() query: Record<string, unknown>,
+  ) {
+    const parsed = getMetricPercentilesSchema.safeParse(query);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.metricsService.getMetricPercentiles(org.orgId, parsed.data);
   }
 
   @Get("host")

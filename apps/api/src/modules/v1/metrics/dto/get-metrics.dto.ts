@@ -10,6 +10,18 @@ export const getMetricsSchema = z.object({
 
 export type GetMetricsInput = z.infer<typeof getMetricsSchema>;
 
+export const getMetricPercentilesSchema = z.object({
+  projectId: z.string().min(1),
+  metricName: z.string().min(1),
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+  service: z.string().optional(),
+});
+
+export type GetMetricPercentilesInput = z.infer<
+  typeof getMetricPercentilesSchema
+>;
+
 export interface QueryErrorCountInput {
   orgId: string;
   projectId: string;

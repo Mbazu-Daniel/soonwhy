@@ -5,6 +5,16 @@ import {
   quickwitTenantQuery,
   quickwitTimestamp,
 } from "../../../common/quickwit/query";
+import {
+  histogramPercentile,
+  mergeHistogramSources,
+  summaryPercentile,
+} from "./percentiles";
+import type {
+  HistogramSource,
+  MetricPercentileQuery,
+  MetricPercentiles,
+} from "./percentiles.types";
 
 export interface MetricsBucket {
   bucket: string;
@@ -131,8 +141,57 @@ export class MetricsRepository {
     });
   }
 
+  async queryMetricPercentiles(
+    params: MetricPercentileQuery,
+  ): Promise<MetricPercentiles> {
+    const filters = [
+      quickwitTerm("name", params.metricName),
+      `(${quickwitTerm("metricType", "histogram")} OR ${quickwitTerm("metricType", "summary")})`,
+      ...(params.service ? [quickwitTerm("service", params.service)] : []),
+    ];
+    const result = await this.quickwit.search<HistogramSource>(
+      QUICKWIT_INDEXES.metrics,
+      {
+        query: quickwitTenantQuery(
+          params.orgId,
+          params.projectId,
+          filters.join(" AND "),
+        ),
+        startTimestamp: quickwitTimestamp(params.from),
+        endTimestamp: quickwitTimestamp(params.to),
+        maxHits: 10_000,
+        sortBy: ["timestamp"],
+      },
+    );
+
+    const sources = result.hits.flatMap((hit) =>
+      hit._source ? [hit._source] : [],
+    );
+    const merged = mergeHistogramSources(sources);
+    const total = merged.counts.reduce((sum, count) => sum + count, 0);
+
+    if (total > 0) {
+      return {
+        metricName: params.metricName,
+        count: total,
+        p50: histogramPercentile(merged.bounds, merged.counts, 50),
+        p95: histogramPercentile(merged.bounds, merged.counts, 95),
+        p99: histogramPercentile(merged.bounds, merged.counts, 99),
+      };
+    }
+
+    return {
+      metricName: params.metricName,
+      count: merged.summaryCount,
+      p50: summaryPercentile(merged.summaryQuantiles, 50),
+      p95: summaryPercentile(merged.summaryQuantiles, 95),
+      p99: summaryPercentile(merged.summaryQuantiles, 99),
+    };
+  }
+
   async queryHostMetrics(params: {
     orgId: string;
+    projectId: string;
     from: string;
     to: string;
     interval: string;
@@ -146,7 +205,11 @@ export class MetricsRepository {
     const fixedInterval = intervalMap[params.interval] || "1m";
 
     const result = await this.quickwit.search(QUICKWIT_INDEXES.metrics, {
-      query: `system.cpu.utilization OR system.memory.utilization OR system.filesystem.utilization`,
+      query: quickwitTenantQuery(
+        params.orgId,
+        params.projectId,
+        `(system.cpu.utilization OR system.memory.utilization OR system.filesystem.utilization)`,
+      ),
       startTimestamp: quickwitTimestamp(params.from),
       endTimestamp: quickwitTimestamp(params.to),
       maxHits: 0,

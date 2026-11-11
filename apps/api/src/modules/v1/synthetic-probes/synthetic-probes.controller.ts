@@ -15,7 +15,12 @@ import {
 } from "../../../common/decorators/current-org.decorator";
 import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
 import { SyntheticProbesService } from "./synthetic-probes.service";
-import { CreateSyntheticProbeDto, UpdateSyntheticProbeDto } from "./dto";
+import {
+  CreateSyntheticProbeDto,
+  UpdateSyntheticProbeDto,
+  type CreateSyntheticProbeInput,
+  type UpdateSyntheticProbeInput,
+} from "./dto";
 
 @UseGuards(TenantGuard)
 @Controller("projects/:projectId/synthetic-probes")
@@ -34,10 +39,9 @@ export class SyntheticProbesController {
   createProbe(
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
-    @Body() body: unknown,
+    @Body({ schema: CreateSyntheticProbeDto }) body: CreateSyntheticProbeInput,
   ) {
-    const input = CreateSyntheticProbeDto.parse(body);
-    return this.service.createProbe(org.orgId, projectId, input);
+    return this.service.createProbe(org.orgId, projectId, body);
   }
 
   @Get(":probeId")
@@ -52,10 +56,9 @@ export class SyntheticProbesController {
   updateProbe(
     @CurrentOrg() org: OrgContext,
     @Param("probeId") probeId: string,
-    @Body() body: unknown,
+    @Body({ schema: UpdateSyntheticProbeDto }) body: UpdateSyntheticProbeInput,
   ) {
-    const input = UpdateSyntheticProbeDto.parse(body);
-    return this.service.updateProbe(Number(probeId), input);
+    return this.service.updateProbe(Number(probeId), body);
   }
 
   @Delete(":probeId")

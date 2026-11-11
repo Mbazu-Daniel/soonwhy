@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { MetricsRepository } from "./metrics.repository";
-import { GetMetricsInput } from "./dto";
+import { GetMetricPercentilesInput, GetMetricsInput } from "./dto";
 
 @Injectable()
 export class MetricsService {
@@ -28,9 +28,24 @@ export class MetricsService {
     };
   }
 
-  async getHostMetrics(orgId: string, input: { from?: string; to?: string; interval?: string }) {
+  async getMetricPercentiles(orgId: string, input: GetMetricPercentilesInput) {
+    return this.metricsRepository.queryMetricPercentiles({
+      orgId,
+      projectId: input.projectId,
+      metricName: input.metricName,
+      from: input.from ?? new Date(0).toISOString(),
+      to: input.to ?? new Date().toISOString(),
+      service: input.service,
+    });
+  }
+
+  async getHostMetrics(
+    orgId: string,
+    input: { from?: string; to?: string; interval?: string; projectId?: string },
+  ) {
     const buckets = await this.metricsRepository.queryHostMetrics({
       orgId,
+      projectId: input.projectId ?? "",
       from: input.from ?? new Date(Date.now() - 3600000).toISOString(),
       to: input.to ?? new Date().toISOString(),
       interval: input.interval ?? "1m",
