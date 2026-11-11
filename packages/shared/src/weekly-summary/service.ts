@@ -8,7 +8,7 @@ export class WeeklySummaryService {
   async dispatchWeeklySummary(input: {
     from: string;
     to: string;
-    summary: Record<string, string>;
+    summary: Record<string, unknown>;
   }) {
     const { from, to, summary } = input;
     const fromDate = new Date(from);

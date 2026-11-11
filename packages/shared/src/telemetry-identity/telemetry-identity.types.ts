@@ -1,0 +1,46 @@
+export type TelemetryDomain =
+  | "performance"
+  | "error"
+  | "database"
+  | "dependency"
+  | "runtime"
+  | "infrastructure"
+  | "ai"
+  | "trace";
+
+export interface TelemetryIdentity {
+  domain: TelemetryDomain;
+  fingerprint: string;
+  fingerprintVersion: number;
+  serviceName?: string;
+  operationName?: string;
+  resourceName?: string;
+  databaseSystem?: string;
+  hostId?: string;
+  containerId?: string;
+  processId?: string;
+  aiProvider?: string;
+  aiModel?: string;
+}
+
+export interface TelemetryIdentityInput {
+  domain: TelemetryDomain;
+  serviceName?: string;
+  operationName?: string;
+  resourceName?: string;
+  databaseSystem?: string;
+  hostId?: string;
+  containerId?: string;
+  processId?: string;
+  aiProvider?: string;
+  aiModel?: string;
+  identityAttributes?: Record<string, CanonicalValue>;
+}
+
+export type CanonicalValue =
+  | string
+  | number
+  | boolean
+  | null
+  | CanonicalValue[]
+  | { [key: string]: CanonicalValue };

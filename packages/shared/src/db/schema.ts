@@ -1,7 +1,10 @@
 import {
   boolean,
+  index,
   integer,
+  jsonb,
   pgTable,
+  serial,
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
@@ -46,3 +49,41 @@ export const projectSettings = pgTable("project_settings", {
     .default(4096)
     .notNull(),
 });
+
+/** Mirrors apps/api dead_letter_queue; written by the ingest consumer. */
+export const deadLetterQueue = pgTable("dead_letter_queue", {
+  id: serial("id").primaryKey(),
+  signal: text("signal").notNull(),
+  deliveryCount: integer("delivery_count").notNull(),
+  reason: text("reason").notNull(),
+  failedAt: timestamp("failed_at").notNull().defaultNow(),
+  payload: jsonb("payload").notNull(),
+  replayed: boolean("replayed").notNull().default(false),
+  replayedAt: timestamp("replayed_at"),
+  replaySuccess: boolean("replay_success"),
+  replayAttempts: integer("replay_attempts").default(0),
+  replayError: text("replay_error"),
+  organizationId: text("organization_id"),
+  projectId: text("project_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const ingestEventReceipts = pgTable(
+  "ingest_event_receipts",
+  {
+    eventId: text("event_id").primaryKey(),
+    organizationId: text("organization_id").notNull(),
+    projectId: text("project_id").notNull(),
+    signal: text("signal").notNull(),
+    status: text("status").notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(1),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    committedAt: timestamp("committed_at"),
+  },
+  (table) => [
+    index("ingest_event_receipts_created_at_idx").on(table.createdAt),
+    index("ingest_event_receipts_status_idx").on(table.status),
+  ],
+);

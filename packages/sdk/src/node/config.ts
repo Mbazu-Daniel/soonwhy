@@ -1,6 +1,6 @@
 import type { NodeSdkOptions, NodeSampling } from "./types.js";
 
-export const DEFAULT_ENDPOINT = "http://localhost:3002/api/v1";
+export const DEFAULT_ENDPOINT = "http://localhost:3002/v1";
 export const DEFAULT_TIMEOUT_MS = 10_000;
 
 export interface ResolvedNodeSdkOptions

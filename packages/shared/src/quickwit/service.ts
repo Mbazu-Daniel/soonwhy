@@ -29,6 +29,10 @@ export class QuickwitService {
   private readonly baseUrl = (
     process.env.QUICKWIT_URL ?? "http://localhost:7280"
   ).replace(/\/$/, "");
+  private readonly timeoutMs = parseTimeout(
+    process.env.QUICKWIT_TIMEOUT_MS,
+    30_000,
+  );
 
   private async request<T>(path: string, init: RequestInit): Promise<T> {
     const response = await fetch(`${this.baseUrl}${path}`, {
@@ -38,6 +42,7 @@ export class QuickwitService {
         ...init.headers,
       },
       body: init.body,
+      signal: AbortSignal.timeout(this.timeoutMs),
     });
 
     if (!response.ok) {
@@ -105,9 +110,6 @@ export class QuickwitService {
           ...(input.aggregations
             ? { aggs: input.aggregations }
             : {}),
-          ...(input.aggregations
-            ? { aggs: input.aggregations }
-            : {}),
         }),
       },
     );
@@ -118,9 +120,18 @@ export class QuickwitService {
     timestampField: string,
     cutoffIso: string,
   ): Promise<void> {
+    await this.purgeByQuery(indexId, `${timestampField}:[* TO ${cutoffIso}]`);
+  }
+
+  async purgeByQuery(indexId: string, query: string): Promise<void> {
     await this.request(`/api/v1/${encodeURIComponent(indexId)}/delete-tasks`, {
       method: "POST",
-      body: JSON.stringify({ query: `${timestampField}:[* TO ${cutoffIso}]` }),
+      body: JSON.stringify({ query }),
     });
   }
+}
+
+function parseTimeout(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
