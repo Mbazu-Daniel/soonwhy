@@ -34,12 +34,18 @@ export class ApiKeysService {
 
   async validateKey(
     rawKey: string,
-  ): Promise<{ projectId: string; scopes: string[] } | null> {
+  ): Promise<{ projectId: string; orgId: string; scopes: string[] } | null> {
     const keyHash = this.apiKeysRepository.hash(rawKey);
-    const key = await this.apiKeysRepository.getApiKeyByHash(keyHash);
-    if (!key) return null;
+    const result =
+      await this.apiKeysRepository.getApiKeyWithProjectByHash(keyHash);
+    if (!result) return null;
+    const key = result.apiKey;
     if (key.expiresAt && key.expiresAt < new Date()) return null;
     await this.apiKeysRepository.updateLastUsedAt(key.id);
-    return { projectId: key.projectId, scopes: key.scopes || [] };
+    return {
+      projectId: key.projectId,
+      orgId: result.organizationId,
+      scopes: key.scopes || [],
+    };
   }
 }

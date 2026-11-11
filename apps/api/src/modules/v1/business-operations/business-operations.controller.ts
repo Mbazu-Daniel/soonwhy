@@ -7,12 +7,16 @@ import {
   Query,
   UseGuards,
 } from "@nestjs/common";
+import { Idempotent } from "@nestjs/idempotency";
 import {
   CurrentOrg,
   OrgContext,
 } from "../../../common/decorators/current-org.decorator";
 import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
-import { CreateBusinessOperationDto } from "./dto/create-business-operation.dto";
+import {
+  CreateBusinessOperationDto,
+  type CreateBusinessOperationInput,
+} from "./dto/create-business-operation.dto";
 import { BusinessOperationsService } from "./business-operations.service";
 
 @UseGuards(TenantGuard)
@@ -34,15 +38,15 @@ export class BusinessOperationsController {
   }
 
   @Post()
+  @Idempotent({
+    ttl: 86400,
+  })
   async create(
     @CurrentOrg() org: OrgContext,
     @Query("projectId") projectId: string,
-    @Body() body: unknown,
+    @Body({ schema: CreateBusinessOperationDto })
+    body: CreateBusinessOperationInput,
   ) {
-    return this.service.create(
-      projectId,
-      org.orgId,
-      CreateBusinessOperationDto.parse(body),
-    );
+    return this.service.create(projectId, org.orgId, body);
   }
 }

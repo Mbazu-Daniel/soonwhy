@@ -21,12 +21,24 @@ function normalizeRepoUrl(url: string): string {
 export class GithubService {
   private readonly logger = new Logger(GithubService.name);
 
+  private readonly seenDeliveryIds = new Set<string>();
+
+  verifyWebhookSecret(): string {
+    const secret = process.env.GITHUB_WEBHOOK_SECRET;
+    if (!secret) {
+      throw new UnauthorizedException(
+        "GITHUB_WEBHOOK_SECRET is not configured",
+      );
+    }
+    return secret;
+  }
+
   verifySignature(
     rawBody: Buffer | string,
     signature: string | undefined,
     secret: string | undefined,
   ): boolean {
-    if (!secret) return true;
+    if (!secret) return false;
     if (!signature) return false;
     const hmac = createHmac("sha256", secret).update(rawBody).digest("hex");
     const expected = `sha256=${hmac}`;
@@ -40,7 +52,15 @@ export class GithubService {
   async handlePushEvent(
     rawBody: Buffer | string,
     eventName: string | undefined,
+    deliveryId?: string,
   ) {
+    if (deliveryId) {
+      if (this.seenDeliveryIds.has(deliveryId)) {
+        return { handled: false, reason: "duplicate delivery" };
+      }
+      this.seenDeliveryIds.add(deliveryId);
+    }
+
     if (eventName && eventName !== "push") {
       return { handled: false, reason: `ignored event: ${eventName}` };
     }

@@ -44,17 +44,72 @@ describe("BillingService", () => {
     expect(repository.recordBillingEvent).not.toHaveBeenCalled();
   });
 
+  it("records metered-only usage without consulting a limit", async () => {
+    const repository = {
+      recordUsage: vi.fn(),
+      recordUsageWithQuota: vi
+        .fn()
+        .mockResolvedValue({ event: { id: "usage-1" }, quotaExceeded: false }),
+      recordBillingEvent: vi.fn(),
+      getSubscription: vi.fn().mockResolvedValue({
+        subscription: { planId: "plan-1" },
+        plan: { name: "starter" },
+      }),
+      getQuota: vi.fn(),
+      getUsage: vi.fn(),
+    };
+    const service = new BillingService(repository as never);
+
+    await service.recordUsage({
+      orgId: "org-1",
+      metric: "ai_tokens_byok",
+      quantity: 600,
+      source: "rca",
+      enforce: false,
+    });
+
+    expect(repository.getSubscription).not.toHaveBeenCalled();
+    expect(repository.recordUsageWithQuota).toHaveBeenCalledWith(
+      expect.objectContaining({ metric: "ai_tokens_byok" }),
+      null,
+    );
+  });
+
+  it("enforces the quota the organisation bought rather than the plan default", async () => {
+    const repository = {
+      recordUsage: vi.fn(),
+      recordUsageWithQuota: vi.fn(),
+      recordBillingEvent: vi.fn().mockResolvedValue({ id: "billing-1" }),
+      getSubscription: vi.fn().mockResolvedValue({
+        subscription: { planId: "plan-1" },
+        plan: { name: "starter" },
+      }),
+      getQuota: vi.fn().mockResolvedValue({ limit: 1_000_000 }),
+      getUsage: vi
+        .fn()
+        .mockResolvedValue([{ metric: "ai_tokens", quantity: 500_000 }]),
+    };
+    const service = new BillingService(repository as never);
+
+    await expect(
+      service.assertQuota("org-1", "ai_tokens", 100_000),
+    ).resolves.toBeUndefined();
+    expect(repository.getQuota).toHaveBeenCalledWith(
+      "org-1",
+      "plan-1",
+      "ai_tokens",
+    );
+  });
+
   it("rejects usage when the configured quota would be exceeded", async () => {
     const repository = {
       recordUsage: vi.fn(),
       recordUsageWithQuota: vi.fn(),
       recordBillingEvent: vi.fn().mockResolvedValue({ id: "billing-2" }),
-      getSubscription: vi
-        .fn()
-        .mockResolvedValue({
-          subscription: { planId: "plan-1" },
-          plan: { name: "starter" },
-        }),
+      getSubscription: vi.fn().mockResolvedValue({
+        subscription: { planId: "plan-1" },
+        plan: { name: "starter" },
+      }),
       getQuota: vi.fn().mockResolvedValue({ limit: 100 }),
       getUsage: vi
         .fn()
@@ -76,12 +131,10 @@ describe("BillingService", () => {
         .fn()
         .mockResolvedValue({ event: null, quotaExceeded: true }),
       recordBillingEvent: vi.fn(),
-      getSubscription: vi
-        .fn()
-        .mockResolvedValue({
-          subscription: { planId: "plan-1" },
-          plan: { name: "starter" },
-        }),
+      getSubscription: vi.fn().mockResolvedValue({
+        subscription: { planId: "plan-1" },
+        plan: { name: "starter" },
+      }),
       getQuota: vi.fn().mockResolvedValue({ limit: 100 }),
       getUsage: vi.fn(),
     };
@@ -101,12 +154,10 @@ describe("BillingService", () => {
       recordUsage: vi.fn(),
       recordUsageWithQuota: vi.fn(),
       recordBillingEvent: vi.fn(),
-      getSubscription: vi
-        .fn()
-        .mockResolvedValue({
-          subscription: { planId: "plan-1", status: "trialing" },
-          plan: { name: "starter" },
-        }),
+      getSubscription: vi.fn().mockResolvedValue({
+        subscription: { planId: "plan-1", status: "trialing" },
+        plan: { name: "starter" },
+      }),
       getQuota: vi.fn(),
       getQuotas: vi
         .fn()

@@ -13,6 +13,9 @@ import {
   CreateProjectDto,
   UpdateProjectDto,
   UpdateProjectSettingsDto,
+  type CreateProjectInput,
+  type UpdateProjectInput,
+  type UpdateProjectSettingsInput,
 } from "./dto";
 import {
   CurrentOrg,
@@ -26,9 +29,11 @@ export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
   @Post()
-  async createProject(@CurrentOrg() org: OrgContext, @Body() body: unknown) {
-    const input = CreateProjectDto.parse(body);
-    return this.projectsService.createProject(org.orgId, input);
+  async createProject(
+    @CurrentOrg() org: OrgContext,
+    @Body({ schema: CreateProjectDto }) body: CreateProjectInput,
+  ) {
+    return this.projectsService.createProject(org.orgId, body);
   }
 
   @Get()
@@ -48,10 +53,9 @@ export class ProjectsController {
   async updateProjectSettings(
     @CurrentOrg() org: OrgContext,
     @Param("id") id: string,
-    @Body() body: unknown,
+    @Body({ schema: UpdateProjectSettingsDto }) body: UpdateProjectSettingsInput,
   ) {
-    const input = UpdateProjectSettingsDto.parse(body);
-    return this.projectsService.updateProjectSettings(id, org.orgId, input);
+    return this.projectsService.updateProjectSettings(id, org.orgId, body);
   }
 
   @Get(":id")
@@ -63,10 +67,9 @@ export class ProjectsController {
   async updateProject(
     @CurrentOrg() org: OrgContext,
     @Param("id") id: string,
-    @Body() body: unknown,
+    @Body({ schema: UpdateProjectDto }) body: UpdateProjectInput,
   ) {
-    const input = UpdateProjectDto.parse(body);
-    return this.projectsService.updateProject(id, org.orgId, input);
+    return this.projectsService.updateProject(id, org.orgId, body);
   }
 
   @Delete(":id")

@@ -28,16 +28,23 @@ export class OrganizationsService {
 
   async getOrganizationBySlug(slug: string) {
     const org = await this.organizationsRepository.getOrganizationBySlug(slug);
-    if (!org) {
+    if (!org || org.deletedAt) {
       throw new NotFoundException("Organization not found");
     }
     return org;
   }
 
   async getOrganizationsForUser(authorization?: string) {
-    return authApi.listOrganizations({
+    const organizations = await authApi.listOrganizations({
       headers: authorization ? { authorization } : {},
     });
+    const activeIds = await this.organizationsRepository.getActiveOrganizationIds(
+      organizations.map((organization: { id: string }) => organization.id),
+    );
+    const active = new Set(activeIds);
+    return organizations.filter(
+      (organization: { id: string }) => active.has(organization.id),
+    );
   }
 
   async createOrganization(

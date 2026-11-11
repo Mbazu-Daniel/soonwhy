@@ -62,6 +62,15 @@ export class DeploymentsRepository {
       .limit(1);
     return !!row;
   }
+
+  async getById(id: string) {
+    const [deployment] = await db
+      .select()
+      .from(deployments)
+      .where(eq(deployments.id, id))
+      .limit(1);
+    return deployment;
+  }
 }
 
 type CreateDeploymentInput = {

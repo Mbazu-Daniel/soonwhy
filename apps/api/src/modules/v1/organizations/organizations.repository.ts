@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "../../../common/db";
 import { organizations } from "../../../common/db/schema";
 
@@ -7,7 +7,7 @@ import { organizations } from "../../../common/db/schema";
 export class OrganizationsRepository {
   async getOrganizationById(id: string) {
     return db.query.organizations.findFirst({
-      where: eq(organizations.id, id),
+      where: and(eq(organizations.id, id), isNull(organizations.deletedAt)),
     });
   }
 
@@ -39,6 +39,22 @@ export class OrganizationsRepository {
   }
 
   async deleteOrganization(id: string) {
-    await db.delete(organizations).where(eq(organizations.id, id));
+    const [deleted] = await db
+      .update(organizations)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(organizations.id, id), isNull(organizations.deletedAt)))
+      .returning();
+    return deleted;
+  }
+
+  async getActiveOrganizationIds(ids: string[]) {
+    if (ids.length === 0) return [];
+    const rows = await db
+      .select({ id: organizations.id })
+      .from(organizations)
+      .where(
+        and(inArray(organizations.id, ids), isNull(organizations.deletedAt)),
+      );
+    return rows.map((row) => row.id);
   }
 }

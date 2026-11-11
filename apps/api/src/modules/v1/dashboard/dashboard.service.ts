@@ -1,13 +1,15 @@
 import { Injectable } from "@nestjs/common";
 import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
 import { quickwitTenantQuery } from "../../../common/quickwit/query";
+import { CacheService } from "../../../common/cache/cache.service";
+import { CACHE_TTL_SECONDS } from "../../../common/cache/cache.constants";
 
 @Injectable()
 export class DashboardService {
-  private cache = new Map<string, { data: unknown; expires: number }>();
-  private readonly CACHE_TTL = 30_000;
-
-  constructor(private readonly quickwit: QuickwitService) {}
+  constructor(
+    private readonly quickwit: QuickwitService,
+    private readonly cache: CacheService,
+  ) {}
 
   private range(from?: string, to?: string) {
     const end = to ? new Date(to).getTime() : Date.now();
@@ -20,13 +22,8 @@ export class DashboardService {
     };
   }
 
-  private async cached<T>(key: string, fn: () => Promise<T>): Promise<T> {
-    const now = Date.now();
-    const hit = this.cache.get(key);
-    if (hit && hit.expires > now) return hit.data as T;
-    const data = await fn();
-    this.cache.set(key, { data, expires: now + this.CACHE_TTL });
-    return data;
+  private async cached<T>(key: string, load: () => Promise<T>): Promise<T> {
+    return this.cache.getOrSet(key, CACHE_TTL_SECONDS.dashboardOverview, load);
   }
 
   async getOverview(
@@ -38,13 +35,15 @@ export class DashboardService {
     const range = this.range(from, to);
     const cacheKey = `overview:${orgId}:${projectId}:${range.start}:${range.end}`;
     return this.cached(cacheKey, async () => {
-      const [health, metrics] = await Promise.all([
+      const [health, metrics, timeSeries] = await Promise.all([
         this.getHealthScoreRaw(orgId, projectId, range),
         this.getMetricsRaw(orgId, projectId, range),
+        this.getTimeSeriesRaw(orgId, projectId, range),
       ]);
       return {
         ...health,
         ...metrics,
+        timeSeries,
         from: new Date(range.start).toISOString(),
         to: new Date(range.end).toISOString(),
       };
@@ -164,6 +163,44 @@ export class DashboardService {
         percentage: total ? Math.round((count / total) * 10000) / 100 : 0,
       })),
     };
+  }
+
+  private async getTimeSeriesRaw(
+    orgId: string,
+    projectId: string,
+    range: { startTimestamp: number; endTimestamp: number; start: number; end: number },
+  ) {
+    const logs = await this.fetchLogs(orgId, projectId, range);
+    const bucketCount = 24;
+    const bucketSize = (range.end - range.start) / bucketCount;
+    const buckets = new Array(bucketCount).fill(0).map(() => ({
+      count: 0,
+      errors: 0,
+      timestamps: [] as number[],
+    }));
+
+    for (const log of logs) {
+      const timestamp = log.timestamp ? new Date(String(log.timestamp)).getTime() : range.start;
+      const bucketIndex = Math.min(
+        bucketCount - 1,
+        Math.floor((timestamp - range.start) / bucketSize),
+      );
+      if (bucketIndex >= 0 && bucketIndex < bucketCount) {
+        const bucket = buckets[bucketIndex];
+        if (bucket) {
+          bucket.count += 1;
+          const s = DashboardService.num(log["http.status_code"]);
+          if (s != null && s >= 400) bucket.errors += 1;
+        }
+      }
+    }
+
+    const maxCount = Math.max(...buckets.map((b) => b.count), 1);
+    return buckets.map((bucket, index) => ({
+      timestamp: range.start + index * bucketSize,
+      count: bucket.count,
+      normalizedHeight: maxCount > 0 ? (bucket.count / maxCount) * 100 : 0,
+    }));
   }
 
   async getTelemetryStatus(orgId: string, projectId: string) {

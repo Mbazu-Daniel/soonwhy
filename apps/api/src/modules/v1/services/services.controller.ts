@@ -8,7 +8,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ServicesService } from "./services.service";
-import { CreateServiceDto } from "./dto";
+import { CreateServiceDto, type CreateServiceInput } from "./dto";
 import {
   CurrentOrg,
   OrgContext,
@@ -24,10 +24,9 @@ export class ServicesController {
   async createService(
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
-    @Body() body: unknown,
+    @Body({ schema: CreateServiceDto }) body: CreateServiceInput,
   ) {
-    const input = CreateServiceDto.parse(body);
-    return this.servicesService.createService(projectId, org.orgId, input);
+    return this.servicesService.createService(projectId, org.orgId, body);
   }
 
   @Get("map")

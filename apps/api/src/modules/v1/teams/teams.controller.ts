@@ -4,7 +4,10 @@ import {
   OrgContext,
 } from "../../../common/decorators/current-org.decorator";
 import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
-import { CreateTeamDto } from "./dto/create-team.dto";
+import {
+  CreateTeamDto,
+  type CreateTeamInput,
+} from "./dto/create-team.dto";
 import { TeamsService } from "./teams.service";
 
 @UseGuards(TenantGuard)
@@ -18,7 +21,10 @@ export class TeamsController {
   }
 
   @Post()
-  create(@CurrentOrg() org: OrgContext, @Body() body: unknown) {
-    return this.service.create(org.orgId, CreateTeamDto.parse(body));
+  create(
+    @CurrentOrg() org: OrgContext,
+    @Body({ schema: CreateTeamDto }) body: CreateTeamInput,
+  ) {
+    return this.service.create(org.orgId, body);
   }
 }

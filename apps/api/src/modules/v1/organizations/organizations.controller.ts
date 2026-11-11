@@ -20,7 +20,12 @@ import { db } from "../../../common/db";
 import { auditLogs } from "../../../common/db/schema";
 import { recordAuditEvent } from "../../../common/audit-logs";
 import { OrganizationsService } from "./organizations.service";
-import { CreateOrganizationDto, UpdateOrganizationDto } from "./dto";
+import {
+  CreateOrganizationDto,
+  UpdateOrganizationDto,
+  type CreateOrganizationInput,
+  type UpdateOrganizationInput,
+} from "./dto";
 import {
   CurrentUser,
   AuthUser,
@@ -44,11 +49,11 @@ export class OrganizationsController {
   async createOrganization(
     @CurrentUser() user: AuthUser | null,
     @Headers("authorization") authorization: string | undefined,
-    @Body() body: unknown,
+    @Body({ schema: CreateOrganizationDto }) body: CreateOrganizationInput,
     @Req() req: Request,
   ) {
     if (!user) throw new UnauthorizedException("Sign in required");
-    const input = CreateOrganizationDto.parse(body);
+    const input = body;
     const result = await this.organizationsService.createOrganization(
       user.id,
       input,
@@ -94,7 +99,8 @@ export class OrganizationController {
   @Put()
   async updateOrganization(
     @Param("organizationId") organizationId: string,
-    @Body() body: unknown,
+    @Body({ schema: UpdateOrganizationDto })
+    body: UpdateOrganizationInput,
     @CurrentMember() member: MemberContext,
     @Req() req: Request,
   ) {
@@ -102,7 +108,7 @@ export class OrganizationController {
     if (!["owner", "admin"].includes(member.role)) {
       throw new ForbiddenException("Insufficient permissions");
     }
-    const input = UpdateOrganizationDto.parse(body);
+    const input = body;
     const result = await this.organizationsService.updateOrganization(
       organizationId,
       input,
@@ -214,10 +220,11 @@ export class OrganizationController {
   async getAuditLogs(
     @Param("organizationId") organizationId: string,
     @CurrentMember() member: MemberContext,
-    @Query() query: unknown,
+    @Query({ schema: auditLogListSchema })
+    query: z.output<typeof auditLogListSchema>,
   ) {
     this.assertOrganization(member, organizationId);
-    const { limit, offset } = auditLogListSchema.parse(query);
+    const { limit, offset } = query;
     return db
       .select()
       .from(auditLogs)

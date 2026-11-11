@@ -7,9 +7,11 @@ import {
   Post,
   UnauthorizedException,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { ApiKeysService } from "../api-keys/api-keys.service";
 import { ClientEventsService } from "./client-events.service";
-import { ClientEventsBatchDto } from "./dto";
+import { ClientEventsBatchDto, type ClientEventsBatchInput } from "./dto";
+import { INGEST_THROTTLE } from "../../../common/throttling/throttling.constants";
 
 @Controller("client-events")
 export class ClientEventsController {
@@ -20,35 +22,20 @@ export class ClientEventsController {
 
   @Post()
   @HttpCode(HttpStatus.NO_CONTENT)
+  @Throttle(INGEST_THROTTLE)
   async ingest(
-    @Body() body: unknown,
+    @Body({ schema: ClientEventsBatchDto }) body: ClientEventsBatchInput,
     @Headers("authorization") auth?: string,
   ) {
-    const input = ClientEventsBatchDto.parse(body);
-
-    let projectId: string;
-    let orgId: string;
-
-    // Authenticate via API key (Bearer token) for client SDKs
-    if (auth?.startsWith("Bearer ")) {
-      const rawKey = auth.slice(7);
-      const key = await this.apiKeys.validateKey(rawKey);
-      if (!key) {
-        throw new UnauthorizedException("Invalid API key");
-      }
-      projectId = key.projectId;
-      // orgId is not stored on the API key; we accept it from the body
-      // as a fallback, or derive from project lookup if needed
-      orgId = (input as any).orgId ?? "";
-    } else {
-      projectId = (input as any).projectId ?? "";
-      orgId = (input as any).orgId ?? "";
+    if (!auth?.startsWith("Bearer ")) {
+      throw new UnauthorizedException("API key required");
     }
 
-    if (!projectId) {
-      throw new Error("projectId is required");
+    const key = await this.apiKeys.validateKey(auth.slice(7));
+    if (!key) {
+      throw new UnauthorizedException("Invalid API key");
     }
 
-    await this.clientEvents.ingestEvents(orgId, projectId, input.events);
+    await this.clientEvents.ingestEvents(key.orgId, key.projectId, body.events);
   }
 }
