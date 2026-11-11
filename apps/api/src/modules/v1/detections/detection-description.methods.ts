@@ -1,95 +1,80 @@
-export function describeDatabaseResultSet(candidate: {
-  signal: { p95ReturnedRows: number; p99ReturnedRows: number; largeResultRows: number; regressionDetected: boolean; sampleCount: number; querySummary?: string; queryOperation?: string; query: string; endpoint?: string; p95RowsChangePercent?: number; p95TraceContributionPercent?: number };
+type QueryCandidate = {
+  signal?: Record<string, unknown>;
   querySummary?: string;
   queryOperation?: string;
-  query: string;
+  query?: string;
   endpoint?: string;
-}): string {
-  const queryLabel = candidate.querySummary ?? candidate.queryOperation ?? candidate.query;
-  const endpoint = candidate.endpoint ? ' on ' + candidate.endpoint : '';
-  const regression = candidate.signal.regressionDetected && candidate.signal.p95RowsChangePercent !== undefined
-    ? ' P95 returned rows increased by ' + candidate.signal.p95RowsChangePercent.toFixed(0) + '% from the comparable baseline.'
-    : '';
-  const contribution = candidate.signal.p95TraceContributionPercent !== undefined
-    ? ' Database time contributes ' + candidate.signal.p95TraceContributionPercent.toFixed(0) + '% of trace duration at p95.'
-    : '';
-  return queryLabel + endpoint + ' returns ' +
-    Math.round(candidate.signal.p95ReturnedRows) + ' rows at p95 and ' +
-    Math.round(candidate.signal.p99ReturnedRows) + ' at p99 across ' +
-    candidate.signal.sampleCount + ' executions.' + regression + contribution;
+};
+
+function queryLabel(candidate: QueryCandidate): string {
+  return String(
+    candidate.querySummary ??
+      candidate.queryOperation ??
+      candidate.query ??
+      candidate.signal?.querySummary ??
+      candidate.signal?.queryOperation ??
+      candidate.signal?.query ??
+      'database query',
+  );
 }
 
-export function describeDatabaseBatch(candidate: {
-  signal: { p95DurationChangePercent?: number; p99DurationChangePercent?: number; p95TraceContributionPercent?: number; sampleCount: number; querySummary?: string; queryOperation?: string; query: string; logicalOperationCount: number; averageBatchSize: number; p50BatchSize: number; p95BatchSize: number; p99BatchSize: number; p50Duration: number; p95Duration: number; p99Duration: number; baselineSampleCount?: number; p95BatchSizeChangePercent?: number; p99BatchSizeChangePercent?: number; fingerprint?: string; databaseSystem?: string; dependencyName?: string; collectionName?: string; dbQueryText?: string; dbBatchSize?: number; dbQuerySummary?: string; dbSystemName?: string; dbCollectionName?: string; httpRoute?: string; endpoint?: string; batchOperationCount?: number; degradationSignals: string[]; confidence: string; recommendation: string }
-  querySummary?: string;
-  queryOperation?: string;
-  query: string;
-  endpoint?: string;
-}): string {
-  const regression = candidate.signal.p95DurationChangePercent !== undefined
-    ? ' P95 database duration changed by ' + candidate.signal.p95DurationChangePercent.toFixed(0) + '% from baseline.'
+export function describeDatabaseResultSet(candidate: any): string {
+  const endpoint = candidate.endpoint ? ' on ' + candidate.endpoint : '';
+  const regression = candidate.signal?.regressionDetected && candidate.signal?.p95RowsChangePercent !== undefined
+    ? ' P95 returned rows increased by ' + Number(candidate.signal.p95RowsChangePercent).toFixed(0) + '% from the comparable baseline.'
     : '';
-  const contribution = candidate.signal.p95TraceContributionPercent !== undefined
-    ? ' P95 database contribution is ' + candidate.signal.p95TraceContributionPercent.toFixed(0) + '% of trace duration.'
+  const contribution = candidate.signal?.p95TraceContributionPercent !== undefined
+    ? ' Database time contributes ' + Number(candidate.signal.p95TraceContributionPercent).toFixed(0) + '% of trace duration at p95.'
     : '';
-  return (candidate.querySummary ?? candidate.queryOperation ?? candidate.query) +
-    ' ran as a batch across ' + candidate.signal.sampleCount + ' executions with an average batch size of ' +
-    candidate.signal.averageBatchSize.toFixed(1) + ' (' + candidate.signal.logicalOperationCount + ' logical operations).' +
+  return queryLabel(candidate) + endpoint + ' returns ' +
+    Math.round(Number(candidate.signal?.p95ReturnedRows ?? 0)) + ' rows at p95 and ' +
+    Math.round(Number(candidate.signal?.p99ReturnedRows ?? 0)) + ' at p99 across ' +
+    Number(candidate.signal?.sampleCount ?? 0) + ' executions.' + regression + contribution;
+}
+
+export function describeDatabaseBatch(candidate: any): string {
+  const regression = candidate.signal?.p95DurationChangePercent !== undefined
+    ? ' P95 database duration changed by ' + Number(candidate.signal.p95DurationChangePercent).toFixed(0) + '% from baseline.'
+    : '';
+  const contribution = candidate.signal?.p95TraceContributionPercent !== undefined
+    ? ' P95 database contribution is ' + Number(candidate.signal.p95TraceContributionPercent).toFixed(0) + '% of trace duration.'
+    : '';
+  return queryLabel(candidate) +
+    ' ran as a batch across ' + Number(candidate.signal?.sampleCount ?? 0) + ' executions with an average batch size of ' +
+    Number(candidate.signal?.averageBatchSize ?? 0).toFixed(1) + ' (' + Number(candidate.signal?.logicalOperationCount ?? 0) + ' logical operations).' +
     regression + contribution;
 }
 
-export function describeDatabaseTimeout(candidate: {
-  signal: { timeoutCount: number; totalCount: number; timeoutRate: number; querySummary?: string; queryOperation?: string; query: string };
-  querySummary?: string;
-  queryOperation?: string;
-  query: string;
-}): string {
-  const queryLabel = candidate.querySummary ?? candidate.queryOperation ?? candidate.query;
-  return queryLabel + ' timed out ' + candidate.signal.timeoutCount + ' times out of ' + candidate.signal.totalCount + ' executions (' + (candidate.signal.timeoutRate * 100).toFixed(1) + '%).';
+export function describeDatabaseTimeout(candidate: any): string {
+  const timeoutRate = Number(candidate.signal?.timeoutRate ?? 0);
+  return queryLabel(candidate) + ' timed out ' + Number(candidate.signal?.timeoutCount ?? 0) + ' times out of ' + Number(candidate.signal?.totalCount ?? 0) + ' executions (' + (timeoutRate * 100).toFixed(1) + '%).';
 }
 
-export function describeDatabaseError(candidate: {
-  signal: { errorCount: number; totalCount: number; errorRate: number; querySummary?: string; queryOperation?: string; query: string };
-  querySummary?: string;
-  queryOperation?: string;
-  query: string;
-}): string {
-  const queryLabel = candidate.querySummary ?? candidate.queryOperation ?? candidate.query;
-  return queryLabel +
-    ' failed ' + candidate.signal.errorCount +
-    ' times out of ' + candidate.signal.totalCount +
+export function describeDatabaseError(candidate: any): string {
+  const errorRate = Number(candidate.signal?.errorRate ?? 0);
+  return queryLabel(candidate) +
+    ' failed ' + Number(candidate.signal?.errorCount ?? 0) +
+    ' times out of ' + Number(candidate.signal?.totalCount ?? 0) +
     ' executions, for a ' +
-    (candidate.signal.errorRate * 100).toFixed(1) +
+    (errorRate * 100).toFixed(1) +
     '% database error rate.';
 }
 
-export function describeDatabaseQueryVolume(candidate: {
-  signal: { currentCount: number; baselineCount: number; relativeIncrease: number; querySummary?: string; queryOperation?: string; query: string };
-  querySummary?: string;
-  queryOperation?: string;
-  query: string;
-}): string {
-  const queryLabel = candidate.querySummary ?? candidate.queryOperation ?? candidate.query;
-  return queryLabel +
-    ' ran ' + candidate.signal.currentCount +
+export function describeDatabaseQueryVolume(candidate: any): string {
+  return queryLabel(candidate) +
+    ' ran ' + Number(candidate.signal?.currentCount ?? 0) +
     ' times in the current window versus ' +
-    candidate.signal.baselineCount +
+    Number(candidate.signal?.baselineCount ?? 0) +
     ' in the previous comparable window, a ' +
-    candidate.signal.relativeIncrease.toFixed(0) +
+    Number(candidate.signal?.relativeIncrease ?? 0).toFixed(0) +
     '% increase.';
 }
 
-export function describeNPlusOne(candidate: {
-  signal: { occurrences: number; totalDurationMs: number; querySummary?: string; queryOperation?: string; query: string };
-  querySummary?: string;
-  queryOperation?: string;
-  query: string;
-}): string {
-  const queryLabel = candidate.querySummary ?? candidate.queryOperation ?? candidate.query;
-  return queryLabel +
-    ' was executed ' + candidate.signal.occurrences +
+export function describeNPlusOne(candidate: any): string {
+  return queryLabel(candidate) +
+    ' was executed ' + Number(candidate.signal?.occurrences ?? 0) +
     ' times in one trace under the same parent span, consuming about ' +
-    Math.round(candidate.signal.totalDurationMs) +
+    Math.round(Number(candidate.signal?.totalDurationMs ?? 0)) +
     'ms of database time.';
 }
 
@@ -104,16 +89,6 @@ export function describePerformanceSignal(signal: {
     Math.round(signal.latency.p99) + 'ms.';
 }
 
-export function describeSignal(description: string, signal: {
-  baselineValue?: number;
-  changePercent?: number;
-}): string {
-  if (signal?.baselineValue === undefined || signal.changePercent === undefined) {
-    return description;
-  }
-  return description + ' This is a ' + signal.changePercent.toFixed(0) + '% increase from the previous comparable window.';
-}
-
 export function describeThroughputSignal(signal: {
   baselineValue: number;
   observedValue: number;
@@ -123,27 +98,59 @@ export function describeThroughputSignal(signal: {
     ' requests to ' + Math.round(signal.observedValue) + ' requests over the last 15 minutes (' + signal.changePercent.toFixed(0) + '%).';
 }
 
-// Stubs for functions imported by detection.service.ts that are not defined here.
-export function describeDatabaseQuery(candidate: unknown): string {
-  return '';
+export function describeDatabaseQuery(candidate: any): string {
+  const distribution = candidate.signal?.distribution;
+  const p95 = Number(candidate.signal?.observedValue ?? distribution?.p95 ?? 0);
+  const threshold = Number(candidate.signal?.threshold ?? 0);
+  const samples = Number(distribution?.sampleCount ?? 0);
+  const regression = candidate.signal?.changePercent !== undefined
+    ? ' This is a ' + Number(candidate.signal.changePercent).toFixed(0) + '% increase from the previous comparable window.'
+    : '';
+  return queryLabel(candidate) + ' ran at p95 ' + Math.round(p95) + 'ms across ' + samples +
+    ' executions (threshold ' + Math.round(threshold) + 'ms).' + regression;
 }
 
-export function describeDatabaseLatencyContribution(candidate: unknown): string {
-  return '';
+export function describeDatabaseLatencyContribution(candidate: any): string {
+  const sampleCount = Number(candidate.signal?.sampleCount ?? 0);
+  const p50 = Number(candidate.signal?.p50ContributionPercent ?? 0);
+  const p95 = Number(candidate.signal?.p95ContributionPercent ?? 0);
+  const p95Duration = Number(candidate.signal?.p95DurationMs ?? 0);
+  return queryLabel(candidate) + ' accounts for ' + p95.toFixed(0) +
+    '% of p95 trace duration (p50 ' + p50.toFixed(0) + '%) across ' + sampleCount +
+    ' traces, consuming ' + Math.round(p95Duration) + 'ms of database time at p95.';
 }
 
-export function describeDatabaseConnectionWait(candidate: unknown): string {
-  return '';
+export function describeDatabaseConnectionWait(candidate: any): string {
+  const pool = candidate.poolName ? ' for pool ' + candidate.poolName : '';
+  const severity = candidate.signal?.severity ? ' (' + candidate.signal.severity + ')' : '';
+  const regression = candidate.signal?.p95ChangePercent !== undefined
+    ? ' This is a ' + Number(candidate.signal.p95ChangePercent).toFixed(0) +
+      '% increase from the baseline p95 of ' +
+      Math.round(Number(candidate.signal?.baselineP95WaitMs ?? 0)) + 'ms.'
+    : '';
+  return 'Connections waited' + pool + ' in ' + candidate.serviceName + ': p95 ' +
+    Math.round(Number(candidate.signal?.p95WaitMs ?? 0)) + 'ms (p50 ' +
+    Math.round(Number(candidate.signal?.p50WaitMs ?? 0)) + 'ms, p99 ' +
+    Math.round(Number(candidate.signal?.p99WaitMs ?? 0)) + 'ms) across ' +
+    Number(candidate.signal?.sampleCount ?? 0) + ' samples' + severity + '.' + regression;
 }
 
-export function assertProjectAccess(orgId: string, projectId: string): Promise<void> {
-  return Promise.resolve();
-}
-
-export function createFindingFromError(orgId: string, projectId: string, input: { fingerprint: string; service?: string }): Promise<unknown> {
-  return Promise.resolve(undefined);
-}
-
-export function describeDatabaseConnectionPool(candidate: unknown): string {
-  return '';
+export function describeDatabaseConnectionPool(candidate: any): string {
+  const pool = candidate.poolName ? ' ' + candidate.poolName : '';
+  const parts: string[] = [];
+  const utilization = candidate.signal?.p95UtilizationPercent;
+  if (utilization !== undefined) {
+    parts.push('p95 utilization ' + Number(utilization).toFixed(0) + '%');
+  }
+  const pending = candidate.signal?.p95PendingRequests;
+  if (pending !== undefined) {
+    parts.push('p95 pending requests ' + Number(pending).toFixed(0));
+  }
+  const timeoutIncrease = candidate.signal?.timeoutIncrease;
+  if (timeoutIncrease !== undefined && timeoutIncrease > 0) {
+    parts.push('timeouts increased by ' + Number(timeoutIncrease).toFixed(0));
+  }
+  const detail = parts.length ? parts.join(', ') : 'elevated pressure';
+  return 'Connection pool' + pool + ' in ' + candidate.serviceName + ' shows ' + detail +
+    ' across ' + Number(candidate.signal?.sampleCount ?? 0) + ' samples.';
 }

@@ -15,7 +15,7 @@ export const Route = createFileRoute('/$organizationSlug/dashboard')({
 
 function DashboardOverviewPage() {
   const { organizationSlug } = Route.useParams();
-  const { projectId } = useProject();
+  const { projectId, projectSlug } = useProject();
   const [range, setRange] = useState<TelemetryRange>('24h');
   const { from, to } = telemetryRangeParams(range);
 
@@ -110,7 +110,7 @@ function DashboardOverviewPage() {
             <CardContent className="p-0">
               <div className="flex items-center justify-between border-b border-[#1B1B1D] px-5 py-5 sm:px-6">
                 <h2 className="text-sm font-semibold">Attention</h2>
-                <Link to="/$organizationSlug/detections" params={{ organizationSlug }} className="text-xs font-medium text-[#ACFC15] hover:underline">View all</Link>
+                <Link to="/$organizationSlug/p/$projectSlug/intelligence/findings" params={{ organizationSlug, projectSlug: projectSlug! }} className="text-xs font-medium text-[#ACFC15] hover:underline">View all</Link>
               </div>
               <div className="divide-y divide-[#EEF2EA]">
                 <Attention icon={CheckCircle2} title="No active findings" detail="" tone="ok" />
@@ -126,7 +126,7 @@ function DashboardOverviewPage() {
                 <QuickLink href="/$organizationSlug/services" params={{ organizationSlug }} icon={Server} label="Services" />
                 <QuickLink href="/$organizationSlug/traces" params={{ organizationSlug }} icon={GitBranch} label="Traces" />
                 <QuickLink href="/$organizationSlug/logs" params={{ organizationSlug }} icon={Activity} label="Logs" />
-                <QuickLink href="/$organizationSlug/investigations" params={{ organizationSlug }} icon={BrainCircuit} label="Investigate" />
+                <QuickLink href="/$organizationSlug/p/$projectSlug/intelligence/investigations" params={{ organizationSlug, projectSlug: projectSlug! }} icon={BrainCircuit} label="Investigate" />
               </div>
             </CardContent>
           </Card>
@@ -142,7 +142,7 @@ function Metric({ label, value, suffix, icon: Icon, detail, tone }: { label:stri
 
 function Mini({ label, value }: { label:string; value:string }) { return <div><p className="text-[10px] uppercase tracking-[.12em] text-[#6E6E70]">{label}</p><p className="mt-1 text-sm font-semibold text-[#F6F6F6]">{value}</p></div>; }
 function Attention({ icon:Icon, title, detail, tone }: { icon:typeof CheckCircle2; title:string; detail:string; tone?:'ok' }) { return <div className="flex items-start gap-3 px-5 py-4 sm:px-6"><span className={tone === 'ok' ? 'grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#EEF7E4] text-[#ACFC15]' : 'grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#EAF3F4] text-[#26737A]'}><Icon className="h-4 w-4"/></span><div><p className="text-sm font-medium">{title}</p>{detail && <p className="mt-1 text-xs leading-5 text-[#989898]">{detail}</p>}</div></div>; }
-function QuickLink({ href, params, icon:Icon, label }: { href:'/$organizationSlug/services'|'/$organizationSlug/traces'|'/$organizationSlug/logs'|'/$organizationSlug/investigations'; params:{organizationSlug:string}; icon:typeof Server; label:string }) { return <Link to={href} params={params} className="flex items-center gap-3 bg-[#0B0B0C] px-5 py-4 text-sm font-medium hover:bg-[#040405]"><span className="grid h-8 w-8 place-items-center rounded-lg bg-[#151517] text-[#ACFC15]"><Icon className="h-4 w-4"/></span>{label}<ArrowUpRight className="ml-auto h-3.5 w-3.5 text-[#6E6E70]"/></Link>; }
+function QuickLink({ href, params, icon:Icon, label }: { href:string; params:Record<string, string>; icon:typeof Server; label:string }) { return <Link to={href as never} params={params as never} className="flex items-center gap-3 bg-[#0B0B0C] px-5 py-4 text-sm font-medium hover:bg-[#040405]"><span className="grid h-8 w-8 place-items-center rounded-lg bg-[#151517] text-[#ACFC15]"><Icon className="h-4 w-4"/></span>{label}<ArrowUpRight className="ml-auto h-3.5 w-3.5 text-[#6E6E70]"/></Link>; }
 function EmptyProject(){return <Card className="rounded-2xl border-dashed border-[#242426] bg-[#0B0B0C]"><CardContent className="p-12 text-center"><Server className="mx-auto h-6 w-6 text-[#ACFC15]"/><p className="mt-3 text-sm font-medium">Choose a project</p></CardContent></Card>;}
 function OverviewSkeleton(){return <div className="w-full"><div className="mx-auto max-w-[1440px] space-y-6"><Skeleton className="h-10 w-72"/><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[1,2,3,4].map(i=><Skeleton key={i} className="h-32 rounded-2xl"/>)}</div><Skeleton className="h-[390px] rounded-2xl"/></div></div>;}
 function formatNumber(value:number|undefined){return value == null ? '—' : value.toLocaleString();}

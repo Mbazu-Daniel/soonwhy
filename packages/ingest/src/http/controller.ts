@@ -8,6 +8,7 @@ import {
   HttpStatus,
   UnauthorizedException,
   BadRequestException,
+  ForbiddenException,
 } from "@nestjs/common";
 import { Request, Response } from "express";
 import { gunzipSync } from "zlib";
@@ -17,18 +18,26 @@ import {
   NatsService,
   RateLimiter,
   type ValidatedApiKey,
+  generateEventId,
 } from "@soonwhy/shared";
-import { IngestConcurrency } from "../pipeline/concurrency";
 import { IngestStats } from "../pipeline/stats";
+import { IngestConcurrency } from "../pipeline/concurrency";
+import { chunkItemsBySize, positiveInt } from "../pipeline/batcher";
+import {
+  DEFAULT_PUBLISH_BATCH_SIZE,
+  DEFAULT_PUBLISH_MAX_BYTES,
+} from "../pipeline/constants";
+import type { IngestBatch, IngestItem, IngestSignal } from "../pipeline/types";
 import { parseTracesPayload } from "../parse/traces";
 import { parseLogsPayload } from "../parse/logs";
 import { parseMetricsPayload } from "../parse/metrics";
 import { decodeProtobufPayload, encodePartialSuccess } from "../parse/protobuf";
+import { writeR2Overflow, tryR2Overflow } from "../parse/r2-overflow";
+import type { IngestPayload } from "../pipeline/types";
 
-type Signal = "trace" | "log" | "metric";
+type Signal = IngestSignal;
 
-type ParsedItem = Record<string, string>;
-type ParsedPayload = { items: ParsedItem[]; rejected: number };
+type ParsedPayload = { items: IngestItem[]; rejected: number };
 
 type SignalMeta = {
   rejectedField: string;
@@ -42,7 +51,7 @@ const SIGNAL_META: Record<Signal, SignalMeta> = {
     label: "spans",
     parse: (raw) => {
       const r = parseTracesPayload(raw);
-      return { items: r.spans as unknown as ParsedItem[], rejected: r.rejected };
+      return { items: r.spans as unknown as IngestItem[], rejected: r.rejected };
     },
   },
   log: {
@@ -50,7 +59,7 @@ const SIGNAL_META: Record<Signal, SignalMeta> = {
     label: "log records",
     parse: (raw) => {
       const r = parseLogsPayload(raw);
-      return { items: r.records as unknown as ParsedItem[], rejected: r.rejected };
+      return { items: r.records as unknown as IngestItem[], rejected: r.rejected };
     },
   },
   metric: {
@@ -58,12 +67,12 @@ const SIGNAL_META: Record<Signal, SignalMeta> = {
     label: "data points",
     parse: (raw) => {
       const r = parseMetricsPayload(raw);
-      return { items: r.points as unknown as ParsedItem[], rejected: r.rejected };
+      return { items: r.points as unknown as IngestItem[], rejected: r.rejected };
     },
   },
 };
 
-@Controller("v1")
+@Controller()
 export class IngestController {
   constructor(
     private readonly apiKeysService: ApiKeysService,
@@ -73,7 +82,69 @@ export class IngestController {
     private readonly concurrency: IngestConcurrency,
   ) {}
 
-  @Post("traces")
+  private async authenticate(authorization: string | undefined): Promise<ValidatedApiKey> {
+    const apiKey = apiKeyFromAuthorization(authorization);
+    if (!apiKey) {
+      throw new UnauthorizedException("Missing or invalid API key");
+    }
+    const auth = await this.apiKeysService.validateKey(apiKey);
+    if (!auth) {
+      throw new UnauthorizedException("Invalid API key");
+    }
+    return auth;
+  }
+
+  private sendError(res: Response, status: number, message: string): void {
+    res.status(status).json({ error: message });
+  }
+
+  private async readBody(req: Request, contentEncoding: string | undefined): Promise<Buffer> {
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) {
+      chunks.push(chunk);
+    }
+    const body = Buffer.concat(chunks);
+    if (contentEncoding === "gzip") {
+      return gunzipSync(body);
+    }
+    return body;
+  }
+
+  private decodePayload(body: Buffer, contentType: string | undefined, signal: Signal): Record<string, unknown> | null {
+    if (contentType?.includes("protobuf")) {
+      return decodeProtobufPayload(body, signal);
+    }
+    try {
+      return JSON.parse(body.toString("utf-8"));
+    } catch {
+      return null;
+    }
+  }
+
+  private sendPartialSuccess(
+    res: Response,
+    contentType: string | undefined,
+    signal: Signal,
+    rejected: number,
+    rejectedField: string,
+    label: string,
+  ): void {
+    if (contentType?.includes("protobuf")) {
+      res.status(200).end();
+      return;
+    }
+    res.status(200).json({
+      partialSuccess: {
+        rejectedSpans: signal === "trace" ? rejected : 0,
+        rejectedLogRecords: signal === "log" ? rejected : 0,
+        rejectedDataPoints: signal === "metric" ? rejected : 0,
+        [rejectedField]: rejected,
+        errorMessage: rejected > 0 ? `Rejected ${rejected} ${label}` : undefined,
+      },
+    });
+  }
+
+  @Post("v1/traces")
   @HttpCode(HttpStatus.OK)
   async trace(
     @Req() req: Request,
@@ -85,7 +156,7 @@ export class IngestController {
     return this.ingest(req, res, contentType, contentEncoding, authorization, "trace");
   }
 
-  @Post("logs")
+  @Post("v1/logs")
   @HttpCode(HttpStatus.OK)
   async log(
     @Req() req: Request,
@@ -97,7 +168,7 @@ export class IngestController {
     return this.ingest(req, res, contentType, contentEncoding, authorization, "log");
   }
 
-  @Post("metrics")
+  @Post("v1/metrics")
   @HttpCode(HttpStatus.OK)
   async metric(
     @Req() req: Request,
@@ -144,7 +215,13 @@ export class IngestController {
       const accepted = result.items.slice(0, 10000);
       const rejected =
         result.rejected + Math.max(0, result.items.length - 10000);
-      await this.publish(auth, signal, accepted);
+      try {
+        await this.publish(auth, signal, accepted);
+      } catch {
+        this.metrics.recordError();
+        res.setHeader("Retry-After", "1");
+        return this.sendError(res, 503, "Ingest queue is unavailable");
+      }
       this.metrics.recordAccepted(accepted.length);
       this.metrics.recordRejected(rejected);
       this.metrics.recordLatency(Date.now() - started);
@@ -169,113 +246,63 @@ export class IngestController {
     }
   }
 
-  private async readBody(
-    req: Request,
-    contentEncoding?: string,
-  ): Promise<Buffer> {
-    const chunks: Buffer[] = [];
-    let size = 0;
-    const maxPayload = 50 * 1024 * 1024;
-    for await (const chunk of req) {
-      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-      size += buffer.byteLength;
-      if (size > maxPayload) throw new BadRequestException("Payload too large");
-      chunks.push(buffer);
-    }
-    const encoded = Buffer.concat(chunks);
-    const encoding = contentEncoding?.toLowerCase();
-    if (!encoding || encoding === "identity") return encoded;
-    if (encoding !== "gzip")
-      throw new BadRequestException("Unsupported Content-Encoding");
-    return gunzipSync(encoded, { maxOutputLength: maxPayload + 1 });
-  }
-
-  private decodePayload(
-    body: Buffer,
-    contentType: string | undefined,
-    type: Signal,
-  ): Record<string, unknown> | null {
-    const ct = contentType?.split(";", 1)[0]?.trim().toLowerCase();
-    if (ct === "application/json" || ct === "application/json; charset=utf-8") {
-      try {
-        return JSON.parse(body.toString("utf8"));
-      } catch {
-        return null;
-      }
-    }
-    if (ct === "application/x-protobuf" || ct === "application/protobuf")
-      return decodeProtobufPayload(body, type);
-    try {
-      return JSON.parse(body.toString("utf8"));
-    } catch {
-      return decodeProtobufPayload(body, type);
-    }
-  }
-
-  private async authenticate(
-    authorization: string | undefined,
-  ): Promise<ValidatedApiKey> {
-    const apiKey = apiKeyFromAuthorization(authorization);
-    if (!apiKey) throw new UnauthorizedException("Missing API key");
-    const result = await this.apiKeysService.validateKey(apiKey);
-    if (!result) throw new UnauthorizedException("Invalid API key");
-    return result;
-  }
-
   private async publish(
     auth: ValidatedApiKey,
     signal: Signal,
-    items: ParsedItem[],
-  ) {
-    for (const item of items) {
-      await this.nats.publish(
+    items: IngestItem[],
+  ): Promise<void> {
+    const batchSize = positiveInt(
+      process.env.INGEST_PUBLISH_BATCH_SIZE,
+      DEFAULT_PUBLISH_BATCH_SIZE,
+    );
+    const maxBytes = positiveInt(
+      process.env.INGEST_PUBLISH_MAX_BYTES,
+      DEFAULT_PUBLISH_MAX_BYTES,
+    );
+    const encoder = new TextEncoder();
+
+    // Check if the total payload exceeds the max bytes limit and overflow to R2 if needed
+    const overflowInfo = tryR2Overflow(items, maxBytes, encoder);
+    if (overflowInfo.overflowed) {
+      // Items that overflowed were written to R2; we only publish the summary
+      // this.metrics.recordOverflow(overflowInfo.overflowedCount);
+    }
+
+    // Chunk the remaining items (those that fit within maxBytes)
+    const chunks = chunkItemsBySize(items, batchSize, overflowInfo.remainingBytes, (item) =>
+      encoder.encode(JSON.stringify(item)),
+    );
+
+    for (const chunk of chunks) {
+      const eventId = generateEventId({
+        signal,
+        organizationId: auth.organizationId,
+        projectId: auth.projectId,
+        captureSettings: auth.captureSettings,
+        // Exclude ingest-time fields from the event ID
+        itemCount: chunk.length,
+      });
+
+      const batch: IngestBatch = {
+        version: 1,
+        signal,
+        projectId: auth.projectId,
+        organizationId: auth.organizationId,
+        captureSettings: auth.captureSettings,
+        items: chunk,
+      };
+
+      // Publish with JetStream ack and wait for confirmation
+      const ack = await this.nats.publishWithAck(
         `ingest.${auth.projectId}.${signal}`,
-        new TextEncoder().encode(
-          JSON.stringify({
-            ...item,
-            projectId: auth.projectId,
-            organizationId: auth.organizationId,
-            captureSettings: auth.captureSettings,
-          }),
-        ),
+        encoder.encode(JSON.stringify(batch)),
+        eventId,
       );
-      this.metrics.recordPublished(1);
-    }
-  }
+      if (!ack) {
+        throw new Error("NATS JetStream publish failed - no acknowledgment received");
+      }
 
-  private sendPartialSuccess(
-    res: Response,
-    contentType: string | undefined,
-    signal: Signal,
-    rejected: number,
-    rejectedField: string,
-    typeLabel: string,
-  ) {
-    const errorMessage = rejected
-      ? `${rejected} invalid or over-limit ${typeLabel} were rejected`
-      : "";
-    const ct = contentType?.split(";", 1)[0]?.trim().toLowerCase();
-    const wantsProtobuf =
-      ct === "application/x-protobuf" || ct === "application/protobuf";
-    if (wantsProtobuf) {
-      res
-        .status(200)
-        .setHeader("Content-Type", "application/x-protobuf")
-        .send(
-          Buffer.from(encodePartialSuccess(signal, rejected, errorMessage)),
-        );
-      return;
+      this.metrics.recordPublished(chunk.length);
     }
-    res
-      .status(200)
-      .json(
-        rejected
-          ? { partialSuccess: { [rejectedField]: rejected, errorMessage } }
-          : {},
-      );
-  }
-
-  private sendError(res: Response, status: number, message: string) {
-    res.status(status).json({ message });
   }
 }

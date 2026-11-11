@@ -8,11 +8,6 @@ export interface User {
   emailVerified: boolean;
 }
 
-export interface Session {
-  user: User;
-  session: { id: string; token: string; expiresAt: string };
-}
-
 export interface AuthResult {
   data?: { session: { token: string; id: string; expiresAt: string }; user: User };
   error?: { message: string; status: number };

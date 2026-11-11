@@ -1,14 +1,3 @@
-export interface ChatMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  timestamp: Date;
-  metadata?: {
-    detectionIds?: string[];
-    sloIds?: string[];
-    serviceName?: string;
-  };
-}
 
 export interface ChatResponse {
   id: string;
@@ -22,7 +11,7 @@ export interface ChatResponse {
   };
 }
 
-export type UserIntent =
+type UserIntent =
   | "detect_anomaly_details"
   | "slo_burn_rate_status"
   | "change_point_analysis"
@@ -30,7 +19,7 @@ export type UserIntent =
   | "general_health"
   | "unknown";
 
-export const CHAT_RESPONSES = {
+const CHAT_RESPONSES = {
   greeting:
     "Hello! I can help you monitor your systems. You can ask me about detection anomalies, SLO burn rates, or get recommendations based on your metrics.",
 

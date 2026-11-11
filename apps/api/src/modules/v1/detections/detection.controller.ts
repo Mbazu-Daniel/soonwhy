@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import {
   CurrentOrg,
   OrgContext,
@@ -8,6 +9,8 @@ import { DetectionService } from "./detection.service";
 import { listDetectionRuns } from "./detection.run";
 
 @UseGuards(TenantGuard)
+@ApiTags("detections")
+@ApiBearerAuth()
 @Controller("projects/:projectId/detections")
 export class DetectionController {
   constructor(private readonly detectionService: DetectionService) {}
@@ -18,6 +21,22 @@ export class DetectionController {
     @Param("projectId") projectId: string,
   ) {
     return this.detectionService.run(org.orgId, projectId);
+  }
+
+  @Post("run/async")
+  async enqueue(
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+  ) {
+    return this.detectionService.enqueue(org.orgId, projectId);
+  }
+
+  @Get("telemetry")
+  async telemetry(
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+  ) {
+    return this.detectionService.telemetry(org.orgId, projectId);
   }
 
   @Get("runs")

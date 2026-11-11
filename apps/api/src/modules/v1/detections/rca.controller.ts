@@ -15,11 +15,12 @@ import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
 import { RcaApiService } from "./rca.api";
 import { z } from "zod";
 
-const RcaRequestSchema = z
+export const RcaRequestSchema = z
   .object({
     regenerate: z.boolean().optional().default(false),
   })
-  .strict();
+  .strict()
+  .default({});
 
 @Controller("projects/:projectId/findings/:findingId/rca")
 @UseGuards(TenantGuard)
@@ -54,9 +55,10 @@ export class RcaController {
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
     @Param("findingId") findingId: string,
-    @Body() body: unknown,
+    @Body({ schema: RcaRequestSchema })
+    body: z.output<typeof RcaRequestSchema>,
   ) {
-    const input = RcaRequestSchema.parse(body ?? {});
+    const input = body;
     return this.rcaApi.generate(
       org.orgId,
       projectId,

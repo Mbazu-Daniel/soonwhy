@@ -1,16 +1,16 @@
-import { MeterProvider } from "@opentelemetry/sdk-metrics";
-import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
-import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
-import { resourceFromAttributes } from "@opentelemetry/resources";
 import {
-  SemanticResourceAttributes,
-} from "@opentelemetry/semantic-conventions";
+  MeterProvider,
+  PeriodicExportingMetricReader,
+  type MetricReader,
+} from "@opentelemetry/sdk-metrics";
+import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
+import { PrometheusExporter } from "@opentelemetry/exporter-prometheus";
+import { resourceFromAttributes } from "@opentelemetry/resources";
+import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
 import { metrics, type Meter } from "@opentelemetry/api";
+import { resolveOtlpEndpoint, resolveOtlpHeaders } from "./otlp-config";
 
 const SERVICE_NAME = process.env.OTEL_SERVICE_NAME ?? "soonwhy-api";
-const OTLP_ENDPOINT =
-  process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? "http://localhost:7280";
-const OTLP_METRICS_PATH = "/api/v1/ingest/otlp/v1/metrics";
 
 let meter: Meter | null = null;
 let httpRequestDuration: ReturnType<Meter["createHistogram"]> | null = null;
@@ -18,29 +18,56 @@ let httpRequestCount: ReturnType<Meter["createCounter"]> | null = null;
 let httpRequestErrors: ReturnType<Meter["createCounter"]> | null = null;
 let dbQueryDuration: ReturnType<Meter["createHistogram"]> | null = null;
 let dbQueryCount: ReturnType<Meter["createCounter"]> | null = null;
+let detectionRunDuration: ReturnType<Meter["createHistogram"]> | null = null;
+let detectionRuns: ReturnType<Meter["createCounter"]> | null = null;
+let detectionFindings: ReturnType<Meter["createCounter"]> | null = null;
+let aiInvocations: ReturnType<Meter["createCounter"]> | null = null;
+let aiTokens: ReturnType<Meter["createCounter"]> | null = null;
+let aiEstimatedCostUsd: ReturnType<Meter["createCounter"]> | null = null;
+let aiRequestDuration: ReturnType<Meter["createHistogram"]> | null = null;
+let prometheusExporter: PrometheusExporter | null = null;
 
 function ensureInstruments() {
   if (meter) return;
   meter = metrics.getMeter(SERVICE_NAME);
-  httpRequestDuration = meter.createHistogram(
-    "http.server.request.duration",
-    { unit: "ms" },
+  httpRequestDuration = meter.createHistogram("http.server.request.duration", {
+    unit: "ms",
+  });
+  httpRequestCount = meter.createCounter("http.server.request.count", {
+    unit: "1",
+  });
+  httpRequestErrors = meter.createCounter("http.server.request.errors", {
+    unit: "1",
+  });
+  dbQueryDuration = meter.createHistogram("db.query.duration", { unit: "ms" });
+  dbQueryCount = meter.createCounter("db.query.count", { unit: "1" });
+  detectionRunDuration = meter.createHistogram(
+    "soonwhy.detection.run.duration",
+    { unit: "ms", description: "Wall-clock time of one detection run" },
   );
-  httpRequestCount = meter.createCounter(
-    "http.server.request.count",
-    { unit: "1" },
-  );
-  httpRequestErrors = meter.createCounter(
-    "http.server.request.errors",
-    { unit: "1" },
-  );
-  dbQueryDuration = meter.createHistogram(
-    "db.query.duration",
-    { unit: "ms" },
-  );
-  dbQueryCount = meter.createCounter(
-    "db.query.count",
-    { unit: "1" },
+  detectionRuns = meter.createCounter("soonwhy.detection.runs", {
+    unit: "1",
+    description: "Detection runs by terminal status",
+  });
+  detectionFindings = meter.createCounter("soonwhy.detection.findings", {
+    unit: "1",
+    description: "Findings persisted, by severity",
+  });
+  aiInvocations = meter.createCounter("soonwhy.ai.rca.invocations", {
+    unit: "1",
+    description: "AI RCA invocations by provider, model and status",
+  });
+  aiTokens = meter.createCounter("soonwhy.ai.tokens", {
+    unit: "1",
+    description: "AI tokens consumed, by provider, model and direction",
+  });
+  aiEstimatedCostUsd = meter.createCounter("soonwhy.ai.estimated_cost_usd", {
+    unit: "usd",
+    description: "Estimated AI spend in USD, by provider and model",
+  });
+  aiRequestDuration = meter.createHistogram(
+    "soonwhy.ai.rca.request.duration",
+    { unit: "ms", description: "Wall-clock time of an AI RCA call" },
   );
 }
 
@@ -69,15 +96,111 @@ export function getDbQueryCount() {
   return dbQueryCount!;
 }
 
-export function initOtelMetrics() {
-  const metricExporter = new OTLPMetricExporter({
-    url: `${OTLP_ENDPOINT}${OTLP_METRICS_PATH}`,
-  });
+/** Record the terminal state of a detection run. Never throws. */
+export function recordDetectionRun(
+  status: "success" | "failure",
+  durationMs: number,
+) {
+  try {
+    ensureInstruments();
+    detectionRuns!.add(1, { status });
+    detectionRunDuration!.record(
+      Number.isFinite(durationMs) && durationMs >= 0 ? durationMs : 0,
+      { status },
+    );
+  } catch {
+    // Metrics must never break the detection pipeline.
+  }
+}
 
-  const reader = new PeriodicExportingMetricReader({
-    exporter: metricExporter,
-    exportIntervalMillis: 10_000,
-  });
+/** Record one persisted finding, bucketed by severity. Never throws. */
+export function recordDetectionFinding(severity: string) {
+  try {
+    ensureInstruments();
+    detectionFindings!.add(1, { severity });
+  } catch {
+    // Metrics must never break the detection pipeline.
+  }
+}
+
+export interface AiInvocationMetrics {
+  provider: string;
+  model: string;
+  status: "succeeded" | "failed";
+  durationMs?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  estimatedCostUsd?: number;
+}
+
+/**
+ * Record an AI RCA invocation: counts, token usage, estimated spend and
+ * duration. Cost is caller-estimated (provider price list, not billing), so
+ * treat it as an estimate, not a reconciliation source. Never throws.
+ */
+export function recordAiInvocationMetrics(input: AiInvocationMetrics) {
+  try {
+    ensureInstruments();
+    const attributes = { provider: input.provider, model: input.model };
+    aiInvocations!.add(1, { ...attributes, status: input.status });
+    if (input.durationMs !== undefined && Number.isFinite(input.durationMs)) {
+      aiRequestDuration!.record(Math.max(0, input.durationMs), attributes);
+    }
+    if (input.inputTokens !== undefined && input.inputTokens >= 0) {
+      aiTokens!.add(input.inputTokens, { ...attributes, direction: "input" });
+    }
+    if (input.outputTokens !== undefined && input.outputTokens >= 0) {
+      aiTokens!.add(input.outputTokens, { ...attributes, direction: "output" });
+    }
+    if (
+      input.estimatedCostUsd !== undefined &&
+      Number.isFinite(input.estimatedCostUsd) &&
+      input.estimatedCostUsd >= 0
+    ) {
+      aiEstimatedCostUsd!.add(input.estimatedCostUsd, attributes);
+    }
+  } catch {
+    // Metrics must never break the RCA path.
+  }
+}/**
+ * The in-app Prometheus exporter when PROMETHEUS_METRICS_ENABLED is not
+ * "false", else null. The exporter is created with `preventServerStart`;
+ * the Nest app mounts it at /metrics itself.
+ */
+export function getPrometheusExporter() {
+  return prometheusExporter;
+}
+
+export function initOtelMetrics(): MeterProvider | null {
+  const url = resolveOtlpEndpoint("metrics");
+  const prometheusEnabled =
+    (process.env.PROMETHEUS_METRICS_ENABLED ?? "true") !== "false";
+
+  if (!url && !prometheusEnabled) {
+    ensureInstruments();
+    return null;
+  }
+
+  const readers: MetricReader[] = [];
+  let otlpReader: PeriodicExportingMetricReader | null = null;
+
+  if (url) {
+    const metricExporter = new OTLPMetricExporter({
+      url,
+      headers: resolveOtlpHeaders("metrics"),
+    });
+
+    otlpReader = new PeriodicExportingMetricReader({
+      exporter: metricExporter,
+      exportIntervalMillis: 10_000,
+    });
+    readers.push(otlpReader);
+  }
+
+  if (prometheusEnabled) {
+    prometheusExporter = new PrometheusExporter({ preventServerStart: true });
+    readers.push(prometheusExporter);
+  }
 
   const provider = new MeterProvider({
     resource: resourceFromAttributes({
@@ -87,17 +210,15 @@ export function initOtelMetrics() {
       [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]:
         process.env.NODE_ENV ?? "development",
     }),
-    readers: [reader],
+    readers,
   });
 
   metrics.setGlobalMeterProvider(provider);
-
-  // Create instruments now that the provider is active
   ensureInstruments();
 
-  // Graceful shutdown
   process.on("SIGTERM", async () => {
-    await reader.shutdown();
+    await otlpReader?.shutdown();
+    await prometheusExporter?.shutdown();
     process.exit(0);
   });
 

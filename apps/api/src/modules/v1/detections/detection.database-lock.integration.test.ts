@@ -1,11 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "../../../common/db";
 import type { QuickwitService } from "@soonwhy/shared";
-import type { ProjectsRepository } from "../projects/projects.repository";
-import { DetectionService } from "./detection.service";
+import { createDetectionService } from "./detection.test-doubles";
 
 vi.mock("../../../common/db", () => ({
-  db: { insert: vi.fn(), update: vi.fn() },
+  db: {
+    insert: vi.fn(),
+    update: vi.fn(),
+    select: vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnThis(),
+      innerJoin: vi.fn().mockReturnThis(),
+      where: vi.fn().mockResolvedValue([]),
+    }),
+  },
 }));
 
 describe("DetectionService database lock contention", () => {
@@ -125,11 +132,7 @@ describe("DetectionService database lock contention", () => {
       },
     );
 
-    const service = new DetectionService(
-      { search } as unknown as QuickwitService,
-      { getProjectById } as unknown as ProjectsRepository,
-      { apply: vi.fn().mockResolvedValue({ action: "created" }) } as never,
-    );
+    const service = createDetectionService({ search } as unknown as QuickwitService, { apply: vi.fn().mockResolvedValue({ action: "created" }) } as never);
 
     const result = await service.run("org-1", "project-1");
     const finding = result.find(

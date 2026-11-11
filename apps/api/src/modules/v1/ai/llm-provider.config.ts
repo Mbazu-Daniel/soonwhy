@@ -1,0 +1,143 @@
+import type { MastraRcaProviderConfig } from "../detections/rca.provider";
+import { RCA_PROMPT_VERSION } from "../detections/rca.prompt";
+
+export interface PlatformLlmConfig {
+  readonly configured: boolean;
+  readonly providerId: string;
+  readonly model: string;
+  readonly baseUrl: string | null;
+  readonly apiKey: string;
+}
+
+export interface LlmTuning {
+  readonly timeoutMs?: number;
+  readonly maxPromptCharacters?: number;
+  readonly maxRetries?: number;
+  readonly promptVersion: string;
+}
+
+export interface ModelCostRates {
+  inputUsdPerMillion: number;
+  outputUsdPerMillion: number;
+}
+
+/**
+ * One resolved target for an AI request. `baseUrl` is either the endpoint saved
+ * with the credential or the host the provider registry documents for it; `null`
+ * leaves the choice to the provider's own SDK, because a key must never travel
+ * to a guessed host.
+ */
+export interface LlmEndpoint {
+  readonly providerId: string;
+  readonly model: string;
+  readonly baseUrl: string | null;
+  readonly apiKey: string;
+}
+
+function positiveNumber(raw: string | undefined): number | undefined {
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : undefined;
+}
+
+function nonNegativeInteger(raw: string | undefined): number | undefined {
+  if (raw === undefined) return undefined;
+  const value = Number(raw);
+  return Number.isInteger(value) && value >= 0 ? value : undefined;
+}
+
+/**
+ * Platform credentials live in the environment and are optional: a deployment
+ * with no platform key still serves every organization that brought its own.
+ */
+export function readPlatformLlmConfig(
+  env: NodeJS.ProcessEnv = process.env,
+): PlatformLlmConfig {
+  const apiKey = env.SOONWHY_RCA_API_KEY?.trim() ?? "";
+  const model = env.SOONWHY_RCA_MODEL?.trim() ?? "";
+
+  return {
+    configured: apiKey.length > 0 && model.length > 0,
+    providerId: env.SOONWHY_RCA_PROVIDER?.trim().toLowerCase() || "openai",
+    model,
+    baseUrl: env.SOONWHY_RCA_BASE_URL?.trim() || null,
+    apiKey,
+  };
+}
+
+export function readLlmTuning(env: NodeJS.ProcessEnv = process.env): LlmTuning {
+  return {
+    timeoutMs: positiveNumber(env.SOONWHY_RCA_TIMEOUT_MS),
+    maxPromptCharacters: positiveNumber(env.SOONWHY_RCA_MAX_PROMPT_CHARACTERS),
+    maxRetries: nonNegativeInteger(env.SOONWHY_RCA_MAX_RETRIES),
+    promptVersion: env.SOONWHY_RCA_PROMPT_VERSION ?? RCA_PROMPT_VERSION,
+  };
+}
+
+export interface AiQuotaConfig {
+  readonly enforced: boolean;
+  readonly tokenReserve: number;
+}
+
+const DEFAULT_TOKEN_RESERVE = 8_000;
+
+/**
+ * Enforcement is off by default because no plan, subscription or quota row is
+ * seeded by a fresh install: switching it on without that data would block
+ * nothing and only hide the metering. Spend is always recorded.
+ */
+export function readAiQuotaConfig(
+  env: NodeJS.ProcessEnv = process.env,
+): AiQuotaConfig {
+  return {
+    enforced: env.SOONWHY_AI_QUOTA_ENFORCED === "true",
+    tokenReserve:
+      positiveNumber(env.SOONWHY_AI_TOKEN_RESERVE) ?? DEFAULT_TOKEN_RESERVE,
+  };
+}
+
+export interface AiSettingsConfig {
+  readonly verificationTimeoutMs: number;
+  readonly allowedBaseHosts: string[];
+  readonly allowInsecureBaseUrls: boolean;
+}
+
+const DEFAULT_VERIFICATION_TIMEOUT_MS = 8_000;
+
+/**
+ * Settings-screen policy. Extra base-URL hosts are for self-hosted gateways
+ * that models.dev has never heard of; without them a key could be pointed at
+ * any address the API process will then be asked to fetch.
+ */
+export function readAiSettingsConfig(
+  env: NodeJS.ProcessEnv = process.env,
+): AiSettingsConfig {
+  return {
+    verificationTimeoutMs:
+      positiveNumber(env.SOONWHY_AI_VERIFY_TIMEOUT_MS) ??
+      DEFAULT_VERIFICATION_TIMEOUT_MS,
+    allowedBaseHosts: (env.SOONWHY_AI_ALLOWED_BASE_HOSTS ?? "")
+      .split(",")
+      .map((host) => host.trim().toLowerCase())
+      .filter(Boolean),
+    allowInsecureBaseUrls: env.NODE_ENV !== "production",
+  };
+}
+
+export function buildProviderConfig(
+  endpoint: LlmEndpoint,
+  tuning: LlmTuning,
+  cost?: ModelCostRates,
+): MastraRcaProviderConfig {
+  return {
+    providerId: endpoint.providerId,
+    model: endpoint.model,
+    baseUrl: endpoint.baseUrl ?? undefined,
+    apiKey: endpoint.apiKey,
+    timeoutMs: tuning.timeoutMs,
+    maxPromptCharacters: tuning.maxPromptCharacters,
+    maxRetries: tuning.maxRetries,
+    promptVersion: tuning.promptVersion,
+    inputCostPerMillionTokensUsd: cost?.inputUsdPerMillion,
+    outputCostPerMillionTokensUsd: cost?.outputUsdPerMillion,
+  };
+}

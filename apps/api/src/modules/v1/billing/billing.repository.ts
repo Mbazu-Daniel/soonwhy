@@ -1,4 +1,6 @@
-import { and, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
+// fallow-ignore-file unused-class-member
+// Members are consumed via narrowed Pick<BillingRepository> DI injection, which fallow cannot see through.
+import { and, desc, eq, gte, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { db } from "../../../common/db";
 import {
   billingEvents,
@@ -53,17 +55,53 @@ export class BillingRepository {
       .limit(Math.min(Math.max(limit, 1), 100));
   }
 
-  async getQuota(planId: string, metric: UsageMetric) {
+  /** The limit an organisation actually pays for: a purchased top-up first, then its plan. */
+  async getQuota(orgId: string, planId: string | null, metric: UsageMetric) {
+    const planScope = planId
+      ? and(
+          isNull(billingPlanQuotas.orgId),
+          eq(billingPlanQuotas.planId, planId),
+        )
+      : undefined;
     const [row] = await db
       .select()
       .from(billingPlanQuotas)
       .where(
         and(
-          eq(billingPlanQuotas.planId, planId),
           eq(billingPlanQuotas.metric, metric),
+          planScope
+            ? or(eq(billingPlanQuotas.orgId, orgId), planScope)
+            : eq(billingPlanQuotas.orgId, orgId),
         ),
       )
+      .orderBy(
+        sql`case when ${billingPlanQuotas.orgId} is null then 1 else 0 end`,
+      )
       .limit(1);
+    return row;
+  }
+
+  /** A purchased top-up: an organisation-scoped row that beats whatever the plan says. */
+  async upsertOrgQuota(input: {
+    orgId: string;
+    metric: UsageMetric;
+    limit: number | null;
+    unit: string;
+  }) {
+    const [row] = await db
+      .insert(billingPlanQuotas)
+      .values({
+        orgId: input.orgId,
+        metric: input.metric,
+        limit: input.limit,
+        unit: input.unit,
+      })
+      .onConflictDoUpdate({
+        target: [billingPlanQuotas.orgId, billingPlanQuotas.metric],
+        targetWhere: sql`${billingPlanQuotas.orgId} IS NOT NULL`,
+        set: { limit: input.limit, unit: input.unit },
+      })
+      .returning();
     return row;
   }
 

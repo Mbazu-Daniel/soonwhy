@@ -1,6 +1,7 @@
 import type { CorrelatedBottleneck } from "./detection.correlation";
 import type { DetectionEvidence } from "../../../common/db/schema/findings";
 import type { RcaEvidence, RcaEvidenceItem } from "./rca.types";
+import type { RankingResult } from "./root-cause/root-cause.types";
 import { sanitizeRcaContext, sanitizeRcaValue } from "./rca.security";
 
 function toItem(
@@ -36,6 +37,7 @@ function collect(
 export function buildRcaEvidence(
   projectId: string,
   bottleneck: CorrelatedBottleneck,
+  rankingResult?: RankingResult,
 ): RcaEvidence {
   const primaryFinding = toItem(
     bottleneck.latency.id,
@@ -118,5 +120,9 @@ export function buildRcaEvidence(
     supportingFindings,
     traces,
     recommendations,
+    rankedCandidates: rankingResult?.candidates,
+    rankingWeights: rankingResult?.weights,
+    evidenceCoverage: rankingResult?.overallEvidenceCoverage,
+    rankingLimitations: rankingResult?.limitations,
   };
 }

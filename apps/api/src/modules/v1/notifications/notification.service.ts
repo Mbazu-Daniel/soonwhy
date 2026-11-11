@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "../../../common/db";
 import {
@@ -8,13 +8,8 @@ import {
   notificationLogs,
   incidentTimelineEvents,
   incidentOwnership,
-  type NotificationChannelType,
-  type AlertRuleSeverity,
+  type AlertRuleStatus,
 } from "../../../common/db/schema";
-import type { AlertRuleCondition } from "./alert-engine/alert-rule-conditions";
-import { EmailChannel } from "./channels/email.channel";
-import { SlackChannel } from "./channels/slack.channel";
-import { WebhookChannel } from "./channels/webhook.channel";
 import {
   toChannelDto,
   toAlertRuleDto,
@@ -29,58 +24,33 @@ import {
   type NotificationChannelDto,
   type WebhookEndpointDto,
 } from "./dto/notification.dto";
+import {
+  NotificationDispatcher,
+  type DispatchInput,
+  type DispatchResult,
+} from "./notification-dispatcher";
+export type { DispatchInput, DispatchResult } from "./notification-dispatcher";
 
 type ChannelRecord = typeof notificationChannels.$inferSelect;
 
-type DispatchInput = {
-  orgId: string;
-  projectId: string;
-  incidentId: string;
-  severity: AlertRuleSeverity;
-  title: string;
-  body: string;
-  htmlBody?: string;
-  metadata?: Record<string, string>;
-};
+const ALERT_RULE_STATUSES = new Set<AlertRuleStatus>(["active", "disabled"]);
 
-type DispatchResult = { sent: number; failed: number; results: { channelId: string; channelType: string; ok: boolean; error?: string }[] };
+function assertAlertRuleInput(input: { status?: string | null }) {
+  if (
+    input.status !== undefined &&
+    input.status !== null &&
+    !ALERT_RULE_STATUSES.has(input.status as AlertRuleStatus)
+  ) {
+    throw new BadRequestException(
+      `Invalid alert rule status: ${String(input.status)} (expected active | disabled)`,
+    );
+  }
+}
 
-type ChannelInput = {
-  to: string[];
-  subject: string;
-  body: string;
-  htmlBody?: string;
-  metadata?: Record<string, string>;
-  url?: string;
-  secret?: string;
-  eventType?: string;
-  botToken?: string;
-  channelId?: string;
-};
-
-type DeliveryLog = {
-  orgId: string;
-  projectId: string;
-  channel: ChannelRecord;
-  incidentId: string | undefined;
-  alertRuleId: string | undefined;
-  result: { ok: boolean; providerMessageId?: string; error?: string };
-  payload: Record<string, string>;
-};
 
 @Injectable()
 export class NotificationService {
-  private readonly channels = new Map<NotificationChannelType, EmailChannel | SlackChannel | WebhookChannel>();
-
-  constructor(
-    private readonly emailChannel: EmailChannel,
-    private readonly slackChannel: SlackChannel,
-    private readonly webhookChannel: WebhookChannel,
-  ) {
-    this.channels.set("email", this.emailChannel);
-    this.channels.set("slack", this.slackChannel);
-    this.channels.set("webhook", this.webhookChannel);
-  }
+  constructor(private readonly dispatcher: NotificationDispatcher) {}
 
   async listChannels(
     orgId: string,
@@ -217,6 +187,7 @@ export class NotificationService {
       "id" | "orgId" | "projectId" | "createdAt" | "updatedAt"
     >,
   ): Promise<AlertRuleDto> {
+    assertAlertRuleInput(input);
     const [row] = await db
       .insert(alertRules)
       .values({
@@ -251,6 +222,7 @@ export class NotificationService {
       >
     >,
   ): Promise<AlertRuleDto> {
+    assertAlertRuleInput(input);
     const [row] = await db
       .update(alertRules)
       .set({ ...input, updatedAt: new Date() })
@@ -328,6 +300,7 @@ export class NotificationService {
       "id" | "orgId" | "projectId" | "createdAt" | "updatedAt"
     >,
   ): Promise<AlertRuleDto> {
+    assertAlertRuleInput(input);
     const [row] = await db
       .insert(alertRules)
       .values({
@@ -361,6 +334,7 @@ export class NotificationService {
       >
     >,
   ): Promise<AlertRuleDto> {
+    assertAlertRuleInput(input);
     const [row] = await db
       .update(alertRules)
       .set({ ...input, updatedAt: new Date() })
@@ -474,140 +448,6 @@ export class NotificationService {
       );
   }
 
-  async dispatchAlert(input: DispatchInput): Promise<DispatchResult> {
-    const { orgId, projectId, incidentId, severity, title, body, htmlBody, metadata } = input;
-
-    const rules = await db
-      .select()
-      .from(alertRules)
-      .where(
-        and(
-          eq(alertRules.orgId, orgId),
-          eq(alertRules.projectId, projectId),
-          eq(alertRules.status, "active"),
-        ),
-      );
-
-    const severityRank = rank(severity);
-    const applicableRules = rules.filter(
-      (rule) => rank(rule.minSeverity) <= severityRank,
-    );
-
-    const results: { channelId: string; channelType: string; ok: boolean; error?: string }[] = [];
-    let sent = 0;
-    let failed = 0;
-
-    const channelIds = new Set<string>();
-    for (const rule of applicableRules) {
-      for (const cid of rule.channelIds ?? []) channelIds.add(cid);
-    }
-
-    if (channelIds.size === 0) {
-      return { sent: 0, failed: 0, results: [] };
-    }
-
-    const channels = await db
-      .select()
-      .from(notificationChannels)
-      .where(
-        and(
-          eq(notificationChannels.orgId, orgId),
-          eq(notificationChannels.projectId, projectId),
-          eq(notificationChannels.isActive, true),
-        ),
-      );
-
-    const channelMap = new Map<string, ChannelRecord>();
-    for (const ch of channels) channelMap.set(ch.id, ch);
-
-    for (const channelId of channelIds) {
-      const channel = channelMap.get(channelId);
-      if (!channel) continue;
-
-      const ruleId = ruleForChannel(applicableRules, channelId);
-      const result = await this.sendToChannel(channel, {
-        to: channel.recipientEmails ?? [],
-        subject: title,
-        body,
-        htmlBody,
-        metadata: { incidentId, severity, ...metadata },
-        ...(channel.type === "webhook"
-          ? {
-              url: channel.webhookUrl!,
-              secret: channel.webhookSecret ?? undefined,
-              eventType: "alert.triggered",
-            }
-          : {}),
-        ...(channel.type === "slack"
-          ? {
-              botToken: channel.slackAccessToken ?? undefined,
-              channelId:
-                channel.slackChannelId || channel.slackUserId || undefined,
-            }
-          : {}),
-      });
-
-      await this.logDelivery({
-        orgId,
-        projectId,
-        channel,
-        incidentId,
-        alertRuleId: ruleId,
-        result,
-        payload: {
-          subject: title,
-          body,
-          htmlBody: htmlBody ?? "",
-          ...metadata,
-        },
-      });
-
-      if (result.ok) sent++;
-      else failed++;
-
-      results.push({ channelId, channelType: channel.type, ...result });
-    }
-
-    await this.createTimelineEvent(
-      orgId,
-      projectId,
-      incidentId,
-      "notification_sent",
-      "Soonwhy",
-      `Alert dispatched to ${results.length} channel(s)`,
-    );
-
-    return { sent, failed, results };
-  }
-
-  async createTimelineEvent(
-    orgId: string,
-    projectId: string,
-    incidentId: string,
-    type:
-      | "created"
-      | "updated"
-      | "resolved"
-      | "reopened"
-      | "assigned"
-      | "unassigned"
-      | "comment"
-      | "notification_sent"
-      | "severity_changed",
-    actorName: string,
-    message: string,
-    metadata?: Record<string, string>,
-  ) {
-    await db.insert(incidentTimelineEvents).values({
-      orgId,
-      projectId,
-      incidentId,
-      type,
-      actorName,
-      message,
-      metadata: metadata ?? null,
-    });
-  }
 
   async listTimelineEvents(
     orgId: string,
@@ -689,86 +529,15 @@ export class NotificationService {
       );
     return row ? toOwnershipDto(row) : undefined;
   }
-
-  private async sendToChannel(
-    channel: ChannelRecord,
-    input: ChannelInput,
-  ) {
-    const adapter = this.channels.get(channel.type);
-    if (!adapter)
-      return { ok: false, error: `Unknown channel type: ${channel.type}` };
-
-    if (channel.type === "email") {
-      return (adapter as EmailChannel).send({
-        to: input.to,
-        subject: input.subject,
-        body: input.body,
-        htmlBody: input.htmlBody,
-        metadata: input.metadata,
-      });
-    }
-
-    if (channel.type === "slack") {
-      return (adapter as SlackChannel).sendTo(input.botToken!, input.channelId!, {
-        to: input.to,
-        subject: input.subject,
-        body: input.body,
-        htmlBody: input.htmlBody,
-        metadata: input.metadata,
-      });
-    }
-
-    if (channel.type === "webhook") {
-      return adapter.send({
-        ...input,
-        url: input.url!,
-        secret: input.secret,
-        eventType: input.eventType,
-        to: input.to,
-        subject: input.subject,
-        body: input.body,
-        htmlBody: input.htmlBody,
-        metadata: input.metadata,
-      });
-    }
-
-    return { ok: false, error: `Unsupported channel type: ${channel.type}` };
+  async dispatchAlert(input: DispatchInput): Promise<DispatchResult> {
+    return this.dispatcher.dispatchAlert(input);
   }
 
-  private async logDelivery(input: DeliveryLog) {
-    await db.insert(notificationLogs).values({
-      orgId: input.orgId,
-      projectId: input.projectId,
-      channelId: input.channel.id,
-      channelType: input.channel.type,
-      incidentId: input.incidentId,
-      alertRuleId: input.alertRuleId,
-      status: input.result.ok ? "sent" : "failed",
-      providerMessageId: input.result.providerMessageId ?? null,
-      error: input.result.error ?? null,
-      payload: input.payload,
-    });
+  async retryFailedNotifications(): Promise<{
+    processed: number;
+    succeeded: number;
+    permanentlyFailed: number;
+  }> {
+    return this.dispatcher.retryFailedNotifications();
   }
-}
-
-function rank(severity: AlertRuleSeverity): number {
-  switch (severity) {
-    case "critical":
-      return 4;
-    case "high":
-      return 3;
-    case "medium":
-      return 2;
-    case "low":
-      return 1;
-    default:
-      return 0;
-  }
-}
-
-function ruleForChannel(rules: { channelIds: string[] | null; id: string }[], channelId: string): string | undefined {
-  for (const rule of rules) {
-    if (rule.channelIds && rule.channelIds.includes(channelId)) return rule.id;
-  }
-  return undefined;
 }

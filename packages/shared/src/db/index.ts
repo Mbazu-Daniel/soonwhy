@@ -1,6 +1,5 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { Inject } from "@nestjs/common";
 import * as schema from "./schema";
 
 export const DB = Symbol("DB");
@@ -18,4 +17,3 @@ export function createDb(databaseUrl = process.env.DATABASE_URL!): Db {
 }
 
 export { schema };
-export { Inject };

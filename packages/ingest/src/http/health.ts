@@ -3,7 +3,7 @@ import { NatsService } from "@soonwhy/shared";
 import { IngestConcurrency } from "../pipeline/concurrency";
 import { IngestStats } from "../pipeline/stats";
 
-@Controller("health")
+@Controller("api/health")
 export class HealthController {
   constructor(
     private readonly nats: NatsService,
@@ -13,7 +13,7 @@ export class HealthController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  status() {
+  async status() {
     const ready = this.nats.isReady();
     return {
       status: ready ? "ok" : "degraded",
@@ -24,6 +24,17 @@ export class HealthController {
       },
       capacity: this.concurrency.snapshot(),
       stats: this.stats.snapshot(),
+      consumers: ready ? await this.nats.consumerSnapshot() : [],
+    };
+  }
+
+  @Get("stats")
+  @HttpCode(HttpStatus.OK)
+  async statsSnapshot() {
+    return {
+      stats: this.stats.snapshot(),
+      capacity: this.concurrency.snapshot(),
+      consumers: this.nats.isReady() ? await this.nats.consumerSnapshot() : [],
     };
   }
 }

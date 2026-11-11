@@ -15,6 +15,7 @@ export interface EndpointPerformanceStat {
 export function evaluateEndpointPerformance(
   current: EndpointPerformanceStat,
   baseline?: EndpointPerformanceStat,
+  thresholds: Record<string, number | undefined> = {},
 ): PerformanceFinding | null {
   return evaluatePerformance({
     serviceName: current.serviceName,
@@ -27,5 +28,5 @@ export function evaluateEndpointPerformance(
     baselineThroughputPerMinute: baseline?.throughputPerMinute,
     errorRate: current.errorRate,
     baselineErrorRate: baseline?.errorRate,
-  });
+  }, thresholds);
 }

@@ -13,6 +13,22 @@
       "packages/*"
     ]
   },
+  "ignorePatterns": [
+    "examples/**"
+  ],
+  "ignoreDependencies": [
+    "@nestjs/schematics"
+  ],
+  "ignoreExports": [
+    {
+      "file": "apps/api/src/modules/v1/detections/detection.engine.ts",
+      "exports": ["evaluateThroughput"]
+    },
+    {
+      "file": "apps/api/src/modules/v1/intelligence/performance.engine.ts",
+      "exports": ["evaluateThroughput"]
+    }
+  ],
   "duplicates": {
     "minOccurrences": 3
   },

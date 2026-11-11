@@ -6,6 +6,6 @@ import { SyntheticProbesRepository } from "./synthetic-probes.repository";
 @Module({
   controllers: [SyntheticProbesController],
   providers: [SyntheticProbesService, SyntheticProbesRepository],
-  exports: [SyntheticProbesService],
+  exports: [SyntheticProbesService, SyntheticProbesRepository],
 })
 export class SyntheticProbesModule {}

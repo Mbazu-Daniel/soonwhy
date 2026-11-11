@@ -5,7 +5,7 @@ import type {
   TelemetryIdentityInput,
 } from "./telemetry-identity.types";
 
-export const TELEMETRY_FINGERPRINT_VERSION = 1;
+const TELEMETRY_FINGERPRINT_VERSION = 1;
 
 export function createTelemetryIdentity(
   input: TelemetryIdentityInput,

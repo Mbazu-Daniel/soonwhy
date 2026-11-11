@@ -1,17 +1,14 @@
 import { z } from "zod";
 
-export const AlertRuleConditionTypeSchema = z.enum([
+const AlertRuleConditionTypeSchema = z.enum([
   "threshold",
   "rate",
   "anomaly",
   "expression",
   "lookup",
 ]);
-export type AlertRuleConditionType = z.infer<
-  typeof AlertRuleConditionTypeSchema
->;
 
-export const AlertRuleOperatorSchema = z.enum([
+const AlertRuleOperatorSchema = z.enum([
   "gt",
   "gte",
   "lt",
@@ -24,9 +21,8 @@ export const AlertRuleOperatorSchema = z.enum([
   "trending_up",
   "trending_down",
 ]);
-export type AlertRuleOperator = z.infer<typeof AlertRuleOperatorSchema>;
 
-export const AlertRuleAggregationSchema = z.enum([
+const AlertRuleAggregationSchema = z.enum([
   "avg",
   "max",
   "min",
@@ -34,7 +30,6 @@ export const AlertRuleAggregationSchema = z.enum([
   "rate",
   "count",
 ]);
-export type AlertRuleAggregation = z.infer<typeof AlertRuleAggregationSchema>;
 
 export const AlertRuleConditionSchema = z.object({
   type: AlertRuleConditionTypeSchema,
@@ -49,11 +44,3 @@ export const AlertRuleConditionSchema = z.object({
 });
 export type AlertRuleCondition = z.infer<typeof AlertRuleConditionSchema>;
 
-export const AlertRuleConditionGroupSchema = z.object({
-  type: z.enum(["AND", "OR", "NOT"]),
-  conditions: z.array(AlertRuleConditionSchema),
-  precedence: z.number().default(0),
-});
-export type AlertRuleConditionGroup = z.infer<
-  typeof AlertRuleConditionGroupSchema
->;

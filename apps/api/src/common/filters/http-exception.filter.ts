@@ -7,6 +7,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { Response } from "express";
+import { maskPii } from "../privacy/pii-masker";
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -32,6 +33,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         body.detail = exResponse;
       } else if (typeof exResponse === "object") {
         body = { ...body, ...exResponse, status };
+        // Object-form exceptions (e.g. ForbiddenException) commonly carry a
+        // `message`; without this, the client saw the opaque default detail.
+        if (
+          !("detail" in exResponse) &&
+          typeof (exResponse as { message?: unknown }).message === "string"
+        ) {
+          body.detail = (exResponse as { message: string }).message;
+        }
       }
     } else if (isApiError(exception)) {
       status = exception.statusCode;
@@ -40,13 +49,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       body.detail = exception.body?.message ?? exception.message;
     } else if (exception instanceof Error) {
       this.logger.error(
-        `Unhandled error: ${exception.message}`,
-        exception.stack,
+        `Unhandled error: ${maskPii(exception.message)}`,
+        exception.stack ? maskPii(exception.stack) : undefined,
       );
       body.detail =
         process.env.NODE_ENV === "production"
           ? "An unexpected error occurred"
-          : exception.message;
+          : maskPii(exception.message);
     }
 
     response.status(status).json(body);

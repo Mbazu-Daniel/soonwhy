@@ -2,11 +2,11 @@ import { QueryErrorState } from '~/components/query-error-state';
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { telemetryRangeParams } from '~/components/telemetry/time-range-control';
+import { telemetryRangeParams, TELEMETRY_RANGES, type TelemetryRange } from '~/components/telemetry/time-range-control';
 import { Input } from '~/components/ui/input';
 import { Button } from '~/components/ui/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '~/components/ui/select';
-import { ChevronDown, ChevronRight, Download, RotateCcw } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock3, Search } from 'lucide-react';
 import { api } from '~/lib/api';
 import { useProject } from '~/lib/project-context';
 import { Badge } from '~/components/ui/badge';
@@ -62,75 +62,97 @@ function parseAttributes(attributes: LogEntry['attributes']) {
   return attributes ?? {};
 }
 
+const REQUEST_LINE = /^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+(\S+)(?:\s+(\d{3}))?$/;
+
+function parseRequestMessage(log: LogEntry) {
+  if (log.method || log.endpoint) return null;
+  const match = REQUEST_LINE.exec(log.message.trim());
+  if (!match) return null;
+  return { method: match[1], endpoint: match[2], status: match[3] };
+}
+
 function LogRow({ log }: { log: LogEntry }) {
   const [expanded, setExpanded] = useState(false);
   const fields = parseAttributes(log.attributes);
   const expandable = Object.keys(fields).length > 0;
-  const statusClass = statusBadgeClass(log.status);
+  const request = parseRequestMessage(log);
+  const method = log.method ?? request?.method;
+  const endpoint = log.endpoint ?? request?.endpoint;
+  const status = log.status ?? request?.status;
+  const hasRequest = Boolean(method || endpoint || status || log.duration);
 
   return (
     <>
-      <tr className="border-b border-[#242426] last:border-0 hover:bg-[#151517]/50 transition-colors">
-        <td className="p-3 whitespace-nowrap text-left">
+      <tr
+        onClick={expandable ? () => setExpanded(!expanded) : undefined}
+        className={`border-b border-[#242426] last:border-0 transition-colors ${expandable ? 'cursor-pointer hover:bg-[#151517]/50' : ''}`}
+      >
+        <td className="p-3 pr-2 w-6 text-center align-middle">
+          {expandable ? (
+            expanded ? <ChevronDown className="h-3.5 w-3.5 text-[#989898]" /> : <ChevronRight className="h-3.5 w-3.5 text-[#6E6E70]" />
+          ) : null}
+        </td>
+        <td className="p-3 py-2 pl-0 whitespace-nowrap text-left">
           <time className="font-mono text-[11px] text-[#989898]">
-            {new Date(log.timestamp).toLocaleString()}
+            {new Date(log.timestamp).toLocaleTimeString()}
           </time>
         </td>
-        <td className="p-3 whitespace-nowrap text-left">
-          <Badge variant="outline" className={`w-20 shrink-0 text-[10px] uppercase ${LEVEL_TREATMENT[log.level] ?? LEVEL_TREATMENT.debug}`}>
+        <td className="p-3 py-2 whitespace-nowrap text-left">
+          <Badge variant="outline" className={`w-16 shrink-0 justify-center text-[10px] uppercase ${LEVEL_TREATMENT[log.level] ?? LEVEL_TREATMENT.debug}`}>
             {log.level}
           </Badge>
         </td>
-        <td className="p-3 whitespace-nowrap text-left truncate">
-          <span className="w-32 shrink-0 text-xs font-medium text-[#ACFC15]">{log.service}</span>
+        <td className="p-3 py-2 whitespace-nowrap text-left">
+          <span className="text-xs font-medium text-[#ACFC15]">{log.service}</span>
         </td>
-        <td className="p-3 whitespace-nowrap text-left truncate">
-          <span className="text-xs font-mono text-[#6E6E70]">{log.method}</span>
+        <td className="p-3 py-2 text-left min-w-0 max-w-0">
+          {request ? (
+            <span className="block truncate font-mono text-xs">
+              <span className="text-[#ACFC15]">{request.method}</span>{' '}
+              <span>{request.endpoint}</span>
+              {request.status && <span className="text-[#989898]"> {request.status}</span>}
+            </span>
+          ) : (
+            <span className="block truncate text-sm">{log.message}</span>
+          )}
         </td>
-        <td className="p-3 whitespace-nowrap text-left truncate">
-          <span className="text-xs font-mono text-[#6E6E70]">{log.endpoint}</span>
-        </td>
-        <td className="p-3 whitespace-nowrap text-left truncate">
-          <Badge variant="outline" className={`w-16 shrink-0 text-[10px] uppercase ${statusClass}`}>
-            {log.status ?? '-'}
-          </Badge>
-        </td>
-        <td className="p-3 whitespace-nowrap text-left truncate">
-          <span className="text-xs font-mono text-[#6E6E70]">{log.duration ?? '-'}</span>
-        </td>
-        <td className="p-3 text-right">
-          {expandable ? (
-            <button
-              type="button"
-              aria-expanded={expanded}
-              onClick={() => setExpanded(!expanded)}
-              className="h-3.5 w-3.5 shrink-0"
-            >
-              {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-            </button>
+        <td className="p-3 py-2 whitespace-nowrap text-right">
+          {status ? (
+            <Badge variant="outline" className={`w-12 shrink-0 justify-center text-[10px] ${statusBadgeClass(status)}`}>
+              {status}
+            </Badge>
+          ) : log.duration ? (
+            <span className="font-mono text-[11px] text-[#6E6E70]">{log.duration}ms</span>
           ) : null}
         </td>
       </tr>
-      {expandable && (
-        <tr className="border-b border-[#242426] last:border-0">
-          <td colSpan={8} className="p-3 bg-[#151517]">
+      {expanded && (
+        <tr className="border-b border-[#242426] last:border-0 bg-[#151517]">
+          <td colSpan={6} className="p-3 pl-10">
+            {hasRequest && (
+              <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px] text-[#989898]">
+                {method && <span>{method}</span>}
+                {endpoint && <span>{endpoint}</span>}
+                {status && <span>status {status}</span>}
+                {log.duration && <span>{log.duration}ms</span>}
+              </div>
+            )}
             <pre className="overflow-x-auto rounded border border-[#242426] bg-[#0B0B0C] p-3 text-xs leading-5">
               {JSON.stringify(fields, null, 2)}
             </pre>
+            <button
+              type="button"
+              onClick={() => setExpanded(false)}
+              className="mt-2 text-xs text-[#989898] underline-offset-2 hover:text-[#F6F6F6] hover:underline"
+            >
+              Collapse
+            </button>
           </td>
         </tr>
       )}
     </>
   );
 }
-
-const RANGE_MS: Record<string, number> = {
-  '15m': 15 * 60_000,
-  '1h': 60 * 60_000,
-  '6h': 6 * 60 * 60_000,
-  '24h': 24 * 60 * 60_000,
-  '7d': 7 * 24 * 60 * 60_000,
-};
 
 function EmptyProject() {
   return (
@@ -143,13 +165,28 @@ function EmptyProject() {
   );
 }
 
+type LogRange = TelemetryRange | 'custom' | 'all';
+
 function LogViewer() {
   const { projectId } = useProject();
-  const [range, setRange] = useState('24h');
-  const { from, to } = telemetryRangeParams(range as '1h' | '6h' | '24h' | '7d');
+  const [range, setRange] = useState<LogRange>('24h');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
+
+  const { from, to } = (() => {
+    if (range === 'all') return { from: new Date(0).toISOString(), to: new Date().toISOString() };
+    if (range === 'custom') {
+      const fallbackFrom = new Date(Date.now() - 60 * 60 * 1000);
+      return {
+        from: customFrom ? new Date(customFrom).toISOString() : fallbackFrom.toISOString(),
+        to: customTo ? new Date(customTo).toISOString() : new Date().toISOString(),
+      };
+    }
+    return telemetryRangeParams(range);
+  })();
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['logs', projectId, range],
+    queryKey: ['logs', projectId, range, customFrom, customTo],
     queryFn: () =>
       api.get<{ data: LogEntry[]; nextCursor?: string }>(`/projects/${projectId}/logs?from=${from}&to=${to}&interval=5m`),
     enabled: !!projectId,
@@ -172,10 +209,6 @@ function LogViewer() {
   );
   const serviceOptions = services;
 
-  const initialService = useMemo(() => {
-    return Array.from(new Set(allLogs.map((log) => log.service).filter(Boolean))).sort();
-  }, [allLogs]);
-
   const filteredLogs = useMemo(() => {
     return allLogs.filter((log) => {
       const matchesSearch =
@@ -188,71 +221,80 @@ function LogViewer() {
     });
   }, [allLogs, search, levelFilter, serviceFilter]);
 
-  const reset = () => {
-    setSearch('');
-    setLevelFilter('all');
-    setServiceFilter('all');
-  };
-
-  const exportLogs = () => {
-    alert('Export functionality can be implemented');
-  };
-
   return (
     <div className="mx-auto w-full space-y-4">
-      {/* Time range and live mode */}
-      <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" onClick={() => setRange('1h')} className={`px-2 ${range === '1h' ? 'bg-[#151517] text-[#ACFC15]' : 'text-[#989898]'}`}>1h</Button>
-        <Button variant="outline" size="sm" onClick={() => setRange('6h')} className={`px-2 ${range === '6h' ? 'bg-[#151517] text-[#ACFC15]' : 'text-[#989898]'}`}>6h</Button>
-        <Button variant="outline" size="sm" onClick={() => setRange('24h')} className={`px-2 ${range === '24h' ? 'bg-[#151517] text-[#ACFC15]' : 'text-[#989898]'}`}>24h</Button>
-        <Button variant="outline" size="sm" onClick={() => setRange('7d')} className={`px-2 ${range === '7d' ? 'bg-[#151517] text-[#ACFC15]' : 'text-[#989898]'}`}>7d</Button>
-        <Button variant="outline" size="sm" className="px-2">Live mode</Button>
-        <Button variant="outline" size="sm" onClick={exportLogs} disabled={!filteredLogs.length} className="px-2">
-          <Download className="mr-2 h-4 w-4" /> Export
-        </Button>
-      </div>
-
-      {/* Search and filters in one line */}
-      <div className="flex items-center border border-[#242426] rounded-lg bg-[#0B0B0C] overflow-hidden">
-        <div className="flex items-center gap-2 px-3 flex-1 min-w-0">
-          <span className="text-xs text-[#989898] flex-shrink-0">🔍</span>
+      {/* Toolbar: search on the left, time + filters + actions on the right */}
+      <div className="flex items-center gap-2 border border-[#242426] rounded-lg bg-[#0B0B0C] px-2 py-1">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <Search className="h-4 w-4 flex-shrink-0 text-[#989898]" />
           <Input
             aria-label="Search logs"
             placeholder="Search message, service, or attributes"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-9 border-none bg-transparent focus:ring-0 placeholder-[#6E6E70] px-0"
+            className="h-9 flex-1 border-none bg-transparent px-0 text-sm focus:ring-0 placeholder-[#6E6E70]"
           />
         </div>
-        <div className="h-9 w-px bg-[#242426]" />
-        <Select value={levelFilter} onValueChange={setLevelFilter}>
-          <SelectTrigger className="h-9 w-[110px] border-none rounded-none bg-transparent text-xs">
-            <SelectValue className="text-xs" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All levels</SelectItem>
-            <SelectItem value="error">Error</SelectItem>
-            <SelectItem value="warn">Warn</SelectItem>
-            <SelectItem value="info">Info</SelectItem>
-            <SelectItem value="debug">Debug</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="h-9 w-px bg-[#242426]" />
-        <Select value={serviceFilter} onValueChange={setServiceFilter}>
-          <SelectTrigger className="h-9 w-[140px] border-none rounded-none bg-transparent text-xs">
-            <SelectValue className="text-xs" placeholder="All services" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All services</SelectItem>
-            {serviceOptions.map((service: string) => (
-              <SelectItem key={service} value={service}>{service}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <div className="h-9 w-px bg-[#242426]" />
-        <Button variant="ghost" size="icon" onClick={reset} className="h-9 w-9 rounded-none text-[#989898] hover:text-[#F6F6F6]">
-          <RotateCcw className="h-3.5 w-3.5" />
-        </Button>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {range === 'custom' && (
+            <>
+              <Input
+                aria-label="Custom start time"
+                type="datetime-local"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                className="h-9 w-[180px] border-[#242426] bg-[#151517] px-2 text-xs"
+              />
+              <span className="text-xs text-[#6E6E70]">to</span>
+              <Input
+                aria-label="Custom end time"
+                type="datetime-local"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+                className="h-9 w-[180px] border-[#242426] bg-[#151517] px-2 text-xs"
+              />
+            </>
+          )}
+          <Select value={range} onValueChange={(v) => setRange(v as LogRange)}>
+            <SelectTrigger className="h-9 w-[110px] rounded-md border-[#242426] bg-[#151517] px-2 text-xs text-[#ACFC15]">
+              <Clock3 className="mr-1 h-3.5 w-3.5 text-[#989898]" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TELEMETRY_RANGES.map((item) => (
+                <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+              ))}
+              <SelectItem value="custom">Custom</SelectItem>
+              <SelectItem value="all">All time</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="mx-1 h-9 w-px bg-[#242426]" />
+          <Select value={levelFilter} onValueChange={setLevelFilter}>
+            <SelectTrigger className="h-9 w-[110px] rounded-md border-[#242426] bg-[#151517] px-2 text-xs">
+              <SelectValue className="text-xs" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All levels</SelectItem>
+              <SelectItem value="error">Error</SelectItem>
+              <SelectItem value="warn">Warn</SelectItem>
+              <SelectItem value="info">Info</SelectItem>
+              <SelectItem value="debug">Debug</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={serviceFilter} onValueChange={setServiceFilter}>
+            <SelectTrigger className="h-9 w-[140px] rounded-md border-[#242426] bg-[#151517] px-2 text-xs">
+              <SelectValue className="text-xs" placeholder="All services" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All services</SelectItem>
+              {serviceOptions.map((service: string) => (
+                <SelectItem key={service} value={service}>{service}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="mx-1 h-9 w-px bg-[#242426]" />
+          <Button variant="outline" size="sm" className="h-9 px-2 text-xs">Live mode</Button>
+        </div>
       </div>
 
       {/* Results count */}
@@ -266,14 +308,12 @@ function LogViewer() {
         <table className="w-full text-sm text-left text-[#F6F6F6] rtl:rtl-normal">
           <thead className="text-xs text-[#989898] border-b border-[#242426] bg-[#0B0B0C] sticky top-0 z-10">
             <tr className="h-10">
-              <th className="p-3 text-left">TIME</th>
+              <th className="w-6 p-3"></th>
+              <th className="p-3 pl-0 text-left">TIME</th>
               <th className="p-3 text-left">LEVEL</th>
               <th className="p-3 text-left">SERVICE</th>
-              <th className="p-3 text-left">METHOD</th>
-              <th className="p-3 text-left">ENDPOINT</th>
-              <th className="p-3 text-left">STATUS</th>
-              <th className="p-3 text-left">DURATION</th>
-              <th className="p-3 text-right"></th>
+              <th className="p-3 text-left">MESSAGE</th>
+              <th className="p-3 text-right">STATUS</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#242426]">
@@ -281,17 +321,13 @@ function LogViewer() {
               filteredLogs.map((log) => <LogRow key={log.id} log={log} />)
             ) : (
               <tr>
-                <td colSpan={8} className="p-8 text-center text-[#6E6E70]">
+                <td colSpan={6} className="p-8 text-center text-[#6E6E70]">
                   No logs match this query. Try a broader search or remove one of the filters.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
-      </div>
-
-      <div className="text-xs text-[#6E6E70] whitespace-nowrap">
-        {filteredLogs.length.toLocaleString()} loaded events · Current result set · filters apply to the query
       </div>
     </div>
   );

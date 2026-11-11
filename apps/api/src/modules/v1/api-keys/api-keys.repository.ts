@@ -45,10 +45,14 @@ export class ApiKeysRepository {
     );
   }
 
-  async getApiKeyByHash(keyHash: string) {
-    return db.query.apiKeys.findFirst({
-      where: eq(apiKeys.keyHash, keyHash),
-    });
+  async getApiKeyWithProjectByHash(keyHash: string) {
+    const [result] = await db
+      .select({ apiKey: apiKeys, organizationId: projects.organizationId })
+      .from(apiKeys)
+      .innerJoin(projects, eq(apiKeys.projectId, projects.id))
+      .where(eq(apiKeys.keyHash, keyHash))
+      .limit(1);
+    return result;
   }
 
   async createApiKey(data: {

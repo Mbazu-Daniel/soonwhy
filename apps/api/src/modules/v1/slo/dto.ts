@@ -25,21 +25,3 @@ export interface SLOMetrics {
   /** Last updated timestamp */
   lastUpdated: Date;
 }
-
-export interface SLOWindow {
-  start: Date;
-  end: Date;
-  targetErrorRate: number;
-  actualErrorRate: number;
-  errorCount: number;
-  totalRequests: number;
-}
-
-export interface QueryErrorCountInput {
-  orgId: string;
-  projectId: string;
-  from: string;
-  to: string;
-  interval?: string;
-  service?: string;
-}

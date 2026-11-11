@@ -8,6 +8,7 @@ export class WeeklySummaryCron {
   private readonly logger = new Logger(WeeklySummaryCron.name);
   private readonly backendUrl =
     process.env.BACKEND_URL || "http://localhost:3001";
+  private readonly internalToken = process.env.INTERNAL_CRON_SECRET;
 
   constructor(private readonly http: HttpService) {}
 
@@ -26,6 +27,11 @@ export class WeeklySummaryCron {
       generatedAt: now.toISOString(),
     };
 
+    if (!this.internalToken) {
+      this.logger.error("INTERNAL_CRON_SECRET is not configured");
+      return summary;
+    }
+
     try {
       await firstValueFrom(
         this.http.post(
@@ -35,6 +41,7 @@ export class WeeklySummaryCron {
             to: now.toISOString(),
             summary,
           },
+          { headers: { "x-internal-token": this.internalToken } },
         ),
       );
     } catch (error: unknown) {

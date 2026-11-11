@@ -34,20 +34,41 @@ export interface PerformanceSignal {
   cpuUtilization?: number;
 }
 
-const MIN_SAMPLES = 20;
-const WARNING_P95_MS = 500;
-const CRITICAL_P95_MS = 1_000;
-const WARNING_ERROR_RATE = 0.05;
-const CRITICAL_ERROR_RATE = 0.1;
+export type ServicePerformanceThresholds = Partial<{
+  minSamples: number;
+  warningP95Ms: number;
+  criticalP95Ms: number;
+  warningErrorRate: number;
+  criticalErrorRate: number;
+  regressionPercent: number;
+}>;
+
+const DEFAULT_MIN_SAMPLES = 20;
+const DEFAULT_WARNING_P95_MS = 500;
+const DEFAULT_CRITICAL_P95_MS = 1_000;
+const DEFAULT_WARNING_ERROR_RATE = 0.05;
+const DEFAULT_CRITICAL_ERROR_RATE = 0.1;
 const WARNING_CPU = 0.8;
 const CRITICAL_CPU = 0.95;
-const REGRESSION_PERCENT = 50;
+const DEFAULT_REGRESSION_PERCENT = 50;
+
+function finite(value: number | undefined, fallback: number): number {
+  return value !== undefined && Number.isFinite(value) ? value : fallback;
+}
 
 export function evaluateServicePerformance(
   current: PerformanceWindow,
   baseline?: PerformanceBaseline,
+  thresholds: ServicePerformanceThresholds = {},
 ): PerformanceSignal | undefined {
-  if (current.sampleCount < MIN_SAMPLES) return undefined;
+  const minSamples = finite(thresholds.minSamples, DEFAULT_MIN_SAMPLES);
+  const warningP95Ms = finite(thresholds.warningP95Ms, DEFAULT_WARNING_P95_MS);
+  const criticalP95Ms = finite(thresholds.criticalP95Ms, DEFAULT_CRITICAL_P95_MS);
+  const warningErrorRate = finite(thresholds.warningErrorRate, DEFAULT_WARNING_ERROR_RATE);
+  const criticalErrorRate = finite(thresholds.criticalErrorRate, DEFAULT_CRITICAL_ERROR_RATE);
+  const regressionPercent = finite(thresholds.regressionPercent, DEFAULT_REGRESSION_PERCENT);
+
+  if (current.sampleCount < minSamples) return undefined;
 
   const reasons: string[] = [];
   const p95ChangePercent = baseline
@@ -57,13 +78,13 @@ export function evaluateServicePerformance(
     ? percentChange(current.p99, baseline.p99)
     : undefined;
 
-  if (current.p95 >= WARNING_P95_MS) reasons.push("p95 latency is elevated");
-  if (current.p95 >= CRITICAL_P95_MS) reasons.push("p95 latency is critical");
-  if (p95ChangePercent !== undefined && p95ChangePercent >= REGRESSION_PERCENT)
+  if (current.p95 >= warningP95Ms) reasons.push("p95 latency is elevated");
+  if (current.p95 >= criticalP95Ms) reasons.push("p95 latency is critical");
+  if (p95ChangePercent !== undefined && p95ChangePercent >= regressionPercent)
     reasons.push("p95 latency regressed against baseline");
-  if (current.errorRate >= WARNING_ERROR_RATE)
+  if (current.errorRate >= warningErrorRate)
     reasons.push("error rate is elevated");
-  if (current.errorRate >= CRITICAL_ERROR_RATE)
+  if (current.errorRate >= criticalErrorRate)
     reasons.push("error rate is critical");
   if (
     current.cpuUtilization !== undefined &&
@@ -78,8 +99,8 @@ export function evaluateServicePerformance(
   if (reasons.length === 0) return undefined;
 
   const critical =
-    current.p95 >= CRITICAL_P95_MS ||
-    current.errorRate >= CRITICAL_ERROR_RATE ||
+    current.p95 >= criticalP95Ms ||
+    current.errorRate >= criticalErrorRate ||
     (current.cpuUtilization ?? 0) >= CRITICAL_CPU;
 
   return {

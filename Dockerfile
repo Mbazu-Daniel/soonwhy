@@ -16,8 +16,8 @@ COPY apps ./apps
 COPY packages ./packages
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @soonwhy/shared build \
- && pnpm --filter @soonwhy/backend build \
  && pnpm --filter @soonwhy/ingest build \
+ && pnpm --filter @soonwhy/backend build \
  && pnpm --filter @soonwhy/cron build \
  && pnpm --filter @soonwhy/frontend build
 RUN pnpm --filter @soonwhy/backend deploy --legacy /out/api \

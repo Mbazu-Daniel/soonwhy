@@ -31,7 +31,7 @@ export function CreateProjectDialog({ open, onOpenChange }: { open: boolean; onO
       setError('');
       onOpenChange(false);
       if (orgSlug) {
-        void navigate({ to: '/$organizationSlug/p/$projectSlug/', params: { organizationSlug: orgSlug, projectSlug: project.slug } });
+        void navigate({ to: '/$organizationSlug/p/$projectSlug', params: { organizationSlug: orgSlug, projectSlug: project.slug } });
       }
     },
     onError: (err: Error) => setError(err.message),

@@ -32,8 +32,23 @@ export interface EvidenceBundle {
   window: EvidenceWindow;
 }
 
+export interface EvidenceCitation {
+  observationId: string;
+  confidence: number; // 0-1
+  relevance: "high" | "medium" | "low";
+}
+
+export interface CorrelationLink {
+  relatedIdentity: TelemetryIdentity;
+  linkType: "causes" | "caused_by" | "correlated_with" | "same_trace" | "same_deployment";
+  strength: number; // 0-1
+}
+
 export interface IssueCandidate {
   identity: TelemetryIdentity;
   evidence: EvidenceBundle;
+  citations: EvidenceCitation[];
+  correlations: CorrelationLink[];
+  confidence: number; // 0-1
   status: "candidate" | "confirmed";
 }

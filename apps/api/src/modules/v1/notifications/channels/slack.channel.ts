@@ -1,26 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { SlackService } from "../slack.service";
-import {
-  BaseChannel,
-  ChannelSendInput,
-  ChannelSendResult,
-} from "./base.channel";
-import type { NotificationChannelType } from "../../../../common/db/schema";
+import { ChannelSendInput, ChannelSendResult } from "./base.channel";
 
 @Injectable()
-export class SlackChannel extends BaseChannel {
-  readonly type: NotificationChannelType = "slack";
-
-  constructor(private readonly slack: SlackService) {
-    super();
-  }
-
-  async send(input: ChannelSendInput): Promise<ChannelSendResult> {
-    return {
-      ok: false,
-      error: "Use SlackChannel#sendTo with a target channel",
-    };
-  }
+export class SlackChannel {
+  constructor(private readonly slack: SlackService) {}
 
   async sendTo(
     botToken: string,

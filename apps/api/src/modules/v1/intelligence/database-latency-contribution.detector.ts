@@ -41,7 +41,7 @@ export interface DatabaseLatencyContributionCandidate {
   samples: DatabaseLatencyContributionTrace[];
 }
 
-export const DEFAULT_DATABASE_LATENCY_CONTRIBUTION_THRESHOLDS: DatabaseLatencyContributionThresholds =
+const DEFAULT_DATABASE_LATENCY_CONTRIBUTION_THRESHOLDS: DatabaseLatencyContributionThresholds =
   {
     minimumSamples: 10,
     minimumP95ContributionPercent: 50,

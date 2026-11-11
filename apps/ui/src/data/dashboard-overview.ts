@@ -8,21 +8,20 @@ export interface DashboardOverview {
   latencyP95: number;
   latencyP99: number;
   statusCodes: { code: number; label: string; count: number; percentage: number }[];
+  timeSeries?: { timestamp: number; count: number; normalizedHeight: number }[];
+  from?: string;
+  to?: string;
 }
 
 export const dashboardOverview: DashboardOverview = {
-  score: 86,
-  errorRate: 1.4,
-  requestRate: 12.6,
-  avgLatency: 148,
-  totalRequests: 18420,
-  latencyP50: 92,
-  latencyP95: 240,
-  latencyP99: 410,
-  statusCodes: [
-    { code: 200, label: '2xx', count: 17002, percentage: 92.3 },
-    { code: 300, label: '3xx', count: 1160, percentage: 6.3 },
-    { code: 400, label: '4xx', count: 184, percentage: 1 },
-    { code: 500, label: '5xx', count: 74, percentage: 0.4 },
-  ],
+  score: 0,
+  errorRate: 0,
+  requestRate: 0,
+  avgLatency: 0,
+  totalRequests: 0,
+  latencyP50: 0,
+  latencyP95: 0,
+  latencyP99: 0,
+  statusCodes: [],
+  timeSeries: [],
 };

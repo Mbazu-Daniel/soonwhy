@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { BillingRepository } from "./billing.repository";
+import { QuotaExceededError } from "./billing.errors";
 import { DEFAULT_USAGE_LIMITS, type BillingPlan } from "./billing.constants";
 import type { UsageMetric } from "../../../common/db/schema/billing";
 
@@ -15,36 +16,75 @@ export class BillingService {
     source: string;
     idempotencyKey?: string;
     occurredAt?: Date;
+    /** `false` records spend for visibility without letting it hit a limit. */
+    enforce?: boolean;
     metadata?: Record<string, string | number | boolean | null>;
   }) {
     if (!Number.isInteger(input.quantity) || input.quantity <= 0) {
       throw new Error("Usage quantity must be a positive integer");
     }
 
-    const limit = await this.getUsageLimit(input.orgId, input.metric);
+    const limit =
+      input.enforce === false
+        ? null
+        : await this.limitFor(input.orgId, input.metric);
     const outcome = await this.repository.recordUsageWithQuota(input, limit);
     if (outcome.quotaExceeded) {
-      throw new Error(`Usage quota exceeded for ${input.metric}`);
+      throw new QuotaExceededError(input.metric);
     }
 
     return outcome.event;
   }
 
-  private async getUsageLimit(orgId: string, metric: UsageMetric) {
+  /**
+   * The limit an organisation actually pays for. A top-up row is read first and
+   * applies with no subscription at all, because buying one is how an org on an
+   * unlisted plan still gets AI; a `null` limit on it means unlimited, not
+   * "unset", so it must not fall through to the plan default.
+   */
+  private async limitFor(orgId: string, metric: UsageMetric) {
     const subscription = await this.repository.getSubscription(orgId);
-    if (!subscription) return null;
-
-    const configuredQuota = await this.repository.getQuota(
-      subscription.subscription.planId,
+    const configured = await this.repository.getQuota(
+      orgId,
+      subscription?.subscription.planId ?? null,
       metric,
     );
-    const configuredLimit = configuredQuota?.limit ?? null;
-    const fallback = DEFAULT_USAGE_LIMITS[
-      subscription.plan.name as BillingPlan
-    ]?.find((item) => item.metric === metric);
-    return configuredLimit ?? fallback?.limit ?? null;
+    if (configured) return configured.limit;
+
+    const fallback = subscription
+      ? DEFAULT_USAGE_LIMITS[subscription.plan.name as BillingPlan]?.find(
+          (item) => item.metric === metric,
+        )
+      : undefined;
+    return fallback?.limit ?? null;
   }
 
+  /** What the organisation is capped at for a metric this month, `null` for no cap. */
+  async getLimit(orgId: string, metric: UsageMetric) {
+    return this.limitFor(orgId, metric);
+  }
+
+  /** Recording a purchase: there is no payment rail here, only the allowance it bought. */
+  async setOrgQuota(input: {
+    orgId: string;
+    metric: UsageMetric;
+    limit: number | null;
+    unit: string;
+  }) {
+    if (
+      input.limit !== null &&
+      (!Number.isInteger(input.limit) || input.limit < 0)
+    ) {
+      throw new Error("Quota limit must be a non-negative integer or null");
+    }
+    return this.repository.upsertOrgQuota(input);
+  }
+
+  /**
+   * Advisory pre-check: it reads the current total and holds nothing, so two
+   * concurrent requests can both pass. The post-spend check in `recordUsage`
+   * is what actually stops the overrun.
+   */
   async assertQuota(
     orgId: string,
     metric: UsageMetric,
@@ -55,18 +95,7 @@ export class BillingService {
       throw new Error("Additional usage must be a non-negative integer");
     }
 
-    const subscription = await this.repository.getSubscription(orgId);
-    if (!subscription) return;
-
-    const configuredQuota = await this.repository.getQuota(
-      subscription.subscription.planId,
-      metric,
-    );
-    const configuredLimit = configuredQuota?.limit ?? null;
-    const fallback = DEFAULT_USAGE_LIMITS[
-      subscription.plan.name as BillingPlan
-    ]?.find((item) => item.metric === metric);
-    const limit = configuredLimit ?? fallback?.limit ?? null;
+    const limit = await this.limitFor(orgId, metric);
     if (limit === null) return;
 
     const periodStart = startOfMonth(at);
@@ -85,7 +114,7 @@ export class BillingService {
         status: "rejected",
         metadata: { current, limit },
       });
-      throw new Error(`Usage quota exceeded for ${metric}`);
+      throw new QuotaExceededError(metric);
     }
   }
 

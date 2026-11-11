@@ -1,3 +1,9 @@
+import {
+  BadGatewayException,
+  HttpException,
+  RequestTimeoutException,
+  HttpStatus,
+} from "@nestjs/common";
 import { Agent } from "@mastra/core/agent";
 import { buildRcaPrompt, RCA_PROMPT_VERSION } from "./rca.prompt";
 import { RcaAnalysisSchema } from "./rca.validation";
@@ -6,6 +12,11 @@ import type { RcaEvidence, RcaProviderResult } from "./rca.types";
 export interface MastraRcaProviderConfig {
   apiKey: string;
   model: string;
+  /**
+   * Models.dev provider id. Omitted means the OpenAI-compatible transport,
+   * which requires `baseUrl`.
+   */
+  providerId?: string;
   baseUrl?: string;
   timeoutMs?: number;
   maxPromptCharacters?: number;
@@ -29,10 +40,13 @@ export class MastraRcaProvider {
   private readonly agent: Agent;
 
   constructor(private readonly config: MastraRcaProviderConfig) {
-    const baseUrl = (config.baseUrl ?? "https://api.openai.com/v1").replace(
-      /\/$/,
-      "",
-    );
+    const providerId = config.providerId?.trim() || "soonwhy";
+    const baseUrl = (
+      config.baseUrl ??
+      (providerId === "soonwhy" ? "https://api.openai.com/v1" : undefined)
+    )
+      ?.replace(/\/$/, "")
+      .trim();
     this.timeoutMs = config.timeoutMs ?? 30_000;
     this.maxPromptCharacters = config.maxPromptCharacters ?? 30_000;
     this.maxRetries = config.maxRetries ?? 1;
@@ -57,7 +71,7 @@ export class MastraRcaProvider {
         "RCA provider prompt size limit must be greater than zero",
       );
     }
-    this.validateBaseUrl(baseUrl);
+    if (baseUrl) this.validateBaseUrl(baseUrl);
     this.validateRate(config.inputCostPerMillionTokensUsd, "input");
     this.validateRate(config.outputCostPerMillionTokensUsd, "output");
 
@@ -66,9 +80,9 @@ export class MastraRcaProvider {
       name: "Soonwhy RCA",
       instructions: RCA_AGENT_INSTRUCTIONS,
       model: {
-        providerId: "soonwhy",
+        providerId,
         modelId: config.model,
-        url: baseUrl,
+        ...(baseUrl ? { url: baseUrl } : {}),
         apiKey: config.apiKey,
       },
     });
@@ -212,9 +226,18 @@ function statusCodeOf(error: unknown): number | undefined {
   let current: unknown = error;
 
   while (current && typeof current === "object") {
-    const statusCode = (current as { statusCode?: unknown }).statusCode;
-    if (typeof statusCode === "number") return statusCode;
-    current = (current as { cause?: unknown }).cause;
+    const candidate = current as {
+      statusCode?: unknown;
+      status?: unknown;
+      cause?: unknown;
+    };
+    // AI SDK provider errors carry `status`; HTTP-ish wrappers use `statusCode`.
+    for (const value of [candidate.statusCode, candidate.status]) {
+      if (typeof value === "number" && value >= 100 && value <= 599) {
+        return value;
+      }
+    }
+    current = candidate.cause;
   }
 
   return undefined;
@@ -228,6 +251,26 @@ class RcaProviderRequestError extends Error {
     super(message);
     this.name = "RcaProviderRequestError";
   }
+}
+
+/**
+ * Provider statuses are not Nest HTTP exceptions, so without this mapping a
+ * rate-limited or failing provider would surface as an opaque 500.
+ */
+export function toRcaHttpException(error: unknown): unknown {
+  if (!(error instanceof RcaProviderRequestError)) return error;
+  const body = {
+    code: "RCA_PROVIDER_UNAVAILABLE",
+    title: "RCA provider request failed",
+    detail: error.message,
+    hint: "The model provider rejected or timed out the request; try again shortly.",
+  };
+  if (error.status === 408) return new RequestTimeoutException(body);
+  if (error.status === 429) {
+    return new HttpException(body, HttpStatus.TOO_MANY_REQUESTS);
+  }
+  if (error.status >= 500) return new BadGatewayException(body);
+  return error;
 }
 
 function isProviderParseError(error: unknown): boolean {

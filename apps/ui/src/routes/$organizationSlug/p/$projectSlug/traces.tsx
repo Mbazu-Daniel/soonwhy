@@ -90,24 +90,22 @@ function TraceExplorer() {
   return (
     <div className="min-h-full space-y-5 pb-8">
       <h1 className="sr-only">Traces</h1>
-        <div className="flex justify-end">
-          <TimeRangeControl value={range} onChange={setRange} />
-        </div>
 
-      {showingStale && <div className="flex items-center justify-between gap-3 rounded-xl border border-[#5A4A1C] bg-[#2A220F] px-4 py-3 text-xs text-[#D8C68A]"><span>Trace telemetry is temporarily unavailable. Showing the last successful result.</span><button type="button" onClick={() => void refetch()} className="rounded-md border px-2 py-1 hover:bg-background">Retry</button></div>}   <Card className="border-border shadow-none">
-        <CardContent className="p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder={serviceFilter ? `Traces for ${serviceFilter}` : "Search trace ID, service, or operation"}
-              className="bg-muted pl-9"
-              aria-label="Search traces"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center gap-2 rounded-lg border border-[#242426] bg-[#0B0B0C] px-2 py-1">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <Search className="h-4 w-4 shrink-0 text-[#989898]" />
+          <Input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={serviceFilter ? `Traces for ${serviceFilter}` : "Search trace ID, service, or operation"}
+            className="h-9 flex-1 border-none bg-transparent px-0 text-sm placeholder-[#6E6E70] focus:ring-0"
+            aria-label="Search traces"
+          />
+        </div>
+        <TimeRangeControl value={range} onChange={setRange} />
+      </div>
+
+      {showingStale && <div className="flex items-center justify-between gap-3 rounded-xl border border-[#5A4A1C] bg-[#2A220F] px-4 py-3 text-xs text-[#D8C68A]"><span>Trace telemetry is temporarily unavailable. Showing the last successful result.</span><button type="button" onClick={() => void refetch()} className="rounded-md border px-2 py-1 hover:bg-background">Retry</button></div>}
 
       <Card className="overflow-hidden border-border shadow-none">
         <CardContent className="p-0">

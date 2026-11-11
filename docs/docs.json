@@ -23,6 +23,15 @@
               "telemetry",
               "local-registry"
             ]
+          },
+          {
+            "group": "Integrations",
+            "pages": [
+              "integrations/rest-api",
+              "integrations/otlp-ingest",
+              "integrations/alerts-webhooks",
+              "integrations/deployments"
+            ]
           }
         ]
       },
@@ -45,6 +54,7 @@
             "pages": [
               "reference/options",
               "reference/errors",
+              "reference/detections",
               "reference/troubleshooting"
             ]
           }

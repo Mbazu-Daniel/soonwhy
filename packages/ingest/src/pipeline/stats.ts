@@ -5,6 +5,7 @@ export type IngestStatsSnapshot = {
   rejected: number;
   published: number;
   inserted: number;
+  duplicates: number;
   dlq: number;
   errors: number;
   averageLatencyMs: number;
@@ -20,6 +21,7 @@ export class IngestStats implements OnModuleDestroy {
   private rejected = 0;
   private published = 0;
   private inserted = 0;
+  private duplicates = 0;
   private dlq = 0;
   private errors = 0;
   private latencySumMs = 0;
@@ -33,7 +35,7 @@ export class IngestStats implements OnModuleDestroy {
     this.logTimer = setInterval(() => {
       const snapshot = this.snapshot();
       this.logger.log(
-        `ingest metrics accepted=${snapshot.accepted} rejected=${snapshot.rejected} published=${snapshot.published} inserted=${snapshot.inserted} dlq=${snapshot.dlq} errors=${snapshot.errors} avgLatencyMs=${snapshot.averageLatencyMs.toFixed(1)} eventsPerSec=${snapshot.eventsPerSecond.toFixed(2)} inFlight=${snapshot.inFlight} peakInFlight=${snapshot.peakInFlight}`,
+        `ingest metrics accepted=${snapshot.accepted} rejected=${snapshot.rejected} published=${snapshot.published} inserted=${snapshot.inserted} duplicates=${snapshot.duplicates} dlq=${snapshot.dlq} errors=${snapshot.errors} avgLatencyMs=${snapshot.averageLatencyMs.toFixed(1)} eventsPerSec=${snapshot.eventsPerSecond.toFixed(2)} inFlight=${snapshot.inFlight} peakInFlight=${snapshot.peakInFlight}`,
       );
     }, intervalMs);
     this.logTimer.unref?.();
@@ -52,6 +54,7 @@ export class IngestStats implements OnModuleDestroy {
       rejected: this.rejected,
       published: this.published,
       inserted: this.inserted,
+      duplicates: this.duplicates,
       dlq: this.dlq,
       errors: this.errors,
       averageLatencyMs,
@@ -79,6 +82,9 @@ export class IngestStats implements OnModuleDestroy {
   }
   recordInserted(n: number) {
     this.inserted += n;
+  }
+  recordDuplicate(n: number) {
+    this.duplicates += n;
   }
   recordDlq(n: number) {
     this.dlq += n;

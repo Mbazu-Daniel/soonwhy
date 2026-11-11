@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Search, ChevronDown, ChevronRight, SlidersHorizontal, RotateCcw, Share2, Download, Bookmark, Copy, Clock3 } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, SlidersHorizontal, RotateCcw, Share2, Bookmark, Copy, Clock3 } from 'lucide-react';
 import { Card, CardContent } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Button } from '~/components/ui/button';
@@ -51,10 +51,9 @@ function LogViewer() {
   const filter = (setter: (value: string) => void, value: string) => { setter(value); setCursor(undefined); setAllLogs([]); };
   const saveView = () => { const name = window.prompt('Name this saved search'); if (!name?.trim()) return; const key = 'soonwhy:saved-log-views'; const current = JSON.parse(localStorage.getItem(key) ?? '[]') as string[]; localStorage.setItem(key, JSON.stringify([...new Set([...current, name.trim()])])); };
   const copyLink = () => void navigator.clipboard?.writeText(window.location.href);
-  const exportCsv = () => { const csv = [['timestamp','level','service','message'], ...displayLogs.map((log) => [log.timestamp, log.level, log.service, log.message])].map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n'); const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); const a = document.createElement('a'); a.href = url; a.download = 'soonwhy-logs.csv'; a.click(); URL.revokeObjectURL(url); };
   if (!projectId) return <EmptyProject />; if (isError) return <QueryErrorState onRetry={() => void refetch()} />;
   return <div className="mx-auto w-full space-y-4 pb-10">
-    <h1 className="sr-only">Logs</h1><div className="flex flex-wrap justify-end gap-2"><Button variant="outline" size="sm" onClick={copyLink}><Share2 className="mr-2 h-3.5 w-3.5" />Share</Button><Button variant="outline" size="sm" onClick={exportCsv}><Download className="mr-2 h-3.5 w-3.5" />Export</Button></div>
+    <h1 className="sr-only">Logs</h1><div className="flex flex-wrap justify-end gap-2"><Button variant="outline" size="sm" onClick={copyLink}><Share2 className="mr-2 h-3.5 w-3.5" />Share</Button></div>
     <Card className="overflow-hidden border-[#242426] bg-[#0B0B0C] shadow-none"><CardContent className="p-3"><div className="flex flex-col gap-2 xl:flex-row"><div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#989898]" /><Input aria-label="Search logs" placeholder="Search message, service, or attributes" value={search} onChange={(e) => filter(setSearch, e.target.value)} className="h-10 border-[#242426] bg-[#151517] pl-9" /></div>
       <Select value={range} onValueChange={(v) => filter(setRange, v)}><SelectTrigger className="h-10 w-32"><Clock3 className="mr-2 h-3.5 w-3.5" /><SelectValue /></SelectTrigger><SelectContent>{Object.keys(RANGE_MS).map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select>
       <Select value={levelFilter} onValueChange={(v) => filter(setLevelFilter, v)}><SelectTrigger className="h-10 w-36"><SlidersHorizontal className="mr-2 h-3.5 w-3.5" /><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All levels</SelectItem><SelectItem value="error">Errors</SelectItem><SelectItem value="fatal">Fatal</SelectItem><SelectItem value="warn">Warnings</SelectItem><SelectItem value="info">Info</SelectItem><SelectItem value="debug">Debug</SelectItem></SelectContent></Select>

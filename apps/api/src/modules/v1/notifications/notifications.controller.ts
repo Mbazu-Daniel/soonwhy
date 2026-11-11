@@ -10,6 +10,7 @@ import {
   UseGuards,
   NotFoundException,
 } from "@nestjs/common";
+import { Idempotent } from "@nestjs/idempotency";
 import {
   CurrentOrg,
   OrgContext,
@@ -18,29 +19,37 @@ import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
 import { WebhookEndpointType } from "../../../common/db/schema";
 import { NotificationService } from "./notification.service";
 import { SlackService } from "./slack.service";
-import { CreateNotificationChannelDto } from "./dto/create-notification-channel.dto";
+import {
+  CreateNotificationChannelDto,
+  UpdateNotificationChannelDto,
+  type CreateNotificationChannelInput,
+  type UpdateNotificationChannelInput,
+} from "./dto/create-notification-channel.dto";
 import {
   CreateAlertRuleDto,
   UpdateAlertRuleDto,
+  type CreateAlertRuleInput,
+  type UpdateAlertRuleInput,
 } from "./dto/create-alert-rule.dto";
-import { CreateWebhookEndpointDto } from "./dto/create-webhook-endpoint.dto";
+import {
+  CreateWebhookEndpointDto,
+  UpdateWebhookEndpointDto,
+  type CreateWebhookEndpointInput,
+  type UpdateWebhookEndpointInput,
+} from "./dto/create-webhook-endpoint.dto";
+import {
+  DispatchAlertDto,
+  SlackConnectDto,
+  AssignOwnerDto,
+  type DispatchAlertInput,
+  type SlackConnectInput,
+  type AssignOwnerInput,
+} from "./dto/notification-requests.dto";
 import { z } from "zod";
 
-const DispatchAlertDto = z.object({
-  incidentId: z.string(),
-  severity: z.enum(["critical", "high", "medium", "low"]),
-  title: z.string(),
-  body: z.string(),
-  htmlBody: z.string().optional(),
-});
-
-const SlackConnectDto = z.object({
-  code: z.string(),
-});
-
-const AssignOwnerDto = z.object({
-  ownerId: z.string(),
-  ownerName: z.string(),
+const NotificationLogQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
 });
 
 @UseGuards(TenantGuard)
@@ -63,9 +72,10 @@ export class NotificationsController {
   createChannel(
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
-    @Body() body: unknown,
+    @Body({ schema: CreateNotificationChannelDto })
+    body: CreateNotificationChannelInput,
   ) {
-    const input = CreateNotificationChannelDto.parse(body);
+    const input = body;
     return this.service.createChannel(org.orgId, projectId, {
       ...input,
       fromEmail: input.fromEmail ?? null,
@@ -87,9 +97,10 @@ export class NotificationsController {
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
     @Param("channelId") channelId: string,
-    @Body() body: unknown,
+    @Body({ schema: UpdateNotificationChannelDto })
+    body: UpdateNotificationChannelInput,
   ) {
-    const input = CreateNotificationChannelDto.partial().parse(body);
+    const input = body;
     return this.service.updateChannel(
       org.orgId,
       projectId,
@@ -119,9 +130,9 @@ export class NotificationsController {
   createAlertRule(
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
-    @Body() body: unknown,
+    @Body({ schema: CreateAlertRuleDto }) body: CreateAlertRuleInput,
   ) {
-    const input = CreateAlertRuleDto.parse(body);
+    const input = body;
     return this.service.createAlertRule(org.orgId, projectId, {
       ...input,
       description: input.description ?? null,
@@ -134,9 +145,9 @@ export class NotificationsController {
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
     @Param("ruleId") ruleId: string,
-    @Body() body: unknown,
+    @Body({ schema: UpdateAlertRuleDto }) body: UpdateAlertRuleInput,
   ) {
-    const input = UpdateAlertRuleDto.parse(body);
+    const input = body;
     return this.service.updateAlertRule(
       org.orgId,
       projectId,
@@ -158,16 +169,10 @@ export class NotificationsController {
   listNotificationLogs(
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
-    @Query("limit") limit?: string,
-    @Query("offset") offset?: string,
+    @Query({ schema: NotificationLogQuerySchema })
+    query: z.output<typeof NotificationLogQuerySchema>,
   ) {
-    const paging = z
-      .object({
-        limit: z.coerce.number().int().min(1).max(100).default(50),
-        offset: z.coerce.number().int().min(0).default(0),
-      })
-      .parse({ limit, offset });
-    return this.service.listNotificationLogs(org.orgId, projectId, paging);
+    return this.service.listNotificationLogs(org.orgId, projectId, query);
   }
 
   @Get("webhooks")
@@ -182,9 +187,10 @@ export class NotificationsController {
   createWebhookEndpoint(
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
-    @Body() body: unknown,
+    @Body({ schema: CreateWebhookEndpointDto })
+    body: CreateWebhookEndpointInput,
   ) {
-    const input = CreateWebhookEndpointDto.parse(body);
+    const input = body;
     return this.service.createWebhookEndpoint(org.orgId, projectId, {
       ...input,
       secret: input.secret ?? null,
@@ -198,9 +204,10 @@ export class NotificationsController {
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
     @Param("endpointId") endpointId: string,
-    @Body() body: unknown,
+    @Body({ schema: UpdateWebhookEndpointDto })
+    body: UpdateWebhookEndpointInput,
   ) {
-    const input = CreateWebhookEndpointDto.partial().parse(body);
+    const input = body;
     return this.service.updateWebhookEndpoint(
       org.orgId,
       projectId,
@@ -223,12 +230,15 @@ export class NotificationsController {
   }
 
   @Post("dispatch")
+  @Idempotent({
+    ttl: 3600,
+  })
   dispatchAlert(
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
-    @Body() body: unknown,
+    @Body({ schema: DispatchAlertDto }) body: DispatchAlertInput,
   ) {
-    const input = DispatchAlertDto.parse(body);
+    const input = body;
     return this.service.dispatchAlert({
       orgId: org.orgId,
       projectId,
@@ -249,8 +259,10 @@ export class NotificationsController {
   }
 
   @Post("slack/oauth/callback")
-  async slackOAuthCallback(@Body() body: unknown) {
-    const input = SlackConnectDto.parse(body);
+  async slackOAuthCallback(
+    @Body({ schema: SlackConnectDto }) body: SlackConnectInput,
+  ) {
+    const input = body;
     const clientId = process.env.SLACK_CLIENT_ID!;
     const clientSecret = process.env.SLACK_CLIENT_SECRET!;
     const redirectUri = process.env.SLACK_REDIRECT_URI!;
@@ -286,9 +298,9 @@ export class NotificationsController {
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
     @Param("incidentId") incidentId: string,
-    @Body() body: unknown,
+    @Body({ schema: AssignOwnerDto }) body: AssignOwnerInput,
   ) {
-    const input = AssignOwnerDto.parse(body);
+    const input = body;
     return this.service.assignOwner(
       org.orgId,
       projectId,
@@ -305,5 +317,10 @@ export class NotificationsController {
     @Param("incidentId") incidentId: string,
   ) {
     return this.service.getOwner(org.orgId, projectId, incidentId);
+  }
+
+  @Post("retry-failed")
+  async retryFailedNotifications() {
+    return this.service.retryFailedNotifications();
   }
 }

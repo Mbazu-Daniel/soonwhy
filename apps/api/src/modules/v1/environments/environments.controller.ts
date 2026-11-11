@@ -4,7 +4,10 @@ import {
   OrgContext,
 } from "../../../common/decorators/current-org.decorator";
 import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
-import { CreateEnvironmentDto } from "./dto/create-environment.dto";
+import {
+  CreateEnvironmentDto,
+  type CreateEnvironmentInput,
+} from "./dto/create-environment.dto";
 import { EnvironmentsService } from "./environments.service";
 
 @UseGuards(TenantGuard)
@@ -21,12 +24,8 @@ export class EnvironmentsController {
   create(
     @CurrentOrg() org: OrgContext,
     @Query("projectId") projectId: string,
-    @Body() body: unknown,
+    @Body({ schema: CreateEnvironmentDto }) body: CreateEnvironmentInput,
   ) {
-    return this.service.create(
-      projectId,
-      org.orgId,
-      CreateEnvironmentDto.parse(body),
-    );
+    return this.service.create(projectId, org.orgId, body);
   }
 }

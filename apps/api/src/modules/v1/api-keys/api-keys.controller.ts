@@ -8,7 +8,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ApiKeysService } from "./api-keys.service";
-import { CreateApiKeyDto } from "./dto";
+import { CreateApiKeyDto, type CreateApiKeyInput } from "./dto";
 import {
   CurrentOrg,
   OrgContext,
@@ -24,10 +24,9 @@ export class ApiKeysController {
   async createApiKey(
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
-    @Body() body: unknown,
+    @Body({ schema: CreateApiKeyDto }) body: CreateApiKeyInput,
   ) {
-    const input = CreateApiKeyDto.parse(body);
-    return this.apiKeysService.createApiKey(projectId, org.orgId, input);
+    return this.apiKeysService.createApiKey(projectId, org.orgId, body);
   }
 
   @Get()

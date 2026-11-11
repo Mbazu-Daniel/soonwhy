@@ -17,6 +17,8 @@ import { NotificationService } from "./notification.service";
 import {
   CreateAlertRuleDto,
   UpdateAlertRuleDto,
+  type CreateAlertRuleInput,
+  type UpdateAlertRuleInput,
 } from "./dto/create-alert-rule.dto";
 
 @UseGuards(TenantGuard)
@@ -30,8 +32,11 @@ export class OrgNotificationsController {
   }
 
   @Post("alert-rules")
-  createOrgAlertRule(@CurrentOrg() org: OrgContext, @Body() body: unknown) {
-    const input = CreateAlertRuleDto.parse(body);
+  createOrgAlertRule(
+    @CurrentOrg() org: OrgContext,
+    @Body({ schema: CreateAlertRuleDto }) body: CreateAlertRuleInput,
+  ) {
+    const input = body;
     return this.service.createOrgAlertRule(org.orgId, {
       ...input,
       description: input.description ?? null,
@@ -43,9 +48,9 @@ export class OrgNotificationsController {
   updateOrgAlertRule(
     @CurrentOrg() org: OrgContext,
     @Param("ruleId") ruleId: string,
-    @Body() body: unknown,
+    @Body({ schema: UpdateAlertRuleDto }) body: UpdateAlertRuleInput,
   ) {
-    const input = UpdateAlertRuleDto.parse(body);
+    const input = body;
     return this.service.updateOrgAlertRule(org.orgId, ruleId, input);
   }
 

@@ -1,4 +1,3 @@
-export type InvestigationGraphNodeType = "finding" | "evidence";
 
 export type InvestigationGraphEdgeType = "supported_by";
 

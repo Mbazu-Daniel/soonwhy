@@ -1,4 +1,4 @@
-import { db } from "./index";
+import { rawDb } from "./client";
 import {
   getDbQueryCount,
   getDbQueryDuration,
@@ -10,43 +10,49 @@ type QueryLabels = {
   error?: string;
 };
 
-function instrumentThenable<T>(
-  thenable: T & { then: any },
-  queryName: string,
-): T & { then: any } {
+type Thenable<T> = T & { then: PromiseLike<T>["then"] };
+
+function recordQuery(labels: QueryLabels, startedAt: number): void {
+  const duration = Date.now() - startedAt;
+  getDbQueryCount().add(1, labels);
+  getDbQueryDuration().record(duration, labels);
+}
+
+function instrumentThenable<T>(thenable: Thenable<T>, queryName: string): T {
   const labels: QueryLabels = {
     service: "soonwhy-api",
     query: queryName,
   };
-
   const originalThen = thenable.then.bind(thenable);
+
   const wrapped = new Proxy(thenable, {
-    get(target, prop: string) {
+    get(target, prop: string | symbol) {
       if (prop === "then") {
-        return (onFulfilled?: any, onRejected?: any) => {
-          const start = Date.now();
+        return <TResult1 = T, TResult2 = never>(
+          onFulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
+          onRejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
+        ) => {
+          const startedAt = Date.now();
           return originalThen(
-            (result: any) => {
-              const duration = Date.now() - start;
-              getDbQueryCount().add(1, labels);
-              getDbQueryDuration().record(duration, labels);
-              return result;
+            (value: T) => {
+              recordQuery(labels, startedAt);
+              return onFulfilled
+                ? onFulfilled(value)
+                : (value as unknown as TResult1);
             },
-            (err: any) => {
-              const duration = Date.now() - start;
-              getDbQueryCount().add(1, { ...labels, error: "true" });
-              getDbQueryDuration().record(duration, {
-                ...labels,
-                error: "true",
-              });
-              throw err;
+            (error: unknown) => {
+              recordQuery({ ...labels, error: "true" }, startedAt);
+              if (onRejected) {
+                return onRejected(error);
+              }
+              throw error;
             },
           );
         };
       }
-      return (target as any)[prop];
+      return (target as Record<string | symbol, unknown>)[prop];
     },
-  }) as T & { then: any };
+  }) as T;
   return wrapped;
 }
 
@@ -59,9 +65,9 @@ const dbMethods = [
   "transaction",
 ] as const;
 
-export const instrumentedDb = new Proxy(db, {
-  get(target, prop: string) {
-    const value = (target as any)[prop];
+export const instrumentedDb: typeof rawDb = new Proxy(rawDb, {
+  get(target, prop: string | symbol) {
+    const value = (target as unknown as Record<string | symbol, unknown>)[prop];
     if (
       typeof value === "function" &&
       dbMethods.includes(prop as (typeof dbMethods)[number])
@@ -71,16 +77,14 @@ export const instrumentedDb = new Proxy(db, {
         if (
           result &&
           typeof result === "object" &&
-          typeof (result as any).then === "function"
+          typeof (result as { then?: unknown }).then === "function"
         ) {
           const queryName = `${String(prop)}:${args?.[0]?.name ?? args?.[0]?.constructor?.name ?? "unknown"}`;
-          return instrumentThenable(result, queryName);
+          return instrumentThenable(result as Thenable<unknown>, queryName);
         }
         return result;
       };
     }
     return value;
   },
-}) as any;
-
-export { schema } from "./index";
+}) as typeof rawDb;

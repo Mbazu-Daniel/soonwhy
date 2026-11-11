@@ -6,6 +6,6 @@ import { DeploymentsService } from "./deployments.service";
 @Module({
   controllers: [DeploymentsController],
   providers: [DeploymentsService, DeploymentsRepository],
-  exports: [DeploymentsService],
+  exports: [DeploymentsService, DeploymentsRepository],
 })
 export class DeploymentsModule {}

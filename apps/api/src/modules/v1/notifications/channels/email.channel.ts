@@ -1,19 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { ZeptoMailService } from "../zepto-mail.service";
-import {
-  BaseChannel,
-  ChannelSendInput,
-  ChannelSendResult,
-} from "./base.channel";
-import type { NotificationChannelType } from "../../../../common/db/schema";
+import { ChannelSendInput, ChannelSendResult } from "./base.channel";
 
 @Injectable()
-export class EmailChannel extends BaseChannel {
-  readonly type: NotificationChannelType = "email";
-
-  constructor(private readonly zeptoMail: ZeptoMailService) {
-    super();
-  }
+export class EmailChannel {
+  constructor(private readonly zeptoMail: ZeptoMailService) {}
 
   async send(input: ChannelSendInput): Promise<ChannelSendResult> {
     const fromEmail = process.env.ZEPTOMAIL_FROM_EMAIL;

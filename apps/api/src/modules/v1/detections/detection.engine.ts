@@ -1,18 +1,4 @@
-import {
-  evaluateLatency as evaluatePerformanceLatency,
-  evaluateThroughput as evaluatePerformanceThroughput,
-  evaluateTraceContribution,
-} from "../intelligence/performance.engine";
-import {
-  basicSeasonalDecomposition,
-  calculateAnomalyScore,
-  calculateSeasonalIndex,
-} from "./intelligence/seasonal-decomposition";
-import {
-  detectChangePoints,
-  detectChangePointsBIC,
-} from "./intelligence/change-point-detection";
-
+import { evaluateLatency as evaluatePerformanceLatency } from "../intelligence/performance.engine";
 export type DetectionSignalType =
   | "latency"
   | "error_rate"
@@ -118,6 +104,16 @@ export const DETECTION_RULES: Record<DetectionSignalType, DetectionRule> = {
 };
 
 const MIN_BASELINE_SAMPLES = 20;
+
+export type ThroughputThresholds = Partial<{
+  minBaselineSamples: number;
+  dropRatio: number;
+  criticalChangePercent: number;
+}>;
+
+function finite(value: number | undefined, fallback: number): number {
+  return value !== undefined && Number.isFinite(value) ? value : fallback;
+}
 
 export function evaluateSignal(
   type: DetectionSignalType,
@@ -241,18 +237,22 @@ export function evaluateSignal(
 export function evaluateThroughput(
   observedValue: number,
   baseline?: DetectionBaseline,
+  thresholds: ThroughputThresholds = {},
 ): DetectionSignal | undefined {
-  if (!Number.isFinite(observedValue) || !baseline || baseline.samples < 20) {
+  const minBaselineSamples = finite(thresholds.minBaselineSamples, MIN_BASELINE_SAMPLES);
+  const dropRatio = finite(thresholds.dropRatio, 0.7);
+  const criticalChangePercent = finite(thresholds.criticalChangePercent, -50);
+  if (!Number.isFinite(observedValue) || !baseline || baseline.samples < minBaselineSamples || baseline.value <= 0) {
     return undefined;
   }
   const changePercent = baseline.value > 0 ? (observedValue - baseline.value) / baseline.value * 100 : 0;
-  const threshold = baseline.value * 0.7;
-  if (observedValue < threshold) {
+  const threshold = baseline.value * dropRatio;
+  if (observedValue <= threshold) {
     return {
       type: "throughput",
       observedValue,
       threshold,
-      severity: changePercent <= -50 ? "critical" : "warning",
+      severity: changePercent <= criticalChangePercent ? "critical" : "warning",
       unit: "requests",
       baselineValue: baseline.value,
       changePercent,

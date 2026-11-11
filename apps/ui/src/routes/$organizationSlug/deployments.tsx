@@ -22,7 +22,7 @@ function Deployments() {
   const [environmentId,setEnvironmentId]=useState('');
   const [version,setVersion]=useState('');
   const [commitSha,setCommitSha]=useState('');
-  const services=useQuery({queryKey:['services',projectId],queryFn:()=>api.get<Service[]>(`/services?projectId=${projectId}`),enabled:!!projectId});
+  const services=useQuery({queryKey:['services',projectId],queryFn:()=>api.get<Service[]>(`/projects/${projectId}/services`),enabled:!!projectId});
   const environments=useQuery({queryKey:['environments',projectId],queryFn:()=>api.get<Environment[]>(`/environments?projectId=${projectId}`),enabled:!!projectId});
   const deployments=useQuery({queryKey:['deployments',serviceId],queryFn:()=>api.get<Deployment[]>(`/deployments?serviceId=${serviceId}`),enabled:!!serviceId});
   const create=useMutation({mutationFn:()=>api.post<Deployment>('/deployments',{serviceId,environmentId,version:version.trim()||undefined,commitSha:commitSha.trim()||undefined,status:'active'}),onSuccess:()=>{setVersion('');setCommitSha('');void deployments.refetch();}});

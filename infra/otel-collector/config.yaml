@@ -1,3 +1,4 @@
+
 receivers:
   otlp:
     protocols:
@@ -5,46 +6,50 @@ receivers:
         endpoint: 0.0.0.0:4317
       http:
         endpoint: 0.0.0.0:4318
-  hostmetrics:
-    collection_interval: 10s
-    root_path: /hostfs
+
+  host_metrics:
+    root_path: /rootfs
+    collection_interval: 30s
     scrapers:
       cpu:
-      disk:
-      filesystem:
       memory:
+      filesystem:
       network:
       load:
-      process:
-        process_names: ["node", "postgres", "redis", "nats"]
-  system:
-    collection_interval: 10s
+      disk:
 
 processors:
   memory_limiter:
     check_interval: 1s
     limit_mib: 512
+
   batch:
     timeout: 1s
     send_batch_size: 1024
 
+  resource:
+    attributes:
+      - key: service.name
+        value: soonwhy-host
+        action: upsert
+
 exporters:
-  otlp/quickwit:
-    endpoint: quickwit:7280
-    tls:
-      insecure: true
+  otlp_http/soonwhy:
+    endpoint: http://host.docker.internal:8081/api/v1/telemetry
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [otlp/quickwit]
-    metrics:
-      receivers: [otlp, hostmetrics, system]
-      processors: [memory_limiter, batch]
-      exporters: [otlp/quickwit]
+      exporters: [otlp_http/soonwhy]
+
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [otlp/quickwit]
+      exporters: [otlp_http/soonwhy]
+
+    metrics:
+      receivers: [otlp, host_metrics]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlp_http/soonwhy]

@@ -1,3 +1,5 @@
+// fallow-ignore-file unused-class-member
+// Public shared-library API consumed by API workspace.
 import { Injectable } from "@nestjs/common";
 import type { WeeklySummaryServiceDeps } from "./types";
 
@@ -8,7 +10,7 @@ export class WeeklySummaryService {
   async dispatchWeeklySummary(input: {
     from: string;
     to: string;
-    summary: Record<string, string>;
+    summary: Record<string, unknown>;
   }) {
     const { from, to, summary } = input;
     const fromDate = new Date(from);

@@ -19,7 +19,7 @@ function ServiceMap() {
   const { projectId, orgSlug } = useProject();
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['service-map', projectId],
-    queryFn: () => api.get<MapData>(`/services/map?projectId=${encodeURIComponent(projectId!)}`),
+    queryFn: () => api.get<MapData>(`/projects/${projectId}/services/map`),
     enabled: !!projectId,
   });
 

@@ -13,13 +13,20 @@ import {
   Req,
 } from "@nestjs/common";
 import type { Request, Response } from "express";
+import { Throttle } from "@nestjs/throttler";
 import {
   auth,
   githubEnabled,
   googleEnabled,
 } from "../../../common/config/better-auth.config";
-import { signInSchema, signUpSchema } from "../../../shared";
+import {
+  signInSchema,
+  signUpSchema,
+  type SignInInput,
+  type SignUpInput,
+} from "../../../shared";
 import { recordAuditEvent } from "../../../common/audit-logs";
+import { AUTH_THROTTLE } from "../../../common/throttling/throttling.constants";
 
 const SOCIAL_PROVIDERS = ["github", "google"] as const;
 type SocialProvider = (typeof SOCIAL_PROVIDERS)[number];
@@ -36,6 +43,7 @@ export class AuthController {
   }
 
   @Get("social/:provider")
+  @Throttle(AUTH_THROTTLE)
   async socialSignIn(
     @Param("provider") provider: string,
     @Query("callbackURL") callbackURL: string | undefined,
@@ -68,13 +76,16 @@ export class AuthController {
   }
 
   @Post("sign-up")
-  async signUp(@Body() body: unknown, @Req() req: Request) {
-    const parsed = signUpSchema.parse(body);
+  @Throttle(AUTH_THROTTLE)
+  async signUp(
+    @Body({ schema: signUpSchema }) body: SignUpInput,
+    @Req() req: Request,
+  ) {
     const result = await auth.api.signUpEmail({
       body: {
-        email: parsed.email,
-        password: parsed.password,
-        name: parsed.email.split("@")[0] ?? parsed.email,
+        email: body.email,
+        password: body.password,
+        name: body.email.split("@")[0] ?? body.email,
       },
     });
 
@@ -90,10 +101,13 @@ export class AuthController {
 
   @Post("sign-in")
   @HttpCode(HttpStatus.OK)
-  async signIn(@Body() body: unknown, @Req() req: Request) {
-    const parsed = signInSchema.parse(body);
+  @Throttle(AUTH_THROTTLE)
+  async signIn(
+    @Body({ schema: signInSchema }) body: SignInInput,
+    @Req() req: Request,
+  ) {
     const result = await auth.api.signInEmail({
-      body: { email: parsed.email, password: parsed.password },
+      body: { email: body.email, password: body.password },
     });
 
     await recordAuditEvent({

@@ -32,7 +32,7 @@ describe("ingest concurrency load", () => {
     expect(limiter.snapshot()).toMatchObject({
       inFlight: 0,
       available: 32,
-      saturated: false,
+      isSaturated: false,
       organizations: 0,
     });
     vi.unstubAllEnvs();

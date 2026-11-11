@@ -21,16 +21,19 @@ export class GithubController {
     @Req() req: Request,
     @Headers("x-github-event") event: string | undefined,
     @Headers("x-hub-signature-256") signature: string | undefined,
-    @Body() body: unknown,
+    @Headers("x-github-delivery") deliveryId: string | undefined,
+    @Body() _body: unknown,
   ) {
-    const secret = process.env.GITHUB_WEBHOOK_SECRET;
+    const secret = this.githubService.verifyWebhookSecret();
     const rawBody = (req as Request & { rawBody?: Buffer }).rawBody;
-    const payload = rawBody ?? Buffer.from(JSON.stringify(body ?? {}));
+    if (!rawBody) {
+      throw new UnauthorizedException("Invalid GitHub webhook payload");
+    }
 
-    if (!this.githubService.verifySignature(payload, signature, secret)) {
+    if (!this.githubService.verifySignature(rawBody, signature, secret)) {
       throw new UnauthorizedException("Invalid GitHub webhook signature");
     }
 
-    return this.githubService.handlePushEvent(payload, event);
+    return this.githubService.handlePushEvent(rawBody, event, deliveryId);
   }
 }

@@ -2,9 +2,11 @@
   "name": "soonwhy",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@12.9.1",
   "scripts": {
-    "dev": "pnpm --filter @soonwhy/shared build && pnpm --filter './apps/*' --filter './packages/{cron,ingest}' dev",
-    "build": "pnpm --filter @soonwhy/shared build && pnpm --filter @soonwhy/sdk build && pnpm --filter './apps/*' --filter './packages/{cron,ingest}' build",
+    "dev": "turbo dev --filter=@soonwhy/backend --filter=@soonwhy/frontend",
+    "dev:all": "turbo dev",
+    "build": "turbo build",
     "test": "pnpm --filter @soonwhy/shared build && vitest",
     "lint": "oxlint",
     "format": "oxfmt",
@@ -21,6 +23,7 @@
     "husky": "^9.1.7",
     "oxfmt": "^0.11.0",
     "oxlint": "^1.80.0",
+    "turbo": "^2.11.10",
     "vitest": "^3.2.0"
   }
 }

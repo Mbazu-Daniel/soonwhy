@@ -1,4 +1,6 @@
 import type { DetectionFinding } from "./detection.types";
+import type { LlmCredentialSource } from "../../../common/db/schema";
+import type { RankedCandidate, ScoringWeights } from "./root-cause/root-cause.types";
 
 export type RcaConfidence = "low" | "medium" | "high";
 
@@ -24,6 +26,10 @@ export interface RcaEvidence {
   supportingFindings: RcaEvidenceItem[];
   traces: RcaEvidenceItem[];
   recommendations: RcaEvidenceItem[];
+  rankedCandidates?: RankedCandidate[];
+  rankingWeights?: ScoringWeights;
+  evidenceCoverage?: number;
+  rankingLimitations?: string[];
 }
 
 export interface RcaAnalysis {
@@ -50,4 +56,16 @@ export interface RcaProviderResult {
   analysis: RcaAnalysis;
   usage: RcaUsage;
   promptVersion: string;
+}
+
+/** Which credential served a run. Deliberately carries no key material. */
+export interface RcaCredentialInfo {
+  readonly source: LlmCredentialSource;
+  readonly providerId: string;
+  readonly model: string;
+  readonly credentialId: string | null;
+}
+
+export interface RcaAnalysisOutcome extends RcaProviderResult {
+  credential: RcaCredentialInfo;
 }

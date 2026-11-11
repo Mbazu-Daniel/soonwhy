@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Smoke: POST OTLP JSON log → wait → optional GET /api/v1/logs
+ * Smoke: POST OTLP JSON log → wait → optional GET /api/v1/logs (query API)
  *
  * Env:
  *   INGEST_URL (default http://localhost:3002)
@@ -46,7 +46,7 @@ const payload = {
   ],
 };
 
-const res = await fetch(`${ingestUrl}/api/v1/logs`, {
+const res = await fetch(`${ingestUrl}/v1/logs`, {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',

@@ -41,22 +41,6 @@ export class InvestigationRepository {
     return row?.investigation;
   }
 
-  async findOpenByFinding(findingId: string, orgId: string) {
-    const [row] = await db
-      .select({ investigation: investigationCases })
-      .from(investigationCases)
-      .where(
-        and(
-          eq(investigationCases.findingId, findingId),
-          eq(investigationCases.orgId, orgId),
-          eq(investigationCases.status, "open"),
-        ),
-      )
-      .limit(1);
-
-    return row?.investigation;
-  }
-
   async getFinding(findingId: string, orgId: string) {
     const [row] = await db
       .select({ finding: findings })
@@ -77,7 +61,7 @@ export class InvestigationRepository {
   async create(data: typeof investigationCases.$inferInsert) {
     const [investigation] = await db
       .insert(investigationCases)
-      .values(data)
+      .values({ ...data, status: data.status ?? "open" })
       .returning();
 
     if (!investigation) throw new Error("Failed to create investigation case");

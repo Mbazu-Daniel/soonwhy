@@ -15,7 +15,7 @@ import {
 import { Card, CardContent } from '~/components/ui/card';
 import { Skeleton } from '~/components/ui/skeleton';
 import { api } from '~/lib/api';
-import { type DashboardOverview } from '~/data/dashboard-overview';
+import { dashboardOverview, type DashboardOverview } from '~/data/dashboard-overview';
 import { useProject } from '~/lib/project-context';
 import { useState } from 'react';
 import { TimeRangeControl, telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
@@ -44,7 +44,7 @@ function AIDashboardSummary({ orgSlug, projectSlug }: { orgSlug: string; project
           </div>
         </div>
         <Link
-          to="/$organizationSlug/p/$projectSlug/investigations"
+          to="/$organizationSlug/p/$projectSlug/intelligence/investigations"
           params={{ organizationSlug: orgSlug!, projectSlug: projectSlug! }}
           className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-[#34451D] px-3 py-2 text-xs font-medium text-[#ACFC15] hover:bg-[#ACFC15]/5"
         >
@@ -87,7 +87,7 @@ function DashboardOverviewPage() {
     return <OverviewSkeleton />;
   }
 
-  const live = data && data.totalRequests > 0 ? data : ({} as DashboardOverview); dashboardOverview;
+  const live = data && data.totalRequests > 0 ? data : dashboardOverview;
   const overviewStale = isLoading === false && !data && !!telemetryStatus?.lastTelemetryAt;
   const score = live.score;
   const health = score >= 90 ? 'Healthy' : score >= 70 ? 'Needs attention' : 'Investigate';
@@ -127,12 +127,12 @@ function DashboardOverviewPage() {
             </div>
             <div className="px-5 pb-6 pt-4 sm:px-6">
               <div className="flex h-[260px] items-end gap-2 border-b border-[#1B1B1D]">
-                {[36, 48, 43, 62, 56, 70, 64, 76, 68, 82, 74, 88, 80, 91, 84, 96, 87, 78, 86, 72, 81, 67, 75, 63].map(
-                  (height, index) => (
+                {(data?.timeSeries || dashboardOverview.timeSeries || [])?.map(
+                  (point, index) => (
                     <div key={index} className="group flex h-full flex-1 items-end">
                       <div
                         className="w-full rounded-t-[5px] bg-[#415312] transition-colors group-hover:bg-[#ACFC15]"
-                        style={{ height: `${height}%` }}
+                        style={{ height: `${point.normalizedHeight}%` }}
                       />
                     </div>
                   ),
@@ -191,7 +191,7 @@ function DashboardOverviewPage() {
                 <p className="mt-1 text-xs text-[#989898]">Findings worth investigating</p>
               </div>
               <Link
-                to="/$organizationSlug/p/$projectSlug/detections"
+                to="/$organizationSlug/p/$projectSlug/intelligence/findings"
                 params={{ organizationSlug: orgSlug!, projectSlug: projectSlug! }}
                 className="text-xs font-medium text-[#ACFC15] hover:underline"
               >
@@ -240,7 +240,7 @@ function DashboardOverviewPage() {
                 label="Logs"
               />
               <QuickLink
-                to="/$organizationSlug/p/$projectSlug/investigations"
+                to="/$organizationSlug/p/$projectSlug/intelligence/investigations"
                 params={{ organizationSlug: orgSlug!, projectSlug: projectSlug! }}
                 icon={BrainCircuit}
                 label="Investigations"
@@ -348,7 +348,7 @@ function QuickLink({
     | '/$organizationSlug/p/$projectSlug/services'
     | '/$organizationSlug/p/$projectSlug/traces'
     | '/$organizationSlug/p/$projectSlug/logs'
-    | '/$organizationSlug/p/$projectSlug/investigations';
+    | '/$organizationSlug/p/$projectSlug/intelligence/investigations';
   params: { organizationSlug: string; projectSlug: string };
   icon: typeof Server;
   label: string;

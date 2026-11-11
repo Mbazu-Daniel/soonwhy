@@ -3,9 +3,9 @@ import { nanoTimestamp } from "./time";
 import { hexId, resourceFromAttributes } from "./types";
 import type { LogLevel, ParsedLogRecord, ParseLogsResult } from "../interfaces";
 
-export type { LogLevel, ParsedLogRecord, ParseLogsResult };
+export type { ParseLogsResult };
 
-export function severityLevel(number: number, text: string): LogLevel {
+function severityLevel(number: number, text: string): LogLevel {
   if (number >= 21) return "fatal";
   if (number >= 17) return "error";
   if (number >= 13) return "warn";

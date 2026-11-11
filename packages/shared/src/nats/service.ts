@@ -1,3 +1,5 @@
+// fallow-ignore-file unused-class-member
+// Public shared-library API consumed by ingest and API workspaces.
 import {
   Injectable,
   OnModuleInit,
@@ -15,7 +17,16 @@ import {
   StorageType,
 } from "nats";
 
+export type NatsServiceOptions = {
+  /**
+   * When false, connection failures are logged and the service stays inert
+   * instead of crashing the host process. Defaults to true.
+   */
+  required?: boolean;
+};
+
 export type NatsMessageHandler = (msg: JsMsg) => Promise<void>;
+
 export type NatsSubscriptionSnapshot = {
   subject: string;
   durable: string;
@@ -25,12 +36,21 @@ export type NatsSubscriptionSnapshot = {
   lastError: string | undefined;
 };
 
+export type NatsConsumerSnapshot = {
+  subject: string;
+  durable: string;
+  pending: number;
+  ackPending: number;
+  redelivered: number;
+};
+
 @Injectable()
 export class NatsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(NatsService.name);
   private connection: NatsConnection | undefined;
   private jetstream: JetStreamClient | undefined;
   private readonly subscriptions = new Map<string, NatsSubscriptionSnapshot>();
+  private readonly required: boolean;
   private readonly config = {
     url: process.env.NATS_URL ?? "nats://localhost:4222",
     streamName: process.env.NATS_STREAM_NAME ?? "TELEMETRY",
@@ -39,7 +59,15 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
       process.env.NATS_MAX_AGE_NS ?? 24 * 60 * 60 * 1_000_000_000,
     ),
     maxAckPending: Number(process.env.NATS_MAX_ACK_PENDING ?? 1000),
+    ackWaitNs: Number(
+      process.env.NATS_ACK_WAIT_NS ?? 120 * 1_000_000_000,
+    ),
+    publishTimeoutMs: Number(process.env.NATS_PUBLISH_TIMEOUT_MS ?? 5000),
   };
+
+  constructor() {
+    this.required = false;
+  }
 
   async onModuleInit() {
     const maxAttempts = Number(process.env.NATS_CONNECT_ATTEMPTS ?? 10);
@@ -62,6 +90,12 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
         if (attempt < maxAttempts)
           await this.sleep(Math.min(1000 * attempt, 5000));
       }
+    }
+    if (!this.required) {
+      this.logger.warn(
+        "NATS unavailable; detection telemetry publishing is disabled until the next successful connection",
+      );
+      return;
     }
     throw lastError ?? new Error("NATS connection failed");
   }
@@ -133,8 +167,63 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
   subscriptionSnapshot(): NatsSubscriptionSnapshot[] {
     return [...this.subscriptions.values()].map((state) => ({ ...state }));
   }
+  async consumerSnapshot(): Promise<NatsConsumerSnapshot[]> {
+    const jsm = await this.nc.jetstreamManager();
+    const snapshots: NatsConsumerSnapshot[] = [];
+    for (const state of this.subscriptions.values()) {
+      try {
+        const info = await jsm.consumers.info(
+          this.config.streamName,
+          state.durable,
+        );
+        snapshots.push({
+          subject: state.subject,
+          durable: state.durable,
+          pending: info.num_pending,
+          ackPending: info.num_ack_pending,
+          redelivered: info.num_redelivered,
+        });
+      } catch {
+        snapshots.push({
+          subject: state.subject,
+          durable: state.durable,
+          pending: 0,
+          ackPending: 0,
+          redelivered: 0,
+        });
+      }
+    }
+    return snapshots;
+  }
   async publish(subject: string, data: Uint8Array): Promise<void> {
-    await this.client.publish(subject, data);
+    if (!this.jetstream) throw new Error("NATS JetStream not connected");
+    const ack = await this.jetstream.publish(subject, data, {
+      timeout: this.config.publishTimeoutMs,
+    });
+    if (!ack) {
+      throw new Error("NATS JetStream publish failed - no acknowledgment received");
+    }
+  }
+
+  async publishWithAck(
+    subject: string,
+    data: Uint8Array,
+    eventId: string,
+  ): Promise<boolean> {
+    if (!this.jetstream) throw new Error("NATS JetStream not connected");
+    // Publish with explicit headers including the event ID for dedupe
+    const pubAck = await this.jetstream.publish(
+      subject,
+      data,
+      {
+        timeout: this.config.publishTimeoutMs,
+        headers: {
+          "event-id": eventId,
+        } as any,
+      },
+    );
+    // PubAck is a boolean in NATS v2 - true if acknowledged
+    return !!pubAck;
   }
 
   async subscribe(
@@ -173,10 +262,10 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
       await jsm.consumers.add(this.config.streamName, {
         durable_name: consumerName,
         filter_subject: subject,
-        deliver_policy: DeliverPolicy.New,
+        deliver_policy: DeliverPolicy.All,
         ack_policy: AckPolicy.Explicit,
         max_deliver: maxDeliver,
-        ack_wait: 30_000_000_000,
+        ack_wait: this.config.ackWaitNs,
         max_ack_pending: maxAckPending,
       });
     }

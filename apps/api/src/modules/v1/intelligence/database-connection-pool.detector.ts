@@ -30,7 +30,7 @@ export interface DatabaseConnectionPoolCandidate {
   samples: DatabaseConnectionPoolSample[];
 }
 
-export const DEFAULT_DATABASE_CONNECTION_POOL_THRESHOLDS: DatabaseConnectionPoolThresholds =
+const DEFAULT_DATABASE_CONNECTION_POOL_THRESHOLDS: DatabaseConnectionPoolThresholds =
   {
     minimumSamples: 5,
     minimumUtilization: 80,

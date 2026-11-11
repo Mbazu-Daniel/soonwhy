@@ -49,20 +49,6 @@ export interface DetectionFinding {
   evidence: DetectionEvidence[];
 }
 
-export interface SeasonalAnalysis {
-  trend: number[];
-  seasonal: number[];
-  residual: number[];
-  anomalyScores: number[];
-  changePoints: number[];
-}
-
-export interface ChangePointDetectionResult {
-  changePoints: number[];
-  penaltyUsed: number;
-  bicScore?: number;
-}
-
 export interface ServiceBucket {
   key: string;
   doc_count: number;
@@ -140,4 +126,20 @@ export interface TraceSource {
   parentSpanId?: string;
   spanId?: string;
   name?: string;
+  statusCode?: number;
+  statusMessage?: string;
+  errorType?: string;
+  dependencyName?: string;
+  dependencyType?: string;
+  spanKind?: number;
+  dbQueryText?: string;
+  dbQuerySummary?: string;
+  dbOperationName?: string;
+  dbSystemName?: string;
+  dbCollectionName?: string;
+  dbReturnedRows?: number;
+  dbBatchSize?: number;
+  dbResponseBytes?: number;
+  httpRoute?: string;
+  endpoint?: string;
 }
