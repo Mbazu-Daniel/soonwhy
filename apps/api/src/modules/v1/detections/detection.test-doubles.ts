@@ -3,7 +3,7 @@ import type { QuickwitService } from "@soonwhy/shared";
 import { DetectionPipeline } from "./detection.pipeline";
 import { DetectionService } from "./detection.service";
 
-export function detectorSettingsDouble(enabled = true) {
+function detectorSettingsDouble(enabled = true) {
   return {
     get: vi.fn().mockResolvedValue({}),
     featureEnabled: vi.fn().mockReturnValue(enabled),
@@ -12,7 +12,7 @@ export function detectorSettingsDouble(enabled = true) {
   };
 }
 
-export function cacheDouble() {
+function cacheDouble() {
   return {
     getOrSet: vi.fn(
       async (
@@ -26,7 +26,7 @@ export function cacheDouble() {
   };
 }
 
-export function detectionTelemetryDouble() {
+function detectionTelemetryDouble() {
   return {
     runStarted: vi.fn().mockResolvedValue(undefined),
     trackFinding: vi.fn().mockResolvedValue(undefined),

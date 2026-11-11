@@ -42,7 +42,7 @@ export interface DatabaseQueryVolumeCandidate {
   samples: DatabaseQueryVolumeTrace[];
 }
 
-export const DEFAULT_DATABASE_QUERY_VOLUME_THRESHOLDS: DatabaseQueryVolumeThresholds =
+const DEFAULT_DATABASE_QUERY_VOLUME_THRESHOLDS: DatabaseQueryVolumeThresholds =
   {
     minimumBaselineSamples: 20,
     minimumCurrentSamples: 20,

@@ -35,31 +35,8 @@ export interface AIOperation {
   metadata?: Record<string, unknown>;
 }
 
-export interface AIToolCall {
-  toolName: string;
-  toolType: "function" | "retrieval" | "code_interpreter" | "custom";
-  input?: string;
-  output?: string;
-  latencyMs: number;
-  error?: string;
-}
 
-export interface AIRetrieval {
-  source: string;
-  query: string;
-  resultsCount: number;
-  latencyMs: number;
-  error?: string;
-}
 
-export interface AIAgentStep {
-  stepNumber: number;
-  stepType: "thought" | "action" | "observation" | "final_answer";
-  input?: string;
-  output?: string;
-  toolCalls?: AIToolCall[];
-  latencyMs: number;
-}
 
 export interface AIAggregation {
   identity: TelemetryIdentity;
@@ -79,18 +56,6 @@ export interface AIAggregation {
   };
 }
 
-export interface AIDetection {
-  tokenSpike: AITokenSpikeFinding[];
-  costSpike: AICostSpikeFinding[];
-  latencyRegression: AILatencyRegressionFinding[];
-  providerFailure: AIProviderFailureFinding[];
-  modelFailure: AIModelFailureFinding[];
-  rateLimitHit: AIRateLimitFinding[];
-  retryLoop: AIRetryLoopFinding[];
-  toolCallFailure: AIToolCallFailureFinding[];
-  agentLoop: AIAgentLoopFinding[];
-  retrievalFailure: AIRetrievalFailureFinding[];
-}
 
 export interface AITokenSpikeFinding {
   identity: TelemetryIdentity;

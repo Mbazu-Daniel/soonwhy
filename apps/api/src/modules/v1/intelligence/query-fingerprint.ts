@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-export const QUERY_FINGERPRINT_VERSION = 1;
+const QUERY_FINGERPRINT_VERSION = 1;
 
 export interface QueryIdentity {
   fingerprint: string;

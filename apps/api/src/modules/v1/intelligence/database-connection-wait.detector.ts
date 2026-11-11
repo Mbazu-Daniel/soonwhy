@@ -30,7 +30,7 @@ export interface DatabaseConnectionWaitCandidate {
   samples: DatabaseConnectionWaitSample[];
 }
 
-export const DEFAULT_DATABASE_CONNECTION_WAIT_THRESHOLDS: DatabaseConnectionWaitThresholds =
+const DEFAULT_DATABASE_CONNECTION_WAIT_THRESHOLDS: DatabaseConnectionWaitThresholds =
   {
     minimumSamples: 10,
     warningP95WaitMs: 50,

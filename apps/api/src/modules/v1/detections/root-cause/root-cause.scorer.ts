@@ -12,7 +12,7 @@ import type {
 /**
  * Calculate overall score from signal scores using weights
  */
-export function calculateScore(
+function calculateScore(
   signalScores: SignalScores,
   weights: ScoringWeights,
 ): number {

@@ -1,14 +1,14 @@
 import type { Issue } from "./issue.types";
 import type { IssueLifecycle, IssueLifecycleStatus } from "./issue-lifecycle.types";
 
-export const ISSUE_TRANSITIONS: Record<IssueLifecycleStatus, ReadonlySet<IssueLifecycleStatus>> = {
+const ISSUE_TRANSITIONS: Record<IssueLifecycleStatus, ReadonlySet<IssueLifecycleStatus>> = {
   // Creation enters `active` via createIssueLifecycle.
   active: new Set(["active", "resolved"]),
   // Evidence newer than resolvedAt transitions back to active (reopen path).
   resolved: new Set(["active", "resolved"]),
 };
 
-export function canTransitionIssueLifecycle(
+function canTransitionIssueLifecycle(
   from: IssueLifecycleStatus,
   to: IssueLifecycleStatus,
 ): boolean {

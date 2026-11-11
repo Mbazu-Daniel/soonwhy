@@ -25,7 +25,7 @@ export interface EvidenceConfidenceWeights {
   sourceDiversity: number;
 }
 
-export const DEFAULT_CONFIDENCE_WEIGHTS: EvidenceConfidenceWeights = {
+const DEFAULT_CONFIDENCE_WEIGHTS: EvidenceConfidenceWeights = {
   repeatedWindows: 0.5,
   observationDepth: 0.25,
   sourceDiversity: 0.25,

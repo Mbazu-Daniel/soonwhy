@@ -1,7 +1,7 @@
 import type { CorrelatedBottleneck } from "./detection.correlation";
 import type { DetectionEvidence } from "../../../common/db/schema/findings";
 import type { RcaEvidence, RcaEvidenceItem } from "./rca.types";
-import type { RankingResult } from "./root-cause/root-cause.ranker";
+import type { RankingResult } from "./root-cause/root-cause.types";
 import { sanitizeRcaContext, sanitizeRcaValue } from "./rca.security";
 
 function toItem(

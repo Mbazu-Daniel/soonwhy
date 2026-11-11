@@ -43,7 +43,7 @@ export interface NPlusOneThresholds {
   minimumTotalDurationMs: number;
 }
 
-export const DEFAULT_N_PLUS_ONE_THRESHOLDS: NPlusOneThresholds = {
+const DEFAULT_N_PLUS_ONE_THRESHOLDS: NPlusOneThresholds = {
   minimumOccurrences: 3,
   minimumTotalDurationMs: 50,
 };

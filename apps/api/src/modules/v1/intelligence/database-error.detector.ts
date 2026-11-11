@@ -41,7 +41,7 @@ export interface DatabaseErrorCandidate {
   samples: DatabaseErrorTrace[];
 }
 
-export const DEFAULT_DATABASE_ERROR_THRESHOLDS: DatabaseErrorThresholds = {
+const DEFAULT_DATABASE_ERROR_THRESHOLDS: DatabaseErrorThresholds = {
   minimumErrors: 3,
   minimumErrorRate: 0.1,
 };

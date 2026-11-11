@@ -243,7 +243,7 @@ function statusCodeOf(error: unknown): number | undefined {
   return undefined;
 }
 
-export class RcaProviderRequestError extends Error {
+class RcaProviderRequestError extends Error {
   constructor(
     readonly status: number,
     message: string,

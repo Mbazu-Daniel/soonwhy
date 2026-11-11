@@ -1,7 +1,3 @@
-import type {
-  CanonicalValue,
-  TelemetryIdentityInput,
-} from "./telemetry-identity.types";
 import type { EvidenceObservation } from "./evidence.types";
 import {
   fingerprintQuery,
@@ -76,10 +72,3 @@ export function createDatabaseQueryObservation(
   };
 }
 
-export function queryIdentityAttributes(
-  input: DatabaseQueryInput,
-): TelemetryIdentityInput["identityAttributes"] {
-  const attributes: Record<string, CanonicalValue> = {};
-  if (input.databaseSystem) attributes.databaseSystem = input.databaseSystem;
-  return attributes;
-}

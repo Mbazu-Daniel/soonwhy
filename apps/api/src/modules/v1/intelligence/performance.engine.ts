@@ -17,7 +17,7 @@ export interface PerformanceThresholds {
   traceCriticalContribution: number;
 }
 
-export const DEFAULT_PERFORMANCE_THRESHOLDS: PerformanceThresholds = {
+const DEFAULT_PERFORMANCE_THRESHOLDS: PerformanceThresholds = {
   minimumBaselineSamples: 20,
   latencyWarningAbsoluteMs: 250,
   latencyWarningRelative: 0.5,

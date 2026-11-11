@@ -3,7 +3,7 @@ import { quickwitTenantQuery, quickwitTerm, sanitizeRequestUrl } from "../../../
 import type { DatabaseConnectionPoolSample } from "../intelligence/database-connection-pool.detector";
 import type { DatabaseConnectionWaitSample } from "../intelligence/database-connection-wait.detector";
 import type { DatabaseQueryTrace } from "../intelligence/database-query.detector";
-import type { Aggregations, EndpointAggregations, MetricSource, RequestSource, ServiceBucket, TraceSource } from "./detection.types";
+import type { Aggregations, MetricSource, RequestSource, ServiceBucket, TraceSource } from "./detection.types";
 
 export async function searchServiceBuckets(
   quickwit: QuickwitService,
@@ -37,79 +37,6 @@ export async function searchServiceBuckets(
   });
 
   return (result.aggregations as Aggregations | undefined)?.services?.buckets ?? [];
-}
-
-export async function searchEndpointBuckets(
-  quickwit: QuickwitService,
-  orgId: string,
-  projectId: string,
-  startTimestamp: number,
-  endTimestamp: number,
-): Promise<Array<{ key: string; latency: number; errorRate: number; doc_count: number }>> {
-  const result = await quickwit.search<never>(QUICKWIT_INDEXES.requests, {
-    query: quickwitTenantQuery(orgId, projectId),
-    startTimestamp,
-    endTimestamp,
-    maxHits: 0,
-    aggregations: {
-      services: {
-        terms: {
-          field: "service",
-          size: 100,
-          order: { _count: "desc" },
-        },
-        aggs: {
-          endpoints: {
-            terms: {
-              field: "url",
-              size: 100,
-              order: { _count: "desc" },
-            },
-            aggs: {
-              methods: {
-                terms: {
-                  field: "method",
-                  size: 20,
-                  order: { _key: "asc" },
-                },
-                aggs: {
-                  latency: {
-                    percentiles: {
-                      field: "duration",
-                      percents: [95],
-                    },
-                  },
-                  errors: {
-                    filter: {
-                      query: "statusCode:[500 TO 599]",
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
-
-  const aggregation = (result.aggregations as EndpointAggregations | undefined)?.services;
-  return (aggregation?.buckets ?? []).flatMap((serviceBucket) =>
-    (serviceBucket.endpoints?.buckets ?? []).flatMap((endpointBucket) =>
-      endpointBucket.methods?.buckets?.flatMap((methodBucket) => {
-        const latency = methodBucket.latency?.values?.["95.0"] ?? 0;
-        const errors = methodBucket.errors?.doc_count ?? 0;
-        if (!methodBucket.key || latency <= 0) return [];
-
-        return [{
-          key: serviceBucket.key + "|" + methodBucket.key + "|" + endpointBucket.key,
-          latency,
-          errorRate: methodBucket.doc_count ? errors / methodBucket.doc_count : 0,
-          doc_count: methodBucket.doc_count,
-        }];
-      }) ?? [],
-    ),
-  );
 }
 
 export async function searchDependencyBuckets(
@@ -369,124 +296,6 @@ export async function searchDatabaseQuerySpans(
       ...(batchSize !== undefined ? { dbBatchSize: batchSize } : {}),
       ...(responseBytes !== undefined ? { dbResponseBytes: responseBytes } : {}),
       ...(endpoint ? { httpRoute: endpoint, endpoint } : {}),
-    }];
-  });
-}
-
-export async function searchTraceDurations(
-  quickwit: QuickwitService,
-  orgId: string,
-  projectId: string,
-  startTimestamp: number,
-  endTimestamp: number,
-): Promise<Map<string, number>> {
-  const result = await quickwit.search<TraceSource>(QUICKWIT_INDEXES.traces, {
-    query: quickwitTenantQuery(orgId, projectId),
-    startTimestamp,
-    endTimestamp,
-    maxHits: 5000,
-    sortBy: ["-duration"],
-  });
-
-  const traces = new Map<string, { start: number; end: number }>();
-
-  for (const hit of result.hits ?? []) {
-    const source = hit._source;
-    if (!source?.traceId) continue;
-
-    const start = new Date(String(source.timestamp ?? "")).getTime();
-    const duration = Number(source.duration ?? 0);
-    if (!Number.isFinite(start) || !Number.isFinite(duration) || duration <= 0) continue;
-
-    const end = start + duration;
-    const existing = traces.get(source.traceId);
-    if (!existing) {
-      traces.set(source.traceId, { start, end });
-      continue;
-    }
-
-    existing.start = Math.min(existing.start, start);
-    existing.end = Math.max(existing.end, end);
-  }
-
-  return new Map(
-    Array.from(traces.entries())
-      .map(([traceId, value]) => [traceId, value.end - value.start] as const)
-      .filter(([, duration]) => duration > 0),
-  );
-}
-
-export async function searchTraceSpanCandidates(
-  quickwit: QuickwitService,
-  orgId: string,
-  projectId: string,
-  startTimestamp: number,
-  endTimestamp: number,
-): Promise<Array<{ traceId: string; spanId: string; spanName: string; serviceName: string; spanDuration: number; traceDuration: number }>> {
-  const result = await quickwit.search<TraceSource>(QUICKWIT_INDEXES.traces, {
-    query: quickwitTenantQuery(orgId, projectId),
-    startTimestamp,
-    endTimestamp,
-    maxHits: 5000,
-    sortBy: ["-duration"],
-  });
-
-  const traces = new Map<string, {
-    start: number;
-    end: number;
-    duration: number;
-    rootService: string;
-    spans: TraceSource[];
-  }>();
-
-  for (const hit of result.hits) {
-    const source = hit._source;
-    if (!source?.traceId) continue;
-
-    const trace = traces.get(source.traceId) ?? {
-      start: Number.POSITIVE_INFINITY,
-      end: 0,
-      duration: 0,
-      rootService: String(source.service ?? ""),
-      spans: [],
-    };
-    trace.spans.push(source);
-
-    const startMs = new Date(String(source.timestamp ?? "")).getTime();
-    const duration = Number(source.duration ?? 0);
-    if (Number.isFinite(startMs) && Number.isFinite(duration) && duration > 0) {
-      trace.start = Math.min(trace.start, startMs);
-      trace.end = Math.max(trace.end, startMs + duration);
-      trace.duration = trace.end - trace.start;
-    }
-
-    if (!source.parentSpanId) {
-      trace.rootService = String(source.service ?? trace.rootService);
-    }
-
-    traces.set(source.traceId, trace);
-  }
-
-  return Array.from(traces.entries()).flatMap(([traceId, trace]) => {
-    const starts = trace.spans
-      .map((span) => new Date(String(span.timestamp ?? "")).getTime())
-      .filter(Number.isFinite);
-    if (!starts.length || trace.duration <= Math.min(...starts)) return [];
-
-    const traceDuration = trace.duration - Math.min(...starts);
-    const candidate = trace.spans
-      .filter((span) => Number(span.duration ?? 0) > 0)
-      .sort((a, b) => Number(b.duration ?? 0) - Number(a.duration ?? 0))[0];
-
-    if (!candidate) return [];
-
-    return [{
-      traceId,
-      spanId: String(candidate.spanId ?? ""),
-      spanName: String(candidate.name ?? ""),
-      serviceName: String(candidate.service ?? trace.rootService),
-      spanDuration: Number(candidate.duration ?? 0),
-      traceDuration,
     }];
   });
 }

@@ -49,20 +49,6 @@ export interface DetectionFinding {
   evidence: DetectionEvidence[];
 }
 
-export interface SeasonalAnalysis {
-  trend: number[];
-  seasonal: number[];
-  residual: number[];
-  anomalyScores: number[];
-  changePoints: number[];
-}
-
-export interface ChangePointDetectionResult {
-  changePoints: number[];
-  penaltyUsed: number;
-  bicScore?: number;
-}
-
 export interface ServiceBucket {
   key: string;
   doc_count: number;

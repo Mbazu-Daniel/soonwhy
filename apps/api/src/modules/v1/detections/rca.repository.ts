@@ -1,3 +1,5 @@
+// fallow-ignore-file unused-class-member
+// Members are consumed via narrowed Pick<RcaAnalysisRepository> DI injection, which fallow cannot see through.
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../../../common/db";
 import { findings, rcaAnalyses } from "../../../common/db/schema";

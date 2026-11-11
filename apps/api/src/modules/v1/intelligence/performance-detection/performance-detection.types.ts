@@ -56,12 +56,6 @@ export interface ResourceFinding extends PerformanceFinding {
   processId?: string;
 }
 
-export type AnyPerformanceFinding =
-  | LatencyFinding
-  | ThroughputFinding
-  | SpanFinding
-  | ResourceFinding;
-
 export interface PerformanceBaseline {
   value: number;
   samples: number;

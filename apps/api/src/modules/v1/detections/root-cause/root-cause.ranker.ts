@@ -8,22 +8,13 @@
 import { CandidateGenerator } from './root-cause.candidates';
 import { SignalExtractor } from './root-cause.signals';
 import { calculateScoreWithMissingSignals } from './root-cause.scorer';
-import { renormalizeWeights } from './root-cause.normalization';
 import type {
-  RootCauseCandidate,
   RankedCandidate,
   ScoringWeights,
   SignalScores,
-  SignalEvidence,
+  RankingResult,
 } from './root-cause.types';
 import { DEFAULT_WEIGHTS } from './root-cause.types';
-
-export interface RankingResult {
-  candidates: RankedCandidate[];
-  weights: ScoringWeights;
-  overallEvidenceCoverage: number;
-  limitations: string[];
-}
 
 /**
  * Trace span data

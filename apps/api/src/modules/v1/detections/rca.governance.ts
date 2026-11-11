@@ -76,11 +76,6 @@ export class DatabaseRcaGovernanceSink implements RcaGovernanceSink {
   }
 }
 
-export class NoopRcaGovernanceSink implements RcaGovernanceSink {
-  async recordSuccess(): Promise<void> {}
-
-  async recordFailure(): Promise<void> {}
-}
 
 export function toRcaUsageFields(usage: RcaUsage) {
   return {

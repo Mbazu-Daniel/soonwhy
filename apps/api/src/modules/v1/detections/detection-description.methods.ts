@@ -89,16 +89,6 @@ export function describePerformanceSignal(signal: {
     Math.round(signal.latency.p99) + 'ms.';
 }
 
-export function describeSignal(description: string, signal: {
-  baselineValue?: number;
-  changePercent?: number;
-}): string {
-  if (signal?.baselineValue === undefined || signal.changePercent === undefined) {
-    return description;
-  }
-  return description + ' This is a ' + signal.changePercent.toFixed(0) + '% increase from the previous comparable window.';
-}
-
 export function describeThroughputSignal(signal: {
   baselineValue: number;
   observedValue: number;

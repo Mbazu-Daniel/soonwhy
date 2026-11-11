@@ -42,7 +42,7 @@ export interface DatabaseQueryTimeoutCandidate {
   samples: DatabaseQueryTimeoutTrace[];
 }
 
-export const DEFAULT_DATABASE_QUERY_TIMEOUT_THRESHOLDS: DatabaseQueryTimeoutThresholds =
+const DEFAULT_DATABASE_QUERY_TIMEOUT_THRESHOLDS: DatabaseQueryTimeoutThresholds =
   {
     minimumOccurrences: 2,
     minimumDurationMs: 5_000,
