@@ -268,15 +268,23 @@ export class NotificationDispatcher {
       const attempts = parseInt(log.attempts ?? "0", 10);
 
       if (attempts >= MAX_ATTEMPTS) {
-        // Mark as permanently failed
+        // Mark as permanently failed (terminal transition)
         await db
           .update(notificationLogs)
           .set({
-            permanentFailure: `Max retry attempts (${MAX_ATTEMPTS}) exceeded`,
             status: "failed",
+            permanentFailure: `Max retry attempts (${MAX_ATTEMPTS}) exceeded`,
+            leasedUntil: null,
+            nextAttemptAt: null,
             updatedAt: now,
           })
-          .where(eq(notificationLogs.id, log.id));
+          .where(
+            and(
+              eq(notificationLogs.id, log.id),
+              eq(notificationLogs.status, "failed"),
+              isNull(notificationLogs.permanentFailure),
+            ),
+          );
         permanentlyFailed++;
         continue;
       }
@@ -292,11 +300,19 @@ export class NotificationDispatcher {
         await db
           .update(notificationLogs)
           .set({
-            permanentFailure: "Channel not found",
             status: "failed",
+            permanentFailure: "Channel not found",
+            leasedUntil: null,
+            nextAttemptAt: null,
             updatedAt: now,
           })
-          .where(eq(notificationLogs.id, log.id));
+          .where(
+            and(
+              eq(notificationLogs.id, log.id),
+              eq(notificationLogs.status, "failed"),
+              isNull(notificationLogs.permanentFailure),
+            ),
+          );
         permanentlyFailed++;
         continue;
       }
@@ -324,8 +340,8 @@ export class NotificationDispatcher {
       });
 
       const newAttempts = attempts + 1;
-      const nextAttemptAt = result.ok 
-        ? null 
+      const nextAttemptAt = result.ok
+        ? null
         : new Date(Date.now() + Math.pow(2, newAttempts) * 60000);
 
       await db
@@ -335,11 +351,19 @@ export class NotificationDispatcher {
           attempts: String(newAttempts),
           lastAttemptAt: now,
           nextAttemptAt,
+          leasedUntil: null,
           providerMessageId: result.providerMessageId ?? log.providerMessageId,
-          error: result.error ?? null,
+          error: result.ok ? null : (result.error ?? null),
+          permanentFailure: null,
           updatedAt: now,
         })
-        .where(eq(notificationLogs.id, log.id));
+        .where(
+          and(
+            eq(notificationLogs.id, log.id),
+            eq(notificationLogs.status, "failed"),
+            isNull(notificationLogs.permanentFailure),
+          ),
+        );
 
       if (result.ok) succeeded++;
     }
@@ -350,12 +374,11 @@ export class NotificationDispatcher {
   private async logDeliveryWithOutbox(log: DeliveryLog & { idempotencyKey?: string }): Promise<void> {
     const { orgId, projectId, channel, incidentId, alertRuleId, result, payload, idempotencyKey } = log;
 
+    // Explicit delivery state: sent (terminal success) or failed (retryable unless later marked permanent)
     const status = result.ok ? "sent" : "failed";
-    const attempts = result.ok ? "0" : "1";
+    const attempts = "1";
     const lastAttemptAt = new Date();
-
-    // Calculate next attempt with exponential backoff if failed
-    const nextAttemptAt = result.ok ? null : new Date(Date.now() + Math.pow(2, parseInt(attempts)) * 60000); // 2^n minutes
+    const nextAttemptAt = result.ok ? null : new Date(Date.now() + Math.pow(2, 1) * 60000);
 
     // Generate idempotency key if not provided
     const finalIdempotencyKey = idempotencyKey ?? `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
@@ -369,7 +392,7 @@ export class NotificationDispatcher {
       alertRuleId,
       status,
       providerMessageId: result.providerMessageId ?? null,
-      error: result.error ?? null,
+      error: result.ok ? null : (result.error ?? null),
       payload,
       idempotencyKey: finalIdempotencyKey,
       attempts,

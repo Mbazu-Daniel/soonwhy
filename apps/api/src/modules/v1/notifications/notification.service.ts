@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "../../../common/db";
 import {
@@ -8,6 +8,7 @@ import {
   notificationLogs,
   incidentTimelineEvents,
   incidentOwnership,
+  type AlertRuleStatus,
 } from "../../../common/db/schema";
 import {
   toChannelDto,
@@ -31,6 +32,20 @@ import {
 export type { DispatchInput, DispatchResult } from "./notification-dispatcher";
 
 type ChannelRecord = typeof notificationChannels.$inferSelect;
+
+const ALERT_RULE_STATUSES = new Set<AlertRuleStatus>(["active", "disabled"]);
+
+function assertAlertRuleInput(input: { status?: string | null }) {
+  if (
+    input.status !== undefined &&
+    input.status !== null &&
+    !ALERT_RULE_STATUSES.has(input.status as AlertRuleStatus)
+  ) {
+    throw new BadRequestException(
+      `Invalid alert rule status: ${String(input.status)} (expected active | disabled)`,
+    );
+  }
+}
 
 
 @Injectable()
@@ -172,6 +187,7 @@ export class NotificationService {
       "id" | "orgId" | "projectId" | "createdAt" | "updatedAt"
     >,
   ): Promise<AlertRuleDto> {
+    assertAlertRuleInput(input);
     const [row] = await db
       .insert(alertRules)
       .values({
@@ -206,6 +222,7 @@ export class NotificationService {
       >
     >,
   ): Promise<AlertRuleDto> {
+    assertAlertRuleInput(input);
     const [row] = await db
       .update(alertRules)
       .set({ ...input, updatedAt: new Date() })
@@ -283,6 +300,7 @@ export class NotificationService {
       "id" | "orgId" | "projectId" | "createdAt" | "updatedAt"
     >,
   ): Promise<AlertRuleDto> {
+    assertAlertRuleInput(input);
     const [row] = await db
       .insert(alertRules)
       .values({
@@ -316,6 +334,7 @@ export class NotificationService {
       >
     >,
   ): Promise<AlertRuleDto> {
+    assertAlertRuleInput(input);
     const [row] = await db
       .update(alertRules)
       .set({ ...input, updatedAt: new Date() })

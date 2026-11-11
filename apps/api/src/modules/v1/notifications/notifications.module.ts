@@ -18,6 +18,12 @@ import { AlertEvaluationService } from "./alert-evaluation.service";
 import { MetricsModule } from "../../v1/metrics/metrics.module";
 import { AlertRuleEngineService } from "./alert-engine/alert-rule-engine.service";
 import { TelemetryModule } from "../../../common/telemetry";
+import { IncidentsService } from "../incidents/incidents.service";
+import { IncidentsRepository } from "../incidents/incidents.repository";
+import { MaintenanceWindowsService } from "../maintenance-windows/maintenance-windows.service";
+import { MaintenanceWindowsRepository } from "../maintenance-windows/maintenance-windows.repository";
+import { SyntheticProbesRepository } from "../synthetic-probes/synthetic-probes.repository";
+import { DedupService } from "./dedup/dedup.service";
 
 const getProjectsWithActiveChannels = async () => {
   return db
@@ -46,6 +52,12 @@ const getProjectsWithActiveChannels = async () => {
     NotificationService,
     AlertRuleEngineService,
     AlertEvaluationService,
+    IncidentsService,
+    IncidentsRepository,
+    MaintenanceWindowsService,
+    MaintenanceWindowsRepository,
+    SyntheticProbesRepository,
+    DedupService,
     {
       provide: WeeklySummaryService,
       useFactory: (notificationService: NotificationService) =>

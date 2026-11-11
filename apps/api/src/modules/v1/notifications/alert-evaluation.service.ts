@@ -1,10 +1,13 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { MetricsRepository } from "../../../modules/v1/metrics/metrics.repository";
 import { NotificationService } from "./notification.service";
+import { IncidentsService } from "../incidents/incidents.service";
+import { MaintenanceWindowsService } from "../maintenance-windows/maintenance-windows.service";
 import { db } from "../../../common/db";
-import { alertRules } from "../../../common/db/schema";
-import { eq, and } from "drizzle-orm";
+import { alertTriggers, alertRules } from "../../../common/db/schema";
+import { eq, and, or, isNull } from "drizzle-orm";
 import { AlertRuleEngineService } from "./alert-engine/alert-rule-engine.service";
+import { DedupService } from "./dedup/dedup.service";
 import type { AlertRuleSeverity } from "../../../common/db/schema";
 
 interface AlertRuleRow {
@@ -18,6 +21,11 @@ interface AlertRuleRow {
   dedupeWindowSeconds: number;
 }
 
+import {
+  decideAlertEvaluationRoute,
+  type AlertEvaluationRoute,
+} from "./alert-evaluation-fsm";
+
 type AlertCondition = {
   type: string;
   metric: string;
@@ -29,6 +37,17 @@ type AlertCondition = {
   description?: string;
 };
 
+type AlertEvaluationRouteContext = {
+  orgId: string;
+  projectId: string;
+  rule: AlertRuleRow;
+  condition: AlertCondition;
+  metricData: Record<string, unknown>;
+  now: Date;
+  metricValue: unknown;
+  threshold: number | string | undefined;
+};
+
 @Injectable()
 export class AlertEvaluationService {
   private readonly logger = new Logger(AlertEvaluationService.name);
@@ -37,11 +56,14 @@ export class AlertEvaluationService {
     private readonly metricsRepository: MetricsRepository,
     private readonly notificationService: NotificationService,
     private readonly alertRuleEngine: AlertRuleEngineService,
+    private readonly incidentsService: IncidentsService,
+    private readonly maintenanceWindowsService: MaintenanceWindowsService,
+    private readonly dedupService: DedupService,
   ) {}
 
   /**
    * Evaluate all active alert rules for a project against current metrics.
-   * Dispatch alerts for any violated conditions.
+   * Dispatch alerts for any violated conditions and check for recovery.
    */
   async evaluateProjectRules(orgId: string, projectId: string): Promise<void> {
     const rules = await db
@@ -50,7 +72,7 @@ export class AlertEvaluationService {
       .where(
         and(
           eq(alertRules.orgId, orgId),
-          eq(alertRules.projectId, projectId),
+          or(eq(alertRules.projectId, projectId), isNull(alertRules.projectId)),
           eq(alertRules.status, "active"),
         ),
       );
@@ -79,26 +101,220 @@ export class AlertEvaluationService {
           now,
         );
 
-        if (result.result === "satisfied") {
-          await this.notificationService.dispatchAlert({
-            orgId,
-            projectId,
-            incidentId: `alert-${ruleRow.id}`,
-            severity: ruleRow.minSeverity as AlertRuleSeverity,
-            title: `Alert: ${ruleRow.name}`,
-            body: `Condition "${condition.description ?? condition.metric}" violated: ${condition.metric} is ${result.details.metricValue} (threshold: ${condition.value})`,
-            htmlBody: undefined,
-            metadata: {
-              alertRuleId: ruleRow.id,
-              metric: condition.metric,
-              value: String(result.details.metricValue),
-              threshold: String(condition.value),
-              operator: condition.operator,
-            },
-          });
-        }
+        // Check for recovery on existing incidents
+        await this.incidentsService.checkForRecovery(ruleRow.id, metricData);
+
+        const route = await this.decideRoute(
+          orgId,
+          projectId,
+          ruleRow,
+          condition,
+          result,
+          metricData,
+          now,
+        );
+
+        await this.executeAlertEvaluationRoute(route, {
+          orgId,
+          projectId,
+          rule: ruleRow,
+          condition,
+          metricData,
+          now,
+          metricValue: result.details.metricValue,
+          threshold: condition.value,
+        });
       }
     }
+  }
+
+  private async decideRoute(
+    orgId: string,
+    projectId: string,
+    rule: AlertRuleRow,
+    condition: AlertCondition,
+    result: { result: string },
+    metricData: Record<string, unknown>,
+    now: Date,
+  ): Promise<AlertEvaluationRoute> {
+    const hasNoData = !metricData || Object.keys(metricData).length === 0;
+    const satisfied = result.result === "satisfied";
+
+    // Dedupe claims trigger rows, so it must only run for a satisfied
+    // condition with data; suppression and protection are cheap reads after.
+    let isDedupe = false;
+    let isSuppressed = false;
+    let hasIncidentProtection = false;
+
+    if (!hasNoData && satisfied) {
+      const dedupResult = await this.dedupService.shouldDedupe(
+        orgId,
+        projectId,
+        rule.id,
+        now,
+        rule.name,
+      );
+      isDedupe = dedupResult.isDedupe;
+
+      isSuppressed = await this.maintenanceWindowsService.isAlertSuppressed(
+        orgId,
+        projectId,
+        rule.id,
+        undefined,
+      );
+
+      hasIncidentProtection =
+        await this.dedupService.hasActiveIncidentProtection(rule.id);
+    }
+
+    return decideAlertEvaluationRoute({
+      hasNoData,
+      satisfied: !hasNoData && satisfied,
+      isDedupe,
+      isSuppressed,
+      hasIncidentProtection,
+    });
+  }
+
+  private async executeAlertEvaluationRoute(
+    route: AlertEvaluationRoute,
+    ctx: AlertEvaluationRouteContext,
+  ): Promise<void> {
+    switch (route) {
+      case "no_data":
+        await this.handleNoDataRoute(ctx);
+        return;
+      case "deduped":
+        await this.handleDedupedRoute(ctx);
+        return;
+      case "suppressed":
+        this.logger.log(
+          `Alert ${ctx.rule.id} suppressed by maintenance window`,
+        );
+        return;
+      case "protection_waiting":
+        this.logger.log(
+          `Alert ${ctx.rule.id} condition satisfied, waiting for incident protection (streak < 2)`,
+        );
+        return;
+      case "dispatched":
+        await this.handleDispatchedRoute(ctx);
+        return;
+      case "healthy_reset":
+        await this.handleHealthyResetRoute(ctx);
+        return;
+    }
+  }
+
+  private async handleNoDataRoute(ctx: AlertEvaluationRouteContext) {
+    const activeTrigger = await this.getActiveTriggerForRule(ctx.rule.id);
+    if (activeTrigger) {
+      await this.dedupService.transitionToNoData(activeTrigger.id, {
+        mode: "alerting",
+        thresholdMinutes: 5,
+      });
+    }
+  }
+
+  private async handleDedupedRoute(ctx: AlertEvaluationRouteContext) {
+    const [existingTrigger] = await db
+      .select({
+        id: alertTriggers.id,
+        streakCount: alertTriggers.streakCount,
+      })
+      .from(alertTriggers)
+      .where(
+        and(
+          eq(alertTriggers.alertRuleId, ctx.rule.id),
+          eq(alertTriggers.status, "active"),
+        ),
+      )
+      .limit(1);
+
+    if (existingTrigger) {
+      await this.dedupService.updateStreak(existingTrigger.id, true);
+      await this.dedupService.updateAlertState(
+        existingTrigger.id,
+        "firing",
+        "Condition satisfied (deduped)",
+      );
+    }
+    this.logger.log(
+      `Alert ${ctx.rule.id} deduped (streak: ${existingTrigger?.streakCount ?? 0})`,
+    );
+  }
+
+  private async handleDispatchedRoute(ctx: AlertEvaluationRouteContext) {
+    await this.dedupService.recordTrigger(
+      ctx.orgId,
+      ctx.projectId,
+      ctx.rule.id,
+      ctx.rule.name,
+      ctx.now,
+      ctx.rule.minSeverity,
+      { metric: ctx.condition.metric, value: ctx.metricValue },
+    );
+
+    const incidentId = `alert-${ctx.rule.id}-${ctx.condition.metric}`;
+    const title = `Alert: ${ctx.rule.name}`;
+    const body = `Condition "${ctx.condition.description ?? ctx.condition.metric}" violated: ${ctx.condition.metric} is ${ctx.metricValue} (threshold: ${ctx.threshold})`;
+    const metadata = {
+      alertRuleId: ctx.rule.id,
+      metric: ctx.condition.metric,
+      value: String(ctx.metricValue),
+      threshold: String(ctx.threshold),
+      operator: ctx.condition.operator,
+    };
+
+    await this.incidentsService.createOrUpdateIncident({
+      incidentId,
+      orgId: ctx.orgId,
+      projectId: ctx.projectId,
+      alertRuleId: ctx.rule.id,
+      severity: ctx.rule.minSeverity,
+      title,
+      body,
+      metadata,
+    });
+
+    await this.notificationService.dispatchAlert({
+      orgId: ctx.orgId,
+      projectId: ctx.projectId,
+      incidentId,
+      severity: ctx.rule.minSeverity as AlertRuleSeverity,
+      title,
+      body,
+      htmlBody: undefined,
+      metadata,
+    });
+  }
+
+  private async handleHealthyResetRoute(ctx: AlertEvaluationRouteContext) {
+    const activeTrigger = await this.getActiveTriggerForRule(ctx.rule.id);
+    if (activeTrigger) {
+      await this.dedupService.updateStreak(activeTrigger.id, false);
+      await this.dedupService.updateAlertState(
+        activeTrigger.id,
+        "healthy",
+        "Condition no longer satisfied",
+      );
+      await this.dedupService.resolveTrigger(activeTrigger.id);
+      await this.incidentsService.checkForRecovery(ctx.rule.id, ctx.metricData);
+    }
+  }
+
+  private async getActiveTriggerForRule(alertRuleId: string) {
+    const [activeTrigger] = await db
+      .select({ id: alertTriggers.id })
+      .from(alertTriggers)
+      .where(
+        and(
+          eq(alertTriggers.alertRuleId, alertRuleId),
+          eq(alertTriggers.status, "active"),
+        ),
+      )
+      .limit(1);
+    return activeTrigger;
   }
 
   private async fetchMetricData(

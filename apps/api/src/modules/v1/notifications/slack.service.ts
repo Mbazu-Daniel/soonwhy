@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { OutboundHttpService } from "../../../common/resilience/outbound-http.service";
 
 export interface SlackBlock {
   type: string;
@@ -29,6 +30,8 @@ export interface SlackConnectedChannel {
 
 @Injectable()
 export class SlackService {
+  constructor(private readonly http: OutboundHttpService) {}
+
   getAuthorizeUrl(
     clientId: string,
     redirectUri: string,
@@ -56,12 +59,17 @@ export class SlackService {
       redirect_uri: redirectUri,
     });
 
-    const res = await fetch("https://slack.com/api/oauth.v2.access", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
+    const res = await this.http.request({
+      url: "https://slack.com/api/oauth.v2.access",
+      preset: "slack",
+      source: "SlackService.exchangeCode",
+      init: {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: params,
       },
-      body: params,
     });
 
     return (await res.json()) as SlackOAuthResponse;
@@ -72,17 +80,22 @@ export class SlackService {
     input: SlackSendMessageInput,
   ): Promise<{ ok: boolean; channel?: string; ts?: string; error?: string }> {
     try {
-      const res = await fetch("https://slack.com/api/chat.postMessage", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${botToken}`,
-          "Content-Type": "application/json",
+      const res = await this.http.request({
+        url: "https://slack.com/api/chat.postMessage",
+        preset: "slack",
+        source: "SlackService.sendMessage",
+        init: {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${botToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            channel: input.channel,
+            ...(input.text ? { text: input.text } : {}),
+            ...(input.blocks ? { blocks: input.blocks } : {}),
+          }),
         },
-        body: JSON.stringify({
-          channel: input.channel,
-          ...(input.text ? { text: input.text } : {}),
-          ...(input.blocks ? { blocks: input.blocks } : {}),
-        }),
       });
 
       const data = (await res.json()) as {
