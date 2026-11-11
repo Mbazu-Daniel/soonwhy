@@ -8,6 +8,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { auth } from "../config/better-auth.config";
 import { db } from "../db";
 import { members } from "../db/schema/auth";
+import { organizations } from "../db/schema/organizations";
 import { organizationIdFromUrl } from "./organization-path";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -58,8 +59,12 @@ export class TenantContextMiddleware implements NestMiddleware {
       }
 
       const [member] = await db
-        .select({ role: members.role })
+        .select({ role: members.role, deletedAt: organizations.deletedAt })
         .from(members)
+        .innerJoin(
+          organizations,
+          eq(organizations.id, members.organizationId),
+        )
         .where(
           and(
             eq(members.userId, session.user.id),
@@ -70,6 +75,10 @@ export class TenantContextMiddleware implements NestMiddleware {
 
       if (!member) {
         throw new UnauthorizedException("Not a member of this organization");
+      }
+
+      if (member.deletedAt) {
+        throw new UnauthorizedException("Organization not found");
       }
 
       await db.execute(sql`SELECT set_config('app.org_id', ${orgId}, true)`);
