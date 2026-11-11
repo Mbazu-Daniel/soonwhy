@@ -3,7 +3,6 @@ import { stableEventId } from "./event-id";
 import { nanoToMs } from "./time";
 import type {
   CaptureSettings,
-  ParsedDetectionEvent,
   ParsedLogRecord,
   ParsedMetricPoint,
   ParsedSpan,
@@ -504,81 +503,4 @@ export function mapMetricToRow(
   };
 }
 
-const MAX_DETECTION_TITLE_LENGTH = 500;
-const MAX_DETECTION_STRING_LENGTH = 200;
 
-function detectionString(value: unknown, maxLength = MAX_DETECTION_STRING_LENGTH): string {
-  return typeof value === "string" ? value.slice(0, maxLength) : "";
-}
-
-function detectionNumber(value: unknown): number | undefined {
-  if (value === undefined || value === null) return undefined;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-export function mapDetectionToRow(
-  event: ParsedDetectionEvent,
-  organization: OrganizationContext,
-) {
-  const kind = detectionString(event.kind, MAX_DETECTION_STRING_LENGTH) || "finding";
-  const detector = detectionString(event.detector);
-  const findingId = detectionString(event.findingId);
-  const runId = detectionString(event.runId);
-  const service =
-    detectionString(event.service) || detectionString(event.serviceName);
-  const type = detectionString(event.type);
-  const severity = detectionString(event.severity, 20);
-  const title = sanitizeSensitiveText(
-    detectionString(event.title, MAX_DETECTION_TITLE_LENGTH),
-    organization.captureSettings.redactSensitiveData,
-  );
-  const unit = detectionString(event.unit, 50);
-  const timestamp = telemetryTimestamp(event.timestamp ?? Date.now());
-  const eventId =
-    detectionString(event.eventId, 200) ||
-    stableEventId([
-      "detection",
-      organization.organizationId,
-      organization.projectId,
-      kind,
-      detector,
-      findingId,
-      runId,
-      event.timestamp ?? timestamp,
-    ]);
-
-  const row: Record<string, unknown> & { eventId: string } = {
-    id: randomUUID(),
-    eventId,
-    timestamp,
-    org_id: organization.organizationId,
-    project_id: organization.projectId,
-    kind,
-    service,
-    ...(detector ? { detector } : {}),
-    ...(type ? { type } : {}),
-    ...(severity ? { severity } : {}),
-    ...(findingId ? { findingId } : {}),
-    ...(runId ? { runId } : {}),
-    ...(title ? { title } : {}),
-    ...(unit ? { unit } : {}),
-  };
-
-  const observedValue = detectionNumber(event.observedValue);
-  const threshold = detectionNumber(event.threshold);
-  const duration = detectionNumber(event.durationMs);
-  if (observedValue !== undefined) row.observedValue = observedValue;
-  if (threshold !== undefined) row.threshold = threshold;
-  if (duration !== undefined) row.duration = duration;
-
-  const windowStart = detectionString(event.windowStart, 64);
-  const windowEnd = detectionString(event.windowEnd, 64);
-  if (windowStart) row.windowStart = windowStart;
-  if (windowEnd) row.windowEnd = windowEnd;
-
-  const fingerprint = detectionString(event.fingerprint);
-  if (fingerprint) row.fingerprint = fingerprint;
-
-  return row;
-}

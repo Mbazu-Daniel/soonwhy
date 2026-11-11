@@ -9,9 +9,6 @@
  * ensuring no data is lost even when the primary store cannot accept the full batch.
  */
 
-// Maximum batch size before overflow (configurable via env)
-const DEFAULT_MAX_BATCH_BYTES = 1_000_000; // 1MB
-
 export interface R2OverflowInfo {
   overflowed: boolean;
   overflowedCount: number;
@@ -47,24 +44,4 @@ export function tryR2Overflow(
     overflowedCount,
     remainingBytes: maxBytes - totalBytes,
   };
-}
-
-/**
- * Write overflowed items to R2 storage.
- * Returns the R2 key (SHA-256 hash) for the stored object.
- * In production, this uses the R2 binding; here it's a stub.
- */
-export async function writeR2Overflow(
-  items: Array<Record<string, unknown>>,
-  encoder: TextEncoder,
-  orgId: string,
-  signal: string,
-): Promise<string | null> {
-  // Compute a SHA-256 hash of the stable record (excluding ingest-time fields)
-  // In a full implementation, this would upload to R2 and return the key
-  // For now, return null to indicate overflow not configured
-  console.warn(
-    `R2 overflow not configured; ${items.length} items would be overflowed`,
-  );
-  return null;
 }

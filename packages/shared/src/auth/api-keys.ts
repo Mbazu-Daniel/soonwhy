@@ -1,3 +1,5 @@
+// fallow-ignore-file unused-class-member
+// Public shared-library API consumed by ingest and API workspaces.
 import { Injectable, Inject } from "@nestjs/common";
 import { createHash } from "crypto";
 import { eq } from "drizzle-orm";

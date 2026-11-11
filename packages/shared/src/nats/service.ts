@@ -1,3 +1,5 @@
+// fallow-ignore-file unused-class-member
+// Public shared-library API consumed by ingest and API workspaces.
 import {
   Injectable,
   OnModuleInit,
@@ -14,7 +16,6 @@ import {
   JsMsg,
   StorageType,
 } from "nats";
-import { generateEventId } from "../telemetry-identity/event-id";
 
 export type NatsServiceOptions = {
   /**

@@ -9,7 +9,7 @@ import type {
   ParseMetricsResult,
 } from "../interfaces";
 
-export type { MetricType, ParsedMetricPoint, ParseMetricsResult };
+export type { ParseMetricsResult };
 
 type DataPoint = {
   asDouble?: number;

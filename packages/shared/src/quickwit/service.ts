@@ -1,3 +1,5 @@
+// fallow-ignore-file unused-class-member
+// Public shared-library API consumed by ingest, API and cron workspaces.
 import { Injectable, Logger } from "@nestjs/common";
 
 export interface QuickwitHit<T> {

@@ -1,7 +1,3 @@
-import type { ParsedResource } from "../interfaces";
-
-export type { ParsedResource };
-
 export interface ResourceAttributes {
   attributes: Record<string, string>;
   serviceName: string;
@@ -32,7 +28,7 @@ export function resourceFromAttributes(
   };
 }
 
-export function getAttribute(
+function getAttribute(
   attrs: Record<string, string>,
   ...keys: string[]
 ): string {

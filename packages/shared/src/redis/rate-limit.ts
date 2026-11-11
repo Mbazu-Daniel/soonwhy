@@ -1,3 +1,5 @@
+// fallow-ignore-file unused-class-member
+// Public shared-library API consumed by ingest workspace.
 import {
   Injectable,
   Logger,

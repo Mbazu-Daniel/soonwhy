@@ -3,7 +3,7 @@ import { nanoToMs } from "./time";
 import { hexId, resourceFromAttributes } from "./types";
 import type { ParsedSpan, ParseTracesResult } from "../interfaces";
 
-export type { ParsedSpan, ParseTracesResult };
+export type { ParseTracesResult };
 
 export function parseTracesPayload(payload: any): ParseTracesResult {
   const resourceSpans = payload.resourceSpans || payload.resource_spans || [];

@@ -1,3 +1,5 @@
+// fallow-ignore-file unused-class-member
+// Public SDK client API for consumers; members are called by integrators, not in this repo.
 import { resolveNodeOptions, type ResolvedNodeSdkOptions } from "./config.js";
 import { createOpenTelemetryRuntime } from "./instrumentation.js";
 import { TelemetryBatcher } from "../batcher.js";

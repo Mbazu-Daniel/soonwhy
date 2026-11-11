@@ -13,13 +13,11 @@ import {
   mapMetricToRow,
   mapSpanToRequestRow,
   mapSpanToTraceRow,
-  mapDetectionToRow,
 } from "../parse/mappers";
 import type {
   ParsedLogRecord,
   ParsedMetricPoint,
   ParsedSpan,
-  ParsedDetectionEvent,
   OrganizationContext,
 } from "../interfaces";
 import { DlqRepository } from "./dlq.repository";
@@ -188,7 +186,6 @@ export class IngestConsumer implements OnModuleInit {
     const requestRows: MappedRow[] = [];
     const logRows: MappedRow[] = [];
     const metricRows: MappedRow[] = [];
-    const detectionRows: MappedRow[] = [];
     let organizationId: string | undefined;
     let projectId: string | undefined;
 
