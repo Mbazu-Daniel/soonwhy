@@ -15,7 +15,7 @@ describe("IngestConcurrency", () => {
       perOrganizationLimit: 2,
       inFlight: 2,
       available: 0,
-      saturated: true,
+      isSaturated: true,
       organizations: 2,
     });
 
@@ -31,7 +31,7 @@ describe("IngestConcurrency", () => {
       perOrganizationLimit: 2,
       inFlight: 0,
       available: 2,
-      saturated: false,
+      isSaturated: false,
       organizations: 0,
     });
     vi.unstubAllEnvs();
@@ -49,7 +49,7 @@ describe("IngestConcurrency", () => {
     expect(limiter.snapshot()).toMatchObject({
       inFlight: 3,
       perOrganizationLimit: 2,
-      saturated: false,
+      isSaturated: false,
       organizations: 2,
     });
 

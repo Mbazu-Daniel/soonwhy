@@ -1,7 +1,9 @@
 import { randomUUID } from "crypto";
+import { stableEventId } from "./event-id";
 import { nanoToMs } from "./time";
 import type {
   CaptureSettings,
+  ParsedDetectionEvent,
   ParsedLogRecord,
   ParsedMetricPoint,
   ParsedSpan,
@@ -114,6 +116,17 @@ export function mapSpanToTraceRow(span: ParsedSpan, organization: OrganizationCo
   const dependencyOperationName = getDependencyOperationName(span);
   return {
     id: randomUUID(),
+    eventId: stableEventId([
+      "trace",
+      organization.organizationId,
+      organization.projectId,
+      span.traceId,
+      span.spanId,
+      span.startTimeUnixNano,
+      span.name,
+      span.kind,
+      span.resource.serviceName,
+    ]),
     timestamp: nanoToTelemetryTimestamp(span.startTimeUnixNano),
     org_id: organization.organizationId,
     project_id: organization.projectId,
@@ -320,6 +333,17 @@ export function mapSpanToRequestRow(span: ParsedSpan, organization: Organization
   );
   return {
     id: randomUUID(),
+    eventId: stableEventId([
+      "request",
+      organization.organizationId,
+      organization.projectId,
+      span.traceId,
+      span.spanId,
+      span.startTimeUnixNano,
+      span.name,
+      span.kind,
+      span.resource.serviceName,
+    ]),
     timestamp: nanoToTelemetryTimestamp(span.startTimeUnixNano),
     org_id: organization.organizationId,
     project_id: organization.projectId,
@@ -357,6 +381,18 @@ export function mapLogToRow(record: ParsedLogRecord, organization: OrganizationC
   };
   return {
     id: randomUUID(),
+    eventId: stableEventId([
+      "log",
+      organization.organizationId,
+      organization.projectId,
+      record.timestamp,
+      record.traceId,
+      record.spanId,
+      record.severityNumber,
+      record.message,
+      record.attributes,
+      record.resource.serviceName,
+    ]),
     timestamp: telemetryTimestamp(record.timestamp),
     org_id: organization.organizationId,
     project_id: organization.projectId,
@@ -399,6 +435,18 @@ export function mapMetricToRow(
     attributes["db.client.connection.state"] = connectionPoolState;
   return {
     id: randomUUID(),
+    eventId: stableEventId([
+      "metric",
+      organization.organizationId,
+      organization.projectId,
+      point.metricName,
+      point.timestamp,
+      point.metricType,
+      point.value,
+      point.valueInt,
+      point.attributes,
+      point.resource.serviceName,
+    ]),
     timestamp: telemetryTimestamp(point.timestamp),
     org_id: organization.organizationId,
     project_id: organization.projectId,
@@ -409,7 +457,128 @@ export function mapMetricToRow(
     name: point.metricName,
     value: metricValue(point),
     unit: mapMetricUnit(point.metricUnit),
+    metricType: point.metricType,
+    ...(point.aggregationTemporality
+      ? { aggregationTemporality: point.aggregationTemporality }
+      : {}),
     attributes,
+    ...(point.histogram
+      ? {
+          histogramCount: point.histogram.count,
+          histogramSum: point.histogram.sum,
+          histogramMin: point.histogram.min,
+          histogramMax: point.histogram.max,
+          histogramBucketCounts: point.histogram.bucketCounts,
+          histogramExplicitBounds: point.histogram.explicitBounds,
+        }
+      : {}),
+    ...(point.exponentialHistogram
+      ? {
+          exponentialHistogramCount: point.exponentialHistogram.count,
+          exponentialHistogramSum: point.exponentialHistogram.sum,
+          exponentialHistogramMin: point.exponentialHistogram.min,
+          exponentialHistogramMax: point.exponentialHistogram.max,
+          exponentialHistogramScale: point.exponentialHistogram.scale,
+          exponentialHistogramZeroCount:
+            point.exponentialHistogram.zeroCount,
+          exponentialHistogramZeroThreshold:
+            point.exponentialHistogram.zeroThreshold,
+          exponentialHistogramPositiveOffset:
+            point.exponentialHistogram.positiveOffset,
+          exponentialHistogramPositiveBuckets:
+            point.exponentialHistogram.positiveBuckets,
+          exponentialHistogramNegativeOffset:
+            point.exponentialHistogram.negativeOffset,
+          exponentialHistogramNegativeBuckets:
+            point.exponentialHistogram.negativeBuckets,
+        }
+      : {}),
+    ...(point.summary
+      ? {
+          summaryCount: point.summary.count,
+          summarySum: point.summary.sum,
+          summaryQuantiles: point.summary.quantiles,
+        }
+      : {}),
     ...(connectionPoolName ? { connectionPoolName } : {}),
   };
+}
+
+const MAX_DETECTION_TITLE_LENGTH = 500;
+const MAX_DETECTION_STRING_LENGTH = 200;
+
+function detectionString(value: unknown, maxLength = MAX_DETECTION_STRING_LENGTH): string {
+  return typeof value === "string" ? value.slice(0, maxLength) : "";
+}
+
+function detectionNumber(value: unknown): number | undefined {
+  if (value === undefined || value === null) return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+export function mapDetectionToRow(
+  event: ParsedDetectionEvent,
+  organization: OrganizationContext,
+) {
+  const kind = detectionString(event.kind, MAX_DETECTION_STRING_LENGTH) || "finding";
+  const detector = detectionString(event.detector);
+  const findingId = detectionString(event.findingId);
+  const runId = detectionString(event.runId);
+  const service =
+    detectionString(event.service) || detectionString(event.serviceName);
+  const type = detectionString(event.type);
+  const severity = detectionString(event.severity, 20);
+  const title = sanitizeSensitiveText(
+    detectionString(event.title, MAX_DETECTION_TITLE_LENGTH),
+    organization.captureSettings.redactSensitiveData,
+  );
+  const unit = detectionString(event.unit, 50);
+  const timestamp = telemetryTimestamp(event.timestamp ?? Date.now());
+  const eventId =
+    detectionString(event.eventId, 200) ||
+    stableEventId([
+      "detection",
+      organization.organizationId,
+      organization.projectId,
+      kind,
+      detector,
+      findingId,
+      runId,
+      event.timestamp ?? timestamp,
+    ]);
+
+  const row: Record<string, unknown> & { eventId: string } = {
+    id: randomUUID(),
+    eventId,
+    timestamp,
+    org_id: organization.organizationId,
+    project_id: organization.projectId,
+    kind,
+    service,
+    ...(detector ? { detector } : {}),
+    ...(type ? { type } : {}),
+    ...(severity ? { severity } : {}),
+    ...(findingId ? { findingId } : {}),
+    ...(runId ? { runId } : {}),
+    ...(title ? { title } : {}),
+    ...(unit ? { unit } : {}),
+  };
+
+  const observedValue = detectionNumber(event.observedValue);
+  const threshold = detectionNumber(event.threshold);
+  const duration = detectionNumber(event.durationMs);
+  if (observedValue !== undefined) row.observedValue = observedValue;
+  if (threshold !== undefined) row.threshold = threshold;
+  if (duration !== undefined) row.duration = duration;
+
+  const windowStart = detectionString(event.windowStart, 64);
+  const windowEnd = detectionString(event.windowEnd, 64);
+  if (windowStart) row.windowStart = windowStart;
+  if (windowEnd) row.windowEnd = windowEnd;
+
+  const fingerprint = detectionString(event.fingerprint);
+  if (fingerprint) row.fingerprint = fingerprint;
+
+  return row;
 }
