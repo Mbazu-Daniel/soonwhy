@@ -24,6 +24,30 @@ Default endpoint:
 http://localhost:3002/v1
 ```
 
+## OTLP endpoints
+
+Standard OpenTelemetry exporters use the canonical OTLP/HTTP paths:
+
+```text
+http://localhost:3002/v1/traces
+http://localhost:3002/v1/logs
+http://localhost:3002/v1/metrics
+```
+
+These are the only accepted ingest paths.
+
+OTLP/gRPC clients connect through the bundled collector, which receives gRPC on port `4317` and exports to the ingest worker over OTLP/HTTP:
+
+```yaml
+exporters:
+  otlphttp/soonwhy:
+    endpoint: http://ingest:3002
+    headers:
+      authorization: "Bearer ${env:SOONWHY_API_KEY}"
+```
+
+The collector also runs a `hostmetrics` receiver so `/metrics/host` has `system.*` data.
+
 ## Web
 
 | Option | Required |

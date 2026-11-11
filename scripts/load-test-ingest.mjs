@@ -21,7 +21,7 @@ async function worker() {
     const stats = byUrl.get(baseUrl);
     const started = performance.now();
     try {
-      const response = await fetch(`${baseUrl.replace(/\/$/, '')}/api/v1/traces`, {
+      const response = await fetch(`${baseUrl.replace(/\/$/, '')}/v1/traces`, {
         method: 'POST',
         headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
         body: payload,

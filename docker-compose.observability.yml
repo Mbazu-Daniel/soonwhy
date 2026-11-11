@@ -5,7 +5,7 @@ services:
       POSTGRES_USER: soonwhy
       POSTGRES_PASSWORD: soonwhy
       POSTGRES_DB: soonwhy
-    # Host Postgres already listens on 5432. The container is still :5432 on the compose network.
+
     ports: ["5433:5432"]
     # Postgres 18+ expects the volume at /var/lib/postgresql (parent) so it can
     # store data in a versioned subdirectory.
@@ -19,7 +19,6 @@ services:
 
   redis:
     image: redis:8-alpine
-    # Host Redis already listens on 6379. The container is still :6379 on the compose network.
     ports: ["6380:6379"]
     volumes: [redis-data:/data]
     restart: unless-stopped
@@ -82,8 +81,9 @@ services:
       retries: 20
       start_period: 20s
 
+ 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.112.0
+    image: otel/opentelemetry-collector-contrib:0.164.0
     command: ["--config=/etc/otel-collector-config.yaml"]
     environment:
       SOONWHY_API_KEY: ${SOONWHY_API_KEY:-}
@@ -108,13 +108,25 @@ services:
       # FRONTEND_URL: http://localhost:3000
       BETTER_AUTH_URL: http://localhost:3001
       BETTER_AUTH_SECRET: replace-with-a-long-random-secret
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://ingest:3002
+      OTEL_EXPORTER_OTLP_HEADERS: authorization=Bearer ${SOONWHY_API_KEY:-}
       PORT: 3001
+      # AI: platform credentials are optional; organisation keys win when saved.
+      SOONWHY_RCA_API_KEY: ${SOONWHY_RCA_API_KEY:-}
+      SOONWHY_RCA_MODEL: ${SOONWHY_RCA_MODEL:-}
+      SOONWHY_RCA_BASE_URL: ${SOONWHY_RCA_BASE_URL:-}
+      SOONWHY_RCA_PROVIDER: ${SOONWHY_RCA_PROVIDER:-openai}
+      SOONWHY_CREDENTIAL_ENCRYPTION_KEY: ${SOONWHY_CREDENTIAL_ENCRYPTION_KEY:-}
+      SOONWHY_AI_QUOTA_ENFORCED: ${SOONWHY_AI_QUOTA_ENFORCED:-false}
+      SOONWHY_AI_ALLOWED_BASE_HOSTS: ${SOONWHY_AI_ALLOWED_BASE_HOSTS:-}
+      SOONWHY_AI_CREDENTIAL_CACHE_TTL_MS: ${SOONWHY_AI_CREDENTIAL_CACHE_TTL_MS:-}
+      SOONWHY_AI_CATALOG_TTL_MS: ${SOONWHY_AI_CATALOG_TTL_MS:-}
     volumes:
       - ./apps/api/src:/app/apps/api/src
     command:
       - sh
       - -c
-      - pnpm --filter @soonwhy/shared build && pnpm --filter @soonwhy/backend exec drizzle-kit push --force && pnpm --filter @soonwhy/backend dev
+      - pnpm --filter @soonwhy/shared build && pnpm --filter @soonwhy/ingest build && pnpm --filter @soonwhy/backend exec drizzle-kit push --force && pnpm --filter @soonwhy/backend dev
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
@@ -157,6 +169,8 @@ services:
       REDIS_URL: redis://redis:6379
       QUICKWIT_URL: http://quickwit:7280
       NATS_URL: nats://nats:4222
+      INGEST_URL: http://ingest:3002
+      SELF_MONITOR_WEBHOOK_URL: ${SELF_MONITOR_WEBHOOK_URL:-}
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
