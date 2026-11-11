@@ -5,7 +5,8 @@ export type TelemetryDomain =
   | "dependency"
   | "runtime"
   | "infrastructure"
-  | "ai";
+  | "ai"
+  | "trace";
 
 export interface TelemetryIdentity {
   domain: TelemetryDomain;

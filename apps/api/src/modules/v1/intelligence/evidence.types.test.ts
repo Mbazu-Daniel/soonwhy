@@ -25,6 +25,9 @@ describe("evidence model", () => {
           end: "2026-09-28T00:15:00.000Z",
         },
       },
+      citations: [],
+      correlations: [],
+      confidence: 0.85,
       status: "candidate",
     } satisfies IssueCandidate;
 
@@ -57,6 +60,9 @@ describe("evidence model", () => {
           end: "2026-09-28T00:15:00.000Z",
         },
       },
+      citations: [],
+      correlations: [],
+      confidence: 0.92,
       status: "candidate",
     } satisfies IssueCandidate;
 

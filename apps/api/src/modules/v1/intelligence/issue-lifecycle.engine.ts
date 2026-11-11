@@ -1,5 +1,19 @@
 import type { Issue } from "./issue.types";
-import type { IssueLifecycle } from "./issue-lifecycle.types";
+import type { IssueLifecycle, IssueLifecycleStatus } from "./issue-lifecycle.types";
+
+export const ISSUE_TRANSITIONS: Record<IssueLifecycleStatus, ReadonlySet<IssueLifecycleStatus>> = {
+  // Creation enters `active` via createIssueLifecycle.
+  active: new Set(["active", "resolved"]),
+  // Evidence newer than resolvedAt transitions back to active (reopen path).
+  resolved: new Set(["active", "resolved"]),
+};
+
+export function canTransitionIssueLifecycle(
+  from: IssueLifecycleStatus,
+  to: IssueLifecycleStatus,
+): boolean {
+  return ISSUE_TRANSITIONS[from]?.has(to) ?? false;
+}
 
 export function createIssueLifecycle(issue: Issue): IssueLifecycle {
   const firstObservation = issue.observations.reduce((earliest, observation) =>
@@ -43,6 +57,8 @@ export function updateIssueLifecycle(
     return undefined;
   }
 
+  if (!canTransitionIssueLifecycle(lifecycle.status, "active")) return undefined;
+
   return {
     ...lifecycle,
     status: "active",
@@ -58,7 +74,8 @@ export function resolveIssue(
   if (
     lifecycle.status !== "active" ||
     !isValidTimestamp(resolvedAt) ||
-    compareTimestamps(resolvedAt, lifecycle.lastObservedAt) < 0
+    compareTimestamps(resolvedAt, lifecycle.lastObservedAt) < 0 ||
+    !canTransitionIssueLifecycle(lifecycle.status, "resolved")
   ) {
     return undefined;
   }
@@ -75,7 +92,8 @@ export function reopenIssue(
     !isValidTimestamp(observedAt) ||
     !lifecycle.resolvedAt ||
     !isValidTimestamp(lifecycle.resolvedAt) ||
-    compareTimestamps(observedAt, lifecycle.resolvedAt) <= 0
+    compareTimestamps(observedAt, lifecycle.resolvedAt) <= 0 ||
+    !canTransitionIssueLifecycle(lifecycle.status, "active")
   ) {
     return undefined;
   }
