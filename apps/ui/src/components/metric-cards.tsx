@@ -11,6 +11,7 @@ interface Trend {
 interface MetricCardProps {
   label: string;
   value: string;
+  suffix?: string;
   trend?: Trend;
   icon?: React.ElementType;
   className?: string;
@@ -29,14 +30,17 @@ function TrendIcon({ direction }: { direction: Trend['direction'] }) {
   return <Minus className="h-3 w-3" />;
 }
 
-export function MetricCard({ label, value, trend, icon: Icon, className }: MetricCardProps) {
+export function MetricCard({ label, value, suffix, trend, icon: Icon, className }: MetricCardProps) {
   return (
     <Card className={cn('bg-card', className)}>
       <CardContent className="p-4 md:p-5">
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
             <p className="text-xs font-medium text-muted-foreground">{label}</p>
-            <p className="text-2xl font-semibold tracking-tight mt-1">{value}</p>
+            <p className="text-2xl font-semibold tracking-tight mt-1">
+              {value}
+              {suffix && <span className="ml-1 text-sm font-medium text-muted-foreground">{suffix}</span>}
+            </p>
             {trend && (
               <div className={cn('flex items-center gap-1 mt-1.5 text-xs', getTrendColor(trend))}>
                 <TrendIcon direction={trend.direction} />
