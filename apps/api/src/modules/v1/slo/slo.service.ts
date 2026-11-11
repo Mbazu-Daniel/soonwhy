@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { maskPii } from '../../../common/privacy/pii-masker';
 import { MetricsRepository } from './metrics.repository';
 import { GetSLOInput, SLOMetrics, SLOWindow } from './dto';
 import { getBurnRateFromRepository, calculateBurnRate, ErrorBudgetStatus, updateErrorBudgetStatus } from './intelligence/burn-rate-calculation';
@@ -6,6 +7,7 @@ import { QueryErrorCountInput } from '../metrics/dto';
 
 @Injectable()
 export class SLOService {
+  private readonly logger = new Logger(SLOService.name);
   private readonly defaultSLOTarget = 0.99; // 99% by default
   private readonly cautionBurnRate = 2; // burn rate >= 2 triggers caution
   private readonly criticalBurnRate = 3; // burn rate >= 3 triggers critical
@@ -129,7 +131,9 @@ export class SLOService {
     }
     return errorCount;
   } catch (error) {
-    console.error('Error querying error count:', error);
+    this.logger.error(
+      `Error querying error count: ${error instanceof Error ? maskPii(error.message) : String(error)}`,
+    );
     return 0;
   }
 }
@@ -156,7 +160,9 @@ private async queryTotalCount(
     }
     return totalCount;
   } catch (error) {
-    console.error('Error querying total count:', error);
+    this.logger.error(
+      `Error querying total count: ${error instanceof Error ? maskPii(error.message) : String(error)}`,
+    );
     return 0;
   }
 }
