@@ -27,7 +27,7 @@ import type { AlertTriggerStatus, AlertState } from "../../../common/db/schema";
  * instead of updating the columns directly.
  */
 
-export const ALERT_TRIGGER_ACTIVE_TRANSITIONS: Record<AlertState, ReadonlySet<AlertState>> = {
+const ALERT_TRIGGER_ACTIVE_TRANSITIONS: Record<AlertState, ReadonlySet<AlertState>> = {
   healthy: new Set(["healthy", "pending", "firing", "no_data", "error"]),
   pending: new Set(["pending", "firing", "healthy", "no_data", "error"]),
   firing: new Set(["firing", "pending", "healthy", "no_data", "error"]),
@@ -41,10 +41,4 @@ export function canTransitionTriggerState(from: AlertState, to: AlertState): boo
 
 export function canResolveTrigger(status: AlertTriggerStatus): boolean {
   return status === "active";
-}
-
-export function assertTriggerStateTransition(from: AlertState, to: AlertState): void {
-  if (!canTransitionTriggerState(from, to)) {
-    throw new Error(`Invalid alert trigger state transition: ${from} -> ${to}`);
-  }
 }

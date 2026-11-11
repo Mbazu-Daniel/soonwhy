@@ -21,10 +21,7 @@ import {
 } from "./ai.errors";
 import {
   handleChatMessage,
-  ChatMessage,
   ChatResponse,
-  UserIntent,
-  CHAT_RESPONSES,
 } from "./intelligence/chat-intelligence";
 
 /** A key is the organisation's money and its secrets, so members only read. */

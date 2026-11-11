@@ -7,7 +7,6 @@ describe("InvestigationService", () => {
   const repository = {
     list: vi.fn(),
     getById: vi.fn(),
-    findOpenByFinding: vi.fn(),
     getFinding: vi.fn(),
     create: vi.fn(),
   } as unknown as InvestigationRepository;
@@ -74,7 +73,7 @@ describe("InvestigationService", () => {
         },
       ],
     } as never);
-    vi.mocked(repository.findOpenByFinding).mockResolvedValue(undefined);
+
     vi.mocked(repository.create).mockImplementation(
       async (data) => data as never,
     );

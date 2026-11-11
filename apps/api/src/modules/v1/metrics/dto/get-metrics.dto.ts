@@ -22,11 +22,3 @@ export type GetMetricPercentilesInput = z.infer<
   typeof getMetricPercentilesSchema
 >;
 
-export interface QueryErrorCountInput {
-  orgId: string;
-  projectId: string;
-  from: string;
-  to: string;
-  interval?: string;
-  service?: string;
-}

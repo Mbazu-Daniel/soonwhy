@@ -17,15 +17,6 @@ export class OrganizationsRepository {
     });
   }
 
-  async createOrganization(data: {
-    name: string;
-    slug: string;
-    logo?: string;
-  }) {
-    const [org] = await db.insert(organizations).values(data).returning();
-    return org;
-  }
-
   async updateOrganization(
     id: string,
     data: { name?: string; slug?: string; logo?: string },

@@ -5,7 +5,7 @@ import {
   ServiceUnavailableException,
 } from "@nestjs/common";
 
-export type AiErrorCode =
+type AiErrorCode =
   | "AI_NOT_CONFIGURED"
   | "AI_CREDENTIAL_UNREADABLE"
   | "AI_CREDENTIAL_ENCRYPTION_UNAVAILABLE"

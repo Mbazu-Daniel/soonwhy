@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const ClientEventDto = z.object({
+const ClientEventDto = z.object({
   // Event type: error, pageview, click, custom, etc.
   type: z.string().min(1).max(50),
   // Optional message/description

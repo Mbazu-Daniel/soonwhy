@@ -1,9 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { maskPii } from '../../../common/privacy/pii-masker';
 import { MetricsRepository } from './metrics.repository';
-import { GetSLOInput, SLOMetrics, SLOWindow } from './dto';
-import { getBurnRateFromRepository, calculateBurnRate, ErrorBudgetStatus, updateErrorBudgetStatus } from './intelligence/burn-rate-calculation';
-import { QueryErrorCountInput } from '../metrics/dto';
+import { GetSLOInput, SLOMetrics } from './dto';
+import { calculateBurnRate, ErrorBudgetStatus, updateErrorBudgetStatus } from './intelligence/burn-rate-calculation';
 
 @Injectable()
 export class SLOService {

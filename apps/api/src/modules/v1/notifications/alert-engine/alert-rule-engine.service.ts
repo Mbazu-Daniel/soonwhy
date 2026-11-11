@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { db } from '../../../../common/db';
 import { alertRules, notificationChannels } from '../../../../common/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
-import type { AlertRuleCondition, AlertRuleConditionGroup } from './alert-rule-conditions';
+import type { AlertRuleCondition } from './alert-rule-conditions';
 import { TimeWindowParser } from './time-window-parser';
 
 const SEVERITY_RANK: Record<string, number> = {

@@ -1,3 +1,5 @@
+// fallow-ignore-file unused-class-member
+// Members are consumed via narrowed Pick<BillingRepository> DI injection, which fallow cannot see through.
 import { and, desc, eq, gte, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { db } from "../../../common/db";
 import {

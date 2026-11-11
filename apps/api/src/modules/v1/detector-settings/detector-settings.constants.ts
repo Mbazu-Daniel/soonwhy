@@ -3,10 +3,6 @@ export type DetectorConfigInput = {
   thresholds?: Record<string, number>;
 };
 
-export type DetectorConfigEffective = {
-  enabled: boolean;
-  thresholds: Record<string, number>;
-};
 
 export type DetectorDefinition = {
   key: string;
@@ -241,12 +237,6 @@ export const DEFAULT_FEATURE_FLAGS: Record<string, boolean> = Object.fromEntries
   ]),
 );
 
-export const FEATURE_FLAG_LABELS: Record<string, string> = Object.fromEntries(
-  FEATURE_FLAG_DEFINITIONS.map((definition) => [
-    definition.key,
-    definition.label,
-  ]),
-);
 
 export const DETECTOR_THRESHOLD_KEYS: Record<string, readonly string[]> =
   Object.fromEntries(
@@ -256,20 +246,3 @@ export const DETECTOR_THRESHOLD_KEYS: Record<string, readonly string[]> =
     ]),
   );
 
-export const DEFAULT_THRESHOLDS: Record<string, number> = {
-  minSamples: 5,
-  minBaselineSamples: 5,
-  warningP95Ms: 500,
-  criticalP95Ms: 1_000,
-  warningErrorRate: 0.05,
-  criticalErrorRate: 0.1,
-  regressionPercent: 50,
-  dropRatio: 0.7,
-  criticalChangePercent: -50,
-  latencySignalMs: 100,
-  latencyRegressionPercent: 50,
-  throughputRegressionPercent: 30,
-  errorRegressionPercent: 50,
-  errorRegressionDelta: 0.05,
-  errorSignalRate: 0.1,
-};

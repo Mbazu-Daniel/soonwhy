@@ -64,7 +64,7 @@ const featureFlagSchema = z.record(
   z.boolean(),
 );
 
-export const detectorSettingsPatchSchema = z
+const detectorSettingsPatchSchema = z
   .object({
     detectors: detectorOverridesSchema.optional(),
     featureFlags: featureFlagSchema.optional(),

@@ -1,3 +1,5 @@
+// fallow-ignore-file unused-class-member
+// Members are consumed via narrowed Pick<AiRepository> DI injection, which fallow cannot see through.
 import { Injectable } from "@nestjs/common";
 import { and, eq, gte, isNull, lt, sql } from "drizzle-orm";
 import { db } from "../../../common/db";

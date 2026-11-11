@@ -1,3 +1,5 @@
+// fallow-ignore-file unused-class-member
+// Members are consumed via narrowed DI injection, which fallow cannot see through.
 import { Injectable } from "@nestjs/common";
 import { db } from "../../../common/db";
 import { deadLetterQueue } from "../../../common/db/schema";
@@ -56,24 +58,6 @@ export class DlqRepository {
       })
       .from(deadLetterQueue);
     return stats;
-  }
-
-  async getDlqBySignal(signal: string, limit: number = 100) {
-    return db
-      .select()
-      .from(deadLetterQueue)
-      .where(eq(deadLetterQueue.signal, signal))
-      .orderBy(desc(deadLetterQueue.failedAt))
-      .limit(limit);
-  }
-
-  async getDlqByOrganization(orgId: string, limit: number = 100) {
-    return db
-      .select()
-      .from(deadLetterQueue)
-      .where(eq(deadLetterQueue.organizationId, orgId))
-      .orderBy(desc(deadLetterQueue.failedAt))
-      .limit(limit);
   }
 
   async claimReplay(id: number) {

@@ -34,7 +34,6 @@ export function calculateBurnRate(
   sloTarget: number,
 ): BurnRateResult {
   const now = new Date();
-  const periodMs = periodEnd.getTime() - periodStart.getTime();
   const elapsedMs = now.getTime() - periodStart.getTime();
   const totalPeriodMs = periodEnd.getTime() - periodStart.getTime();
 
@@ -76,7 +75,6 @@ export function calculateBurnRate(
   if (burnRate > 0 && remainingBudgetPercentage > 0) {
     // Time until budget is exhausted at current burn rate
     const hoursInPeriod = totalPeriodMs / (1000 * 60 * 60);
-    const hoursRemainingInPeriod = hoursInPeriod * (1 - nowInPeriod);
     const hoursToExhaustion =
       (remainingBudgetPercentage / burnRate) * hoursInPeriod;
     estimatedTimeToExhaustion = hoursToExhaustion;
@@ -93,35 +91,3 @@ export function calculateBurnRate(
   };
 }
 
-/**
- * Get burn rate from repository data
- */
-export async function getBurnRateFromRepository(
-  repository: any,
-  orgId: string,
-  projectId: string,
-  sloTarget: number,
-  windowMs: number = 24 * 60 * 60 * 1000, // default: 24h
-): Promise<BurnRateResult> {
-  const now = new Date();
-  const periodEnd = now;
-  const periodStart = new Date(now.getTime() - windowMs);
-
-  // Query error count for the period
-  const errorCount = await repository.queryErrorCount({
-    orgId,
-    projectId,
-    from: periodStart.toISOString(),
-    to: periodEnd.toISOString(),
-  });
-
-  const result = calculateBurnRate(
-    errorCount,
-    sloTarget,
-    periodStart,
-    periodEnd,
-    sloTarget,
-  );
-
-  return result;
-}

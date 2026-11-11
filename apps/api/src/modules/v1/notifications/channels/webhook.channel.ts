@@ -1,19 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { WebhookService } from "../webhook.service";
-import {
-  BaseChannel,
-  ChannelSendInput,
-  ChannelSendResult,
-} from "./base.channel";
-import type { NotificationChannelType } from "../../../../common/db/schema";
+import { ChannelSendInput, ChannelSendResult } from "./base.channel";
 
 @Injectable()
-export class WebhookChannel extends BaseChannel {
-  readonly type: NotificationChannelType = "webhook";
-
-  constructor(private readonly webhook: WebhookService) {
-    super();
-  }
+export class WebhookChannel {
+  constructor(private readonly webhook: WebhookService) {}
 
   async send(
     input: ChannelSendInput & {
