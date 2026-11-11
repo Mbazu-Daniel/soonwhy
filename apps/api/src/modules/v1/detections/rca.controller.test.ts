@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { RcaController } from "./rca.controller";
+import { RcaController, RcaRequestSchema } from "./rca.controller";
 
 const org = { orgId: "org_1", userRole: "owner" };
 
@@ -44,14 +44,12 @@ describe("RcaController", () => {
   });
 
   it("rejects unknown request fields", () => {
-    const controller = new RcaController({
-      getLatest: vi.fn(),
-      getHistory: vi.fn(),
-      generate: vi.fn(),
-    });
-
     expect(() =>
-      controller.generate(org, "project_1", "finding_1", { unexpected: true }),
+      RcaRequestSchema.parse({ regenerate: true, unexpected: "field" }),
     ).toThrow();
+    expect(RcaRequestSchema.parse({})).toEqual({ regenerate: false });
+    expect(RcaRequestSchema.parse({ regenerate: true })).toEqual({
+      regenerate: true,
+    });
   });
 });

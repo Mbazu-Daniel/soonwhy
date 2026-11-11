@@ -4,6 +4,7 @@ import {
   RcaAnalysisRepository,
   type CreateRcaAnalysisInput,
 } from "./rca.repository";
+import type { LlmCredentialSource } from "../../../common/db/schema";
 
 export interface PersistRcaAnalysisInput {
   orgId: string;
@@ -14,6 +15,7 @@ export interface PersistRcaAnalysisInput {
   provider: string;
   model: string;
   promptVersion: string;
+  credentialSource: LlmCredentialSource;
   usage: RcaUsage;
 }
 
@@ -47,6 +49,7 @@ export class RcaPersistenceService {
       provider: input.provider,
       model: input.model,
       promptVersion: input.promptVersion,
+      credentialSource: input.credentialSource,
     };
 
     return this.repository.create(values);

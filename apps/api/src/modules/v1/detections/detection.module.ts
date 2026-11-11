@@ -4,6 +4,7 @@ import { DetectionService } from './detection.service';
 import { DetectionPipeline } from './detection.pipeline';
 import { DetectionTelemetryService } from './detection-telemetry.service';
 import { DetectionController } from './detection.controller';
+import { DetectionHealthController } from './detection-health.controller';
 import { DetectionJobRunner } from './detection-job.runner';
 import { DetectorSettingsModule } from '../detector-settings/detector-settings.module';
 import { ProjectsModule } from '../projects/projects.module';
@@ -19,7 +20,7 @@ import { TelemetryModule } from '../../../common/telemetry/telemetry.module';
     CacheModule,
     TelemetryModule,
   ],
-  controllers: [DetectionController],
+  controllers: [DetectionController, DetectionHealthController],
   providers: [
     DetectionService,
     DetectionPipeline,

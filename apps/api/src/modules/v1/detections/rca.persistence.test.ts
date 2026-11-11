@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { RcaAnalysis, RcaEvidence, RcaUsage } from "./rca.types";
 import { RcaPersistenceService } from "./rca.persistence";
+import type { PersistRcaAnalysisInput } from "./rca.persistence";
 import type { RcaAnalysisRepository } from "./rca.repository";
 
 const evidence: RcaEvidence = {
@@ -71,6 +72,7 @@ describe("RcaPersistenceService", () => {
         provider: "openai-compatible",
         model: "test-model",
         promptVersion: "v1",
+        credentialSource: "platform",
         usage,
       }),
     ).resolves.toEqual({ id: "rca_123" });
@@ -98,7 +100,7 @@ describe("RcaPersistenceService", () => {
       .mockResolvedValueOnce({ id: "rca_2" } as never);
     const service = new RcaPersistenceService(repo);
 
-    const input = {
+    const input: PersistRcaAnalysisInput = {
       orgId: "org_123",
       projectId: "project_123",
       findingId: "finding_latency",
@@ -107,6 +109,7 @@ describe("RcaPersistenceService", () => {
       provider: "openai-compatible",
       model: "test-model",
       promptVersion: "v1",
+      credentialSource: "byok",
       usage,
     };
     await service.persist(input);

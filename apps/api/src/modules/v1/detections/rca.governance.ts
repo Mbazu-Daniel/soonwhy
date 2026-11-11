@@ -2,11 +2,13 @@ import { Injectable } from "@nestjs/common";
 import type { RcaUsage } from "./rca.types";
 import { db } from "../../../common/db";
 import { rcaInvocations } from "../../../common/db/schema";
-import { generateId } from "../../../common/db/generate-id";
+import type { LlmCredentialSource } from "../../../common/db/schema";
+import { recordAiInvocationMetrics } from "../../../common/telemetry/otel-metrics";
 
 export type RcaInvocationStatus = "succeeded" | "failed";
 
 export interface RcaInvocationRecord {
+  /** Caller-supplied so the same id links the invocation log and its usage events. */
   id: string;
   orgId: string;
   projectId: string;
@@ -21,19 +23,18 @@ export interface RcaInvocationRecord {
   outputTokens?: number;
   totalTokens?: number;
   estimatedCostUsd?: number;
+  credentialSource: LlmCredentialSource | null;
+  credentialId: string | null;
   errorCode?: string;
   createdAt: Date;
 }
 
 export interface RcaGovernanceSink {
   recordSuccess(
-    input: Omit<
-      RcaInvocationRecord,
-      "id" | "status" | "createdAt" | "errorCode"
-    >,
+    input: Omit<RcaInvocationRecord, "status" | "createdAt" | "errorCode">,
   ): Promise<void>;
   recordFailure(
-    input: Omit<RcaInvocationRecord, "id" | "status" | "createdAt"> & {
+    input: Omit<RcaInvocationRecord, "status" | "createdAt"> & {
       errorCode?: string;
     },
   ): Promise<void>;
@@ -42,24 +43,36 @@ export interface RcaGovernanceSink {
 @Injectable()
 export class DatabaseRcaGovernanceSink implements RcaGovernanceSink {
   async recordSuccess(
-    input: Omit<
-      RcaInvocationRecord,
-      "id" | "status" | "createdAt" | "errorCode"
-    >,
+    input: Omit<RcaInvocationRecord, "status" | "createdAt" | "errorCode">,
   ): Promise<void> {
+    recordAiInvocationMetrics({
+      provider: input.provider,
+      model: input.model,
+      status: "succeeded",
+      durationMs: input.requestDurationMs,
+      inputTokens: input.inputTokens,
+      outputTokens: input.outputTokens,
+      estimatedCostUsd: input.estimatedCostUsd,
+    });
     await db
       .insert(rcaInvocations)
-      .values({ id: generateId(), ...input, status: "succeeded" });
+      .values({ ...input, status: "succeeded" });
   }
 
   async recordFailure(
-    input: Omit<RcaInvocationRecord, "id" | "status" | "createdAt"> & {
+    input: Omit<RcaInvocationRecord, "status" | "createdAt"> & {
       errorCode?: string;
     },
   ): Promise<void> {
+    recordAiInvocationMetrics({
+      provider: input.provider,
+      model: input.model,
+      status: "failed",
+      durationMs: input.requestDurationMs,
+    });
     await db
       .insert(rcaInvocations)
-      .values({ id: generateId(), ...input, status: "failed" });
+      .values({ ...input, status: "failed" });
   }
 }
 
@@ -81,6 +94,8 @@ export function toRcaUsageFields(usage: RcaUsage) {
 }
 
 export function getRcaErrorCode(error: unknown): string {
+  const coded = (error as { response?: { code?: unknown } } | null)?.response;
+  if (typeof coded?.code === "string") return coded.code;
   if (error instanceof Error) return error.name;
   return "UnknownError";
 }

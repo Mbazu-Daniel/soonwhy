@@ -1,6 +1,29 @@
 import { describe, expect, it, vi } from "vitest";
 import type { CorrelatedBottleneck } from "./detection.correlation";
-import { RcaService } from "./rca.service";
+import { RcaService, type RcaModelResolver } from "./rca.service";
+import type { MastraRcaProvider } from "./rca.provider";
+
+function resolverFor(
+  provider: Pick<MastraRcaProvider, "analyze">,
+): RcaModelResolver {
+  return {
+    resolveForRca: async () => ({
+      provider,
+      credential: {
+        source: "byok" as const,
+        providerId: "groq",
+        model: "gpt-oss-120b",
+        credentialId: "aicredential_1",
+      },
+      promptVersion: "v2",
+    }),
+    describe: async () => ({
+      source: "byok" as const,
+      provider: "groq",
+      model: "gpt-oss-120b",
+    }),
+  };
+}
 
 describe("RcaService", () => {
   it("validates the provider response against supplied evidence", async () => {
@@ -69,8 +92,8 @@ describe("RcaService", () => {
       traceIds: [],
     } satisfies CorrelatedBottleneck;
 
-    const service = new RcaService(provider as any);
-    const result = await service.analyze("project_123", bottleneck);
+    const service = new RcaService(resolverFor(provider));
+    const result = await service.analyze("org_1", "project_123", bottleneck);
 
     expect(provider.analyze).toHaveBeenCalledOnce();
     expect(provider.analyze.mock.calls[0]?.[0]).toMatchObject({
@@ -78,6 +101,11 @@ describe("RcaService", () => {
       serviceName: "checkout-api",
     });
     expect(result.analysis.summary).toContain("Database latency");
+    expect(result.credential).toMatchObject({
+      source: "byok",
+      providerId: "groq",
+      credentialId: "aicredential_1",
+    });
   });
 
   it("rejects a provider response that references unavailable evidence", async () => {
@@ -122,10 +150,10 @@ describe("RcaService", () => {
       traceIds: [],
     } satisfies CorrelatedBottleneck;
 
-    const service = new RcaService(provider as any);
+    const service = new RcaService(resolverFor(provider));
 
-    await expect(service.analyze("project_123", bottleneck)).rejects.toThrow(
-      "unknown evidence ID",
-    );
+    await expect(
+      service.analyze("org_1", "project_123", bottleneck),
+    ).rejects.toThrow("unknown evidence ID");
   });
 });

@@ -1,6 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../../../common/db";
 import { findings, rcaAnalyses } from "../../../common/db/schema";
+import type { LlmCredentialSource } from "../../../common/db/schema";
 
 export interface CreateRcaAnalysisInput {
   orgId: string;
@@ -20,6 +21,7 @@ export interface CreateRcaAnalysisInput {
   provider: string;
   model: string;
   promptVersion: string;
+  credentialSource: LlmCredentialSource;
 }
 
 export class RcaAnalysisRepository {

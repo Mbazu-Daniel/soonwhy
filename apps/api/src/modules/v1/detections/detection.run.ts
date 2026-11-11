@@ -26,9 +26,9 @@ export async function completeDetectionRun(id: string, findingsCount: number) {
   const [run] = await db
     .update(detectionRuns)
     .set({ status: "completed", findingsCount, completedAt: new Date() })
-    .where(eq(detectionRuns.id, id))
+    .where(and(eq(detectionRuns.id, id), eq(detectionRuns.status, "running")))
     .returning();
-  if (!run) throw new Error("Detection run not found");
+  if (!run) throw new Error("Detection run not found or not running");
   return run;
 }
 
@@ -36,9 +36,9 @@ export async function failDetectionRun(id: string, error: string) {
   const [run] = await db
     .update(detectionRuns)
     .set({ status: "failed", error, completedAt: new Date() })
-    .where(eq(detectionRuns.id, id))
+    .where(and(eq(detectionRuns.id, id), eq(detectionRuns.status, "running")))
     .returning();
-  if (!run) throw new Error("Detection run not found");
+  if (!run) throw new Error("Detection run not found or not running");
   return run;
 }
 
