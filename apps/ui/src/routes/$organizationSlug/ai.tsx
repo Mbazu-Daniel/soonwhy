@@ -112,7 +112,7 @@ function formatUsd(value: number): string {
   return `$${value.toFixed(4)}`;
 }
 
-export function AIAgentPage() {
+function AIAgentPage() {
   const queryClient = useQueryClient();
   const [provider, setProvider] = useState("");
   const [model, setModel] = useState("");

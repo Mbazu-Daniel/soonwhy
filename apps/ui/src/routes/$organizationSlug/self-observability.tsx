@@ -94,7 +94,7 @@ function statusBadge(status: string) {
   );
 }
 
-export function SelfObservabilityPage() {
+function SelfObservabilityPage() {
   const { orgId, orgSlug } = useProject();
 
   const health = useQuery({

@@ -19,7 +19,7 @@ export interface CatalogProvider {
   rcaSafeModelCount: number | null;
 }
 
-export interface CatalogModel {
+interface CatalogModel {
   id: string;
   label: string;
   description: string | null;

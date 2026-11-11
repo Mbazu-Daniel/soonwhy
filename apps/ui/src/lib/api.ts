@@ -8,7 +8,7 @@ export interface ApiProblem {
   hint?: string;
 }
 
-export class ApiError extends Error {
+class ApiError extends Error {
   constructor(
     public status: number,
     message: string,

@@ -11,7 +11,7 @@ import { api } from '~/lib/api';
 import { useProject } from '~/lib/project-context';
 import { organizationSlug } from '~/components/auth/organization-form';
 
-export interface Workspace {
+interface Workspace {
   id: string;
   name: string;
   slug: string;
@@ -25,7 +25,7 @@ interface CreatedOrganization {
   organization?: { id: string; name: string; slug: string };
 }
 
-export function OrganizationMark({ name, logo }: { name: string; logo?: string | null }) {
+function OrganizationMark({ name, logo }: { name: string; logo?: string | null }) {
   if (logo) {
     return <img src={logo} alt="" className="h-7 w-7 shrink-0 rounded-lg object-cover" />;
   }
@@ -37,7 +37,7 @@ export function OrganizationMark({ name, logo }: { name: string; logo?: string |
   );
 }
 
-export function useWorkspaces() {
+function useWorkspaces() {
   const { orgSlug } = useProject();
   const organizations = useQuery({
     queryKey: ['organizations'],
