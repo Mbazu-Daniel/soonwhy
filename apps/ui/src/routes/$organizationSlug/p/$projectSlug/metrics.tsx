@@ -99,17 +99,16 @@ function MetricsPage() {
 
   return (
     <div className="mx-auto w-full space-y-6 pb-10">
-      <div className="flex items-center justify-between">
-        <h1 className="sr-only">Metrics</h1>
-      </div>
+      <h1 className="sr-only">Metrics</h1>
 
-      <TimeRangeControl value={range} onChange={setRange} />
-
-      <Tabs defaultValue="application">
-        <TabsList>
-          <TabsTrigger value="application">Application</TabsTrigger>
-          <TabsTrigger value="infrastructure">Infrastructure</TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="application" className="space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <TabsList>
+            <TabsTrigger value="application">Application</TabsTrigger>
+            <TabsTrigger value="infrastructure">Infrastructure</TabsTrigger>
+          </TabsList>
+          <TimeRangeControl value={range} onChange={setRange} />
+        </div>
         <TabsContent value="application" className="space-y-6">
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <MetricCard label="Total requests" value={totalRequests.toLocaleString()} icon={Activity} />

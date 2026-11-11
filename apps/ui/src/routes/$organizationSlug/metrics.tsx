@@ -314,10 +314,18 @@ function LatencyChart({ buckets }: { buckets: MetricsBucket[] }) {
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
 
-  const points = buckets
+  const p99Points = buckets
     .map((b, i) => {
       const x = padding.left + (i / Math.max(buckets.length - 1, 1)) * chartWidth;
       const y = padding.top + chartHeight - ((b.p99 || b.p95 || 0) / maxLatency) * chartHeight;
+      return `${x},${y}`;
+    })
+    .join(' ');
+
+  const p50Points = buckets
+    .map((b, i) => {
+      const x = padding.left + (i / Math.max(buckets.length - 1, 1)) * chartWidth;
+      const y = padding.top + chartHeight - ((b.p50 || 0) / maxLatency) * chartHeight;
       return `${x},${y}`;
     })
     .join(' ');
@@ -352,7 +360,15 @@ function LatencyChart({ buckets }: { buckets: MetricsBucket[] }) {
           className="fill-current"
         />
         <polyline
-          points={points}
+          points={p50Points}
+          fill="none"
+          stroke="#989898"
+          strokeWidth="1.5"
+          strokeDasharray="3 3"
+          className="fill-none"
+        />
+        <polyline
+          points={p99Points}
           fill="none"
           stroke="#ACFC15"
           strokeWidth="2"
@@ -373,8 +389,14 @@ function LatencyChart({ buckets }: { buckets: MetricsBucket[] }) {
           );
         })}
       </svg>
-      <div className="mt-2 text-[10px] text-[#989898]">
-        Max: {Math.round(maxLatency)}ms p99
+      <div className="mt-2 flex items-center justify-between text-[10px] text-[#989898]">
+        <span>Max: {Math.round(maxLatency)}ms p99</span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block w-2 h-0.5 bg-[#ACFC15]" />
+          p99
+          <span className="inline-block w-2 h-0.5 bg-[#989898] border-dashed border border-[#989898]" />
+          p50
+        </span>
       </div>
     </div>
   );

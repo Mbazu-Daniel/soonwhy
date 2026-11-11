@@ -2,10 +2,10 @@ import { createFileRoute, Outlet, useLocation, useNavigate } from '@tanstack/rea
 import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Sidebar } from '~/components/sidebar';
-import { TopBar } from '~/components/topbar';
+import { Menu } from 'lucide-react';
 import { Toaster } from '~/components/ui/sonner';
 import { Skeleton } from '~/components/ui/skeleton';
-import { SidebarProvider } from '~/lib/sidebar-context';
+import { SidebarProvider, useSidebar } from '~/lib/sidebar-context';
 import { getSessionToken, clearSession } from '~/lib/auth-client';
 import { useProject } from '~/lib/project-context';
 import { api } from '~/lib/api';
@@ -14,6 +14,8 @@ import { CreateProjectDialog } from '~/components/create-project-dialog';
 interface Organization { id: string; name: string; slug: string; }
 interface Project { id: string; name: string; slug: string; }
 
+// Organization-scoped pages live outside the project prefix, so the redirect below must leave them alone.
+const ORGANIZATION_PAGES = new Set(['ai', 'self-observability']);
 export const Route = createFileRoute('/$organizationSlug')({ component: OrganizationDashboardLayout });
 
 function OrganizationDashboardLayout() {
@@ -45,7 +47,8 @@ function OrganizationDashboardLayout() {
     if (!projects.data.length || !activeProject) return;
     const segment = location.pathname.slice(`/${organizationSlug}`.length).replace(/^\//, '');
     const page = segment === 'dashboard' || !segment ? '' : segment.split('/')[0];
-    const allowed = new Set(['services', 'detections', 'investigations', 'errors', 'logs', 'traces', 'api-keys', 'settings']);
+    if (ORGANIZATION_PAGES.has(page)) return;
+    const allowed = new Set(['services', 'errors', 'logs', 'traces', 'api-keys', 'settings', 'intelligence']);
     const suffix = allowed.has(page) ? page : '';
     const target = suffix ? `/${organizationSlug}/p/${activeProject.slug}/${suffix}` : `/${organizationSlug}/p/${activeProject.slug}/`;
     void navigate({ to: target as never, replace: true });
@@ -60,6 +63,7 @@ function OrganizationDashboardLayout() {
 
 function OrganizationDashboardFrame({ showCreateProject }: { showCreateProject: boolean }) {
   const { pathname } = useLocation();
+  const { toggle } = useSidebar();
   const mainRef = useRef<HTMLElement>(null);
 
   useEffect(() => { mainRef.current?.scrollTo({ top: 0 }); }, [pathname]);
@@ -67,10 +71,12 @@ function OrganizationDashboardFrame({ showCreateProject }: { showCreateProject: 
   return (
     <div className="dashboard-shell flex h-dvh flex-col overflow-hidden bg-[#040405]">
       <a href="#main-content" className="skip-link">Skip to main content</a>
-      <TopBar />
+      <button type="button" onClick={toggle} aria-label="Open sidebar" className="fixed left-3 top-3 z-40 grid h-10 w-10 place-items-center rounded-lg border border-[#242426] bg-[#151517] text-[#989898] hover:text-[#F6F6F6] lg:hidden">
+        <Menu className="h-5 w-5" />
+      </button>
       <div className="flex min-h-0 w-full flex-1">
         <Sidebar />
-        <main ref={mainRef} id="main-content" tabIndex={-1} className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-[#040405] px-4 py-5 sm:px-6 sm:py-7 xl:px-8">
+        <main ref={mainRef} id="main-content" tabIndex={-1} className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-[#040405] px-4 pb-5 pt-16 sm:px-6 sm:pb-7 lg:pt-7 xl:px-8">
           <Outlet />
         </main>
         <CreateProjectDialog open={showCreateProject} onOpenChange={() => undefined} />
@@ -81,5 +87,5 @@ function OrganizationDashboardFrame({ showCreateProject }: { showCreateProject: 
 }
 
 function DashboardLoading() {
-  return <div className="min-h-screen bg-[#040405]"><header className="h-16 border-b border-[#242426] bg-[#0B0B0C]" /><div className="flex min-h-[calc(100vh-4rem)]"><aside className="hidden w-60 border-r border-[#242426] bg-[#0B0B0C] lg:block" /><main className="flex-1 p-6 sm:p-8"><div className="mx-auto max-w-[1440px] space-y-6"><Skeleton className="h-9 w-48" /><Skeleton className="h-4 w-80" /><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{[1,2,3,4].map((item) => <Skeleton key={item} className="h-32 rounded-2xl" />)}</div><Skeleton className="h-[420px] rounded-2xl" /></div></main></div></div>;
+  return <div className="min-h-screen bg-[#040405]"><div className="flex min-h-screen"><aside className="hidden w-60 border-r border-[#242426] bg-[#0B0B0C] lg:block" /><main className="flex-1 p-6 sm:p-8"><div className="mx-auto max-w-[1440px] space-y-6"><Skeleton className="h-9 w-48" /><Skeleton className="h-4 w-80" /><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{[1,2,3,4].map((item) => <Skeleton key={item} className="h-32 rounded-2xl" />)}</div><Skeleton className="h-[420px] rounded-2xl" /></div></main></div></div>;
 }

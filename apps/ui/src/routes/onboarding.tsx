@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useMemo, useReducer } from 'react';
 import { ArrowLeft, ArrowRight, Check, Copy, ExternalLink, Loader2, Server, ShieldCheck, Sparkles } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
@@ -15,27 +15,101 @@ export const Route = createFileRoute('/onboarding')({ component: Onboarding });
 interface Organization { id: string; name: string; slug: string; organization?: Organization; }
 interface Project { id: string; name: string; slug: string; description?: string | null; }
 
-const steps = ['Organization', 'Project', 'Connect', 'Verify'];
+const steps = ['Organization', 'Project', 'Connect', 'Verify'] as const;
+type Step = 0 | 1 | 2 | 3;
+
+type UiState = {
+  step: Step;
+  orgName: string;
+  orgSlug: string;
+  projectName: string;
+  projectSlug: string;
+  apiKey: ApiKey | null;
+  error: string;
+};
+
+type UiEvent =
+  | { type: 'GO_TO_STEP'; step: Step }
+  | { type: 'SET_ORG_NAME'; value: string }
+  | { type: 'SET_ORG_SLUG'; value: string }
+  | { type: 'SET_PROJECT_NAME'; value: string }
+  | { type: 'SET_PROJECT_SLUG'; value: string }
+  | { type: 'SET_API_KEY'; apiKey: ApiKey }
+  | { type: 'SET_ERROR'; error: string }
+  | { type: 'CLEAR_ERROR' };
+
+const STEP_STORAGE_KEY = 'soonwhy:onboarding-step';
+
+function persistStep(step: Step) {
+  if (typeof window !== 'undefined') localStorage.setItem(STEP_STORAGE_KEY, String(step));
+}
+
+function clearPersistedStep() {
+  if (typeof window !== 'undefined') localStorage.removeItem(STEP_STORAGE_KEY);
+}
+
+function canTransition(from: Step, to: Step, ctx: { hasOrg: boolean; hasProject: boolean; hasApiKey: boolean }) {
+  if (from === to) return true;
+  if (to < from) return true; // allow back navigation
+  if (to === 1) return ctx.hasOrg || from === 0;
+  if (to === 2) return ctx.hasOrg && ctx.hasProject;
+  if (to === 3) return ctx.hasOrg && ctx.hasProject && (ctx.hasApiKey || from === 2);
+  return to === 0;
+}
+
+function reducer(state: UiState, event: UiEvent): UiState {
+  switch (event.type) {
+    case 'GO_TO_STEP':
+      return state.step === event.step ? state : { ...state, step: event.step };
+    case 'SET_ORG_NAME':
+      return { ...state, orgName: event.value };
+    case 'SET_ORG_SLUG':
+      return { ...state, orgSlug: event.value };
+    case 'SET_PROJECT_NAME':
+      return { ...state, projectName: event.value };
+    case 'SET_PROJECT_SLUG':
+      return { ...state, projectSlug: event.value };
+    case 'SET_API_KEY':
+      return { ...state, apiKey: event.apiKey };
+    case 'SET_ERROR':
+      return { ...state, error: event.error };
+    case 'CLEAR_ERROR':
+      return state.error ? { ...state, error: '' } : state;
+    default:
+      return state;
+  }
+}
+
+function initialStep(hasOrg: boolean): Step {
+  if (typeof window === 'undefined') return hasOrg ? 1 : 0;
+  const saved = Number(localStorage.getItem(STEP_STORAGE_KEY));
+  if (saved === 0 || saved === 1 || saved === 2 || saved === 3) return saved as Step;
+  return hasOrg ? 1 : 0;
+}
 
 function Onboarding() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { orgId, orgSlug: workspaceSlug, projectId, setOrganization, setProject, clearProjectId } = useProject();
-  const [step, setStep] = useState(() => {
-    if (typeof window === 'undefined') return orgId ? 1 : 0;
-    const saved = Number(localStorage.getItem('soonwhy:onboarding-step'));
-    return saved === 0 || saved === 1 ? saved : (orgId ? 1 : 0);
-  });
-  const [orgName, setOrgName] = useState('');
-  const [orgSlug, setOrgSlug] = useState('');
-  const [projectName, setProjectName] = useState('');
-  const [projectSlug, setProjectSlug] = useState('');
-  const [apiKey, setApiKey] = useState<ApiKey | null>(null);
-  const [error, setError] = useState('');
+  const { orgId, orgSlug: workspaceSlug, projectId, setOrganization, setProject, setProjectId, clearProjectId } = useProject();
+  const [ui, dispatch] = useReducer(reducer, undefined, () => ({
+    step: initialStep(!!orgId),
+    orgName: '',
+    orgSlug: '',
+    projectName: '',
+    projectSlug: '',
+    apiKey: null,
+    error: '',
+  }));
 
-  function goToStep(next: number) {
-    setStep(next);
-    if (typeof window !== 'undefined') localStorage.setItem('soonwhy:onboarding-step', String(next));
+  function requestStep(next: Step) {
+    const allowed = canTransition(ui.step, next, {
+      hasOrg: !!orgId,
+      hasProject: !!projectId,
+      hasApiKey: !!ui.apiKey,
+    });
+    if (!allowed) return;
+    dispatch({ type: 'GO_TO_STEP', step: next });
+    persistStep(next);
   }
 
   const organizations = useQuery({
@@ -56,31 +130,31 @@ function Onboarding() {
       if (created.id && created.slug) setOrganization(created);
       clearProjectId();
       void queryClient.invalidateQueries({ queryKey: ['organizations'] });
-      goToStep(1);
-      setError('');
+      dispatch({ type: 'CLEAR_ERROR' });
+      requestStep(1);
     },
-    onError: (err: Error) => setError(err.message),
+    onError: (err: Error) => dispatch({ type: 'SET_ERROR', error: err.message }),
   });
 
   const createProject = useMutation({
     mutationFn: (input: { name: string; slug: string }) => api.post<Project>('/projects', input),
     onSuccess: (project) => {
       setProject(project);
-      localStorage.removeItem('soonwhy:onboarding-step');
+      clearPersistedStep();
       void queryClient.invalidateQueries({ queryKey: ['projects', orgId] });
-      void navigate({ to: '/dashboard/projects/$projectSlug', params: { projectSlug: project.slug } });
+      void navigate({ to: '/$organizationSlug/p/$projectSlug', params: { organizationSlug: workspaceSlug ?? '', projectSlug: project.slug } });
     },
-    onError: (err: Error) => setError(err.message),
+    onError: (err: Error) => dispatch({ type: 'SET_ERROR', error: err.message }),
   });
 
   const createKey = useMutation({
     mutationFn: () => api.post<ApiKey>(`/projects/${projectId}/api-keys`, { name: 'default' }),
     onSuccess: (key) => {
-      setApiKey(key);
-      goToStep(3);
-      setError('');
+      dispatch({ type: 'SET_API_KEY', apiKey: key });
+      dispatch({ type: 'CLEAR_ERROR' });
+      requestStep(3);
     },
-    onError: (err: Error) => setError(err.message),
+    onError: (err: Error) => dispatch({ type: 'SET_ERROR', error: err.message }),
   });
 
   const verification = useQuery({
@@ -91,16 +165,16 @@ function Onboarding() {
       );
       return data;
     },
-    enabled: step === 3 && !!projectId,
-    refetchInterval: step === 3 ? 5000 : false,
+    enabled: ui.step === 3 && !!projectId,
+    refetchInterval: ui.step === 3 ? 5000 : false,
   });
 
   const canContinueConnect = !!projectId;
-  const progress = ((step + 1) / steps.length) * 100;
+  const progress = ((ui.step + 1) / steps.length) * 100;
   const verificationReady = (verification.data?.totalRequests ?? 0) > 0;
 
   const snippet = useMemo(() => {
-    const key = apiKey?.key ?? '<YOUR_PROJECT_API_KEY>';
+    const key = ui.apiKey?.key ?? '<YOUR_PROJECT_API_KEY>';
     return `import { initNode } from '@soonwhy/sdk/node';
 
 const sdk = initNode({
@@ -109,42 +183,42 @@ const sdk = initNode({
   serviceName: 'my-service',
   environment: 'production',
 });`;
-  }, [apiKey]);
+  }, [ui.apiKey]);
 
   function selectOrganization(id: string) {
     const selected = organizations.data?.find((org) => org.id === id);
     if (selected) setOrganization(selected);
     clearProjectId();
-    goToStep(1);
-    setError('');
+    dispatch({ type: 'CLEAR_ERROR' });
+    requestStep(1);
   }
 
   function submitOrganization(event: React.FormEvent) {
     event.preventDefault();
-    setError('');
-    const slug = orgSlug || slugify(orgName);
-    if (!orgName.trim() || !slug) return setError('Enter an organization name.');
-    createOrg.mutate({ name: orgName.trim(), slug });
+    dispatch({ type: 'CLEAR_ERROR' });
+    const slug = ui.orgSlug || slugify(ui.orgName);
+    if (!ui.orgName.trim() || !slug) {
+      dispatch({ type: 'SET_ERROR', error: 'Enter an organization name.' });
+      return;
+    }
+    createOrg.mutate({ name: ui.orgName.trim(), slug });
   }
 
   function submitProject(event: React.FormEvent) {
     event.preventDefault();
-    setError('');
-    const slug = projectSlug || slugify(projectName);
-    if (!projectName.trim() || !slug) return setError('Enter a project name.');
-    createProject.mutate({ name: projectName.trim(), slug });
-  }
-
-  function continueFromProject() {
-    if (!projectId) return setError('Select or create a project first.');
-    setError('');
-    goToStep(2);
+    dispatch({ type: 'CLEAR_ERROR' });
+    const slug = ui.projectSlug || slugify(ui.projectName);
+    if (!ui.projectName.trim() || !slug) {
+      dispatch({ type: 'SET_ERROR', error: 'Enter a project name.' });
+      return;
+    }
+    createProject.mutate({ name: ui.projectName.trim(), slug });
   }
 
   function finish() {
     if (projectId) setProjectId(projectId);
-    localStorage.removeItem('soonwhy:onboarding-step');
-    navigate({ to: '/dashboard' });
+    clearPersistedStep();
+    navigate({ to: '/$organizationSlug/dashboard', params: { organizationSlug: workspaceSlug ?? '' } });
   }
 
   return (
@@ -155,21 +229,21 @@ const sdk = initNode({
             ? <Link to="/$organizationSlug" params={{ organizationSlug: workspaceSlug }} className="flex items-center gap-2 text-sm font-semibold"><ArrowLeft className="h-4 w-4" /> Workspace</Link>
             : <span className="text-sm font-semibold">Workspace</span>}
           <span className="text-sm font-semibold">SoonWhy setup</span>
-          <span className="text-xs text-muted-foreground">{step + 1} of {steps.length}</span>
+          <span className="text-xs text-muted-foreground">{ui.step + 1} of {steps.length}</span>
         </div>
       </header>
 
       <main className="mx-auto max-w-5xl px-5 py-10">
         <div className="mb-8">
           <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
-            {steps.map((label, index) => <span key={label} className={index <= step ? 'text-[#16931F]' : ''}>{label}</span>)}
+            {steps.map((label, index) => <span key={label} className={index <= ui.step ? 'text-[#16931F]' : ''}>{label}</span>)}
           </div>
           <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary"><div className="h-full rounded-full bg-[#8BD125] transition-all" style={{ width: progress + '%' }} /></div>
         </div>
 
-        {error && <div role="alert" className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>}
+        {ui.error && <div role="alert" className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{ui.error}</div>}
 
-        {step === 0 && (
+        {ui.step === 0 && (
           <StepCard icon={ShieldCheck} title="Create your organization" description="Your organization is the tenant boundary for projects, members and telemetry.">
             {organizations.data && organizations.data.length > 0 && (
               <div className="mb-6 space-y-2">
@@ -184,20 +258,20 @@ const sdk = initNode({
               </div>
             )}
             <form onSubmit={submitOrganization} className="space-y-4">
-              <div className="space-y-2"><Label htmlFor="org-name">Organization name</Label><Input id="org-name" value={orgName} onChange={(e) => setOrgName(e.target.value)} placeholder="Acme" required maxLength={100} /></div>
-              <div className="space-y-2"><Label htmlFor="org-slug">Subdomain</Label><Input id="org-slug" value={orgSlug} onChange={(e) => setOrgSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} placeholder="acme" pattern="[a-z0-9-]+" /></div>
+              <div className="space-y-2"><Label htmlFor="org-name">Organization name</Label><Input id="org-name" value={ui.orgName} onChange={(e) => dispatch({ type: 'SET_ORG_NAME', value: e.target.value })} placeholder="Acme" required maxLength={100} /></div>
+              <div className="space-y-2"><Label htmlFor="org-slug">Subdomain</Label><Input id="org-slug" value={ui.orgSlug} onChange={(e) => dispatch({ type: 'SET_ORG_SLUG', value: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })} placeholder="acme" pattern="[a-z0-9-]+" /></div>
               <Button type="submit" className="w-full" disabled={createOrg.isPending}>{createOrg.isPending ? 'Creating...' : <>Create organization <ArrowRight /></>}</Button>
             </form>
           </StepCard>
         )}
 
-        {step === 1 && (
+        {ui.step === 1 && (
           <StepCard icon={Server} title="Create your first project" description="A project is the boundary for your application's telemetry and ingestion API key.">
             {projects.data && projects.data.length > 0 && (
               <div className="mb-6 space-y-2">
                 <p className="text-sm font-medium">Use an existing project</p>
                 {projects.data.map((project) => (
-                  <button key={project.id} type="button" onClick={() => { setProjectId(project.id); localStorage.removeItem('soonwhy:onboarding-step'); void navigate({ to: '/dashboard' }); }} className="flex w-full items-center justify-between rounded-lg border border-border bg-card p-3 text-left hover:border-[#8BD125]">
+                  <button key={project.id} type="button" onClick={() => { setProject(project); clearPersistedStep(); void navigate({ to: '/$organizationSlug/p/$projectSlug', params: { organizationSlug: workspaceSlug ?? '', projectSlug: project.slug } }); }} className="flex w-full items-center justify-between rounded-lg border border-border bg-card p-3 text-left hover:border-[#8BD125]">
                     <span><span className="block text-sm font-medium">{project.name}</span><span className="text-xs text-muted-foreground">{project.slug}</span></span>
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   </button>
@@ -206,26 +280,26 @@ const sdk = initNode({
               </div>
             )}
             <form onSubmit={submitProject} className="space-y-4">
-              <div className="space-y-2"><Label htmlFor="project-name">Project name</Label><Input id="project-name" value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="Payments API" required maxLength={100} /></div>
-              <div className="space-y-2"><Label htmlFor="project-slug">Slug</Label><Input id="project-slug" value={projectSlug} onChange={(e) => setProjectSlug(e.target.value)} placeholder="payments-api" pattern="[a-z0-9-]+" /></div>
+              <div className="space-y-2"><Label htmlFor="project-name">Project name</Label><Input id="project-name" value={ui.projectName} onChange={(e) => dispatch({ type: 'SET_PROJECT_NAME', value: e.target.value })} placeholder="Payments API" required maxLength={100} /></div>
+              <div className="space-y-2"><Label htmlFor="project-slug">Slug</Label><Input id="project-slug" value={ui.projectSlug} onChange={(e) => dispatch({ type: 'SET_PROJECT_SLUG', value: e.target.value })} placeholder="payments-api" pattern="[a-z0-9-]+" /></div>
               <Button type="submit" className="w-full" disabled={createProject.isPending}>{createProject.isPending ? 'Creating...' : <>Create project <ArrowRight /></>}</Button>
             </form>
           </StepCard>
         )}
 
-        {step === 2 && (
+        {ui.step === 2 && (
           <StepCard icon={Sparkles} title="Connect OpenTelemetry" description="Create a project API key and send your first spans through the SoonWhy SDK.">
             <div className="rounded-xl border border-border bg-muted p-4 text-sm">
               <p className="font-medium">Project selected</p>
               <p className="mt-1 text-muted-foreground">{projects.data?.find((project) => project.id === projectId)?.name ?? 'Your project'}</p>
             </div>
-            {apiKey ? (
+            {ui.apiKey ? (
               <div className="mt-5 space-y-4">
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><strong>Copy this key now.</strong> The raw API key is shown only when it is created.</div>
-                <div className="rounded-xl border bg-[#182012] p-4 text-xs text-white"><code className="break-all">{apiKey.key}</code></div>
+                <div className="rounded-xl border bg-[#182012] p-4 text-xs text-white"><code className="break-all">{ui.apiKey.key}</code></div>
                 <pre className="overflow-x-auto rounded-xl bg-[#182012] p-4 text-xs leading-6 text-white"><code>{snippet}</code></pre>
                 <Button type="button" variant="outline" onClick={() => void navigator.clipboard?.writeText(snippet)}><Copy /> Copy setup snippet</Button>
-                <Button type="button" onClick={() => goToStep(3)}>I've connected it <ArrowRight /></Button>
+                <Button type="button" onClick={() => requestStep(3)}>I've connected it <ArrowRight /></Button>
               </div>
             ) : (
               <Button type="button" className="mt-5 w-full" disabled={!canContinueConnect || createKey.isPending} onClick={() => createKey.mutate()}>
@@ -235,7 +309,7 @@ const sdk = initNode({
           </StepCard>
         )}
 
-        {step === 3 && (
+        {ui.step === 3 && (
           <StepCard icon={Check} title={verificationReady ? 'Telemetry received' : 'Waiting for telemetry'} description={verificationReady ? 'SoonWhy has received project telemetry. You can open the dashboard now.' : 'Run the setup snippet in your application. This page checks for telemetry every few seconds.'}>
             <div className="rounded-xl border border-border bg-card p-5">
               {verification.isFetching && !verificationReady && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Checking for telemetry...</div>}
@@ -256,7 +330,7 @@ const sdk = initNode({
               )}
             </div>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-between">
-              <Button type="button" variant="ghost" onClick={() => goToStep(2)}><ArrowLeft /> Back to setup</Button>
+              <Button type="button" variant="ghost" onClick={() => requestStep(2)}><ArrowLeft /> Back to setup</Button>
               <Button type="button" onClick={finish}>{verificationReady ? 'Open dashboard' : 'Go to dashboard'} <ExternalLink /></Button>
             </div>
           </StepCard>

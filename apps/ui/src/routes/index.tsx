@@ -471,5 +471,3 @@ function DeveloperFeature({ icon: Icon, title, text }: { icon: typeof Code2; tit
     </div>
   );
 }
-
-export default Home;
