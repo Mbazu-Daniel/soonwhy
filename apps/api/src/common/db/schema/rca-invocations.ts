@@ -3,6 +3,7 @@ import { integer, pgTable, real, text, timestamp } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
 import { projects } from "./projects";
 import { findings } from "./findings";
+import type { LlmCredentialSource } from "./ai-provider-credentials";
 
 export const rcaInvocations = pgTable("rca_invocations", {
   id: text("id")
@@ -27,6 +28,8 @@ export const rcaInvocations = pgTable("rca_invocations", {
   outputTokens: integer("output_tokens"),
   totalTokens: integer("total_tokens"),
   estimatedCostUsd: real("estimated_cost_usd"),
+  credentialSource: text("credential_source").$type<LlmCredentialSource>(),
+  credentialId: text("credential_id"),
   errorCode: text("error_code"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

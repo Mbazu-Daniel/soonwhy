@@ -19,6 +19,7 @@ export type UsageMetric =
   | "retained_data_bytes"
   | "rca_invocations"
   | "ai_tokens"
+  | "ai_tokens_byok"
   | "investigations"
   | "sdk_events";
 
@@ -48,9 +49,12 @@ export const billingPlanQuotas = pgTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => generateId()),
-    planId: text("plan_id")
-      .references(() => billingPlans.id, { onDelete: "cascade" })
-      .notNull(),
+    planId: text("plan_id").references(() => billingPlans.id, {
+      onDelete: "cascade",
+    }),
+    orgId: text("org_id").references(() => organizations.id, {
+      onDelete: "cascade",
+    }),
     metric: text("metric").$type<UsageMetric>().notNull(),
     limit: bigint("limit", { mode: "number" }),
     unit: text("unit").notNull(),
@@ -61,9 +65,16 @@ export const billingPlanQuotas = pgTable(
       table.planId,
       table.metric,
     ),
+    uniqueIndex("billing_plan_quotas_org_metric_unique_idx")
+      .on(table.orgId, table.metric)
+      .where(sql`${table.orgId} IS NOT NULL`),
     check(
       "billing_plan_quotas_limit_non_negative",
       sql`${table.limit} IS NULL OR ${table.limit} >= 0`,
+    ),
+    check(
+      "billing_plan_quotas_scope_check",
+      sql`${table.planId} IS NOT NULL OR ${table.orgId} IS NOT NULL`,
     ),
   ],
 );
@@ -121,10 +132,9 @@ export const usageEvents = pgTable(
       >(),
   },
   (table) => [
-    uniqueIndex("usage_events_org_idempotency_unique_idx").on(
-      table.orgId,
-      table.idempotencyKey,
-    ),
+    uniqueIndex("usage_events_org_idempotency_unique_idx")
+      .on(table.orgId, table.idempotencyKey)
+      .where(sql`${table.idempotencyKey} IS NOT NULL`),
     check("usage_events_quantity_positive", sql`${table.quantity} > 0`),
   ],
 );

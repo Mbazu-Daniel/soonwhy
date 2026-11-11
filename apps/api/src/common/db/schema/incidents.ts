@@ -1,0 +1,25 @@
+import { pgTable, serial, text, timestamp, boolean, jsonb } from 'drizzle-orm/pg-core';
+
+export const incidents = pgTable('incidents', {
+  id: serial('id').primaryKey(),
+  incidentId: text('incident_id').notNull().unique(),
+  orgId: text('org_id').notNull(),
+  projectId: text('project_id').notNull(),
+  alertRuleId: text('alert_rule_id').notNull(),
+  status: text('status', { enum: ['firing', 'acknowledged', 'resolved'] }).notNull().default('firing'),
+  severity: text('severity').notNull(),
+  title: text('title').notNull(),
+  body: text('body').notNull(),
+  metadata: jsonb('metadata'),
+  firedAt: timestamp('fired_at').notNull().defaultNow(),
+  acknowledgedAt: timestamp('acknowledged_at'),
+  acknowledgedBy: text('acknowledged_by'),
+  acknowledgementNote: text('acknowledgement_note'),
+  resolvedAt: timestamp('resolved_at'),
+  resolvedBy: text('resolved_by'),
+  resolutionNote: text('resolution_note'),
+  recoveryNotified: boolean('recovery_notified').notNull().default(false),
+  lastEvaluatedAt: timestamp('last_evaluated_at').notNull().defaultNow(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});

@@ -32,7 +32,10 @@ export {
   type UsageMetric,
   type BillingEventType,
 } from "./billing";
-export { aiProviderCredentials } from "./ai-provider-credentials";
+export {
+  aiProviderCredentials,
+  type LlmCredentialSource,
+} from "./ai-provider-credentials";
 export { issueLifecycles } from "./issue-lifecycles";
 // Notifications & alerting
 export {
@@ -44,6 +47,11 @@ export {
   type AlertRuleSeverity,
   type AlertRuleStatus,
 } from "./alert_rules";
+export {
+  alertTriggers,
+  type AlertTriggerStatus,
+  type AlertState,
+} from "./alert_triggers";
 export {
   webhookEndpoints,
   type WebhookEndpointType,
@@ -62,3 +70,20 @@ export {
   syntheticProbes,
   syntheticProbeResults,
 } from "./synthetic-probes";
+export { statusPageSubscriptions, statusPageAnalytics } from "./status-page-subscriptions";
+export { canaryDeployments } from "./canary-deployments";
+export { deadLetterQueue } from "./dead-letter-queue";
+export { ingestEventReceipts } from "./ingest-event-receipts";
+export { incidents } from "./incidents";
+export { maintenanceWindows } from "./maintenance-windows";
+export { ingestLimits } from "./ingest-limits";
+export { slos, sloComplianceSnapshots } from "./slos";
+export { retentionPolicies } from "./retention-policies";
+export { errorRegressions } from "./error-regressions";
+export { alertSuppressionRules } from "./alert-suppression-rules";
+export { capacityMetrics } from "./capacity-metrics";
+export { schemaCatalog, savedQueries } from "./query-catalog";
+export { evidenceNodes, evidenceEdges } from "./evidence-graph"
+export { aiInvestigations } from "./ai-investigations"
+export { deadLetterInvestigations } from "./dead-letter-investigations"
+export { idempotencyKeys } from "./idempotency-keys"

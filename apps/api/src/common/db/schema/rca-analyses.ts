@@ -3,6 +3,7 @@ import { jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
 import { projects } from "./projects";
 import { findings } from "./findings";
+import type { LlmCredentialSource } from "./ai-provider-credentials";
 
 export const rcaAnalyses = pgTable("rca_analyses", {
   id: text("id")
@@ -35,5 +36,6 @@ export const rcaAnalyses = pgTable("rca_analyses", {
   provider: text("provider").notNull(),
   model: text("model").notNull(),
   promptVersion: text("prompt_version").notNull(),
+  credentialSource: text("credential_source").$type<LlmCredentialSource>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
