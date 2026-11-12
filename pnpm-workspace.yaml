@@ -4,6 +4,7 @@ packages:
 allowBuilds:
   '@scarf/scarf': true
   argon2: true
-  argon2,esbuild,protobufjs: true
   esbuild: true
   protobufjs: true
+  '@swc/core': true
+  workerd: true
