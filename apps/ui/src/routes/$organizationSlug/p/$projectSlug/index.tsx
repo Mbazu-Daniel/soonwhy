@@ -5,20 +5,27 @@ import {
   AlertTriangle,
   ArrowUpRight,
   BrainCircuit,
-  CheckCircle2,
+  ChevronDown,
   Clock3,
-  Gauge,
+  Compass,
   GitBranch,
   Server,
-  Zap,
 } from 'lucide-react';
 import { Card, CardContent } from '~/components/ui/card';
 import { Skeleton } from '~/components/ui/skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu';
 import { api } from '~/lib/api';
 import { dashboardOverview, type DashboardOverview } from '~/data/dashboard-overview';
 import { useProject } from '~/lib/project-context';
 import { useState } from 'react';
 import { TimeRangeControl, telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
+import { ConnectServiceButton } from '~/components/connect-service-button';
+import { EmptyProject } from '~/components/empty-state';
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/')({
   component: DashboardOverviewPage,
@@ -56,6 +63,12 @@ function AIDashboardSummary({ orgSlug, projectSlug }: { orgSlug: string; project
   );
 }
 
+interface ServiceSummary {
+  id: string;
+  owner: { id: string; name: string | null; email: string } | null;
+  team: { id: string; name: string; slug: string } | null;
+}
+
 function DashboardOverviewPage() {
   const { projectSlug, orgSlug } = useProject();
   const { projectId } = useProject();
@@ -75,6 +88,12 @@ function DashboardOverviewPage() {
     placeholderData: keepPreviousData,
   });
 
+  const { data: services } = useQuery({
+    queryKey: ['services', projectId],
+    queryFn: () => api.get<ServiceSummary[]>(`/projects/${projectId}/services`),
+    enabled: !!projectId,
+  });
+
   if (!projectId) {
     return (
       <div className="min-h-full space-y-5 pb-8">
@@ -89,14 +108,17 @@ function DashboardOverviewPage() {
 
   const live = data && data.totalRequests > 0 ? data : dashboardOverview;
   const overviewStale = isLoading === false && !data && !!telemetryStatus?.lastTelemetryAt;
-  const score = live.score;
-  const health = score >= 90 ? 'Healthy' : score >= 70 ? 'Needs attention' : 'Investigate';
+  const serviceCount = services?.length;
+  const ownedCount = services?.filter((service) => service.owner || service.team).length;
+  const ownershipPct = serviceCount ? Math.round(((ownedCount ?? 0) / serviceCount) * 100) : 0;
 
   return (
     <div className="min-h-full space-y-5 pb-8">
       <h1 className="sr-only">Overview</h1>
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <ConnectServiceButton appearance="secondary" />
         <TimeRangeControl value={range} onChange={setRange} />
+        <ExploreEvidenceMenu orgSlug={orgSlug!} projectSlug={projectSlug!} />
       </div>
 
       {(telemetryStatus?.status === 'stale' || overviewStale) && (
@@ -109,7 +131,7 @@ function DashboardOverviewPage() {
       <AIDashboardSummary orgSlug={orgSlug!} projectSlug={projectSlug!} />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Metric label="Health score" value={String(score)} suffix="/100" icon={Gauge} tone="dark" detail={health} />
+        <Metric label="Connected services" value={serviceCount == null ? '—' : String(serviceCount)} icon={Server} tone="dark" detail="Registered in this project" />
         <Metric label="Total requests" value={formatNumber(live.totalRequests)} icon={Activity} detail="Across monitored services" />
         <Metric label="Error rate" value={String(live.errorRate)} suffix="%" icon={AlertTriangle} detail="Application failures" />
         <Metric label="P95 latency" value={String(live.latencyP95)} suffix="ms" icon={Clock3} detail="Response time" />
@@ -157,98 +179,40 @@ function DashboardOverviewPage() {
         <Card className="rounded-2xl border-[#242426] bg-[#182012] text-white">
           <CardContent className="flex h-full flex-col p-6">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-white/55">System health</span>
-              <Zap className="h-4 w-4 text-[#8BD125]" />
+              <span className="text-xs font-medium text-white/55">Connected services</span>
+              <Server className="h-4 w-4 text-[#8BD125]" />
             </div>
             <div className="mt-10">
               <div className="flex items-end gap-2">
-                <span className="text-6xl font-semibold tracking-[-0.06em]">{score}</span>
-                <span className="pb-2 text-sm text-white/40">/100</span>
+                <span className="text-6xl font-semibold tracking-[-0.06em]">{serviceCount ?? '—'}</span>
+                <span className="pb-2 text-sm text-white/40">services</span>
               </div>
-              <p className="mt-3 text-sm font-medium text-[#8BD125]">{health}</p>
+              <Link
+                to="/$organizationSlug/p/$projectSlug/services"
+                params={{ organizationSlug: orgSlug!, projectSlug: projectSlug! }}
+                className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[#8BD125] hover:underline"
+              >
+                View service inventory
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
             </div>
             <div className="mt-auto pt-10">
               <div className="h-2 overflow-hidden rounded-full bg-[#0B0B0C]/10">
                 <div
                   className="h-full rounded-full bg-[#ACFC15]"
-                  style={{ width: `${Math.min(100, score)}%` }}
+                  style={{ width: `${serviceCount ? ownershipPct : 0}%` }}
                 />
               </div>
               <p className="mt-3 text-xs leading-5 text-white/50">
-                Based on latency, error rate and throughput signals from the current project.
+                {ownedCount == null
+                  ? 'Loading ownership coverage from the project registry.'
+                  : `${ownedCount} of ${serviceCount} services have an owner or team assigned.`}
               </p>
             </div>
           </CardContent>
         </Card>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,.85fr)]">
-        <Card className="rounded-2xl border-[#242426] bg-[#0B0B0C]">
-          <CardContent className="p-0">
-            <div className="flex items-center justify-between border-b border-[#1B1B1D] px-5 py-5 sm:px-6">
-              <div>
-                <h2 className="text-sm font-semibold">What needs attention</h2>
-                <p className="mt-1 text-xs text-[#989898]">Findings worth investigating</p>
-              </div>
-              <Link
-                to="/$organizationSlug/p/$projectSlug/intelligence/findings"
-                params={{ organizationSlug: orgSlug!, projectSlug: projectSlug! }}
-                className="text-xs font-medium text-[#ACFC15] hover:underline"
-              >
-                View findings
-              </Link>
-            </div>
-            <div className="divide-y divide-[#EEF2EA]">
-              <Attention
-                icon={CheckCircle2}
-                title="No active findings"
-                detail="SoonWhy will surface evidence-backed bottlenecks here."
-                tone="ok"
-              />
-              <Attention
-                icon={GitBranch}
-                title="Trace evidence connected"
-                detail={`${formatNumber(live.totalRequests)} requests are represented in the current snapshot.`}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-2xl border-[#242426] bg-[#0B0B0C]">
-          <CardContent className="p-0">
-            <div className="border-b border-[#1B1B1D] px-5 py-5 sm:px-6">
-              <h2 className="text-sm font-semibold">Explore evidence</h2>
-              <p className="mt-1 text-xs text-[#989898]">Jump into the signals behind your system</p>
-            </div>
-            <div className="grid grid-cols-2 gap-px bg-[#EEF2EA]">
-              <QuickLink
-                to="/$organizationSlug/p/$projectSlug/services"
-                params={{ organizationSlug: orgSlug!, projectSlug: projectSlug! }}
-                icon={Server}
-                label="Services"
-              />
-              <QuickLink
-                to="/$organizationSlug/p/$projectSlug/traces"
-                params={{ organizationSlug: orgSlug!, projectSlug: projectSlug! }}
-                icon={GitBranch}
-                label="Traces"
-              />
-              <QuickLink
-                to="/$organizationSlug/p/$projectSlug/logs"
-                params={{ organizationSlug: orgSlug!, projectSlug: projectSlug! }}
-                icon={Activity}
-                label="Logs"
-              />
-              <QuickLink
-                to="/$organizationSlug/p/$projectSlug/intelligence/investigations"
-                params={{ organizationSlug: orgSlug!, projectSlug: projectSlug! }}
-                icon={BrainCircuit}
-                label="Investigations"
-              />
-            </div>
-          </CardContent>
-        </Card>
-      </section>
     </div>
   );
 }
@@ -308,79 +272,69 @@ function Mini({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Attention({
-  icon: Icon,
-  title,
-  detail,
-  tone,
-}: {
-  icon: typeof CheckCircle2;
-  title: string;
-  detail: string;
-  tone?: 'ok';
-}) {
+const EVIDENCE_DESTINATIONS = [
+  {
+    to: '/$organizationSlug/p/$projectSlug/services',
+    icon: Server,
+    label: 'Services',
+    detail: 'Browse monitored services',
+  },
+  {
+    to: '/$organizationSlug/p/$projectSlug/traces',
+    icon: GitBranch,
+    label: 'Traces',
+    detail: 'Follow requests across services',
+  },
+  {
+    to: '/$organizationSlug/p/$projectSlug/logs',
+    icon: Activity,
+    label: 'Logs',
+    detail: 'Search raw log events',
+  },
+  {
+    to: '/$organizationSlug/p/$projectSlug/intelligence/investigations',
+    icon: BrainCircuit,
+    label: 'Investigations',
+    detail: 'AI-assisted root cause analysis',
+  },
+] as const;
+
+function ExploreEvidenceMenu({ orgSlug, projectSlug }: { orgSlug: string; projectSlug: string }) {
+  const params = { organizationSlug: orgSlug, projectSlug };
   return (
-    <div className="flex items-start gap-3 px-5 py-4 sm:px-6">
-      <span
-        className={
-          tone === 'ok'
-            ? 'grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#EEF7E4] text-[#ACFC15]'
-            : 'grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#EAF3F4] text-[#26737A]'
-        }
-      >
-        <Icon className="h-4 w-4" />
-      </span>
-      <div>
-        <p className="text-sm font-medium">{title}</p>
-        <p className="mt-1 text-xs leading-5 text-[#989898]">{detail}</p>
-      </div>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center gap-2 rounded-lg bg-[#ACFC15] px-3 py-2 text-xs font-semibold text-[#182012] transition-colors hover:bg-[#C2FF3D] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ACFC15]/60"
+          aria-label="Explore evidence"
+        >
+          <Compass className="h-4 w-4" />
+          Explore evidence
+          <ChevronDown className="h-3.5 w-3.5" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" sideOffset={8} className="w-72 border-[#242426] bg-[#0B0B0C] p-2 text-[#F6F6F6]">
+        {EVIDENCE_DESTINATIONS.map(({ to, icon: Icon, label, detail }) => (
+          <DropdownMenuItem key={to} asChild className="rounded-lg px-2 py-2 focus:bg-[#151517] focus:text-[#F6F6F6]">
+            <Link to={to} params={params} className="flex items-center gap-3">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#151517] text-[#ACFC15]">
+                <Icon className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium">{label}</span>
+                <span className="block truncate text-[11px] font-normal text-[#989898]">{detail}</span>
+              </span>
+              <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-[#6E6E70]" />
+            </Link>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
-function QuickLink({
-  to,
-  params,
-  icon: Icon,
-  label,
-}: {
-  to:
-    | '/$organizationSlug/p/$projectSlug/services'
-    | '/$organizationSlug/p/$projectSlug/traces'
-    | '/$organizationSlug/p/$projectSlug/logs'
-    | '/$organizationSlug/p/$projectSlug/intelligence/investigations';
-  params: { organizationSlug: string; projectSlug: string };
-  icon: typeof Server;
-  label: string;
-}) {
-  return (
-    <Link
-      to={to}
-      params={params}
-      className="flex items-center gap-3 bg-[#0B0B0C] px-5 py-4 text-sm font-medium hover:bg-[#040405]"
-    >
-      <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#151517] text-[#ACFC15]">
-        <Icon className="h-4 w-4" />
-      </span>
-      {label}
-      <ArrowUpRight className="ml-auto h-3.5 w-3.5 text-[#6E6E70]" />
-    </Link>
-  );
-}
 
-function EmptyProject() {
-  return (
-    <Card className="rounded-2xl border-dashed border-[#242426] bg-[#0B0B0C]">
-      <CardContent className="p-12 text-center">
-        <Server className="mx-auto h-6 w-6 text-[#ACFC15]" />
-        <p className="mt-3 text-sm font-medium">Choose a project</p>
-        <p className="mt-1 text-xs text-[#989898]">
-          Select a project from the sidebar to start exploring telemetry.
-        </p>
-      </CardContent>
-    </Card>
-  );
-}
 
 function OverviewSkeleton() {
   return (

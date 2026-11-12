@@ -81,7 +81,7 @@ function ProjectAlertsPage() {
   const rows = rules.data ?? [];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-10">
+    <div className="mx-auto w-full space-y-6 pb-10">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold">Alerts</h1>

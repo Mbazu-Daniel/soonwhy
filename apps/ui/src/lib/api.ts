@@ -23,7 +23,7 @@ export function apiProblem(error: unknown): ApiProblem {
   return error instanceof ApiError ? error.problem : {};
 }
 
-const UNSCOPED_PREFIXES = ["/auth", "/organizations", "/health", "/marketing", "/admin"];
+const UNSCOPED_PREFIXES = ["/auth", "/organizations", "/health", "/marketing", "/admin", "/public"];
 
 function scopePath(path: string, orgId: string | null): string {
   const pathname = path.split("?")[0] ?? path;

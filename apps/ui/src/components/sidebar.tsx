@@ -1,19 +1,17 @@
 import { Link, useLocation, useNavigate } from '@tanstack/react-router';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { cn } from '~/lib/utils';
 import { useSidebar } from '~/lib/sidebar-context';
 import { useProject } from '~/lib/project-context';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Button } from '~/components/ui/button';
-import { Input } from '~/components/ui/input';
-import { Label } from '~/components/ui/label';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '~/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '~/components/ui/avatar';
 import { signOut, clearSession, getSessionToken } from '~/lib/auth-client';
 import { AlertTriangle, BarChart3, Bell, BrainCircuit, Activity, Check, ChevronDown, ChevronRight, Database, GitBranch, KeyRound, LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Plus, ScrollText, Send, Server, Settings, Sparkles } from 'lucide-react';
 import { api } from '~/lib/api';
 import { WorkspaceMenu } from '~/components/workspace-switcher';
+import { CreateProjectDialog } from '~/components/create-project-dialog';
 
 interface Project { id: string; name: string; slug: string; }
 
@@ -34,7 +32,8 @@ const navGroups = [
     { to: 'notifications', label: 'Notifications', icon: Send },
     { to: 'api-keys', label: 'API Keys', icon: KeyRound },
     { to: 'ai', label: 'AI Providers', icon: Sparkles, orgLevel: true },
-    { to: 'self-observability', label: 'AI & Ops', icon: Activity, orgLevel: true, adminOnly: true },
+    { to: 'settings', label: 'Settings', icon: Settings, orgLevel: true },
+    // { to: 'self-observability', label: 'AI & Ops', icon: Activity, orgLevel: true, adminOnly: true },
   ] },
 ] as const;
 
@@ -77,19 +76,11 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
   );
 }
 
-function projectSlug(name: string) {
-  return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 100);
-}
-
 export function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { open, close, collapsed, toggleCollapsed } = useSidebar();
   const { orgId, orgSlug, projectSlug: contextProjectSlug, setProject } = useProject();
-  const [createOpen, setCreateOpen] = useState(false);
-  const [projectName, setProjectName] = useState('');
-  const [error, setError] = useState('');
 
   const projects = useQuery({ queryKey: ['projects', orgId], queryFn: () => api.get<Project[]>('/projects'), enabled: !!orgId });
   const member = useQuery({ queryKey: ['member-context', orgId], queryFn: () => api.get<{ role: string }>('/member-context'), enabled: !!orgId, retry: false, staleTime: 300_000 });
@@ -100,36 +91,19 @@ export function Sidebar() {
   const urlProjectSlug = location.pathname.match(/^\/[^/]+\/p\/([^/]+)/)?.[1] ?? null;
   const selectedProjectSlug = urlProjectSlug ?? contextProjectSlug ?? projects.data?.[0]?.slug ?? null;
   const currentProject = projects.data?.find((project) => project.slug === selectedProjectSlug) ?? projects.data?.[0];
-
-  const createProject = useMutation({
-    mutationFn: (input: { name: string; slug: string }) => api.post<Project>('/projects', input),
-    onSuccess: (project) => {
-      setProject(project); setProjectName(''); setError(''); setCreateOpen(false);
-      void queryClient.invalidateQueries({ queryKey: ['projects', orgId] });
-      if (orgSlug) void navigate({ to: '/$organizationSlug/p/$projectSlug', params: { organizationSlug: orgSlug, projectSlug: project.slug } });
-      close();
-    },
-    onError: (err: Error) => setError(err.message),
-  });
-
-  useEffect(() => {
-    if (!projects.data?.length || urlProjectSlug) return;
-    const project = projects.data.find((item) => item.slug === contextProjectSlug) ?? projects.data[0];
-    if (project && project.id !== contextProjectSlug) setProject(project);
-  }, [projects.data, setProject, urlProjectSlug, contextProjectSlug]);
-
-  function submitProject(event: React.FormEvent) {
-    event.preventDefault(); setError('');
-    const name = projectName.trim(); const slug = projectSlug(name);
-    if (!name || !slug) { setError('Enter a project name.'); return; }
-    createProject.mutate({ name, slug });
-  }
+  const [createOpen, setCreateOpen] = useState(false);
 
   function selectProject(project: Project) {
     setProject(project);
     if (orgSlug) void navigate({ to: '/$organizationSlug/p/$projectSlug', params: { organizationSlug: orgSlug, projectSlug: project.slug } });
     close();
   }
+
+  useEffect(() => {
+    if (!projects.data?.length || urlProjectSlug) return;
+    const project = projects.data.find((item) => item.slug === contextProjectSlug) ?? projects.data[0];
+    if (project && project.id !== contextProjectSlug) setProject(project);
+  }, [projects.data, setProject, urlProjectSlug, contextProjectSlug]);
 
   return (
     <>
@@ -159,7 +133,7 @@ export function Sidebar() {
               <DropdownMenuGroup>{projects.data?.map((project) => <DropdownMenuItem key={project.id} onClick={() => selectProject(project)} className="focus:bg-[#151517] focus:text-[#F6F6F6]"><span className="flex h-6 w-6 items-center justify-center rounded bg-[#151517] text-xs font-semibold text-[#ACFC15]">{project.name.charAt(0).toUpperCase()}</span><span className="min-w-0 flex-1 truncate">{project.name}</span>{project.slug === selectedProjectSlug && <Check className="h-4 w-4 text-[#ACFC15]" />}</DropdownMenuItem>)}</DropdownMenuGroup>
               {projects.data?.length ? <DropdownMenuSeparator className="bg-[#242426]" /> : null}
               <DropdownMenuItem onClick={() => setCreateOpen(true)} className="focus:bg-[#151517] focus:text-[#F6F6F6]"><Plus className="h-4 w-4" />Create project</DropdownMenuItem>
-              {currentProject && orgSlug ? <DropdownMenuItem onClick={() => void navigate({ to: '/$organizationSlug/p/$projectSlug/settings', params: { organizationSlug: orgSlug, projectSlug: currentProject.slug } })} className="focus:bg-[#151517] focus:text-[#F6F6F6]"><Settings className="h-4 w-4" />Project settings</DropdownMenuItem> : null}
+              {orgSlug ? <DropdownMenuItem onClick={() => void navigate({ to: '/$organizationSlug/settings', params: { organizationSlug: orgSlug } })} className="focus:bg-[#151517] focus:text-[#F6F6F6]"><Settings className="h-4 w-4" />Settings</DropdownMenuItem> : null}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -168,7 +142,7 @@ export function Sidebar() {
         </div>
         <UserMenu collapsed={collapsed} />
       </aside>
-      <Dialog open={createOpen} onOpenChange={(next) => { setCreateOpen(next); if (!next) setError(''); }}><DialogContent><DialogHeader><DialogTitle>Create project</DialogTitle></DialogHeader><form onSubmit={submitProject} className="space-y-4"><div className="space-y-2"><Label htmlFor="sidebar-project-name">Project name</Label><Input id="sidebar-project-name" value={projectName} onChange={(event) => setProjectName(event.target.value)} placeholder="Payments API" required maxLength={100} autoFocus /></div>{error && <p role="alert" className="text-sm text-destructive">{error}</p>}<div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button><Button type="submit" disabled={createProject.isPending}>{createProject.isPending ? 'Creating...' : 'Create project'}</Button></div></form></DialogContent></Dialog>
+      <CreateProjectDialog open={createOpen} onOpenChange={setCreateOpen} />
     </>
   );
 }

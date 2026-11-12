@@ -10,6 +10,7 @@ import { ChevronDown, ChevronRight, Clock3, Search } from 'lucide-react';
 import { api } from '~/lib/api';
 import { useProject } from '~/lib/project-context';
 import { Badge } from '~/components/ui/badge';
+import { EmptyProject } from '~/components/empty-state';
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/logs')({ component: LogViewer });
 
@@ -154,16 +155,7 @@ function LogRow({ log }: { log: LogEntry }) {
   );
 }
 
-function EmptyProject() {
-  return (
-    <div className="p-10 text-center text-muted-foreground">
-      <p className="font-medium">Choose a project</p>
-      <p className="mt-1 text-sm">
-        Select a project from the top bar to inspect logs.
-      </p>
-    </div>
-  );
-}
+
 
 type LogRange = TelemetryRange | 'custom' | 'all';
 

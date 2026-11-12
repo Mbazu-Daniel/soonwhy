@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Search, GitBranch, Clock3, ChevronRight, X, FileText, ExternalLink } from 'lucide-react';
+import { ConnectServiceButton } from '~/components/connect-service-button';
 import { useState } from 'react';
 import { TimeRangeControl, telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
 import { Card, CardContent } from '~/components/ui/card';
@@ -120,7 +121,7 @@ function TraceExplorer() {
               <p className="mt-1 text-sm text-muted-foreground">
                 {q ? 'Try a broader search or another trace ID, service, or operation.' : 'Send a real request through your project instrumentation to activate trace exploration.'}
               </p>
-              {!q && <Link to="/onboarding" className="mt-4 inline-flex text-sm font-medium text-[#16931F] hover:underline">Open setup flow</Link>}
+              {!q && <ConnectServiceButton className="mt-4" />}
             </div>
           ) : (
             <div className="divide-y divide-[#DBE5D7]">

@@ -62,7 +62,7 @@ function ApiKeysPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-10">
+    <div className="mx-auto w-full space-y-6 pb-10">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -108,7 +108,7 @@ function ApiKeysPage() {
       )}
 
       <div className="flex items-center gap-4">
-        <div className="relative flex-1">
+        <div className="relative w-full max-w-md">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             aria-label="Search API keys"
@@ -129,6 +129,7 @@ function ApiKeysPage() {
               <TableRow className="hover:bg-transparent">
                 <TableHead className="pl-5">Name</TableHead>
                 <TableHead>Token</TableHead>
+                <TableHead>Created</TableHead>
                 <TableHead>Last used</TableHead>
                 <TableHead>Expires</TableHead>
                 <TableHead className="w-28 pr-5" />
@@ -138,14 +139,14 @@ function ApiKeysPage() {
               {keys.isLoading ? (
                 Array.from({ length: 3 }).map((_, index) => (
                   <TableRow key={index} className="hover:bg-transparent">
-                    <TableCell colSpan={5}>
+                    <TableCell colSpan={6}>
                       <Skeleton className="h-8" />
                     </TableCell>
                   </TableRow>
                 ))
               ) : filtered.length === 0 ? (
                 <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={5} className="h-56 text-center">
+                  <TableCell colSpan={6} className="h-56 text-center">
                     <KeyRound className="mx-auto h-6 w-6 text-primary" />
                     <p className="mt-3 text-sm font-medium">{keys.data?.length ? 'No keys match your search' : 'No API keys yet'}</p>
                     <p className="mt-1 text-xs text-muted-foreground">
@@ -158,6 +159,7 @@ function ApiKeysPage() {
                   <TableRow key={key.id}>
                     <TableCell className="pl-5 font-medium">{key.name}</TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">{key.prefix}••••••••</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{key.createdAt ? new Date(key.createdAt).toLocaleDateString() : '—'}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{key.lastUsedAt ? formatAge(key.lastUsedAt) : 'Never'}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{key.expiresAt ? new Date(key.expiresAt).toLocaleDateString() : 'Never'}</TableCell>
                     <TableCell className="pr-5 text-right">
