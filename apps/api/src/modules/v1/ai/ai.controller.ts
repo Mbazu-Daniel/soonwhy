@@ -25,7 +25,8 @@ const AiCredentialSchema = z
   .object({
     provider: z.string().min(1).max(50),
     model: z.string().min(1).max(100),
-    apiKey: z.string().min(1).max(5000),
+    // Blank keeps the stored key.
+    apiKey: z.string().max(5000).optional(),
     baseUrl: z.string().url().optional().nullable(),
   })
   .strict();

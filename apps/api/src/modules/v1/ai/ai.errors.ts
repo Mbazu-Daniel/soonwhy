@@ -48,7 +48,7 @@ export function aiEncryptionUnavailable(): ServiceUnavailableException {
     code: "AI_CREDENTIAL_ENCRYPTION_UNAVAILABLE",
     title: "AI credential storage is unavailable",
     detail:
-      "This server has no SOONWHY_CREDENTIAL_ENCRYPTION_KEY configured, so bring-your-own-key AI credentials cannot be stored or read.",
+      "This server has no SOONWHY_PII_ENCRYPTION_KEY configured, so bring-your-own-key AI credentials cannot be stored or read.",
     hint: "Generate one with `openssl rand -hex 32` and set it on the API service.",
   });
 }
@@ -59,7 +59,7 @@ export function aiNotConfigured(): ServiceUnavailableException {
     title: "AI provider not configured",
     detail:
       "No AI provider is available for this organization, so root cause analysis cannot run.",
-    hint: "An owner or admin can add a provider key under AI settings, or the platform can be enabled with SOONWHY_RCA_API_KEY and SOONWHY_RCA_MODEL.",
+    hint: "An owner or admin can add a provider key under AI settings.",
   });
 }
 
@@ -110,7 +110,7 @@ export function aiQuotaExceeded(metric: string): HttpException {
     {
       code: "AI_QUOTA_EXCEEDED",
       title: "AI usage quota exceeded",
-      detail: `This month's ${metric} allowance is used up, so platform-funded AI analysis is paused.`,
+      detail: `This month's ${metric} allowance is used up, so AI analysis is paused.`,
       hint: "An owner or admin can buy more AI usage under billing settings, or add the organisation's own provider key under AI settings.",
     },
     HttpStatus.TOO_MANY_REQUESTS,

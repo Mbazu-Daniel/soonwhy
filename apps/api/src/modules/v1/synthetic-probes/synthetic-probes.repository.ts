@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { db } from "../../../common/db";
 import { syntheticProbes, syntheticProbeResults } from "../../../common/db/schema";
-import { eq, desc, and, gte, lt, isNull, or } from "drizzle-orm";
+import { eq, desc, and, lt, isNull, or, sql } from "drizzle-orm";
 
 @Injectable()
 export class SyntheticProbesRepository {
@@ -106,11 +106,20 @@ export class SyntheticProbesRepository {
     return deleted.length;
   }
 
-  async getEnabledProbes() {
+  async getDueProbes() {
     return db
       .select()
       .from(syntheticProbes)
-      .where(eq(syntheticProbes.enabled, true));
+      .where(
+        and(
+          eq(syntheticProbes.enabled, true),
+          or(
+            isNull(syntheticProbes.lastCheckAt),
+            sql`${syntheticProbes.lastCheckAt} + make_interval(secs => ${syntheticProbes.intervalSeconds}) < now()`,
+          ),
+        ),
+      )
+      .orderBy(syntheticProbes.lastCheckAt);
   }
 
   async updateProbeStats(id: number, stats: {

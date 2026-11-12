@@ -2,7 +2,7 @@ FROM node:22-bookworm-slim AS base
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && corepack prepare pnpm@10.15.0 --activate
+RUN corepack enable && corepack prepare pnpm@12.9.1 --activate
 
 WORKDIR /app
 
@@ -18,12 +18,10 @@ RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @soonwhy/shared build \
  && pnpm --filter @soonwhy/ingest build \
  && pnpm --filter @soonwhy/backend build \
- && pnpm --filter @soonwhy/cron build \
  && pnpm --filter @soonwhy/frontend build
-RUN pnpm --filter @soonwhy/backend deploy --legacy /out/api \
- && pnpm --filter @soonwhy/ingest deploy --legacy --prod /out/ingest \
- && pnpm --filter @soonwhy/cron deploy --legacy --prod /out/cron \
- && pnpm --filter @soonwhy/frontend deploy --legacy /out/ui
+RUN pnpm --filter @soonwhy/backend deploy /out/api \
+ && pnpm --filter @soonwhy/ingest deploy --prod /out/ingest \
+ && pnpm --filter @soonwhy/frontend deploy /out/ui
 
 FROM node:22-bookworm-slim AS api
 WORKDIR /app
@@ -35,11 +33,6 @@ FROM node:22-bookworm-slim AS ingest
 WORKDIR /app
 COPY --from=build /out/ingest ./
 EXPOSE 3002
-CMD ["node", "dist/main.js"]
-
-FROM node:22-bookworm-slim AS cron
-WORKDIR /app
-COPY --from=build /out/cron ./
 CMD ["node", "dist/main.js"]
 
 FROM node:22-bookworm-slim AS ui

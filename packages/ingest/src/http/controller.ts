@@ -32,7 +32,6 @@ import { parseTracesPayload } from "../parse/traces";
 import { parseLogsPayload } from "../parse/logs";
 import { parseMetricsPayload } from "../parse/metrics";
 import { decodeProtobufPayload, encodePartialSuccess } from "../parse/protobuf";
-import { writeR2Overflow, tryR2Overflow } from "../parse/r2-overflow";
 import type { IngestPayload } from "../pipeline/types";
 
 type Signal = IngestSignal;
@@ -261,15 +260,8 @@ export class IngestController {
     );
     const encoder = new TextEncoder();
 
-    // Check if the total payload exceeds the max bytes limit and overflow to R2 if needed
-    const overflowInfo = tryR2Overflow(items, maxBytes, encoder);
-    if (overflowInfo.overflowed) {
-      // Items that overflowed were written to R2; we only publish the summary
-      // this.metrics.recordOverflow(overflowInfo.overflowedCount);
-    }
-
-    // Chunk the remaining items (those that fit within maxBytes)
-    const chunks = chunkItemsBySize(items, batchSize, overflowInfo.remainingBytes, (item) =>
+    // Chunk the items (the byte budget applies per chunk)
+    const chunks = chunkItemsBySize(items, batchSize, maxBytes, (item) =>
       encoder.encode(JSON.stringify(item)),
     );
 

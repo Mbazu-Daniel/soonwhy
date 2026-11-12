@@ -2,18 +2,10 @@ import { Injectable, Logger } from "@nestjs/common";
 import { SyntheticProbesRepository } from "./synthetic-probes.repository";
 import { CreateSyntheticProbeInput, UpdateSyntheticProbeInput } from "./dto";
 import { URL } from "url";
-import dns from "dns/promises";
-
-const PRIVATE_IP_RANGES = [
-  /^10\./,
-  /^172\.(1[6-9]|2[0-9]|3[0-1])\./,
-  /^192\.168\./,
-  /^127\./,
-  /^0\./,
-  /^::1$/,
-  /^fc00:/i,
-  /^fe80:/i,
-];
+import { isIP } from "node:net";
+import { isPublicIpAddress, assertPublicDns } from "./probe-ssrf";
+import { httpProbe } from "./probe-http";
+import { computeProbeStatus, isProbeStale, type ProbeStatus } from "./probe-state";
 
 const ALLOWED_PORTS = [80, 443, 8080, 3000, 3001, 5000, 8000, 8443];
 
@@ -33,51 +25,42 @@ export class SyntheticProbesService {
   constructor(private readonly repository: SyntheticProbesRepository) {}
 
   async createProbe(orgId: string, projectId: string, input: CreateSyntheticProbeInput) {
-    // Validate URL for SSRF protection before creating probe
     this.validateProbeUrl(input.url);
+    await assertPublicDns(new URL(input.url).hostname);
     return this.repository.createProbe(orgId, projectId, input);
   }
 
   private validateProbeUrl(urlString: string): void {
+    let url: URL;
     try {
-      const url = new URL(urlString);
-
-      // Only allow HTTP/HTTPS
-      if (!["http:", "https:"].includes(url.protocol)) {
-        throw new Error(`Invalid protocol: ${url.protocol}`);
-      }
-
-      // Check for private IP in hostname
-      if (this.isPrivateHostname(url.hostname)) {
-        throw new Error(`Private IP or localhost detected: ${url.hostname}`);
-      }
-
-      // Check port
-      const port = url.port ? parseInt(url.port, 10) : (url.protocol === "https:" ? 443 : 80);
-      if (!ALLOWED_PORTS.includes(port)) {
-        throw new Error(`Port ${port} not allowed`);
-      }
-
-      // Check for private IP in DNS resolution
-      // Note: In production, this should use a DNS resolver that can reject private IPs
-      // For now, we'll log a warning and continue
-      this.logger.warn(`DNS resolution for ${url.hostname} should be validated for private IPs`);
-    } catch (error) {
-      this.logger.error(`URL validation failed for ${urlString}`, error);
-      throw new Error(`Invalid probe URL: ${error instanceof Error ? error.message : String(error)}`);
+      url = new URL(urlString);
+    } catch {
+      throw new Error(`Invalid probe URL: ${urlString}`);
     }
-  }
 
-  private isPrivateHostname(hostname: string): boolean {
-    // Check against private IP ranges
-    for (const range of PRIVATE_IP_RANGES) {
-      if (range.test(hostname)) return true;
+    if (!["http:", "https:"].includes(url.protocol)) {
+      throw new Error(`Invalid protocol: ${url.protocol}`);
     }
-    // Check for localhost
-    if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1") {
-      return true;
+
+    if (url.username || url.password) {
+      throw new Error("Probe URL must not embed credentials");
     }
-    return false;
+
+    const hostname = url.hostname.replace(/^\[|\]$/g, "");
+    if (isIP(hostname)) {
+      if (!isPublicIpAddress(hostname)) {
+        throw new Error(`Private or reserved address: ${hostname}`);
+      }
+    }
+
+    const port = url.port
+      ? parseInt(url.port, 10)
+      : url.protocol === "https:"
+        ? 443
+        : 80;
+    if (!ALLOWED_PORTS.includes(port)) {
+      throw new Error(`Port ${port} not allowed`);
+    }
   }
 
   private sanitizeHeaders(headers: Record<string, string>): Record<string, string> {
@@ -92,14 +75,20 @@ export class SyntheticProbesService {
   }
 
   async getProbes(orgId: string, projectId: string) {
-    return this.repository.getProbes(orgId, projectId);
+    const probes = await this.repository.getProbes(orgId, projectId);
+    return probes.map((probe) => this.withFreshStatus(probe));
   }
 
   async getProbeById(id: number) {
-    return this.repository.getProbeById(id);
+    const probe = await this.repository.getProbeById(id);
+    return probe ? this.withFreshStatus(probe) : probe;
   }
 
   async updateProbe(id: number, input: UpdateSyntheticProbeInput) {
+    if (input.url) {
+      this.validateProbeUrl(input.url);
+      await assertPublicDns(new URL(input.url).hostname);
+    }
     return this.repository.updateProbe(id, input);
   }
 
@@ -111,51 +100,43 @@ export class SyntheticProbesService {
     return this.repository.getProbeResults(probeId, limit);
   }
 
-  async executeProbe(probe: any) {
-    // Re-validate URL before execution (defense in depth)
-    this.validateProbeUrl(probe.url);
+  async cleanupOldResults(daysOld: number = 30) {
+    return this.repository.cleanupOldResults(daysOld);
+  }
 
-    const startTime = Date.now();
-    let status = "up";
+  async executeProbe(probe: any) {
+    this.validateProbeUrl(probe.url);
+    const hostname = new URL(probe.url).hostname;
+    await assertPublicDns(hostname.replace(/^\[|\]$/g, ""));
+
+    let status: ProbeStatus = "up";
     let statusCode: number | null = null;
     let errorMessage: string | null = null;
     let responseTimeMs: number | null = null;
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), probe.timeoutMs);
-
-      // Sanitize headers to prevent credential leakage
-      const sanitizedHeaders = this.sanitizeHeaders(probe.headers || {});
-
-      const response = await fetch(probe.url, {
-        method: probe.method,
-        headers: sanitizedHeaders,
+      const result = await httpProbe(probe.url, {
+        method: probe.method ?? "GET",
+        headers: this.sanitizeHeaders(probe.headers || {}),
         body: probe.method !== "GET" && probe.method !== "HEAD" ? probe.body : undefined,
-        signal: controller.signal,
-        redirect: "manual", // Manually handle redirects to prevent downgrade attacks
+        timeoutMs: probe.timeoutMs,
       });
 
-      clearTimeout(timeoutId);
-      responseTimeMs = Date.now() - startTime;
-      statusCode = response.status;
+      responseTimeMs = result.responseTimeMs;
+      statusCode = result.statusCode;
 
-      // Check for HTTPS downgrade
-      if (probe.url.startsWith("https://") && response.url && !response.url.startsWith("https://")) {
+      if (result.statusCode >= 500) {
         status = "down";
-        errorMessage = "HTTPS downgrade detected";
-      } else if (response.status >= 500) {
-        status = "down";
-        errorMessage = `Server error: ${response.status}`;
-      } else if (response.status >= 400) {
+        errorMessage = `Server error: ${result.statusCode}`;
+      } else if (result.statusCode >= 400) {
         status = "degraded";
-        errorMessage = `Client error: ${response.status}`;
-      } else if (response.status !== probe.expectedStatusCode) {
+        errorMessage = `Client error: ${result.statusCode}`;
+      } else if (result.statusCode !== probe.expectedStatusCode) {
         status = "degraded";
-        errorMessage = `Expected status ${probe.expectedStatusCode}, got ${response.status}`;
+        errorMessage = `Expected status ${probe.expectedStatusCode}, got ${result.statusCode}`;
       }
     } catch (error: any) {
-      responseTimeMs = Date.now() - startTime;
+      responseTimeMs = null;
       status = "down";
       errorMessage = error.message || "Request failed";
       if (error.name === "AbortError") {
@@ -170,32 +151,54 @@ export class SyntheticProbesService {
       errorMessage,
     });
 
-    // Update probe stats
+    const recent = await this.repository.getProbeResults(probe.id, 3);
+    const currentResult = recent[0];
+    const lastStatus = computeProbeStatus(
+      recent.map((result) => result.status),
+      probe.lastStatus ?? null,
+    );
+
     const results = await this.repository.getProbeResults(probe.id, 100);
     const totalChecks = results.length;
-    const failedChecks = results.filter((r) => r.status === "down").length;
-    const uptimePercent = totalChecks > 0 ? Math.round(((totalChecks - failedChecks) / totalChecks) * 100) : 100;
+    const failedChecks = results.filter((r) => r.status !== "up").length;
+    const uptimePercent =
+      totalChecks > 0
+        ? Math.round(((totalChecks - failedChecks) / totalChecks) * 100)
+        : 100;
 
     await this.repository.updateProbeStats(probe.id, {
-      lastStatus: status,
+      lastStatus,
       uptimePercent,
       totalChecks,
       failedChecks,
-      lastCheckAt: new Date(),
+      lastCheckAt: currentResult?.checkedAt ?? new Date(),
     });
 
-    return { status, statusCode, responseTimeMs, errorMessage };
+    return { status, statusCode, responseTimeMs, errorMessage, lastStatus };
   }
 
-  async runAllEnabledProbes() {
-    const probes = await this.repository.getEnabledProbes();
+  async runDueProbes() {
+    const probes = await this.repository.getDueProbes();
     const results = await Promise.allSettled(
-      probes.map((probe) => this.executeProbe(probe))
+      probes.map((probe) => this.executeProbe(probe)),
     );
+    const executed = results.filter((r) => r.status === "fulfilled").length;
     return {
-      total: probes.length,
-      succeeded: results.filter((r) => r.status === "fulfilled").length,
-      failed: results.filter((r) => r.status === "rejected").length,
+      due: probes.length,
+      executed,
+      failed: probes.length - executed,
     };
+  }
+
+  withFreshStatus<T extends { lastStatus?: string | null; lastCheckAt?: Date | string | null; intervalSeconds?: number | null; enabled?: boolean }>(
+    probe: T,
+  ): T {
+    if (probe.enabled === false) {
+      return { ...probe, lastStatus: "unknown" };
+    }
+    if (isProbeStale(probe.lastCheckAt, probe.intervalSeconds ?? 60)) {
+      return { ...probe, lastStatus: "unknown" };
+    }
+    return probe;
   }
 }

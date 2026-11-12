@@ -30,7 +30,7 @@ export class ZeptoMailService {
 
   constructor(private readonly http: OutboundHttpService) {
     const apiKey = process.env.ZEPTOMAIL_API_KEY;
-    const region = process.env.ZEPTOMAIL_REGION ?? "com";
+    const region = "com";
 
     if (!apiKey) {
       throw new BadRequestException("ZEPTOMAIL_API_KEY is not configured");

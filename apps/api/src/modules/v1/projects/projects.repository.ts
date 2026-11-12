@@ -56,27 +56,26 @@ export class ProjectsRepository {
     const rows = await db
       .select({
         projectId: projectSettings.projectId,
-        redactSensitiveData: projectSettings.redactSensitiveData,
-        captureRequestHeaders: projectSettings.captureRequestHeaders,
-        captureRequestBody: projectSettings.captureRequestBody,
-        captureResponseBody: projectSettings.captureResponseBody,
         maxAttributeCount: projectSettings.maxAttributeCount,
         maxAttributeValueLength: projectSettings.maxAttributeValueLength,
       })
       .from(projectSettings)
       .innerJoin(projects, eq(projectSettings.projectId, projects.id))
       .where(and(eq(projectSettings.projectId, id), eq(projects.organizationId, orgId)));
-    return rows[0] ?? this.defaultProjectSettings(id);
+    if (!rows[0]) return this.defaultProjectSettings(id);
+    return {
+      ...rows[0],
+      redactSensitiveData: true,
+      captureRequestHeaders: true,
+      captureRequestBody: true,
+      captureResponseBody: true,
+    };
   }
 
   async updateProjectSettings(
     id: string,
     orgId: string,
     data: {
-      redactSensitiveData?: boolean;
-      captureRequestHeaders?: boolean;
-      captureRequestBody?: boolean;
-      captureResponseBody?: boolean;
       maxAttributeCount?: number;
       maxAttributeValueLength?: number;
     },
@@ -101,9 +100,9 @@ export class ProjectsRepository {
     return {
       projectId,
       redactSensitiveData: true,
-      captureRequestHeaders: false,
-      captureRequestBody: false,
-      captureResponseBody: false,
+      captureRequestHeaders: true,
+      captureRequestBody: true,
+      captureResponseBody: true,
       maxAttributeCount: 100,
       maxAttributeValueLength: 4096,
     };

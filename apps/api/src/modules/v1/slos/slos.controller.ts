@@ -1,12 +1,14 @@
 import {
+  BadRequestException,
+  Body,
   Controller,
+  Delete,
   Get,
+  NotFoundException,
+  Param,
   Post,
   Put,
-  Delete,
-  Param,
   Query,
-  Body,
   UseGuards,
 } from "@nestjs/common";
 import {
@@ -14,15 +16,16 @@ import {
   OrgContext,
 } from "../../../common/decorators/current-org.decorator";
 import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
+import { createSloBodySchema, updateSloBodySchema } from "./dto";
+import { AlertService } from "../alert/alert.service";
 import { SlosService } from "./slos.service";
-import { SloAlertingService } from "./slo-alerting.service";
 
 @Controller("projects/:projectId/slos")
 @UseGuards(TenantGuard)
 export class SlosController {
   constructor(
     private readonly service: SlosService,
-    private readonly alertingService: SloAlertingService,
+    private readonly alertingService: AlertService,
   ) {}
 
   @Get()
@@ -87,41 +90,44 @@ export class SlosController {
     @Param("projectId") projectId: string,
     @Body() body: unknown,
   ) {
+    const parsed = createSloBodySchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
     return this.service.createSlo({
       orgId: org.orgId,
       projectId,
-      name: (body as any).name,
-      description: (body as any).description,
-      serviceName: (body as any).serviceName,
-      targetPercentage: (body as any).targetPercentage,
-      period: (body as any).period,
-      measurementType: (body as any).measurementType,
-      goodEventsThreshold: (body as any).goodEventsThreshold,
-      windowSize: (body as any).windowSize,
-      alertOnBurnRate: (body as any).alertOnBurnRate,
-      alertThresholds: (body as any).alertThresholds,
+      ...parsed.data,
     });
   }
 
   @Put(":id")
-  async updateSlo(@Param("id") id: string, @Body() body: unknown) {
-    return this.service.updateSlo(Number(id), {
-      name: (body as any).name,
-      description: (body as any).description,
-      targetPercentage: (body as any).targetPercentage,
-      period: (body as any).period,
-      measurementType: (body as any).measurementType,
-      goodEventsThreshold: (body as any).goodEventsThreshold,
-      windowSize: (body as any).windowSize,
-      alertOnBurnRate: (body as any).alertOnBurnRate,
-      alertThresholds: (body as any).alertThresholds,
-      isActive: (body as any).isActive,
-    });
+  async updateSlo(
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ) {
+    const parsed = updateSloBodySchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
+    const slo = await this.service.updateSlo(Number(id), org.orgId, projectId, parsed.data);
+    if (!slo) {
+      throw new NotFoundException("SLO not found");
+    }
+    return slo;
   }
 
   @Delete(":id")
-  async deleteSlo(@Param("id") id: string) {
-    await this.service.deleteSlo(Number(id));
+  async deleteSlo(
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+    @Param("id") id: string,
+  ) {
+    await this.service.deleteSlo(Number(id), org.orgId, projectId);
     return { message: "Deleted" };
   }
 

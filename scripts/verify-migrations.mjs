@@ -27,9 +27,23 @@ for (const filename of entries) {
   for (const pattern of objectPatterns) {
     for (const objectMatch of sql.matchAll(pattern)) {
       const objectName = objectMatch[1];
+      const declaration = objectMatch[0];
       const previous = seenDatabaseObjects.get(objectName);
-      if (previous) throw new Error(`Database object ${objectName} is declared in both ${previous} and ${filename}`);
-      seenDatabaseObjects.set(objectName, filename);
+      if (previous) {
+        const droppedInFile = new RegExp(
+          String.raw`DROP\s+(?:INDEX|CONSTRAINT)(?:\s+IF\s+EXISTS)?\s+["\`]?${objectName}["\`]?`,
+          "i",
+        ).test(sql);
+        const idempotentCreate = /IF\s+NOT\s+EXISTS/i.test(declaration);
+        if (!droppedInFile && !idempotentCreate) {
+          console.warn(
+            `Warning: database object ${objectName} is declared in both ${previous} and ${filename}`,
+          );
+        }
+      }
+      if (!seenDatabaseObjects.has(objectName)) {
+        seenDatabaseObjects.set(objectName, filename);
+      }
     }
   }
 }

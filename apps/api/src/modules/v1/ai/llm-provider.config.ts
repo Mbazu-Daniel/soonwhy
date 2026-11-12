@@ -1,14 +1,6 @@
 import type { MastraRcaProviderConfig } from "../detections/rca.provider";
 import { RCA_PROMPT_VERSION } from "../detections/rca.prompt";
 
-export interface PlatformLlmConfig {
-  readonly configured: boolean;
-  readonly providerId: string;
-  readonly model: string;
-  readonly baseUrl: string | null;
-  readonly apiKey: string;
-}
-
 export interface LlmTuning {
   readonly timeoutMs?: number;
   readonly maxPromptCharacters?: number;
@@ -43,25 +35,6 @@ function nonNegativeInteger(raw: string | undefined): number | undefined {
   if (raw === undefined) return undefined;
   const value = Number(raw);
   return Number.isInteger(value) && value >= 0 ? value : undefined;
-}
-
-/**
- * Platform credentials live in the environment and are optional: a deployment
- * with no platform key still serves every organization that brought its own.
- */
-export function readPlatformLlmConfig(
-  env: NodeJS.ProcessEnv = process.env,
-): PlatformLlmConfig {
-  const apiKey = env.SOONWHY_RCA_API_KEY?.trim() ?? "";
-  const model = env.SOONWHY_RCA_MODEL?.trim() ?? "";
-
-  return {
-    configured: apiKey.length > 0 && model.length > 0,
-    providerId: env.SOONWHY_RCA_PROVIDER?.trim().toLowerCase() || "openai",
-    model,
-    baseUrl: env.SOONWHY_RCA_BASE_URL?.trim() || null,
-    apiKey,
-  };
 }
 
 export function readLlmTuning(env: NodeJS.ProcessEnv = process.env): LlmTuning {

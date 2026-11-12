@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { RcaAnalysisRepository } from "./rca.repository";
 import { RcaPersistenceService } from "./rca.persistence";
 import { RcaService } from "./rca.service";
-import { buildRcaEvidence } from "./rca.evidence";
+import { decodeRcaBottleneck } from "./rca.evidence";
 import type { CorrelatedBottleneck } from "./detection.correlation";
 import {
   DatabaseRcaGovernanceSink,
@@ -74,7 +74,7 @@ export class RcaApiService {
       if (existing) return existing;
     }
 
-    const bottleneck = this.toBottleneck(finding);
+    const bottleneck = decodeRcaBottleneck(finding);
     if (!bottleneck) {
       throw new NotFoundException(
         "Finding does not contain an RCA-supported bottleneck",
@@ -104,7 +104,7 @@ export class RcaApiService {
         projectId,
         bottleneck,
       );
-      const evidence = buildRcaEvidence(projectId, bottleneck);
+      const evidence = result.evidence;
       const persisted = await this.persistence.persist({
         orgId,
         projectId,
@@ -235,72 +235,4 @@ export class RcaApiService {
     return finding;
   }
 
-  private toBottleneck(
-    finding: Awaited<ReturnType<RcaAnalysisRepository["findFinding"]>>,
-  ): CorrelatedBottleneck | null {
-    if (!finding || finding.type !== "bottleneck") return null;
-    const evidence = finding.evidence;
-    const correlated = evidence.find(
-      (item) => item.label === "correlated-signal",
-    );
-    if (!correlated) return null;
-
-    const latencyId = String(correlated.context?.sourceFindingId ?? "");
-    if (!latencyId) return null;
-
-    const guidance = evidence.find(
-      (item) => item.label === "optimization-guidance",
-    );
-    const supportingFindings = evidence
-      .filter((item) => item.label === "supporting-finding")
-      .map((item) => ({
-        id: String(item.context?.findingId ?? ""),
-        projectId: finding.projectId,
-        serviceName: finding.serviceName,
-        type: String(
-          item.context?.findingType ?? "latency",
-        ) as CorrelatedBottleneck["supportingFindings"][number]["type"],
-        severity: String(item.context?.severity ?? "warning") as
-          | "warning"
-          | "critical",
-        title: String(item.context?.findingType ?? "Supporting finding"),
-        description: "",
-        observedValue: Number(item.value),
-        threshold: 0,
-        unit: "unknown",
-        window: { start: finding.windowStart, end: finding.windowEnd },
-        evidence: [item],
-      }));
-
-    return {
-      serviceName: finding.serviceName,
-      latency: {
-        id: latencyId,
-        projectId: finding.projectId,
-        serviceName: finding.serviceName,
-        type: "latency",
-        severity: finding.severity as "warning" | "critical",
-        title: "Correlated latency",
-        description: finding.description,
-        observedValue: finding.observedValue,
-        threshold: finding.threshold,
-        unit: finding.unit,
-        window: { start: finding.windowStart, end: finding.windowEnd },
-        evidence: [correlated],
-      },
-      supportingFindings,
-      recommendation: String(guidance?.value ?? ""),
-      dependencyType:
-        typeof guidance?.context?.dependencyType === "string"
-          ? guidance.context.dependencyType
-          : undefined,
-      dependencyName:
-        typeof guidance?.context?.dependencyName === "string"
-          ? guidance.context.dependencyName
-          : undefined,
-      traceIds: evidence
-        .filter((item) => item.label === "correlated-trace")
-        .map((item) => String(item.value)),
-    };
-  }
 }

@@ -175,7 +175,7 @@ function Onboarding() {
 
   const snippet = useMemo(() => {
     const key = ui.apiKey?.key ?? '<YOUR_PROJECT_API_KEY>';
-    return `import { initNode } from '@soonwhy/sdk/node';
+    return `import { initNode } from '@soonwhy/node';
 
 const sdk = initNode({
   apiKey: process.env.SOONWHY_API_KEY ?? '${key}',

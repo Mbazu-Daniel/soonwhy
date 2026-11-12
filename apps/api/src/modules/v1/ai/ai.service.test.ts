@@ -34,8 +34,7 @@ interface HarnessInput {
   stored?: Record<string, unknown> | null;
 }
 
-function build(input: HarnessInput = {}) {
-  const repository = {
+function build(input: HarnessInput = {}) {  const repository = {
     get: vi.fn().mockResolvedValue(input.stored ?? null),
     upsert: vi
       .fn()
@@ -67,16 +66,8 @@ function build(input: HarnessInput = {}) {
       provider: "groq",
       model: "openai/gpt-oss-120b",
     }),
-    describePlatform: vi.fn().mockReturnValue({
-      configured: false,
-      provider: null,
-      model: null,
-    }),
     invalidate: vi.fn(),
-  } satisfies Pick<
-    LlmProviderResolver,
-    "resolve" | "describe" | "describePlatform" | "invalidate"
-  >;
+  } satisfies Pick<LlmProviderResolver, "resolve" | "describe" | "invalidate">;
 
   const catalog = {
     providers: vi.fn().mockReturnValue([]),
@@ -112,7 +103,7 @@ function build(input: HarnessInput = {}) {
 
   const service = new AiService(
     repository,
-    CredentialCipher.fromEnv({ SOONWHY_CREDENTIAL_ENCRYPTION_KEY: HEX_KEY }),
+    CredentialCipher.fromEnv({ SOONWHY_PII_ENCRYPTION_KEY: HEX_KEY }),
     resolver,
     catalog,
     billing,
@@ -150,9 +141,71 @@ describe("AiService", () => {
     expect(h.resolver.invalidate).toHaveBeenCalledWith("org_1");
   });
 
+  it("keeps the stored key when no new key is sent", async () => {
+    const h = build({
+      stored: {
+        provider: "groq",
+        model: "openai/gpt-oss-120b",
+        encryptedApiKey: "stored-ciphertext",
+        keyHint: "••••1234",
+      },
+    });
+
+    const result = await h.service.save("org_1", {
+      provider: "groq",
+      model: "openai/gpt-oss-120b",
+      apiKey: "",
+    });
+
+    expect(h.repository.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        encryptedApiKey: "stored-ciphertext",
+        keyHint: "••••1234",
+      }),
+    );
+    expect(result).toMatchObject({ configured: true });
+  });
+
+  it("keeps the stored base URL when it is not sent again", async () => {
+    const h = build({
+      stored: {
+        provider: "groq",
+        model: "openai/gpt-oss-120b",
+        baseUrl: "https://llm.internal.example/v1",
+        encryptedApiKey: "stored-ciphertext",
+        keyHint: "••••1234",
+      },
+    });
+
+    await h.service.save("org_1", {
+      provider: "groq",
+      model: "openai/gpt-oss-120b",
+      apiKey: "",
+    });
+
+    expect(h.repository.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: "https://llm.internal.example/v1",
+      }),
+    );
+  });
+
+  it("requires a key when none is stored", async () => {
+    const h = build({ stored: null });
+
+    await expect(
+      h.service.save("org_1", {
+        provider: "groq",
+        model: "openai/gpt-oss-120b",
+        apiKey: "",
+      }),
+    ).rejects.toThrow(BadRequestException);
+    expect(h.repository.upsert).not.toHaveBeenCalled();
+  });
+
   it("round-trips the stored key through the cipher", async () => {
     const cipher = CredentialCipher.fromEnv({
-      SOONWHY_CREDENTIAL_ENCRYPTION_KEY: HEX_KEY,
+      SOONWHY_PII_ENCRYPTION_KEY: HEX_KEY,
     });
     const h = build();
 
@@ -254,13 +307,13 @@ describe("AiService", () => {
     expect(h.resolver.invalidate).toHaveBeenCalledWith("org_1");
   });
 
-  it("never reports the platform key", async () => {
+  it("never reports a platform credential when none is configured", async () => {
     vi.stubEnv("SOONWHY_AI_QUOTA_ENFORCED", "false");
     const h = build({ stored: null });
-    h.resolver.describePlatform.mockReturnValue({
-      configured: true,
-      provider: "openai",
-      model: "gpt-4o",
+    h.resolver.describe.mockResolvedValue({
+      source: "none",
+      provider: null,
+      model: null,
     });
 
     const config = await h.service.get("org_1", true);
@@ -269,8 +322,7 @@ describe("AiService", () => {
     expect(config).toEqual({
       configured: false,
       canManage: true,
-      activeSource: "byok",
-      platform: { configured: true, provider: "openai", model: "gpt-4o" },
+      activeSource: "none",
     });
     expect(providers.canManage).toBe(false);
     expect(providers.quotaEnforced).toBe(false);

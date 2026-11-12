@@ -16,17 +16,19 @@ initOtelMetrics();
 import { NestFactory } from "@nestjs/core";
 import { Logger, StandardSchemaValidationPipe } from "@nestjs/common";
 import { NestNodeApplication, NodeAdapter } from "@nestjs/platform-node";
-import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { OpenAPIObject, SwaggerModule } from "@nestjs/swagger";
 import type { IncomingMessage, ServerResponse } from "http";
 import compression from "compression";
 import helmet from "helmet";
 import morgan from "morgan";
 import { AppModule } from "./app.module";
+import { MetricsInterceptor } from "./common/telemetry/metrics.interceptor";
 import { GlobalExceptionFilter } from "./common";
 import { ensureQuickwitIndexes } from "./common/quickwit/ensure-indexes";
 import { getPrometheusExporter } from "./common/telemetry/otel-metrics";
 import { PiiMaskingLogger } from "./common/privacy/pii-masking.logger";
 import { maskPii } from "./common/privacy/pii-masker";
+import { apiDocument } from "./common/openapi/document";
 
 async function bootstrap() {
   const app = await NestFactory.create<NestNodeApplication>(
@@ -51,6 +53,7 @@ async function bootstrap() {
 
   app.useGlobalPipes(new StandardSchemaValidationPipe());
   app.useGlobalFilters(new GlobalExceptionFilter());
+  app.useGlobalInterceptors(new MetricsInterceptor());
 
   app.enableCors({
     origin: process.env.FRONTEND_URL || ["http://localhost:3000", "http://localhost:5173"],
@@ -81,33 +84,18 @@ async function bootstrap() {
     });
   }
 
-  // OpenAPI (Swagger UI at /docs, machine-readable spec at /docs-json).
-  // Paths are auto-discovered from controllers; bodies are largely untyped
-  // (validation is zod at the edge), so treat the spec as a route catalogue
-  // and annotate incrementally.
-  // Temporarily disabled due to unknown body types in controllers
-  /*
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle("Soonwhy API")
-    .setDescription(
-      "OpenTelemetry-native observability: ingestion, query, detections, AI root-cause analysis and alerting. All routes are prefixed with /api/v1; organization-scoped routes live under /api/v1/organization/:organizationId. " +
-      "Intelligence modules: evidence graph, AI investigation, recommendations, verification, performance/query/error/trace/log intelligence.",
-    )
-    .setVersion(process.env.npm_package_version ?? "1.0.0")
-    .addBearerAuth()
-    .addServer(process.env.SWAGGER_SERVER_URL ?? "http://localhost:3001")
-    .addTag("Intelligence", "AI-powered SRE intelligence layer")
-    .addTag("Evidence Graph", "Correlation graph for telemetry evidence")
-    .addTag("AI Investigation", "Root cause analysis with AI")
-    .addTag("Recommendations", "Actionable recommendations from findings")
-    .addTag("Verification", "Before/after change verification")
-    .build();
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup("docs", app, document, {
-    jsonDocumentUrl: "docs-json",
-    swaggerOptions: { persistAuthorization: true },
-  });
-  */
+  // Serve the hand-assembled OpenAPI document generated from the zod schemas
+  // used at the validation edge (see common/openapi/document.ts). Auth is
+  // documented today; more paths are registered incrementally.
+  SwaggerModule.setup(
+    "docs",
+    app,
+    apiDocument as unknown as OpenAPIObject,
+    {
+      jsonDocumentUrl: "docs-json",
+      swaggerOptions: { persistAuthorization: true },
+    },
+  );
 
   // Pre-create the default telemetry indexes so read paths don't 500 on a
   // fresh instance (ingest creates them lazily, but reads happen before the

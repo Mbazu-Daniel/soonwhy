@@ -7,7 +7,7 @@ import {
 import { Logger } from "@nestjs/common";
 import { aiEncryptionUnavailable, CredentialDecryptError } from "./ai.errors";
 
-const KEY_ENV = "SOONWHY_CREDENTIAL_ENCRYPTION_KEY";
+const KEY_ENV = "SOONWHY_PII_ENCRYPTION_KEY";
 const IV_BYTES = 12;
 
 export class CredentialCipher {

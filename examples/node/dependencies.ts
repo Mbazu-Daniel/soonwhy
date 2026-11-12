@@ -1,4 +1,4 @@
-import { initNode } from "@soonwhy/sdk/node";
+import { initNode } from "@soonwhy/node";
 
 const apiKey = process.env.SOONWHY_API_KEY;
 if (!apiKey) throw new Error("SOONWHY_API_KEY is required");

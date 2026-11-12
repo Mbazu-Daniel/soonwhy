@@ -67,6 +67,8 @@ export class SlosRepository {
 
   async updateSlo(
     id: number,
+    orgId: string,
+    projectId: string,
     data: {
       name?: string;
       description?: string;
@@ -86,17 +88,23 @@ export class SlosRepository {
         ...data,
         updatedAt: new Date(),
       })
-      .where(eq(slos.id, id))
+      .where(
+        and(eq(slos.id, id), eq(slos.orgId, orgId), eq(slos.projectId, projectId)),
+      )
       .returning();
     return slo;
   }
 
-  async deleteSlo(id: number) {
-    await db.delete(slos).where(eq(slos.id, id));
+  async deleteSlo(id: number, orgId: string, projectId: string) {
+    await db
+      .delete(slos)
+      .where(and(eq(slos.id, id), eq(slos.orgId, orgId), eq(slos.projectId, projectId)));
   }
 
   async updateSloCompliance(
     id: number,
+    orgId: string,
+    projectId: string,
     data: {
       currentCompliance: number;
       errorBudgetRemaining: number;
@@ -110,7 +118,7 @@ export class SlosRepository {
         lastCalculatedAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(slos.id, id));
+      .where(and(eq(slos.id, id), eq(slos.orgId, orgId), eq(slos.projectId, projectId)));
   }
 
   async createComplianceSnapshot(data: {

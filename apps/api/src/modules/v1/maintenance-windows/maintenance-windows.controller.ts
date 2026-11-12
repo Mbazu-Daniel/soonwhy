@@ -1,12 +1,13 @@
 import {
+  BadRequestException,
+  Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Post,
   Put,
-  Delete,
-  Param,
   Query,
-  Body,
   UseGuards,
 } from "@nestjs/common";
 import {
@@ -14,6 +15,10 @@ import {
   OrgContext,
 } from "../../../common/decorators/current-org.decorator";
 import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
+import {
+  createMaintenanceWindowBodySchema,
+  updateMaintenanceWindowBodySchema,
+} from "./dto";
 import { MaintenanceWindowsService } from "./maintenance-windows.service";
 
 @Controller("projects/:projectId/maintenance-windows")
@@ -50,16 +55,15 @@ export class MaintenanceWindowsController {
     @Param("projectId") projectId: string,
     @Body() body: unknown,
   ) {
+    const parsed = createMaintenanceWindowBodySchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
     return this.service.createMaintenanceWindow({
       orgId: org.orgId,
       projectId,
-      name: (body as any).name,
-      description: (body as any).description,
-      startTime: new Date((body as any).startTime),
-      endTime: new Date((body as any).endTime),
-      affectedServices: (body as any).affectedServices,
-      affectedAlertRules: (body as any).affectedAlertRules,
-      recurringSchedule: (body as any).recurringSchedule,
+      ...parsed.data,
     });
   }
 
@@ -68,16 +72,12 @@ export class MaintenanceWindowsController {
     @Param("id") id: string,
     @Body() body: unknown,
   ) {
-    return this.service.updateMaintenanceWindow(Number(id), {
-      name: (body as any).name,
-      description: (body as any).description,
-      startTime: (body as any).startTime ? new Date((body as any).startTime) : undefined,
-      endTime: (body as any).endTime ? new Date((body as any).endTime) : undefined,
-      isActive: (body as any).isActive,
-      affectedServices: (body as any).affectedServices,
-      affectedAlertRules: (body as any).affectedAlertRules,
-      recurringSchedule: (body as any).recurringSchedule,
-    });
+    const parsed = updateMaintenanceWindowBodySchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
+    return this.service.updateMaintenanceWindow(Number(id), parsed.data);
   }
 
   @Delete(":id")

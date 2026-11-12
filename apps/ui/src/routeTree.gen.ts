@@ -34,8 +34,6 @@ import { Route as AdminDlqRouteImport } from './routes/admin.dlq'
 import { Route as AdminIngestHealthRouteImport } from './routes/admin.ingest-health'
 import { Route as AdminSystemHealthRouteImport } from './routes/admin.system-health'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
-import { Route as DashboardErrorsRouteImport } from './routes/dashboard/errors'
-import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
 import { Route as OrganizationSlugPProjectSlugRouteRouteImport } from './routes/$organizationSlug/p/$projectSlug/route'
 import { Route as OrganizationSlugServiceServiceIdRouteImport } from './routes/$organizationSlug/service.$serviceId'
 import { Route as OrganizationSlugTraceTraceIdRouteImport } from './routes/$organizationSlug/trace.$traceId'
@@ -55,11 +53,8 @@ import { Route as OrganizationSlugPProjectSlugTracesRouteImport } from './routes
 import { Route as PublicStatusOrgIdProjectIdRouteImport } from './routes/public.status.$orgId.$projectId'
 import { Route as OrganizationSlugPProjectSlugErrorsFingerprintRouteImport } from './routes/$organizationSlug/p/$projectSlug/errors.$fingerprint'
 import { Route as OrganizationSlugPProjectSlugIntelligenceIndexRouteImport } from './routes/$organizationSlug/p/$projectSlug/intelligence/index'
-import { Route as OrganizationSlugPProjectSlugIntelligenceEvidenceGraphRouteImport } from './routes/$organizationSlug/p/$projectSlug/intelligence/evidence-graph'
 import { Route as OrganizationSlugPProjectSlugIntelligenceFindingsRouteImport } from './routes/$organizationSlug/p/$projectSlug/intelligence/findings'
 import { Route as OrganizationSlugPProjectSlugIntelligenceInvestigationsRouteImport } from './routes/$organizationSlug/p/$projectSlug/intelligence/investigations'
-import { Route as OrganizationSlugPProjectSlugIntelligenceRecommendationsRouteImport } from './routes/$organizationSlug/p/$projectSlug/intelligence/recommendations'
-import { Route as OrganizationSlugPProjectSlugIntelligenceVerificationRouteImport } from './routes/$organizationSlug/p/$projectSlug/intelligence/verification'
 import { Route as OrganizationSlugPProjectSlugInvestigationsInvestigationIdRouteImport } from './routes/$organizationSlug/p/$projectSlug/investigations.$investigationId'
 import { Route as OrganizationSlugPProjectSlugServiceServiceIdRouteImport } from './routes/$organizationSlug/p/$projectSlug/service.$serviceId'
 import { Route as OrganizationSlugPProjectSlugTraceTraceIdRouteImport } from './routes/$organizationSlug/p/$projectSlug/trace.$traceId'
@@ -196,16 +191,6 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardErrorsRoute = DashboardErrorsRouteImport.update({
-  id: '/dashboard/errors',
-  path: '/dashboard/errors',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
-  id: '/dashboard/settings',
-  path: '/dashboard/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const OrganizationSlugPProjectSlugRouteRoute =
   OrganizationSlugPProjectSlugRouteRouteImport.update({
     id: '/p/$projectSlug',
@@ -320,12 +305,6 @@ const OrganizationSlugPProjectSlugIntelligenceIndexRoute =
     path: '/',
     getParentRoute: () => OrganizationSlugPProjectSlugIntelligenceRouteRoute,
   } as any)
-const OrganizationSlugPProjectSlugIntelligenceEvidenceGraphRoute =
-  OrganizationSlugPProjectSlugIntelligenceEvidenceGraphRouteImport.update({
-    id: '/evidence-graph',
-    path: '/evidence-graph',
-    getParentRoute: () => OrganizationSlugPProjectSlugIntelligenceRouteRoute,
-  } as any)
 const OrganizationSlugPProjectSlugIntelligenceFindingsRoute =
   OrganizationSlugPProjectSlugIntelligenceFindingsRouteImport.update({
     id: '/findings',
@@ -336,18 +315,6 @@ const OrganizationSlugPProjectSlugIntelligenceInvestigationsRoute =
   OrganizationSlugPProjectSlugIntelligenceInvestigationsRouteImport.update({
     id: '/investigations',
     path: '/investigations',
-    getParentRoute: () => OrganizationSlugPProjectSlugIntelligenceRouteRoute,
-  } as any)
-const OrganizationSlugPProjectSlugIntelligenceRecommendationsRoute =
-  OrganizationSlugPProjectSlugIntelligenceRecommendationsRouteImport.update({
-    id: '/recommendations',
-    path: '/recommendations',
-    getParentRoute: () => OrganizationSlugPProjectSlugIntelligenceRouteRoute,
-  } as any)
-const OrganizationSlugPProjectSlugIntelligenceVerificationRoute =
-  OrganizationSlugPProjectSlugIntelligenceVerificationRouteImport.update({
-    id: '/verification',
-    path: '/verification',
     getParentRoute: () => OrganizationSlugPProjectSlugIntelligenceRouteRoute,
   } as any)
 const OrganizationSlugPProjectSlugInvestigationsInvestigationIdRoute =
@@ -394,8 +361,6 @@ export interface FileRoutesByFullPath {
   '/admin/ingest-health': typeof AdminIngestHealthRoute
   '/admin/system-health': typeof AdminSystemHealthRoute
   '/auth/callback': typeof AuthCallbackRoute
-  '/dashboard/errors': typeof DashboardErrorsRoute
-  '/dashboard/settings': typeof DashboardSettingsRoute
   '/$organizationSlug/': typeof OrganizationSlugIndexRoute
   '/$organizationSlug/p/$projectSlug': typeof OrganizationSlugPProjectSlugRouteRouteWithChildren
   '/$organizationSlug/service/$serviceId': typeof OrganizationSlugServiceServiceIdRoute
@@ -415,11 +380,8 @@ export interface FileRoutesByFullPath {
   '/public/status/$orgId/$projectId': typeof PublicStatusOrgIdProjectIdRoute
   '/$organizationSlug/p/$projectSlug/': typeof OrganizationSlugPProjectSlugIndexRoute
   '/$organizationSlug/p/$projectSlug/errors/$fingerprint': typeof OrganizationSlugPProjectSlugErrorsFingerprintRoute
-  '/$organizationSlug/p/$projectSlug/intelligence/evidence-graph': typeof OrganizationSlugPProjectSlugIntelligenceEvidenceGraphRoute
   '/$organizationSlug/p/$projectSlug/intelligence/findings': typeof OrganizationSlugPProjectSlugIntelligenceFindingsRoute
   '/$organizationSlug/p/$projectSlug/intelligence/investigations': typeof OrganizationSlugPProjectSlugIntelligenceInvestigationsRoute
-  '/$organizationSlug/p/$projectSlug/intelligence/recommendations': typeof OrganizationSlugPProjectSlugIntelligenceRecommendationsRoute
-  '/$organizationSlug/p/$projectSlug/intelligence/verification': typeof OrganizationSlugPProjectSlugIntelligenceVerificationRoute
   '/$organizationSlug/p/$projectSlug/investigations/$investigationId': typeof OrganizationSlugPProjectSlugInvestigationsInvestigationIdRoute
   '/$organizationSlug/p/$projectSlug/service/$serviceId': typeof OrganizationSlugPProjectSlugServiceServiceIdRoute
   '/$organizationSlug/p/$projectSlug/trace/$traceId': typeof OrganizationSlugPProjectSlugTraceTraceIdRoute
@@ -449,8 +411,6 @@ export interface FileRoutesByTo {
   '/admin/ingest-health': typeof AdminIngestHealthRoute
   '/admin/system-health': typeof AdminSystemHealthRoute
   '/auth/callback': typeof AuthCallbackRoute
-  '/dashboard/errors': typeof DashboardErrorsRoute
-  '/dashboard/settings': typeof DashboardSettingsRoute
   '/$organizationSlug': typeof OrganizationSlugIndexRoute
   '/$organizationSlug/service/$serviceId': typeof OrganizationSlugServiceServiceIdRoute
   '/$organizationSlug/trace/$traceId': typeof OrganizationSlugTraceTraceIdRoute
@@ -468,11 +428,8 @@ export interface FileRoutesByTo {
   '/public/status/$orgId/$projectId': typeof PublicStatusOrgIdProjectIdRoute
   '/$organizationSlug/p/$projectSlug': typeof OrganizationSlugPProjectSlugIndexRoute
   '/$organizationSlug/p/$projectSlug/errors/$fingerprint': typeof OrganizationSlugPProjectSlugErrorsFingerprintRoute
-  '/$organizationSlug/p/$projectSlug/intelligence/evidence-graph': typeof OrganizationSlugPProjectSlugIntelligenceEvidenceGraphRoute
   '/$organizationSlug/p/$projectSlug/intelligence/findings': typeof OrganizationSlugPProjectSlugIntelligenceFindingsRoute
   '/$organizationSlug/p/$projectSlug/intelligence/investigations': typeof OrganizationSlugPProjectSlugIntelligenceInvestigationsRoute
-  '/$organizationSlug/p/$projectSlug/intelligence/recommendations': typeof OrganizationSlugPProjectSlugIntelligenceRecommendationsRoute
-  '/$organizationSlug/p/$projectSlug/intelligence/verification': typeof OrganizationSlugPProjectSlugIntelligenceVerificationRoute
   '/$organizationSlug/p/$projectSlug/investigations/$investigationId': typeof OrganizationSlugPProjectSlugInvestigationsInvestigationIdRoute
   '/$organizationSlug/p/$projectSlug/service/$serviceId': typeof OrganizationSlugPProjectSlugServiceServiceIdRoute
   '/$organizationSlug/p/$projectSlug/trace/$traceId': typeof OrganizationSlugPProjectSlugTraceTraceIdRoute
@@ -504,8 +461,6 @@ export interface FileRoutesById {
   '/admin/ingest-health': typeof AdminIngestHealthRoute
   '/admin/system-health': typeof AdminSystemHealthRoute
   '/auth/callback': typeof AuthCallbackRoute
-  '/dashboard/errors': typeof DashboardErrorsRoute
-  '/dashboard/settings': typeof DashboardSettingsRoute
   '/$organizationSlug/': typeof OrganizationSlugIndexRoute
   '/$organizationSlug/p/$projectSlug': typeof OrganizationSlugPProjectSlugRouteRouteWithChildren
   '/$organizationSlug/service/$serviceId': typeof OrganizationSlugServiceServiceIdRoute
@@ -525,11 +480,8 @@ export interface FileRoutesById {
   '/public/status/$orgId/$projectId': typeof PublicStatusOrgIdProjectIdRoute
   '/$organizationSlug/p/$projectSlug/': typeof OrganizationSlugPProjectSlugIndexRoute
   '/$organizationSlug/p/$projectSlug/errors/$fingerprint': typeof OrganizationSlugPProjectSlugErrorsFingerprintRoute
-  '/$organizationSlug/p/$projectSlug/intelligence/evidence-graph': typeof OrganizationSlugPProjectSlugIntelligenceEvidenceGraphRoute
   '/$organizationSlug/p/$projectSlug/intelligence/findings': typeof OrganizationSlugPProjectSlugIntelligenceFindingsRoute
   '/$organizationSlug/p/$projectSlug/intelligence/investigations': typeof OrganizationSlugPProjectSlugIntelligenceInvestigationsRoute
-  '/$organizationSlug/p/$projectSlug/intelligence/recommendations': typeof OrganizationSlugPProjectSlugIntelligenceRecommendationsRoute
-  '/$organizationSlug/p/$projectSlug/intelligence/verification': typeof OrganizationSlugPProjectSlugIntelligenceVerificationRoute
   '/$organizationSlug/p/$projectSlug/investigations/$investigationId': typeof OrganizationSlugPProjectSlugInvestigationsInvestigationIdRoute
   '/$organizationSlug/p/$projectSlug/service/$serviceId': typeof OrganizationSlugPProjectSlugServiceServiceIdRoute
   '/$organizationSlug/p/$projectSlug/trace/$traceId': typeof OrganizationSlugPProjectSlugTraceTraceIdRoute
@@ -562,8 +514,6 @@ export interface FileRouteTypes {
     | '/admin/ingest-health'
     | '/admin/system-health'
     | '/auth/callback'
-    | '/dashboard/errors'
-    | '/dashboard/settings'
     | '/$organizationSlug/'
     | '/$organizationSlug/p/$projectSlug'
     | '/$organizationSlug/service/$serviceId'
@@ -583,11 +533,8 @@ export interface FileRouteTypes {
     | '/public/status/$orgId/$projectId'
     | '/$organizationSlug/p/$projectSlug/'
     | '/$organizationSlug/p/$projectSlug/errors/$fingerprint'
-    | '/$organizationSlug/p/$projectSlug/intelligence/evidence-graph'
     | '/$organizationSlug/p/$projectSlug/intelligence/findings'
     | '/$organizationSlug/p/$projectSlug/intelligence/investigations'
-    | '/$organizationSlug/p/$projectSlug/intelligence/recommendations'
-    | '/$organizationSlug/p/$projectSlug/intelligence/verification'
     | '/$organizationSlug/p/$projectSlug/investigations/$investigationId'
     | '/$organizationSlug/p/$projectSlug/service/$serviceId'
     | '/$organizationSlug/p/$projectSlug/trace/$traceId'
@@ -617,8 +564,6 @@ export interface FileRouteTypes {
     | '/admin/ingest-health'
     | '/admin/system-health'
     | '/auth/callback'
-    | '/dashboard/errors'
-    | '/dashboard/settings'
     | '/$organizationSlug'
     | '/$organizationSlug/service/$serviceId'
     | '/$organizationSlug/trace/$traceId'
@@ -636,11 +581,8 @@ export interface FileRouteTypes {
     | '/public/status/$orgId/$projectId'
     | '/$organizationSlug/p/$projectSlug'
     | '/$organizationSlug/p/$projectSlug/errors/$fingerprint'
-    | '/$organizationSlug/p/$projectSlug/intelligence/evidence-graph'
     | '/$organizationSlug/p/$projectSlug/intelligence/findings'
     | '/$organizationSlug/p/$projectSlug/intelligence/investigations'
-    | '/$organizationSlug/p/$projectSlug/intelligence/recommendations'
-    | '/$organizationSlug/p/$projectSlug/intelligence/verification'
     | '/$organizationSlug/p/$projectSlug/investigations/$investigationId'
     | '/$organizationSlug/p/$projectSlug/service/$serviceId'
     | '/$organizationSlug/p/$projectSlug/trace/$traceId'
@@ -671,8 +613,6 @@ export interface FileRouteTypes {
     | '/admin/ingest-health'
     | '/admin/system-health'
     | '/auth/callback'
-    | '/dashboard/errors'
-    | '/dashboard/settings'
     | '/$organizationSlug/'
     | '/$organizationSlug/p/$projectSlug'
     | '/$organizationSlug/service/$serviceId'
@@ -692,11 +632,8 @@ export interface FileRouteTypes {
     | '/public/status/$orgId/$projectId'
     | '/$organizationSlug/p/$projectSlug/'
     | '/$organizationSlug/p/$projectSlug/errors/$fingerprint'
-    | '/$organizationSlug/p/$projectSlug/intelligence/evidence-graph'
     | '/$organizationSlug/p/$projectSlug/intelligence/findings'
     | '/$organizationSlug/p/$projectSlug/intelligence/investigations'
-    | '/$organizationSlug/p/$projectSlug/intelligence/recommendations'
-    | '/$organizationSlug/p/$projectSlug/intelligence/verification'
     | '/$organizationSlug/p/$projectSlug/investigations/$investigationId'
     | '/$organizationSlug/p/$projectSlug/service/$serviceId'
     | '/$organizationSlug/p/$projectSlug/trace/$traceId'
@@ -714,8 +651,6 @@ export interface RootRouteChildren {
   AdminIngestHealthRoute: typeof AdminIngestHealthRoute
   AdminSystemHealthRoute: typeof AdminSystemHealthRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
-  DashboardErrorsRoute: typeof DashboardErrorsRoute
-  DashboardSettingsRoute: typeof DashboardSettingsRoute
   ProjectsProjectIdIncidentsRoute: typeof ProjectsProjectIdIncidentsRoute
   PublicStatusOrgIdProjectIdRoute: typeof PublicStatusOrgIdProjectIdRoute
 }
@@ -897,20 +832,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard/errors': {
-      id: '/dashboard/errors'
-      path: '/dashboard/errors'
-      fullPath: '/dashboard/errors'
-      preLoaderRoute: typeof DashboardErrorsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard/settings': {
-      id: '/dashboard/settings'
-      path: '/dashboard/settings'
-      fullPath: '/dashboard/settings'
-      preLoaderRoute: typeof DashboardSettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/$organizationSlug/p/$projectSlug': {
       id: '/$organizationSlug/p/$projectSlug'
       path: '/p/$projectSlug'
@@ -1044,13 +965,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrganizationSlugPProjectSlugIntelligenceIndexRouteImport
       parentRoute: typeof OrganizationSlugPProjectSlugIntelligenceRouteRoute
     }
-    '/$organizationSlug/p/$projectSlug/intelligence/evidence-graph': {
-      id: '/$organizationSlug/p/$projectSlug/intelligence/evidence-graph'
-      path: '/evidence-graph'
-      fullPath: '/$organizationSlug/p/$projectSlug/intelligence/evidence-graph'
-      preLoaderRoute: typeof OrganizationSlugPProjectSlugIntelligenceEvidenceGraphRouteImport
-      parentRoute: typeof OrganizationSlugPProjectSlugIntelligenceRouteRoute
-    }
     '/$organizationSlug/p/$projectSlug/intelligence/findings': {
       id: '/$organizationSlug/p/$projectSlug/intelligence/findings'
       path: '/findings'
@@ -1063,20 +977,6 @@ declare module '@tanstack/react-router' {
       path: '/investigations'
       fullPath: '/$organizationSlug/p/$projectSlug/intelligence/investigations'
       preLoaderRoute: typeof OrganizationSlugPProjectSlugIntelligenceInvestigationsRouteImport
-      parentRoute: typeof OrganizationSlugPProjectSlugIntelligenceRouteRoute
-    }
-    '/$organizationSlug/p/$projectSlug/intelligence/recommendations': {
-      id: '/$organizationSlug/p/$projectSlug/intelligence/recommendations'
-      path: '/recommendations'
-      fullPath: '/$organizationSlug/p/$projectSlug/intelligence/recommendations'
-      preLoaderRoute: typeof OrganizationSlugPProjectSlugIntelligenceRecommendationsRouteImport
-      parentRoute: typeof OrganizationSlugPProjectSlugIntelligenceRouteRoute
-    }
-    '/$organizationSlug/p/$projectSlug/intelligence/verification': {
-      id: '/$organizationSlug/p/$projectSlug/intelligence/verification'
-      path: '/verification'
-      fullPath: '/$organizationSlug/p/$projectSlug/intelligence/verification'
-      preLoaderRoute: typeof OrganizationSlugPProjectSlugIntelligenceVerificationRouteImport
       parentRoute: typeof OrganizationSlugPProjectSlugIntelligenceRouteRoute
     }
     '/$organizationSlug/p/$projectSlug/investigations/$investigationId': {
@@ -1104,26 +1004,17 @@ declare module '@tanstack/react-router' {
 }
 
 interface OrganizationSlugPProjectSlugIntelligenceRouteRouteChildren {
-  OrganizationSlugPProjectSlugIntelligenceEvidenceGraphRoute: typeof OrganizationSlugPProjectSlugIntelligenceEvidenceGraphRoute
   OrganizationSlugPProjectSlugIntelligenceFindingsRoute: typeof OrganizationSlugPProjectSlugIntelligenceFindingsRoute
   OrganizationSlugPProjectSlugIntelligenceInvestigationsRoute: typeof OrganizationSlugPProjectSlugIntelligenceInvestigationsRoute
-  OrganizationSlugPProjectSlugIntelligenceRecommendationsRoute: typeof OrganizationSlugPProjectSlugIntelligenceRecommendationsRoute
-  OrganizationSlugPProjectSlugIntelligenceVerificationRoute: typeof OrganizationSlugPProjectSlugIntelligenceVerificationRoute
   OrganizationSlugPProjectSlugIntelligenceIndexRoute: typeof OrganizationSlugPProjectSlugIntelligenceIndexRoute
 }
 
 const OrganizationSlugPProjectSlugIntelligenceRouteRouteChildren: OrganizationSlugPProjectSlugIntelligenceRouteRouteChildren =
   {
-    OrganizationSlugPProjectSlugIntelligenceEvidenceGraphRoute:
-      OrganizationSlugPProjectSlugIntelligenceEvidenceGraphRoute,
     OrganizationSlugPProjectSlugIntelligenceFindingsRoute:
       OrganizationSlugPProjectSlugIntelligenceFindingsRoute,
     OrganizationSlugPProjectSlugIntelligenceInvestigationsRoute:
       OrganizationSlugPProjectSlugIntelligenceInvestigationsRoute,
-    OrganizationSlugPProjectSlugIntelligenceRecommendationsRoute:
-      OrganizationSlugPProjectSlugIntelligenceRecommendationsRoute,
-    OrganizationSlugPProjectSlugIntelligenceVerificationRoute:
-      OrganizationSlugPProjectSlugIntelligenceVerificationRoute,
     OrganizationSlugPProjectSlugIntelligenceIndexRoute:
       OrganizationSlugPProjectSlugIntelligenceIndexRoute,
   }
@@ -1263,8 +1154,6 @@ const rootRouteChildren: RootRouteChildren = {
   AdminIngestHealthRoute: AdminIngestHealthRoute,
   AdminSystemHealthRoute: AdminSystemHealthRoute,
   AuthCallbackRoute: AuthCallbackRoute,
-  DashboardErrorsRoute: DashboardErrorsRoute,
-  DashboardSettingsRoute: DashboardSettingsRoute,
   ProjectsProjectIdIncidentsRoute: ProjectsProjectIdIncidentsRoute,
   PublicStatusOrgIdProjectIdRoute: PublicStatusOrgIdProjectIdRoute,
 }

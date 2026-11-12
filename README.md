@@ -7,8 +7,11 @@ OpenTelemetry-native observability with detection, evidence-gated AI analysis, a
 - `apps/api` — NestJS ingestion/query API (PostgreSQL + Drizzle)
 - `apps/ui` — TanStack Start dashboard
 - `packages/ingest` — OTLP ingestion worker (NATS → Quickwit/Object storage)
-- `packages/sdk` — Node SDK (OTLP traces)
-- `packages/shared`, `packages/cron` — shared contracts and scheduled jobs
+- `sdk/node` — @soonwhy/node, Node SDK (OTLP traces)
+- `sdk/nest` — @soonwhy/nest, NestJS integration
+- `sdk/next` — @soonwhy/next, Next.js App Router integration
+- `sdk/vite` — @soonwhy/vite, Vite dev-server integration
+- `packages/shared` — shared contracts and PII field encryption
 
 ## Quick start
 

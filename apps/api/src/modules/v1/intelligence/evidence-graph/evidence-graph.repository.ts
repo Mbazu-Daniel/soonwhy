@@ -1,25 +1,35 @@
 import { Injectable, Optional } from "@nestjs/common";
-import { eq, and, lt } from "drizzle-orm";
+import { and, eq, lt } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import { evidenceNodes, evidenceEdges } from "../../../../common/db/schema";
-import type { EvidenceNode, EvidenceEdge } from "./evidence-graph.types";
+import type { TelemetryIdentity } from "@soonwhy/shared";
 import { db } from "../../../../common/db";
+import { evidenceEdges, evidenceNodes } from "../../../../common/db/schema";
+import type {
+  EvidenceEdge,
+  EvidenceEdgeType,
+  EvidenceNode,
+  EvidenceNodeType,
+} from "./evidence-graph.types";
 
 @Injectable()
 export class EvidenceGraphRepository {
-  constructor(@Optional() private readonly customDb?: PostgresJsDatabase<any>) {
-    this.db = customDb || db;
-  }
-
   private readonly db: PostgresJsDatabase<any>;
 
-  async addNode(organizationId: string, node: EvidenceNode, expiresAt?: Date): Promise<void> {
+  constructor(@Optional() customDb?: PostgresJsDatabase<any>) {
+    this.db = customDb ?? db;
+  }
+
+  async addNode(
+    organizationId: string,
+    node: EvidenceNode,
+    expiresAt?: Date,
+  ): Promise<void> {
     await this.db.insert(evidenceNodes).values({
       organizationId,
       nodeId: node.id,
       nodeType: node.type,
-      identity: node.identity as any,
-      data: node.data as any,
+      identity: node.identity,
+      data: node.data,
       timestamp: new Date(node.timestamp),
       traceId: node.identity.resourceName,
       serviceName: node.identity.serviceName,
@@ -28,7 +38,10 @@ export class EvidenceGraphRepository {
     });
   }
 
-  async getNode(organizationId: string, nodeId: string): Promise<EvidenceNode | null> {
+  async getNode(
+    organizationId: string,
+    nodeId: string,
+  ): Promise<EvidenceNode | null> {
     const result = await this.db
       .select()
       .from(evidenceNodes)
@@ -40,19 +53,23 @@ export class EvidenceGraphRepository {
       )
       .limit(1);
 
-    if (!result[0]) return null;
-
     const row = result[0];
+    if (!row) return null;
+
     return {
       id: row.nodeId,
-      type: row.nodeType as any,
-      identity: row.identity as any,
-      data: row.data as any,
+      type: row.nodeType as EvidenceNodeType,
+      identity: row.identity as TelemetryIdentity,
+      data: (row.data ?? {}) as Record<string, unknown>,
       timestamp: row.timestamp.toISOString(),
     };
   }
 
-  async addEdge(organizationId: string, edge: EvidenceEdge, expiresAt?: Date): Promise<void> {
+  async addEdge(
+    organizationId: string,
+    edge: EvidenceEdge,
+    expiresAt?: Date,
+  ): Promise<void> {
     await this.db.insert(evidenceEdges).values({
       organizationId,
       edgeId: edge.id,
@@ -60,12 +77,15 @@ export class EvidenceGraphRepository {
       targetNodeId: edge.targetId,
       edgeType: edge.type,
       strength: edge.strength.toString(),
-      metadata: edge.metadata as any,
+      metadata: edge.metadata,
       expiresAt,
     });
   }
 
-  async getEdge(organizationId: string, edgeId: string): Promise<EvidenceEdge | null> {
+  async getEdge(
+    organizationId: string,
+    edgeId: string,
+  ): Promise<EvidenceEdge | null> {
     const result = await this.db
       .select()
       .from(evidenceEdges)
@@ -77,20 +97,23 @@ export class EvidenceGraphRepository {
       )
       .limit(1);
 
-    if (!result[0]) return null;
-
     const row = result[0];
+    if (!row) return null;
+
     return {
       id: row.edgeId,
       sourceId: row.sourceNodeId,
       targetId: row.targetNodeId,
-      type: row.edgeType as any,
+      type: row.edgeType as EvidenceEdgeType,
       strength: parseFloat(row.strength),
-      metadata: row.metadata as any,
+      metadata: row.metadata as Record<string, unknown> | undefined,
     };
   }
 
-  async getNodesByTrace(organizationId: string, traceId: string): Promise<EvidenceNode[]> {
+  async getNodesByTrace(
+    organizationId: string,
+    traceId: string,
+  ): Promise<EvidenceNode[]> {
     const results = await this.db
       .select()
       .from(evidenceNodes)
@@ -103,14 +126,17 @@ export class EvidenceGraphRepository {
 
     return results.map((row) => ({
       id: row.nodeId,
-      type: row.nodeType as any,
-      identity: row.identity as any,
-      data: row.data as any,
+      type: row.nodeType as EvidenceNodeType,
+      identity: row.identity as TelemetryIdentity,
+      data: (row.data ?? {}) as Record<string, unknown>,
       timestamp: row.timestamp.toISOString(),
     }));
   }
 
-  async getNodesByService(organizationId: string, serviceName: string): Promise<EvidenceNode[]> {
+  async getNodesByService(
+    organizationId: string,
+    serviceName: string,
+  ): Promise<EvidenceNode[]> {
     const results = await this.db
       .select()
       .from(evidenceNodes)
@@ -123,14 +149,17 @@ export class EvidenceGraphRepository {
 
     return results.map((row) => ({
       id: row.nodeId,
-      type: row.nodeType as any,
-      identity: row.identity as any,
-      data: row.data as any,
+      type: row.nodeType as EvidenceNodeType,
+      identity: row.identity as TelemetryIdentity,
+      data: (row.data ?? {}) as Record<string, unknown>,
       timestamp: row.timestamp.toISOString(),
     }));
   }
 
-  async getNodesByDeployment(organizationId: string, deploymentId: string): Promise<EvidenceNode[]> {
+  async getNodesByDeployment(
+    organizationId: string,
+    deploymentId: string,
+  ): Promise<EvidenceNode[]> {
     const results = await this.db
       .select()
       .from(evidenceNodes)
@@ -143,14 +172,17 @@ export class EvidenceGraphRepository {
 
     return results.map((row) => ({
       id: row.nodeId,
-      type: row.nodeType as any,
-      identity: row.identity as any,
-      data: row.data as any,
+      type: row.nodeType as EvidenceNodeType,
+      identity: row.identity as TelemetryIdentity,
+      data: (row.data ?? {}) as Record<string, unknown>,
       timestamp: row.timestamp.toISOString(),
     }));
   }
 
-  async getOutgoingEdges(organizationId: string, sourceNodeId: string): Promise<EvidenceEdge[]> {
+  async getOutgoingEdges(
+    organizationId: string,
+    sourceNodeId: string,
+  ): Promise<EvidenceEdge[]> {
     const results = await this.db
       .select()
       .from(evidenceEdges)
@@ -165,13 +197,16 @@ export class EvidenceGraphRepository {
       id: row.edgeId,
       sourceId: row.sourceNodeId,
       targetId: row.targetNodeId,
-      type: row.edgeType as any,
+      type: row.edgeType as EvidenceEdgeType,
       strength: parseFloat(row.strength),
-      metadata: row.metadata as any,
+      metadata: row.metadata as Record<string, unknown> | undefined,
     }));
   }
 
-  async getIncomingEdges(organizationId: string, targetNodeId: string): Promise<EvidenceEdge[]> {
+  async getIncomingEdges(
+    organizationId: string,
+    targetNodeId: string,
+  ): Promise<EvidenceEdge[]> {
     const results = await this.db
       .select()
       .from(evidenceEdges)
@@ -186,9 +221,9 @@ export class EvidenceGraphRepository {
       id: row.edgeId,
       sourceId: row.sourceNodeId,
       targetId: row.targetNodeId,
-      type: row.edgeType as any,
+      type: row.edgeType as EvidenceEdgeType,
       strength: parseFloat(row.strength),
-      metadata: row.metadata as any,
+      metadata: row.metadata as Record<string, unknown> | undefined,
     }));
   }
 

@@ -1,4 +1,5 @@
 import { fingerprintQuery } from "./query-fingerprint";
+import { percentile } from './percentile';
 
 export interface DatabaseResultSetTrace {
   timestamp: string;
@@ -333,9 +334,9 @@ function queryFor(sample: DatabaseResultSetTrace): string {
 function distribution(values: number[]): DatabaseResultSetDistribution {
   const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
   return {
-    p50: percentile(sorted, 0.5),
-    p95: percentile(sorted, 0.95),
-    p99: percentile(sorted, 0.99),
+    p50: percentile(sorted, 0.5) ?? 0,
+    p95: percentile(sorted, 0.95) ?? 0,
+    p99: percentile(sorted, 0.99) ?? 0,
   };
 }
 
@@ -349,17 +350,6 @@ function distributionPair(samples: DatabaseResultSetTrace[]): {
   };
 }
 
-function percentile(values: number[], quantile: number): number {
-  if (!values.length) return 0;
-  const position = (values.length - 1) * quantile;
-  const lower = Math.floor(position);
-  const upper = Math.ceil(position);
-  const lowerValue = values[lower] ?? 0;
-  const upperValue = values[upper] ?? lowerValue;
-  return lower === upper
-    ? lowerValue
-    : lowerValue + (upperValue - lowerValue) * (position - lower);
-}
 
 function percentileTraceContribution(
   samples: DatabaseResultSetTrace[],

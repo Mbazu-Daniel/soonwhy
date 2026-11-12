@@ -7,9 +7,9 @@ const organization = {
   organizationId: "org_1",
   captureSettings: {
     redactSensitiveData: true,
-    captureRequestHeaders: false,
-    captureRequestBody: false,
-    captureResponseBody: false,
+    captureRequestHeaders: true,
+    captureRequestBody: true,
+    captureResponseBody: true,
     maxAttributeCount: 100,
     maxAttributeValueLength: 4096,
   },

@@ -1,4 +1,5 @@
 import type { CorrelatedBottleneck } from "./detection.correlation";
+import type { DetectionFinding } from "./detection.types";
 import type { DetectionEvidence } from "../../../common/db/schema/findings";
 import type { RcaEvidence, RcaEvidenceItem } from "./rca.types";
 import type { RankingResult } from "./root-cause/root-cause.types";
@@ -124,5 +125,89 @@ export function buildRcaEvidence(
     rankingWeights: rankingResult?.weights,
     evidenceCoverage: rankingResult?.overallEvidenceCoverage,
     rankingLimitations: rankingResult?.limitations,
+  };
+}
+
+export interface BottleneckEvidenceFinding {
+  type: string;
+  projectId: string;
+  serviceName: string;
+  severity: string;
+  title: string;
+  description: string;
+  observedValue: number;
+  threshold: number;
+  unit: string;
+  windowStart: Date;
+  windowEnd: Date;
+  evidence: DetectionEvidence[];
+}
+
+export function decodeRcaBottleneck(
+  finding: BottleneckEvidenceFinding,
+): CorrelatedBottleneck | null {
+  if (!finding || finding.type !== "bottleneck") return null;
+  const evidence = finding.evidence;
+  const correlated = evidence.find(
+    (item) => item.label === "correlated-signal",
+  );
+  if (!correlated) return null;
+
+  const latencyId = String(correlated.context?.sourceFindingId ?? "");
+  if (!latencyId) return null;
+
+  const guidance = evidence.find(
+    (item) => item.label === "optimization-guidance",
+  );
+  const supportingFindings = evidence
+    .filter((item) => item.label === "supporting-finding")
+    .map((item) => ({
+      id: String(item.context?.findingId ?? ""),
+      projectId: finding.projectId,
+      serviceName: finding.serviceName,
+      type: String(
+        item.context?.findingType ?? "latency",
+      ) as DetectionFinding["type"],
+      severity: String(item.context?.severity ?? "warning") as
+        | "warning"
+        | "critical",
+      title: String(item.context?.findingType ?? "Supporting finding"),
+      description: "",
+      observedValue: Number(item.value),
+      threshold: 0,
+      unit: "unknown",
+      window: { start: finding.windowStart, end: finding.windowEnd },
+      evidence: [item],
+    }));
+
+  return {
+    serviceName: finding.serviceName,
+    latency: {
+      id: latencyId,
+      projectId: finding.projectId,
+      serviceName: finding.serviceName,
+      type: "latency",
+      severity: finding.severity as "warning" | "critical",
+      title: "Correlated latency",
+      description: finding.description,
+      observedValue: finding.observedValue,
+      threshold: finding.threshold,
+      unit: finding.unit,
+      window: { start: finding.windowStart, end: finding.windowEnd },
+      evidence: [correlated],
+    },
+    supportingFindings,
+    recommendation: String(guidance?.value ?? ""),
+    dependencyType:
+      typeof guidance?.context?.dependencyType === "string"
+        ? guidance.context.dependencyType
+        : undefined,
+    dependencyName:
+      typeof guidance?.context?.dependencyName === "string"
+        ? guidance.context.dependencyName
+        : undefined,
+    traceIds: evidence
+      .filter((item) => item.label === "correlated-trace")
+      .map((item) => String(item.value)),
   };
 }

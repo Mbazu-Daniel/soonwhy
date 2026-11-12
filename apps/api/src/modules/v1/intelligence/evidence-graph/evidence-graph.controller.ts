@@ -1,8 +1,18 @@
-import { Controller, Post, Get, Body, Param } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Post,
+  Param,
+  Query,
+} from "@nestjs/common";
+import { CurrentOrg, OrgContext } from "../../../../common/decorators/current-org.decorator";
 import { EvidenceGraphService } from "./evidence-graph.service";
 import type {
-  EvidenceNode,
   EvidenceEdge,
+  EvidenceEdgeType,
+  EvidenceNode,
   GraphPath,
   GraphQuery,
   GraphTraversalResult,
@@ -13,88 +23,113 @@ export class EvidenceGraphController {
   constructor(private readonly graphService: EvidenceGraphService) {}
 
   @Post("nodes")
-  async addNode(@Body() body: { organizationId: string; node: EvidenceNode; expiresAt?: string }): Promise<{ success: boolean }> {
-    await this.graphService.addNode(body.organizationId, body.node, body.expiresAt ? new Date(body.expiresAt) : undefined);
+  async addNode(
+    @CurrentOrg() org: OrgContext,
+    @Body() body: { node: EvidenceNode; expiresAt?: string },
+  ): Promise<{ success: boolean }> {
+    await this.graphService.addNode(
+      org.orgId,
+      body.node,
+      body.expiresAt ? new Date(body.expiresAt) : undefined,
+    );
     return { success: true };
   }
 
   @Post("edges")
-  async addEdge(@Body() body: { organizationId: string; edge: EvidenceEdge; expiresAt?: string }): Promise<{ success: boolean }> {
-    await this.graphService.addEdge(body.organizationId, body.edge, body.expiresAt ? new Date(body.expiresAt) : undefined);
+  async addEdge(
+    @CurrentOrg() org: OrgContext,
+    @Body() body: { edge: EvidenceEdge; expiresAt?: string },
+  ): Promise<{ success: boolean }> {
+    await this.graphService.addEdge(
+      org.orgId,
+      body.edge,
+      body.expiresAt ? new Date(body.expiresAt) : undefined,
+    );
     return { success: true };
   }
 
   @Get("nodes/:nodeId")
-  async getNode(@Param("nodeId") nodeId: string, @Body() body: { organizationId: string }): Promise<EvidenceNode | undefined> {
-    return await this.graphService.getNode(body.organizationId, nodeId);
+  async getNode(
+    @CurrentOrg() org: OrgContext,
+    @Param("nodeId") nodeId: string,
+  ): Promise<EvidenceNode | undefined> {
+    return await this.graphService.getNode(org.orgId, nodeId);
   }
 
   @Get("edges/:edgeId")
-  async getEdge(@Param("edgeId") edgeId: string, @Body() body: { organizationId: string }): Promise<EvidenceEdge | undefined> {
-    return await this.graphService.getEdge(body.organizationId, edgeId);
+  async getEdge(
+    @CurrentOrg() org: OrgContext,
+    @Param("edgeId") edgeId: string,
+  ): Promise<EvidenceEdge | undefined> {
+    return await this.graphService.getEdge(org.orgId, edgeId);
   }
 
   @Post("trace/:traceId")
-  async getNodesByTrace(@Param("traceId") traceId: string, @Body() body: { organizationId: string }) {
-    return await this.graphService.getNodesByTrace(body.organizationId, traceId);
+  async getNodesByTrace(
+    @CurrentOrg() org: OrgContext,
+    @Param("traceId") traceId: string,
+  ) {
+    return await this.graphService.getNodesByTrace(org.orgId, traceId);
   }
 
   @Post("service/:serviceName")
-  async getNodesByService(@Param("serviceName") serviceName: string, @Body() body: { organizationId: string }) {
-    return await this.graphService.getNodesByService(body.organizationId, serviceName);
+  async getNodesByService(
+    @CurrentOrg() org: OrgContext,
+    @Param("serviceName") serviceName: string,
+  ) {
+    return await this.graphService.getNodesByService(org.orgId, serviceName);
   }
 
   @Post("deployment/:deploymentId")
-  async getNodesByDeployment(@Param("deploymentId") deploymentId: string, @Body() body: { organizationId: string }) {
-    return await this.graphService.getNodesByDeployment(body.organizationId, deploymentId);
+  async getNodesByDeployment(
+    @CurrentOrg() org: OrgContext,
+    @Param("deploymentId") deploymentId: string,
+  ) {
+    return await this.graphService.getNodesByDeployment(org.orgId, deploymentId);
   }
 
   @Post("find-paths")
-  async findPaths(@Body() body: { organizationId: string; query: GraphQuery }): Promise<GraphTraversalResult> {
-    return await this.graphService.findPaths(body.query);
+  async findPaths(
+    @CurrentOrg() org: OrgContext,
+    @Body() body: { query: GraphQuery },
+  ): Promise<GraphTraversalResult> {
+    return await this.graphService.findPaths(org.orgId, body.query);
   }
 
   @Post("shortest-path")
   async findShortestPath(
-    @Body()
-    body: {
-      organizationId: string;
-      startNodeId: string;
-      endNodeId: string;
-      edgeTypes?: string[];
-    },
+    @CurrentOrg() org: OrgContext,
+    @Body() body: { startNodeId: string; endNodeId: string; edgeTypes?: EvidenceEdgeType[] },
   ): Promise<GraphPath | null> {
-    return await this.graphService.findShortestPath(
-      body.startNodeId,
-      body.endNodeId,
-      body.edgeTypes as any,
-    );
+    return this.graphService.findShortestPath(org.orgId, body.startNodeId, body.endNodeId, body.edgeTypes);
   }
 
   @Get("connected/:nodeId")
   async getConnectedNodes(
+    @CurrentOrg() org: OrgContext,
     @Param("nodeId") nodeId: string,
-    @Body() body: { organizationId: string; depth?: number },
+    @Query("depth") depth?: string,
   ) {
-    return this.graphService.getConnectedNodes(nodeId, body.depth);
+    return this.graphService.getConnectedNodes(org.orgId, nodeId, depth ? Number(depth) : 1);
   }
 
   @Post("connected/:nodeId")
   async getConnectedNodesPost(
+    @CurrentOrg() org: OrgContext,
     @Param("nodeId") nodeId: string,
-    @Body() body: { organizationId: string; depth?: number },
+    @Body() body: { depth?: number },
   ) {
-    return this.graphService.getConnectedNodes(nodeId, body.depth);
+    return this.graphService.getConnectedNodes(org.orgId, nodeId, body.depth);
   }
 
-  @Post("clear")
-  async clear(): Promise<{ success: boolean }> {
-    await this.graphService.clear();
+  @Delete("clear")
+  async clear(@CurrentOrg() org: OrgContext): Promise<{ success: boolean }> {
+    await this.graphService.clear(org.orgId);
     return { success: true };
   }
 
   @Get("size")
-  getSize() {
-    return this.graphService.getGraphSize();
+  getSize(@CurrentOrg() org: OrgContext) {
+    return this.graphService.getGraphSize(org.orgId);
   }
 }

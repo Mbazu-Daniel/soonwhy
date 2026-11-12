@@ -43,6 +43,8 @@ export class SlosService {
 
   async updateSlo(
     id: number,
+    orgId: string,
+    projectId: string,
     data: {
       name?: string;
       description?: string;
@@ -56,11 +58,11 @@ export class SlosService {
       isActive?: boolean;
     },
   ) {
-    return this.repository.updateSlo(id, data);
+    return this.repository.updateSlo(id, orgId, projectId, data);
   }
 
-  async deleteSlo(id: number) {
-    await this.repository.deleteSlo(id);
+  async deleteSlo(id: number, orgId: string, projectId: string) {
+    await this.repository.deleteSlo(id, orgId, projectId);
   }
 
   async calculateSloCompliance(sloId: number, orgId: string, projectId: string) {
@@ -140,7 +142,7 @@ export class SlosService {
     const errorBudgetBurnRate = this.calculateBurnRate(errorBudgetRemaining, slo.targetPercentage);
 
     // Update SLO with current compliance
-    await this.repository.updateSloCompliance(sloId, {
+    await this.repository.updateSloCompliance(sloId, orgId, projectId, {
       currentCompliance: compliance,
       errorBudgetRemaining,
       errorBudgetBurnRate,

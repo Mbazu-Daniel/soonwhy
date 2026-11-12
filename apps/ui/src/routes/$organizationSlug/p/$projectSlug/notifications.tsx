@@ -8,6 +8,7 @@ import { Skeleton } from '~/components/ui/skeleton';
 import { QueryErrorState } from '~/components/query-error-state';
 import { api } from '~/lib/api';
 import { useProject } from '~/lib/project-context';
+import { EmptyProject } from '~/components/empty-state';
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/notifications')({ component: NotificationsPage });
 
@@ -35,14 +36,7 @@ function StatusIcon({ status }: { status: NotificationLog['status'] }) {
   return <Clock3 className="h-3.5 w-3.5 text-[#989898]" />;
 }
 
-function EmptyProject() {
-  return (
-    <div className="p-10 text-center text-muted-foreground">
-      <p className="font-medium">Choose a project</p>
-      <p className="mt-1 text-sm">Select a project from the sidebar to view notifications.</p>
-    </div>
-  );
-}
+
 
 function NotificationsPage() {
   const { projectId } = useProject();
@@ -63,7 +57,7 @@ function NotificationsPage() {
   if (!projectId) return <EmptyProject />;
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] space-y-4">
+    <div className="mx-auto w-full space-y-4">
       <div className="border border-[#242426] rounded-lg bg-[#0B0B0C] overflow-hidden">
         <table className="w-full text-sm text-left text-[#F6F6F6]">
           <thead className="text-xs text-[#989898] border-b border-[#242426] bg-[#0B0B0C]">

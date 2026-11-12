@@ -151,7 +151,7 @@ function createFinding(
     operationName: targetType,
     resourceName: targetName,
     identityAttributes: {
-      dependencyType: targetType as any,
+      dependencyType: targetType,
       target: targetName,
     },
   });

@@ -8,6 +8,7 @@ import {
 } from "@nestjs/common";
 import {
   connect,
+  headers,
   NatsConnection,
   JetStreamClient,
   RetentionPolicy,
@@ -211,18 +212,17 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
     eventId: string,
   ): Promise<boolean> {
     if (!this.jetstream) throw new Error("NATS JetStream not connected");
-    // Publish with explicit headers including the event ID for dedupe
+    const hdrs = headers();
+    hdrs.set("event-id", eventId);
+    hdrs.set("Nats-Msg-Id", eventId);
     const pubAck = await this.jetstream.publish(
       subject,
       data,
       {
         timeout: this.config.publishTimeoutMs,
-        headers: {
-          "event-id": eventId,
-        } as any,
+        headers: hdrs,
       },
     );
-    // PubAck is a boolean in NATS v2 - true if acknowledged
     return !!pubAck;
   }
 

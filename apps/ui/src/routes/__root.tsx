@@ -1,6 +1,7 @@
 import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
 import { QueryProvider } from "~/components/query-provider";
 import { ProjectProvider } from "~/lib/project-context";
+import { ConnectServiceProvider } from "~/lib/connect-service";
 import "../styles/globals.css";
 
 export const Route = createRootRoute({
@@ -17,6 +18,11 @@ export const Route = createRootRoute({
         title: "SoonWhy",
       },
     ],
+    links: [
+      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32.png" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+    ],
   }),
   shellComponent: RootDocument,
 });
@@ -30,7 +36,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body>
         <QueryProvider>
           <ProjectProvider>
-            {children}
+            <ConnectServiceProvider>
+              {children}
+            </ConnectServiceProvider>
           </ProjectProvider>
         </QueryProvider>
         <Scripts />

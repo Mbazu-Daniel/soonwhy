@@ -1,18 +1,19 @@
 import {
+  BadRequestException,
+  Body,
   Controller,
   Get,
-  Post,
-  Put,
   Param,
-  Body,
-  UseGuards,
+  Post,
   Query,
+  UseGuards,
 } from "@nestjs/common";
 import {
   CurrentOrg,
   OrgContext,
 } from "../../../common/decorators/current-org.decorator";
 import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
+import { ingestLimitBodySchema, ingestLimitCheckQuerySchema } from "./dto";
 import { IngestLimitsService } from "./ingest-limits.service";
 
 @Controller("projects/:projectId/ingest-limits")
@@ -34,19 +35,15 @@ export class IngestLimitsController {
     @Param("projectId") projectId: string,
     @Body() body: unknown,
   ) {
+    const parsed = ingestLimitBodySchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
     return this.service.createOrUpdateIngestLimits({
       orgId: org.orgId,
       projectId,
-      maxEventsPerSecond: (body as any).maxEventsPerSecond,
-      maxBytesPerSecond: (body as any).maxBytesPerSecond,
-      backpressureEnabled: (body as any).backpressureEnabled,
-      backpressureStrategy: (body as any).backpressureStrategy,
-      sampleRate: (body as any).sampleRate,
-      traceSampleRate: (body as any).traceSampleRate,
-      metricSampleRate: (body as any).metricSampleRate,
-      logSampleRate: (body as any).logSampleRate,
-      serviceSamplingConfig: (body as any).serviceSamplingConfig,
-      alertOnLimitExceeded: (body as any).alertOnLimitExceeded,
+      ...parsed.data,
     });
   }
 
@@ -54,16 +51,19 @@ export class IngestLimitsController {
   async shouldAcceptTelemetry(
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
-    @Query("currentEventsPerSecond") currentEventsPerSecond: string,
-    @Query("signalType") signalType?: string,
-    @Query("serviceName") serviceName?: string,
+    @Query() query: Record<string, unknown>,
   ) {
+    const parsed = ingestLimitCheckQuerySchema.safeParse(query);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
     return this.service.shouldAcceptTelemetry(
       org.orgId,
       projectId,
-      parseFloat(currentEventsPerSecond) || 0,
-      signalType as "trace" | "metric" | "log" | undefined,
-      serviceName,
+      parsed.data.currentEventsPerSecond ?? 0,
+      parsed.data.signalType,
+      parsed.data.serviceName,
     );
   }
 }
@@ -74,19 +74,18 @@ export class InternalIngestLimitsController {
   constructor(private readonly service: IngestLimitsService) {}
 
   @Get("check")
-  async checkIngestLimits(
-    @Query("orgId") orgId: string,
-    @Query("projectId") projectId: string,
-    @Query("currentEventsPerSecond") currentEventsPerSecond: string,
-    @Query("signalType") signalType?: string,
-    @Query("serviceName") serviceName?: string,
-  ) {
+  async checkIngestLimits(@Query() query: Record<string, unknown>) {
+    const parsed = ingestLimitCheckQuerySchema.safeParse(query);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
     return this.service.shouldAcceptTelemetry(
-      orgId,
-      projectId,
-      parseFloat(currentEventsPerSecond) || 0,
-      signalType as "trace" | "metric" | "log" | undefined,
-      serviceName,
+      parsed.data.orgId ?? "",
+      parsed.data.projectId ?? "",
+      parsed.data.currentEventsPerSecond ?? 0,
+      parsed.data.signalType,
+      parsed.data.serviceName,
     );
   }
 }

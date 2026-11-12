@@ -84,6 +84,14 @@ textarea {
   outline-offset: 2px;
 }
 
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
 :focus-visible {
   outline: 2px solid #16931f;
   outline-offset: 3px;
@@ -502,4 +510,14 @@ pre {
     color: #182012 !important;
     border-color: #cbd8c7 !important;
   }
+}
+
+@keyframes sheet-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes sheet-panel-in {
+  from { opacity: 0.4; transform: translate3d(32px, 0, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
 }

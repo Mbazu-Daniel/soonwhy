@@ -1,3 +1,4 @@
+import { percentile } from './percentile';
 export interface DatabaseConnectionPoolSample {
   timestamp: string;
   service: string;
@@ -96,10 +97,10 @@ export function detectDatabaseConnectionPool(
         );
 
       const p95UtilizationPercent = utilization.length
-        ? percentile(utilization, 95)
+        ? percentile(utilization, 0.95)
         : undefined;
       const p95PendingRequests = pending.length
-        ? percentile(pending, 95)
+        ? percentile(pending, 0.95)
         : undefined;
       const timeoutIncrease =
         timeoutSamples.length >= 2
@@ -150,14 +151,3 @@ export function detectDatabaseConnectionPool(
     .slice(0, 100);
 }
 
-function percentile(values: number[], percentileValue: number): number {
-  const sorted = [...values].sort((left, right) => left - right);
-  if (!sorted.length) return 0;
-  const position = (percentileValue / 100) * (sorted.length - 1);
-  const lower = Math.floor(position);
-  const upper = Math.ceil(position);
-  if (lower === upper) return sorted[lower] ?? 0;
-  const lowerValue = sorted[lower] ?? 0;
-  const upperValue = sorted[upper] ?? lowerValue;
-  return lowerValue + (upperValue - lowerValue) * (position - lower);
-}

@@ -4,10 +4,10 @@
   "type": "module",
   "packageManager": "pnpm@12.9.1",
   "scripts": {
-    "dev": "turbo dev --filter=@soonwhy/backend --filter=@soonwhy/frontend",
+    "dev": "turbo dev --filter=@soonwhy/backend --filter=@soonwhy/frontend --filter=@soonwhy/ingest",
     "dev:all": "turbo dev",
     "build": "turbo build",
-    "test": "pnpm --filter @soonwhy/shared build && vitest",
+    "test": "pnpm --filter @soonwhy/shared build && pnpm --filter @soonwhy/node build && vitest",
     "lint": "oxlint",
     "format": "oxfmt",
     "verify:migrations": "node scripts/verify-migrations.mjs",
