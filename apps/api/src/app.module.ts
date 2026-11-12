@@ -122,6 +122,12 @@ const organizationScopedModules = [
   imports: [
     IdempotencyModule.forRoot({
       scope: (req: any) => req.headers['x-org-id'] || req.user?.id || 'global',
+      // No IdempotencyStore is registered yet — the app runs on the in-memory
+      // default. In-memory records don't survive restarts and aren't shared
+      // between instances, so this is only safe for a single API instance.
+      // For multi-replica deployments, implement IdempotencyStore (Redis)
+      // and register it before running more than one API replica.
+      allowInMemoryStorage: true,
     }),
     ScheduleModule.forRoot(),
     CacheModule,
