@@ -14,7 +14,7 @@ function options(overrides: Partial<SoonwhyOptions> = {}): SoonwhyOptions {
   };
 }
 
-describe("Soonwhy SDK foundation", () => {
+describe("Soonwhy Node SDK foundation", () => {
   it("validates required configuration", () => {
     expect(() => init(options({ apiKey: " " }))).toThrow("apiKey is required");
     expect(() => init(options({ endpoint: "ftp://localhost/v1" }))).toThrow(
@@ -92,5 +92,17 @@ describe("Soonwhy SDK foundation", () => {
     expect(result).toEqual({ sent: 1, dropped: 0 });
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(client.getStats().queued).toBe(0);
+  });
+});
+
+describe("sanitizeRedisStatement", () => {
+  it("keeps only the command verb", async () => {
+    const { sanitizeRedisStatement } = await import("./security.js");
+
+    expect(sanitizeRedisStatement("AUTH hunter2-super-secret")).toBe("AUTH");
+    expect(sanitizeRedisStatement("SET session:abc user-payload")).toBe("SET");
+    expect(sanitizeRedisStatement("get foo:bar")).toBe("GET");
+    expect(sanitizeRedisStatement("  ")).toBe("UNKNOWN");
+    expect(sanitizeRedisStatement("SELECT 0")).toBe("SELECT");
   });
 });

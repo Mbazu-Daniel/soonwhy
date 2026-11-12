@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { init } from "./index.js";
 
-describe("Soonwhy SDK ingestion integration", () => {
+describe("Soonwhy Node SDK ingestion integration", () => {
   it("sends application telemetry through the SDK to the ingestion endpoint", async () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()

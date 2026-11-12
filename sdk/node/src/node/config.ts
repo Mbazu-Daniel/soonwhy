@@ -65,7 +65,7 @@ export function resolveNodeOptions(
     ((delayMs: number) =>
       new Promise<void>((resolve) => setTimeout(resolve, delayMs)));
 
-  const redactSensitiveData = options.redactSensitiveData ?? true;
+  const redactSensitiveData = true;
   const maxAttributeCount = options.maxAttributeCount ?? 100;
   const maxAttributeValueLength = options.maxAttributeValueLength ?? 4096;
 

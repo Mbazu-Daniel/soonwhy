@@ -4,6 +4,7 @@ import { resolveNodeOptions, type ResolvedNodeSdkOptions } from "./config.js";
 import { createOpenTelemetryRuntime } from "./instrumentation.js";
 import { TelemetryBatcher } from "../batcher.js";
 import { HttpTelemetryTransport } from "../transport.js";
+import { ShutdownHandlers } from "../shutdown.js";
 import type { ResolvedOptions } from "../config.js";
 import type { NodeSdk, NodeSdkOptions } from "./types.js";
 import type { FlushResult, SdkStats } from "../types.js";
@@ -21,7 +22,7 @@ export class Client implements NodeSdk {
   private started = false;
   private closed = false;
   private shuttingDown: Promise<void> | undefined;
-  private readonly shutdownHandlers: Array<() => void> = [];
+  private readonly shutdownHandlers = new ShutdownHandlers();
 
   constructor(options: NodeSdkOptions) {
     this.options = resolveNodeOptions(options);
@@ -112,19 +113,15 @@ export class Client implements NodeSdk {
   }
 
   private registerShutdownHandlers(): void {
-    for (const signal of ["SIGINT", "SIGTERM"] as const) {
-      const handler = () => {
-        void this.shutdown().finally(() => {
-          process.exit(0);
-        });
-      };
-      process.once(signal, handler);
-      this.shutdownHandlers.push(() => process.removeListener(signal, handler));
-    }
+    this.shutdownHandlers.register(() => {
+      void this.shutdown().finally(() => {
+        process.exit(0);
+      });
+    });
   }
 
   private removeShutdownHandlers(): void {
-    for (const remove of this.shutdownHandlers.splice(0)) remove();
+    this.shutdownHandlers.removeAll();
   }
 }
 

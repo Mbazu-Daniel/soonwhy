@@ -52,9 +52,7 @@ export function resolveOptions(options: SoonwhyOptions): ResolvedOptions {
     sleep:
       options.sleep ??
       ((delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs))),
-    redactSensitiveData:
-      options.redactSensitiveData ??
-      DEFAULT_SECURITY_OPTIONS.redactSensitiveData,
+    redactSensitiveData: true,
     maxAttributeCount:
       options.maxAttributeCount ?? DEFAULT_SECURITY_OPTIONS.maxAttributeCount,
     maxAttributeValueLength:

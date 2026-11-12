@@ -1,5 +1,6 @@
 import { createRequire } from "node:module";
 import type { ResolvedNodeSdkOptions } from "./config.js";
+import { sanitizeRedisStatement } from "../security.js";
 
 const require = createRequire(import.meta.url);
 
@@ -109,11 +110,11 @@ export function buildInstrumentationConfig(
     },
     "@opentelemetry/instrumentation-redis": {
       enabled: requested.redis,
-      dbStatementSerializer: (command: string) => command,
+      dbStatementSerializer: sanitizeRedisStatement,
     },
     "@opentelemetry/instrumentation-ioredis": {
       enabled: requested.ioredis,
-      dbStatementSerializer: (command: string) => command,
+      dbStatementSerializer: sanitizeRedisStatement,
     },
     "@opentelemetry/instrumentation-undici": { enabled: requested.http },
   };
