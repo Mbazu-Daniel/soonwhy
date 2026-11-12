@@ -1,0 +1,21 @@
+version: 0.7
+cluster_id: ${QW_CLUSTER_ID:-soonwhy}
+data_dir: ${QW_DATA_DIR:-/quickwit/qwdata}
+metastore_uri: ${QW_METASTORE_URI}
+default_index_root_uri: ${QW_DEFAULT_INDEX_ROOT_URI}
+
+storage:
+  s3:
+    endpoint: ${QW_S3_ENDPOINT}
+    region: ${QW_S3_REGION:-auto}
+    access_key_id: ${AWS_ACCESS_KEY_ID}
+    secret_access_key: ${AWS_SECRET_ACCESS_KEY}
+    force_path_style_access: ${QW_S3_FORCE_PATH_STYLE_ACCESS:-true}
+
+rest:
+  listen_address: 0.0.0.0
+  listen_port: 7280
+
+indexer:
+  split_store_max_num_splits: 1000
+  max_concurrent_split_uploads: 4
