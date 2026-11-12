@@ -1,8 +1,8 @@
-import { createFileRoute, Outlet, useLocation, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link, Outlet, useLocation, useNavigate } from '@tanstack/react-router';
 import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Sidebar } from '~/components/sidebar';
-import { Menu } from 'lucide-react';
+import { Menu, AlertTriangle } from 'lucide-react';
 import { Toaster } from '~/components/ui/sonner';
 import { Skeleton } from '~/components/ui/skeleton';
 import { SidebarProvider, useSidebar } from '~/lib/sidebar-context';
@@ -10,12 +10,15 @@ import { getSessionToken, clearSession } from '~/lib/auth-client';
 import { useProject } from '~/lib/project-context';
 import { api } from '~/lib/api';
 import { CreateProjectDialog } from '~/components/create-project-dialog';
+import { Button } from '~/components/ui/button';
 
 interface Organization { id: string; name: string; slug: string; }
 interface Project { id: string; name: string; slug: string; }
 
 // Organization-scoped pages live outside the project prefix, so the redirect below must leave them alone.
-const ORGANIZATION_PAGES = new Set(['ai', 'self-observability']);
+const ORGANIZATION_PAGES = new Set(['ai', 'settings']);
+// Org-level paths that map onto the project-scoped page of the same name.
+const PROJECT_PAGE_ALIASES = new Set(['services', 'errors', 'logs', 'traces', 'api-keys', 'alerts', 'metrics', 'intelligence']);
 export const Route = createFileRoute('/$organizationSlug')({ component: OrganizationDashboardLayout });
 
 function OrganizationDashboardLayout() {
@@ -46,15 +49,22 @@ function OrganizationDashboardLayout() {
     if (isProjectRoute) { if (activeProject && projectId !== activeProject.id) setProject(activeProject); return; }
     if (!projects.data.length || !activeProject) return;
     const segment = location.pathname.slice(`/${organizationSlug}`.length).replace(/^\//, '');
-    const page = segment === 'dashboard' || !segment ? '' : segment.split('/')[0];
-    if (ORGANIZATION_PAGES.has(page)) return;
-    const allowed = new Set(['services', 'errors', 'logs', 'traces', 'api-keys', 'settings', 'intelligence']);
-    const suffix = allowed.has(page) ? page : '';
+    const [page, param] = segment.split('/');
+    if (ORGANIZATION_PAGES.has(page ?? '')) return;
+    if ((page === 'service' || page === 'trace') && param) {
+      void navigate({ to: `/${organizationSlug}/p/${activeProject.slug}/${page}/${param}` as never, replace: true });
+      return;
+    }
+    const suffix = PROJECT_PAGE_ALIASES.has(page ?? '') ? page : '';
     const target = suffix ? `/${organizationSlug}/p/${activeProject.slug}/${suffix}` : `/${organizationSlug}/p/${activeProject.slug}/`;
     void navigate({ to: target as never, replace: true });
   }, [activeProject, isProjectRoute, location.pathname, navigate, organization, organizationSlug, projectId, projects.data, setProject]);
 
   const showCreateProject = !!organization && !projects.isLoading && projects.data?.length === 0;
+
+  if (session.isError || organizations.isError) {
+    return <DashboardUnavailable onRetry={() => { void session.refetch(); void organizations.refetch(); }} />;
+  }
 
   if (session.isLoading || organizations.isLoading || !token || !session.data || !organization || orgId !== organization.id) return <DashboardLoading />;
 
@@ -82,6 +92,24 @@ function OrganizationDashboardFrame({ showCreateProject }: { showCreateProject: 
         <CreateProjectDialog open={showCreateProject} onOpenChange={() => undefined} />
       </div>
       <Toaster />
+    </div>
+  );
+}
+
+function DashboardUnavailable({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#040405] px-6">
+      <div className="w-full max-w-md rounded-2xl border border-[#242426] bg-[#0B0B0C] p-8 text-center">
+        <AlertTriangle className="mx-auto h-8 w-8 text-[#ACFC15]" aria-hidden="true" />
+        <h1 className="mt-4 text-lg font-semibold text-[#F6F6F6]">We couldn't load your workspace</h1>
+        <p className="mt-2 text-sm leading-6 text-[#989898]">The API did not respond. Make sure the backend is running and your session is valid, then try again.</p>
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <Button onClick={onRetry}>Try again</Button>
+          <Button variant="ghost" asChild className="text-[#989898] hover:text-[#F6F6F6]">
+            <Link to="/login">Back to sign in</Link>
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

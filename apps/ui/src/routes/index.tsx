@@ -275,7 +275,7 @@ function Home() {
                   <span className="rounded-full bg-[#8BD125]/10 px-2 py-1 font-mono text-[10px] text-[#B5E66A]">NODE</span>
                 </div>
                 <div className="p-5 font-mono text-xs leading-7 sm:p-7">
-                  <p className="text-white/35">$ npm install @soonwhy/sdk</p>
+                  <p className="text-white/35">$ npm install @soonwhy/node</p>
                   <p className="mt-2 text-white/35">$ export SOONWHY_API_KEY=...</p>
                   <p className="mt-2 text-white/35">$ npm run start</p>
                   <div className="mt-6 space-y-1 border-l border-[#8BD125]/50 pl-4 text-white/45">

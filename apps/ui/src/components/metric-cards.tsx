@@ -83,29 +83,4 @@ export function StatusCodeBreakdown({ codes, className }: StatusCodeBreakdownPro
   );
 }
 
-interface LatencyDistributionProps {
-  p50: number;
-  p95: number;
-  p99: number;
-  className?: string;
-}
 
-export function LatencyDistribution({ p50, p95, p99, className }: LatencyDistributionProps) {
-  return (
-    <Card className={cn('bg-card', className)}>
-      <CardContent className="p-4 space-y-3">
-        <p className="text-sm font-medium">Latency Distribution</p>
-        {[
-          { label: 'P50', value: p50 },
-          { label: 'P95', value: p95 },
-          { label: 'P99', value: p99 },
-        ].map((item) => (
-          <div key={item.label} className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">{item.label}</span>
-            <span className="font-mono text-sm">{item.value}ms</span>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  );
-}

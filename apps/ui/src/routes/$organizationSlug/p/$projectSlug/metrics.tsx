@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Activity, AlertTriangle, Clock3, Zap, Cpu, HardDrive, MemoryStick, Network } from 'lucide-react';
+import { Activity, AlertTriangle, Clock3, Zap, Cpu, HardDrive, MemoryStick, Network, Gauge } from 'lucide-react';
 import { useState } from 'react';
 import { Card, CardContent } from '~/components/ui/card';
 import { Skeleton } from '~/components/ui/skeleton';
@@ -8,8 +8,9 @@ import { api } from '~/lib/api';
 import { QueryErrorState } from '~/components/query-error-state';
 import { useProject } from '~/lib/project-context';
 import { TimeRangeControl, telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
-import { MetricCard, StatusCodeBreakdown, LatencyDistribution } from '~/components/metric-cards';
+import { MetricCard, StatusCodeBreakdown } from '~/components/metric-cards';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
+import { EmptyProject } from '~/components/empty-state';
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/metrics')({
   component: MetricsPage,
@@ -73,6 +74,8 @@ function MetricsPage() {
   const totalRequests = buckets.reduce((sum, b) => sum + b.count, 0);
   const totalErrors = buckets.reduce((sum, b) => sum + (b.statusCodes._4xx ?? 0) + (b.statusCodes._5xx ?? 0), 0);
   const errorRate = totalRequests ? (totalErrors / totalRequests) * 100 : 0;
+  const p50s = buckets.filter((b) => b.p50 > 0);
+  const avgP50 = p50s.length ? Math.round(p50s.reduce((sum, b) => sum + b.p50, 0) / p50s.length) : 0;
   const p95s = buckets.filter((b) => b.p95 > 0);
   const avgP95 = p95s.length ? Math.round(p95s.reduce((sum, b) => sum + b.p95, 0) / p95s.length) : 0;
   const avgP99 = buckets.filter((b) => b.p99 > 0).length
@@ -110,9 +113,10 @@ function MetricsPage() {
           <TimeRangeControl value={range} onChange={setRange} />
         </div>
         <TabsContent value="application" className="space-y-6">
-          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             <MetricCard label="Total requests" value={totalRequests.toLocaleString()} icon={Activity} />
             <MetricCard label="Error rate" value={errorRate.toFixed(2)} suffix="%" icon={AlertTriangle} />
+            <MetricCard label="P50 latency" value={String(avgP50)} suffix="ms" icon={Gauge} />
             <MetricCard label="P95 latency" value={String(avgP95)} suffix="ms" icon={Clock3} />
             <MetricCard label="P99 latency" value={String(avgP99)} suffix="ms" icon={Zap} />
           </section>
@@ -166,18 +170,6 @@ function MetricsPage() {
                     { label: '5xx', percentage: statusTotal ? Math.round(((latestStatus._5xx ?? 0) / statusTotal) * 100) : 0, color: 'bg-[#F28B82]' },
                   ]}
                 />
-              </CardContent>
-            </Card>
-          </section>
-
-          <section>
-            <Card className="border-border bg-card shadow-none">
-              <CardContent className="p-5">
-                <div className="mb-4">
-                  <p className="text-sm font-medium">Latency</p>
-                  <p className="text-xs text-muted-foreground">P50 / P95 / P99</p>
-                </div>
-                <LatencyDistribution p50={(buckets || [])[0]?.p50 || 0} p95={avgP95} p99={avgP99} />
               </CardContent>
             </Card>
           </section>
@@ -261,15 +253,4 @@ function MetricsPage() {
   );
 }
 
-function EmptyProject() {
-  return (
-    <Card>
-      <CardContent className="p-10 text-center">
-        <p className="font-medium">Choose a project</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Select a project from the sidebar to inspect metrics.
-        </p>
-      </CardContent>
-    </Card>
-  );
-}
+
