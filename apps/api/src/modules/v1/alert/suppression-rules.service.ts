@@ -20,8 +20,8 @@ interface SuppressionCheckParams {
 }
 
 @Injectable()
-export class AlertSuppressionRulesService {
-  private readonly logger = new Logger(AlertSuppressionRulesService.name);
+export class SuppressionRulesService {
+  private readonly logger = new Logger(SuppressionRulesService.name);
 
   async createRule(data: {
     orgId: string;

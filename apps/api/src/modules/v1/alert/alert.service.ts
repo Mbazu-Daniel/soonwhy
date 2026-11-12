@@ -12,8 +12,8 @@ interface SLOAlertThreshold {
 }
 
 @Injectable()
-export class SloAlertingService {
-  private readonly logger = new Logger(SloAlertingService.name);
+export class AlertService {
+  private readonly logger = new Logger(AlertService.name);
 
   // Default alert thresholds
   private readonly thresholds: SLOAlertThreshold[] = [
