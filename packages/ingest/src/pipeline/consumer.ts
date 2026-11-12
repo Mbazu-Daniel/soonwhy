@@ -172,9 +172,9 @@ export class IngestConsumer implements OnModuleInit {
       organizationId: payload.organizationId,
       captureSettings: payload.captureSettings ?? {
         redactSensitiveData: true,
-        captureRequestHeaders: false,
-        captureRequestBody: false,
-        captureResponseBody: false,
+        captureRequestHeaders: true,
+        captureRequestBody: true,
+        captureResponseBody: true,
         maxAttributeCount: 100,
         maxAttributeValueLength: 4096,
       },
