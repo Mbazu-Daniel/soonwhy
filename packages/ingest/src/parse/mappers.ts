@@ -1,4 +1,10 @@
 import { randomUUID } from "crypto";
+import {
+  encryptPii,
+  encryptPiiInText,
+  isPiiKey,
+  isPiiValue,
+} from "@soonwhy/shared";
 import { stableEventId } from "./event-id";
 import { nanoToMs } from "./time";
 import type {
@@ -12,7 +18,7 @@ import type {
 export type { OrganizationContext };
 
 const SENSITIVE_ATTRIBUTE_PATTERN =
-  /authorization|cookie|set-cookie|password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|credit[_-]?card|card[_-]?number|cvv|request\.body|response\.body/i;
+  /authorization|cookie|set-cookie|password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|credit[_-]?card|card[_-]?number|cvv/i;
 const SENSITIVE_TEXT_PATTERNS = [
   /(authorization\s*[:=]\s*bearer\s+)[^\s,;]+/gi,
   /((?:password|passwd|token|api[_-]?key|access[_-]?key|secret|client[_-]?secret|private[_-]?key)\s*[:=]\s*)[^\s,;]+/gi,
@@ -52,33 +58,41 @@ function safeLogAttributes(
   return Object.fromEntries(
     Object.entries(attributes)
       .filter(([key]) => {
-        if (
-          settings.redactSensitiveData &&
-          SENSITIVE_ATTRIBUTE_PATTERN.test(key)
-        )
-          return false;
-        if (
-          !settings.captureRequestHeaders &&
-          /^(http\.(request|response)\.header\.|http\.header\.|request\.headers\.|response\.headers\.)/i.test(
-            key,
-          )
-        )
-          return false;
-        if (
-          !settings.captureRequestBody &&
-          /^(http\.(request|response)\.body|request\.body|response\.body)/i.test(
-            key,
-          )
-        )
-          return false;
+        if (SENSITIVE_ATTRIBUTE_PATTERN.test(key)) return false;
         return true;
       })
       .slice(0, Math.max(1, settings.maxAttributeCount))
-      .map(([key, value]) => [
-        key,
-        limitAttributeValue(value, settings.maxAttributeValueLength),
-      ]),
+      .map(([key, value]) => [key, sanitizePiiValue(key, value, settings, 0)]),
   ) as Record<string, string>;
+}
+
+function sanitizePiiValue(
+  key: string,
+  value: unknown,
+  settings: CaptureSettings,
+  depth: number,
+): string {
+  const maxLength = settings.maxAttributeValueLength;
+  if (typeof value === "string") {
+    if (isPiiKey(key) || isPiiValue(value)) return encryptPii(value);
+    return sanitizeSensitiveText(limitAttributeValue(value, maxLength, depth));
+  }
+  if (value === null || typeof value !== "object") return String(value);
+  if (depth >= 6) return "[TRUNCATED]";
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => sanitizePiiValue(key, item, settings, depth + 1))
+      .join(", ");
+  }
+  return limitAttributeValue(
+    JSON.stringify(value, (childKey, childValue) => {
+      if (typeof childValue !== "string") return childValue;
+      if (isPiiKey(childKey) || isPiiValue(childValue))
+        return encryptPii(childValue);
+      return sanitizeSensitiveText(childValue);
+    }),
+    maxLength,
+  );
 }
 function limitAttributeValue(
   value: unknown,
@@ -95,11 +109,13 @@ function limitAttributeValue(
   return JSON.stringify(value);
 }
 function sanitizeSensitiveText(value: string, enabled = true): string {
-  if (!enabled) return value;
-  return SENSITIVE_TEXT_PATTERNS.reduce(
-    (text, pattern) => text.replace(pattern, "$1[REDACTED]"),
-    value,
-  );
+  const secretsRedacted = enabled
+    ? SENSITIVE_TEXT_PATTERNS.reduce(
+        (text, pattern) => text.replace(pattern, "$1[REDACTED]"),
+        value,
+      )
+    : value;
+  return encryptPiiInText(secretsRedacted);
 }
 function sanitizeRequestUrl(value: string): string {
   const trimmed = value.trim();
@@ -402,14 +418,14 @@ export function mapLogToRow(record: ParsedLogRecord, organization: OrganizationC
     traceId: record.traceId || "",
     spanId: record.spanId || "",
     level: record.severityLevel,
-    message: sanitizeSensitiveText(
-      record.message,
-      settings.redactSensitiveData,
-    ).slice(0, settings.maxAttributeValueLength),
+    message: sanitizeSensitiveText(record.message, true).slice(
+      0,
+      settings.maxAttributeValueLength,
+    ),
     attributes: attrs,
     stackTrace: sanitizeSensitiveText(
       String(safeAttributes["exception.stacktrace"] ?? ""),
-      settings.redactSensitiveData,
+      true,
     ).slice(0, settings.maxAttributeValueLength),
   };
 }

@@ -49,7 +49,11 @@ function makeConsumer(options?: {
         options?.claim === "committed" ? new Set(eventIds) : new Set<string>();
       const busy =
         options?.claim === "busy" ? new Set(eventIds) : new Set<string>();
-      return Promise.resolve({ committed, busy });
+      const claimed =
+        options?.claim === "committed" || options?.claim === "busy"
+          ? new Set<string>()
+          : new Set(eventIds);
+      return Promise.resolve({ claimed, committed, busy });
     }),
     commit: vi.fn().mockResolvedValue(undefined),
     commitBatch: vi.fn().mockResolvedValue(undefined),

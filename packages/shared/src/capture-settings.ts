@@ -9,9 +9,9 @@ export interface CaptureSettings {
 
 export const DEFAULT_CAPTURE_SETTINGS: CaptureSettings = {
   redactSensitiveData: true,
-  captureRequestHeaders: false,
-  captureRequestBody: false,
-  captureResponseBody: false,
+  captureRequestHeaders: true,
+  captureRequestBody: true,
+  captureResponseBody: true,
   maxAttributeCount: 100,
   maxAttributeValueLength: 4096,
 };
