@@ -20,7 +20,7 @@ function legacyEncrypt(value: string, hexKey = KEY): string {
 describe("CredentialCipher", () => {
   it("round-trips a provider key", () => {
     const cipher = CredentialCipher.fromEnv({
-      SOONWHY_CREDENTIAL_ENCRYPTION_KEY: KEY,
+      SOONWHY_PII_ENCRYPTION_KEY: KEY,
     });
     const apiKey = "gsk_secret_value_123";
 
@@ -30,7 +30,7 @@ describe("CredentialCipher", () => {
 
   it("decrypts credentials written by the previous implementation", () => {
     const cipher = CredentialCipher.fromEnv({
-      SOONWHY_CREDENTIAL_ENCRYPTION_KEY: KEY,
+      SOONWHY_PII_ENCRYPTION_KEY: KEY,
     });
 
     expect(cipher.decrypt(legacyEncrypt("sk-legacy-key"))).toBe(
@@ -40,7 +40,7 @@ describe("CredentialCipher", () => {
 
   it("produces a different ciphertext per call", () => {
     const cipher = CredentialCipher.fromEnv({
-      SOONWHY_CREDENTIAL_ENCRYPTION_KEY: KEY,
+      SOONWHY_PII_ENCRYPTION_KEY: KEY,
     });
 
     expect(cipher.encrypt("same-key")).not.toBe(cipher.encrypt("same-key"));
@@ -48,7 +48,7 @@ describe("CredentialCipher", () => {
 
   it("rejects a tampered auth tag", () => {
     const cipher = CredentialCipher.fromEnv({
-      SOONWHY_CREDENTIAL_ENCRYPTION_KEY: KEY,
+      SOONWHY_PII_ENCRYPTION_KEY: KEY,
     });
     const [iv, , data] = cipher.encrypt("sk-secret").split(":");
     const forged = `${iv}:${Buffer.from(randomBytes(16)).toString("base64")}:${data}`;
@@ -58,7 +58,7 @@ describe("CredentialCipher", () => {
 
   it("rejects a credential encrypted under another key", () => {
     const cipher = CredentialCipher.fromEnv({
-      SOONWHY_CREDENTIAL_ENCRYPTION_KEY: KEY,
+      SOONWHY_PII_ENCRYPTION_KEY: KEY,
     });
 
     expect(() => cipher.decrypt(legacyEncrypt("sk-secret", KEY_B))).toThrow(
@@ -74,7 +74,7 @@ describe("CredentialCipher", () => {
     "AAAAAAAAAAAAAAAAAAAAAAAA:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=:",
   ])("rejects the malformed payload %s", (payload) => {
     const cipher = CredentialCipher.fromEnv({
-      SOONWHY_CREDENTIAL_ENCRYPTION_KEY: KEY,
+      SOONWHY_PII_ENCRYPTION_KEY: KEY,
     });
 
     expect(() => cipher.decrypt(payload)).toThrow(CredentialDecryptError);
@@ -82,7 +82,7 @@ describe("CredentialCipher", () => {
 
   it("names decryption failures so callers can map them to a 503", () => {
     const cipher = CredentialCipher.fromEnv({
-      SOONWHY_CREDENTIAL_ENCRYPTION_KEY: KEY,
+      SOONWHY_PII_ENCRYPTION_KEY: KEY,
     });
 
     try {
@@ -101,7 +101,7 @@ describe("CredentialCipher", () => {
     ["utf-8 secret", "correct-horse-battery-staple"],
   ])("disables storage when the configured key is %s", (_label, value) => {
     const cipher = CredentialCipher.fromEnv({
-      SOONWHY_CREDENTIAL_ENCRYPTION_KEY: value,
+      SOONWHY_PII_ENCRYPTION_KEY: value,
     });
     const bare = CredentialCipher.fromEnv({});
 
@@ -131,13 +131,13 @@ describe("CredentialCipher", () => {
 
   it("fingerprints the key so rotation busts cached handles", () => {
     const a = CredentialCipher.fromEnv({
-      SOONWHY_CREDENTIAL_ENCRYPTION_KEY: KEY,
+      SOONWHY_PII_ENCRYPTION_KEY: KEY,
     });
     const b = CredentialCipher.fromEnv({
-      SOONWHY_CREDENTIAL_ENCRYPTION_KEY: KEY,
+      SOONWHY_PII_ENCRYPTION_KEY: KEY,
     });
     const other = CredentialCipher.fromEnv({
-      SOONWHY_CREDENTIAL_ENCRYPTION_KEY: KEY_B,
+      SOONWHY_PII_ENCRYPTION_KEY: KEY_B,
     });
 
     expect(a.keyFingerprint).toHaveLength(8);

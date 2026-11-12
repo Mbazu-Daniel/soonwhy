@@ -22,7 +22,9 @@ import { IncidentsService } from "../incidents/incidents.service";
 import { IncidentsRepository } from "../incidents/incidents.repository";
 import { MaintenanceWindowsService } from "../maintenance-windows/maintenance-windows.service";
 import { MaintenanceWindowsRepository } from "../maintenance-windows/maintenance-windows.repository";
-import { SyntheticProbesRepository } from "../synthetic-probes/synthetic-probes.repository";
+import { SyntheticProbesModule } from "../synthetic-probes/synthetic-probes.module";
+import { WeeklySummaryCron } from "./weekly-summary.cron";
+import { SyntheticProbesCron } from "./synthetic-probes.cron";
 import { DedupService } from "./dedup/dedup.service";
 
 const getProjectsWithActiveChannels = async () => {
@@ -39,6 +41,7 @@ const getProjectsWithActiveChannels = async () => {
   imports: [
     MetricsModule,
     TelemetryModule,
+    SyntheticProbesModule,
   ],
   controllers: [NotificationsController, OrgNotificationsController, CronController],
   providers: [
@@ -56,8 +59,9 @@ const getProjectsWithActiveChannels = async () => {
     IncidentsRepository,
     MaintenanceWindowsService,
     MaintenanceWindowsRepository,
-    SyntheticProbesRepository,
     DedupService,
+    WeeklySummaryCron,
+    SyntheticProbesCron,
     {
       provide: WeeklySummaryService,
       useFactory: (notificationService: NotificationService) =>
