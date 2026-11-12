@@ -1,0 +1,39 @@
+{
+  "name": "@soonwhy/next",
+  "version": "0.1.0",
+  "description": "Next.js integration for Soonwhy telemetry. Instruments App Router route handlers and Next.js server errors.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "peerDependencies": {
+    "next": "^13.4.0 || ^14.0.0 || ^15.0.0 || ^16.0.0"
+  },
+  "dependencies": {
+    "@opentelemetry/api": ">=1.9.0 <1.10.0",
+    "@soonwhy/node": "workspace:*"
+  },
+  "devDependencies": {
+    "@opentelemetry/context-async-hooks": "^2.11.0",
+    "@opentelemetry/sdk-trace-base": "^2.11.0",
+    "@types/node": "^24.13.3",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.0"
+  }
+}

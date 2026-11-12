@@ -1,4 +1,5 @@
 import type { ResolvedOptions } from "./config.js";
+import { SDK_VERSION } from "./version.js";
 import { toErrorLog, toLogsPayload, toMetricsPayload } from "./otlp.js";
 import type {
   ErrorInput,
@@ -62,13 +63,13 @@ export class TelemetryBatcher {
       logs.length
         ? this.transport.send(
             "logs",
-            toLogsPayload(logs, this.resource, "0.1.0", this.options),
+            toLogsPayload(logs, this.resource, SDK_VERSION, this.options),
           )
         : Promise.resolve(true),
       metrics.length
         ? this.transport.send(
             "metrics",
-            toMetricsPayload(metrics, this.resource, "0.1.0", this.options),
+            toMetricsPayload(metrics, this.resource, SDK_VERSION, this.options),
           )
         : Promise.resolve(true),
     ]);

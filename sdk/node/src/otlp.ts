@@ -40,7 +40,7 @@ export function toLogsPayload(
         },
         scopeLogs: [
           {
-            scope: { name: "@soonwhy/sdk", version: scopeVersion },
+            scope: { name: "@soonwhy/node", version: scopeVersion },
             logRecords: records.map((record) => ({
               timeUnixNano: toNano(record.timestamp),
               severityNumber: LEVELS[record.level ?? "info"],
@@ -100,7 +100,7 @@ export function toMetricsPayload(
         },
         scopeMetrics: [
           {
-            scope: { name: "@soonwhy/sdk", version: scopeVersion },
+            scope: { name: "@soonwhy/node", version: scopeVersion },
             metrics: [...groups.entries()].map(([name, items]) => ({
               name,
               unit: items[0]?.unit ?? "",

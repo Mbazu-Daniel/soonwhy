@@ -64,3 +64,10 @@ export function sanitizeMessage(
     ? `${message.slice(0, options.maxAttributeValueLength)}…`
     : message;
 }
+
+export function sanitizeRedisStatement(command: string): string {
+  const firstToken = command.trim().split(/\s+/, 1)[0]?.toUpperCase();
+  return firstToken && /^[A-Z][A-Z0-9_.-]{0,31}$/.test(firstToken)
+    ? firstToken
+    : "UNKNOWN";
+}

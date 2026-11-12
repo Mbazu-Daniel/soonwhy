@@ -1,9 +1,11 @@
 import type { ResolvedOptions } from "./config.js";
 
 export type Signal = "logs" | "metrics";
-export type TelemetryTransport = HttpTelemetryTransport;
+export interface TelemetryTransport {
+  send(signal: Signal, payload: Record<string, unknown>): Promise<boolean>;
+}
 
-export class HttpTelemetryTransport {
+export class HttpTelemetryTransport implements TelemetryTransport {
   constructor(private readonly options: ResolvedOptions) {}
 
   async send(signal: Signal, payload: Record<string, unknown>): Promise<boolean> {
