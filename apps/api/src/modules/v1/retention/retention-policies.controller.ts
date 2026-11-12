@@ -1,11 +1,12 @@
 import {
+  BadRequestException,
+  Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Post,
   Put,
-  Delete,
-  Param,
-  Body,
   UseGuards,
 } from "@nestjs/common";
 import {
@@ -13,6 +14,11 @@ import {
   OrgContext,
 } from "../../../common/decorators/current-org.decorator";
 import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
+import {
+  createRetentionPolicyBodySchema,
+  exportRetentionDataBodySchema,
+  updateRetentionPolicyBodySchema,
+} from "./dto";
 import { RetentionPoliciesService } from "./retention-policies.service";
 
 @Controller("projects/:projectId/retention-policies")
@@ -34,26 +40,26 @@ export class RetentionPoliciesController {
     @Param("projectId") projectId: string,
     @Body() body: unknown,
   ) {
+    const parsed = createRetentionPolicyBodySchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
     return this.service.createPolicy({
       orgId: org.orgId,
       projectId,
-      dataType: (body as any).dataType,
-      retentionDays: (body as any).retentionDays,
-      maxStorageGb: (body as any).maxStorageGb,
-      autoCleanup: (body as any).autoCleanup,
-      cleanupSchedule: (body as any).cleanupSchedule,
+      ...parsed.data,
     });
   }
 
   @Put(":id")
   async updatePolicy(@Param("id") id: string, @Body() body: unknown) {
-    return this.service.updatePolicy(Number(id), {
-      retentionDays: (body as any).retentionDays,
-      maxStorageGb: (body as any).maxStorageGb,
-      autoCleanup: (body as any).autoCleanup,
-      cleanupSchedule: (body as any).cleanupSchedule,
-      isActive: (body as any).isActive,
-    });
+    const parsed = updateRetentionPolicyBodySchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
+    return this.service.updatePolicy(Number(id), parsed.data);
   }
 
   @Delete(":id")
@@ -74,13 +80,18 @@ export class RetentionPoliciesController {
   async exportData(
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
-    @Body() body: { dataType: string; beforeDate: string },
+    @Body() body: unknown,
   ) {
+    const parsed = exportRetentionDataBodySchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
     return this.service.exportDataBeforeDeletion(
       org.orgId,
       projectId,
-      body.dataType,
-      new Date(body.beforeDate),
+      parsed.data.dataType,
+      new Date(parsed.data.beforeDate),
     );
   }
 

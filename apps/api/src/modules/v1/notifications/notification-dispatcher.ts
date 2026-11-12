@@ -318,12 +318,31 @@ export class NotificationDispatcher {
       }
 
       // Retry sending
+      const payload =
+        log.payload && typeof log.payload === "object" && !Array.isArray(log.payload)
+          ? (log.payload as Record<string, unknown>)
+          : undefined;
+
+      const metadataValue = payload?.metadata;
+      const metadata: Record<string, string> =
+        metadataValue &&
+        typeof metadataValue === "object" &&
+        !Array.isArray(metadataValue)
+          ? Object.fromEntries(
+              Object.entries(metadataValue).map(([key, value]) => [key, String(value)]),
+            )
+          : {};
+
       const result = await this.sendToChannel(channel, {
         to: channel.recipientEmails ?? [],
-        subject: (log.payload as any).subject || "Retry Notification",
-        body: (log.payload as any).body || "",
-        htmlBody: (log.payload as any).htmlBody,
-        metadata: (log.payload as any).metadata || {},
+        subject:
+          typeof payload?.subject === "string" && payload.subject.length > 0
+            ? payload.subject
+            : "Retry Notification",
+        body: typeof payload?.body === "string" ? payload.body : "",
+        htmlBody:
+          typeof payload?.htmlBody === "string" ? payload.htmlBody : undefined,
+        metadata,
         ...(channel.type === "webhook"
           ? {
               url: channel.webhookUrl!,

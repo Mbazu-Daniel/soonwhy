@@ -40,7 +40,7 @@ const LINK_LOCAL_HOST = /^(169\.254\.\d{1,3}\.\d{1,3}|fe80:)/;
 export interface AiCredentialDraft {
   provider: string;
   model: string;
-  apiKey: string;
+  apiKey?: string;
   baseUrl?: string | null;
 }
 
@@ -75,7 +75,7 @@ export class AiService {
     private readonly cipher: CredentialCipher,
     @Inject(LlmProviderResolver) private readonly resolver: Pick<
       LlmProviderResolver,
-      "resolve" | "describe" | "describePlatform" | "invalidate"
+      "resolve" | "describe" | "invalidate"
     >,
     @Inject(LlmCatalog) private readonly catalog: Pick<
       LlmCatalog,
@@ -96,9 +96,8 @@ export class AiService {
       this.repository.get(orgId),
       this.resolver.describe(orgId),
     ]);
-    const platform = this.resolver.describePlatform();
     if (!row)
-      return { configured: false, canManage, activeSource: active.source, platform };
+      return { configured: false, canManage, activeSource: active.source };
     return {
       configured: true,
       canManage,
@@ -112,7 +111,6 @@ export class AiService {
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       activeSource: active.source,
-      platform,
     };
   }
 
@@ -121,7 +119,6 @@ export class AiService {
     const active = await this.resolver.describe(orgId);
     return {
       providers: this.catalog.providers(),
-      platform: this.resolver.describePlatform(),
       activeSource: active.source,
       canManage,
       quotaEnforced: this.quota.enforced,
@@ -138,25 +135,49 @@ export class AiService {
         "This server cannot store credentials: no encryption key is configured.",
       );
 
-    const apiKey = input.apiKey.trim();
+    // A blank key keeps the stored one, so rotating the model costs no key re-entry.
+    const requestedKey = input.apiKey?.trim() ?? "";
     const model = input.model.trim();
-    if (!apiKey) throw aiCredentialInvalid("An API key is required.");
     if (!model) throw aiCredentialInvalid("A model is required.");
 
     const providerId = input.provider.trim().toLowerCase();
     if (!this.catalog.isKnownProvider(providerId)) {
       throw aiProviderUnsupported(providerId);
     }
-    const baseUrl = input.baseUrl?.trim() || null;
-    if (baseUrl) this.assertBaseUrlAllowed(providerId, baseUrl);
+
+    // The UI keeps no base URL of its own; omitted means "keep what is stored".
+    const baseUrlInput =
+      input.baseUrl === undefined
+        ? undefined
+        : input.baseUrl?.trim() || null;
+    if (baseUrlInput) this.assertBaseUrlAllowed(providerId, baseUrlInput);
+    const existing =
+      requestedKey === "" || baseUrlInput === undefined
+        ? await this.repository.get(orgId)
+        : null;
+    if (!requestedKey && !existing) {
+      throw aiCredentialInvalid("An API key is required.");
+    }
+    const baseUrl =
+      baseUrlInput === undefined ? (existing?.baseUrl ?? null) : baseUrlInput;
+
+    let encryptedApiKey: string;
+    let keyHint: string;
+    if (requestedKey) {
+      encryptedApiKey = this.cipher.encrypt(requestedKey);
+      keyHint = maskKey(requestedKey);
+    } else {
+      encryptedApiKey = existing!.encryptedApiKey;
+      keyHint = existing!.keyHint;
+    }
 
     const row = await this.repository.upsert({
       orgId,
       provider: providerId,
       model,
       baseUrl,
-      encryptedApiKey: this.cipher.encrypt(apiKey),
-      keyHint: maskKey(apiKey),
+      encryptedApiKey,
+      keyHint,
     });
     this.resolver.invalidate(orgId);
 
@@ -508,9 +529,7 @@ function classify(status: number): AiConnectionCode {
 }
 
 function labelFor(target: ResolvedLlmModel): string {
-  return target.source === "platform"
-    ? "The platform provider"
-    : `Provider ${target.providerId}`;
+  return `Provider ${target.providerId}`;
 }
 
 function describeCheck(

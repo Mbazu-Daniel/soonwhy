@@ -11,7 +11,7 @@ export class ApiKeysRepository {
   }
 
   private generateKey(): string {
-    return randomBytes(32).toString("hex");
+    return `soonwhy_${randomBytes(32).toString("base64url")}`;
   }
 
   async getProject(projectId: string, orgId: string) {
@@ -62,7 +62,7 @@ export class ApiKeysRepository {
     expiresAt?: Date;
   }) {
     const rawKey = this.generateKey();
-    const prefix = rawKey.substring(0, 8);
+    const prefix = rawKey.substring(0, 15);
     const keyHash = this.hashKey(rawKey);
 
     const [apiKey] = await db
