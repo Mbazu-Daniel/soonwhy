@@ -1,4 +1,5 @@
 import { createTelemetryIdentity } from "./telemetry-identity";
+import { percentile } from './percentile';
 
 const MIN_SAMPLES = 5;
 
@@ -113,9 +114,9 @@ export function detectRuntimeDegradation(
     if (!spec) continue;
 
     const values = samples.map((sample) => sample.value);
-    const p50 = percentile(values, 0.5);
-    const p95 = percentile(values, 0.95);
-    const p99 = percentile(values, 0.99);
+    const p50 = percentile(values, 0.5) ?? 0;
+    const p95 = percentile(values, 0.95) ?? 0;
+    const p99 = percentile(values, 0.99) ?? 0;
     const severity =
       p95 >= spec.critical
         ? "critical"
@@ -218,15 +219,3 @@ function runtimeRecommendation(family: RuntimeFamily): string {
   }
 }
 
-function percentile(values: number[], rank: number): number {
-  if (!values.length) return 0;
-  const sorted = [...values].sort((left, right) => left - right);
-  const index = (sorted.length - 1) * rank;
-  const lower = Math.floor(index);
-  const upper = Math.ceil(index);
-  if (lower === upper) return sorted[lower] ?? 0;
-  return (
-    (sorted[lower] ?? 0) +
-    ((sorted[upper] ?? 0) - (sorted[lower] ?? 0)) * (index - lower)
-  );
-}

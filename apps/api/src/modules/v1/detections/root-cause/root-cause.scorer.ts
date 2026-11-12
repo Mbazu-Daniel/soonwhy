@@ -4,14 +4,10 @@
  * Calculates weighted scores from signal values.
  */
 
-import type {
-  SignalScores,
-  ScoringWeights,
-} from './root-cause.types';
+import type { ScoringWeights, SignalScores } from "./root-cause.types";
 
-/**
- * Calculate overall score from signal scores using weights
- */
+type SignalKey = keyof SignalScores;
+
 function calculateScore(
   signalScores: SignalScores,
   weights: ScoringWeights,
@@ -24,21 +20,25 @@ function calculateScore(
   );
 }
 
-/**
- * Calculate score with renormalized weights for missing signals
- */
 export function calculateScoreWithMissingSignals(
   signalScores: Partial<SignalScores>,
   weights: ScoringWeights,
 ): { score: number; availableSignals: string[] } {
-  const availableSignals: string[] = [];
+  const availableSignals: SignalKey[] = [];
 
-  if (signalScores.anomalySeverity !== undefined) availableSignals.push('anomalySeverity');
-  if (signalScores.graphPosition !== undefined) availableSignals.push('graphPosition');
-  if (signalScores.criticalPathContribution !== undefined) availableSignals.push('criticalPathContribution');
-  if (signalScores.errorPropagation !== undefined) availableSignals.push('errorPropagation');
+  if (signalScores.anomalySeverity !== undefined) {
+    availableSignals.push("anomalySeverity");
+  }
+  if (signalScores.graphPosition !== undefined) {
+    availableSignals.push("graphPosition");
+  }
+  if (signalScores.criticalPathContribution !== undefined) {
+    availableSignals.push("criticalPathContribution");
+  }
+  if (signalScores.errorPropagation !== undefined) {
+    availableSignals.push("errorPropagation");
+  }
 
-  // If all signals available, use standard calculation
   if (availableSignals.length === 4) {
     return {
       score: calculateScore(signalScores as SignalScores, weights),
@@ -46,9 +46,8 @@ export function calculateScoreWithMissingSignals(
     };
   }
 
-  // Renormalize weights for available signals
   const totalWeight = availableSignals.reduce(
-    (sum, signal) => sum + (weights as any)[signal],
+    (sum, signal) => sum + weights[signal],
     0,
   );
 
@@ -58,8 +57,11 @@ export function calculateScoreWithMissingSignals(
 
   let score = 0;
   for (const signal of availableSignals) {
-    const normalizedWeight = (weights as any)[signal] / totalWeight;
-    score += normalizedWeight * (signalScores as any)[signal]!;
+    const signalScore = signalScores[signal];
+    if (signalScore === undefined) {
+      continue;
+    }
+    score += (weights[signal] / totalWeight) * signalScore;
   }
 
   return { score, availableSignals };

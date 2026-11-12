@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { evaluateDatabaseQuery, percentile } from "./database-query.engine";
+import { evaluateDatabaseQuery } from "./database-query.engine";
+import { percentile } from "./percentile";
 
 describe("database query engine", () => {
   it("detects a slow query from its p95 latency", () => {

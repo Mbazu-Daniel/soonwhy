@@ -5,9 +5,10 @@ import type { EvidenceNode, EvidenceEdge } from "./evidence-graph.types";
 describe("EvidenceGraphService", () => {
   let service: EvidenceGraphService;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     service = new EvidenceGraphService();
-    service.clear();
+    await service.clear("org-1");
+    await service.clear("org-2");
   });
 
   describe("node management", () => {
@@ -134,7 +135,7 @@ describe("EvidenceGraphService", () => {
         strength: 0.9,
       });
 
-      const path = await service.findShortestPath("node-1", "node-3");
+      const path = await service.findShortestPath("org-1", "node-1", "node-3");
 
       expect(path).not.toBeNull();
       expect(path?.nodes).toHaveLength(3);
@@ -161,7 +162,7 @@ describe("EvidenceGraphService", () => {
       await service.addNode("org-1", node1);
       await service.addNode("org-1", node2);
 
-      const path = await service.findShortestPath("node-1", "node-2");
+      const path = await service.findShortestPath("org-1", "node-1", "node-2");
 
       expect(path).toBeNull();
     });
@@ -210,7 +211,7 @@ describe("EvidenceGraphService", () => {
         strength: 0.9,
       });
 
-      const connected = service.getConnectedNodes("node-1", 2);
+      const connected = service.getConnectedNodes("org-1", "node-1", 2);
 
       expect(connected).toHaveLength(2);
       expect(connected.map((n) => n.id)).toContain("node-2");
@@ -237,7 +238,7 @@ describe("EvidenceGraphService", () => {
         strength: 1,
       });
 
-      const size = service.getGraphSize();
+      const size = service.getGraphSize("org-1");
 
       expect(size.nodes).toBe(1);
       expect(size.edges).toBe(1);
@@ -253,12 +254,38 @@ describe("EvidenceGraphService", () => {
       };
 
       await service.addNode("org-1", node);
-      await service.clear();
+      await service.clear("org-1");
 
-      const size = service.getGraphSize();
+      const size = service.getGraphSize("org-1");
 
       expect(size.nodes).toBe(0);
       expect(size.edges).toBe(0);
+    });
+  });
+
+  describe("tenant isolation", () => {
+    it("does not serve nodes across organizations", async () => {
+      const node: EvidenceNode = {
+        id: "node-1",
+        type: "service",
+        identity: {
+          domain: "performance",
+          fingerprint: "abc123",
+          fingerprintVersion: 1,
+          serviceName: "checkout",
+          resourceName: "trace-123",
+        },
+        data: {},
+        timestamp: new Date().toISOString(),
+      };
+
+      await service.addNode("org-1", node);
+
+      expect(await service.getNode("org-2", "node-1")).toBeUndefined();
+      expect(await service.getNodesByTrace("org-2", "trace-123")).toHaveLength(0);
+      expect(await service.getNodesByService("org-2", "checkout")).toHaveLength(0);
+      expect(service.getConnectedNodes("org-2", "node-1", 2)).toHaveLength(0);
+      expect(service.getGraphSize("org-2").nodes).toBe(0);
     });
   });
 });

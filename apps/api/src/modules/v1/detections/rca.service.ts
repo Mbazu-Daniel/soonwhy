@@ -53,6 +53,7 @@ export class RcaService {
       usage: result.usage,
       promptVersion: result.promptVersion,
       credential,
+      evidence,
     };
   }
 }

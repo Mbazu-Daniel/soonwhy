@@ -1,17 +1,17 @@
 import { Injectable, Optional } from "@nestjs/common";
-import { eq, and } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import { aiInvestigations } from "../../../../common/db/schema";
-import type { InvestigationResult, InvestigationProgress } from "./ai-investigation.types";
 import { db } from "../../../../common/db";
+import { aiInvestigations } from "../../../../common/db/schema";
+import type { InvestigationProgress, InvestigationResult } from "./ai-investigation.types";
 
 @Injectable()
 export class AIInvestigationRepository {
-  constructor(@Optional() private readonly customDb?: PostgresJsDatabase<any>) {
-    this.db = customDb || db;
-  }
-
   private readonly db: PostgresJsDatabase<any>;
+
+  constructor(@Optional() customDb?: PostgresJsDatabase<any>) {
+    this.db = customDb ?? db;
+  }
 
   async createInvestigation(
     organizationId: string,
@@ -60,7 +60,7 @@ export class AIInvestigationRepository {
         status: "complete",
         progress: "100",
         currentStep: "Complete",
-        result: result as any,
+        result,
         completedAt: new Date(),
       })
       .where(
@@ -107,12 +107,12 @@ export class AIInvestigationRepository {
       )
       .limit(1);
 
-    if (!result[0]) return null;
-
     const row = result[0];
+    if (!row) return null;
+
     return {
       investigationId: row.investigationId,
-      status: row.status as any,
+      status: row.status as InvestigationProgress["status"],
       progress: parseInt(row.progress, 10),
       currentStep: row.currentStep || "",
     };

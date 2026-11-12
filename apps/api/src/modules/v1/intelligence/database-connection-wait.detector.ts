@@ -1,3 +1,4 @@
+import { percentile } from './percentile';
 export interface DatabaseConnectionWaitSample {
   timestamp: string;
   service: string;
@@ -55,12 +56,9 @@ export function detectDatabaseConnectionWait(
       const baseline = baselineGroups.get(key);
       const baselineP95 =
         baseline && baseline.length >= thresholds.minimumSamples
-          ? percentile(
-              baseline.map((sample) => sample.waitTimeMs),
-              95,
-            )
+          ? percentile(baseline.map((sample) => sample.waitTimeMs), 0.95)
           : undefined;
-      const p95WaitMs = percentile(currentValues, 95);
+      const p95WaitMs = percentile(currentValues, 0.95) ?? 0;
       const p95ChangePercent =
         baselineP95 !== undefined && baselineP95 > 0
           ? ((p95WaitMs - baselineP95) / baselineP95) * 100
@@ -85,9 +83,9 @@ export function detectDatabaseConnectionWait(
             severity: (critical ? "critical" : "warning") as
               | "warning"
               | "critical",
-            p50WaitMs: percentile(currentValues, 50),
+            p50WaitMs: percentile(currentValues, 0.5) ?? 0,
             p95WaitMs,
-            p99WaitMs: percentile(currentValues, 99),
+            p99WaitMs: percentile(currentValues, 0.99) ?? 0,
             ...(baselineP95 !== undefined
               ? { baselineP95WaitMs: baselineP95 }
               : {}),
@@ -124,14 +122,3 @@ function group(
   return groups;
 }
 
-function percentile(values: number[], percentileValue: number): number {
-  const sorted = [...values].sort((left, right) => left - right);
-  if (!sorted.length) return 0;
-  const position = (percentileValue / 100) * (sorted.length - 1);
-  const lower = Math.floor(position);
-  const upper = Math.ceil(position);
-  if (lower === upper) return sorted[lower] ?? 0;
-  const lowerValue = sorted[lower] ?? 0;
-  const upperValue = sorted[upper] ?? lowerValue;
-  return lowerValue + (upperValue - lowerValue) * (position - lower);
-}
