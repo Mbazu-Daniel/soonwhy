@@ -4,7 +4,7 @@ These examples are the 4C validation surface for the Node SDK.
 
 The intended flow is:
 
-`application -> @soonwhy/sdk/node -> OTLP traces -> Soonwhy ingestion -> detection -> finding`
+`application -> @soonwhy/node -> OTLP traces -> Soonwhy ingestion -> detection -> finding`
 
 OpenTelemetry recommends initializing the Node SDK before application modules are loaded so instrumentation can patch the libraries that create spans. For ESM applications, use Node's `--import` mechanism when the runtime requires initialization before application code.
 
@@ -58,6 +58,8 @@ Run:
 ```bash
 pnpm tsx nestjs.ts
 ```
+
+Also available: `pnpm tsx nestjs-module.ts` boots Nest with `SoonwhyModule.forRoot` from `@soonwhy/nest` (the AppModule wiring rather than init-first) and injects `SOONWHY_SDK` in a controller to report `isStarted()` and stats on `/sdk-status`. Note that this variant starts telemetry inside the Nest lifecycle, so auto-instrumented request spans for pre-loaded libraries (Nest internals, http) will not be recorded; logs, metrics and errors still flow. For full auto-instrumentation, follow `nestjs.ts`'s init-first pattern.
 
 Then:
 

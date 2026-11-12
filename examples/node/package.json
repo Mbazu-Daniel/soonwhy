@@ -3,9 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:sdk": "pnpm --dir ../../packages/sdk build",
+    "build:sdk": "pnpm --dir ../../sdk/node build",
     "express": "tsx express.ts",
     "nestjs": "tsx nestjs.ts",
+    "nestjs:module": "tsx nestjs-module.ts",
     "dependencies": "tsx dependencies.ts"
   },
   "dependencies": {
@@ -18,7 +19,8 @@
     "@opentelemetry/resources": "^2.11.0",
     "@opentelemetry/sdk-node": "^0.222.0",
     "@opentelemetry/sdk-trace-base": "^2.11.0",
-    "@soonwhy/sdk": "file:../../packages/sdk",
+    "@soonwhy/nest": "link:../../sdk/nest",
+    "@soonwhy/node": "link:../../sdk/node",
     "express": "^5.1.0",
     "ioredis": "^5.8.2",
     "pg": "^8.16.3",
