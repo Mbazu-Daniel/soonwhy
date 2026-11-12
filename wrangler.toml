@@ -1,9 +1,0 @@
-name = "soonwhy"
-compatibility_date = "2024-01-01"
-pages_build_output_dir = "apps/ui/dist"
-
-[env.production]
-vars = { ENVIRONMENT = "production" }
-
-[env.preview]
-vars = { ENVIRONMENT = "preview" }

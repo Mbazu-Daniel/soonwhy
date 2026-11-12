@@ -111,12 +111,8 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://ingest:3002
       OTEL_EXPORTER_OTLP_HEADERS: authorization=Bearer ${SOONWHY_API_KEY:-}
       PORT: 3001
-      # AI: platform credentials are optional; organisation keys win when saved.
-      SOONWHY_RCA_API_KEY: ${SOONWHY_RCA_API_KEY:-}
-      SOONWHY_RCA_MODEL: ${SOONWHY_RCA_MODEL:-}
-      SOONWHY_RCA_BASE_URL: ${SOONWHY_RCA_BASE_URL:-}
-      SOONWHY_RCA_PROVIDER: ${SOONWHY_RCA_PROVIDER:-openai}
-      SOONWHY_CREDENTIAL_ENCRYPTION_KEY: ${SOONWHY_CREDENTIAL_ENCRYPTION_KEY:-}
+      # AI: organisations bring their own provider keys; the platform default is gone.
+      SOONWHY_PII_ENCRYPTION_KEY: ${SOONWHY_PII_ENCRYPTION_KEY:-}
       SOONWHY_AI_QUOTA_ENFORCED: ${SOONWHY_AI_QUOTA_ENFORCED:-false}
       SOONWHY_AI_ALLOWED_BASE_HOSTS: ${SOONWHY_AI_ALLOWED_BASE_HOSTS:-}
       SOONWHY_AI_CREDENTIAL_CACHE_TTL_MS: ${SOONWHY_AI_CREDENTIAL_CACHE_TTL_MS:-}
@@ -161,22 +157,6 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
-
-  cron:
-    build: {context: ., target: cron}
-    environment:
-      DATABASE_URL: postgres://soonwhy:soonwhy@postgres:5432/soonwhy
-      REDIS_URL: redis://redis:6379
-      QUICKWIT_URL: http://quickwit:7280
-      NATS_URL: nats://nats:4222
-      INGEST_URL: http://ingest:3002
-      SELF_MONITOR_WEBHOOK_URL: ${SELF_MONITOR_WEBHOOK_URL:-}
-    depends_on:
-      postgres: {condition: service_healthy}
-      redis: {condition: service_healthy}
-      quickwit: {condition: service_healthy}
-      nats: {condition: service_healthy}
-    restart: unless-stopped
 
 volumes:
   postgres-data:

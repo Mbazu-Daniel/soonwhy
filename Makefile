@@ -66,16 +66,16 @@ observability-redis-logs:
 # -------------------------
 
 observability-api:
-	$(OBS_COMPOSE) up -d postgres redis localstack quickwit api ingest cron
+	$(OBS_COMPOSE) up -d postgres redis localstack quickwit api ingest
 
 observability-api-build:
-	$(OBS_COMPOSE) up -d --build postgres redis localstack quickwit api ingest cron
+	$(OBS_COMPOSE) up -d --build postgres redis localstack quickwit api ingest
 
 observability-api-down:
-	$(OBS_COMPOSE) stop postgres redis localstack quickwit api ingest cron
+	$(OBS_COMPOSE) stop postgres redis localstack quickwit api ingest
 
 observability-api-stack-logs:
-	$(OBS_COMPOSE) logs -f postgres redis localstack quickwit api ingest cron
+	$(OBS_COMPOSE) logs -f postgres redis localstack quickwit api ingest
 
 # -------------------------
 # Convenience
