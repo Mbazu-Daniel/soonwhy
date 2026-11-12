@@ -5,9 +5,7 @@ import { LlmCatalog } from "./llm-catalog.service";
 import {
   buildProviderConfig,
   readLlmTuning,
-  readPlatformLlmConfig,
   type LlmTuning,
-  type PlatformLlmConfig,
 } from "./llm-provider.config";
 import {
   aiCredentialUnreadable,
@@ -58,7 +56,6 @@ export class LlmProviderResolver {
   private readonly ttlMs =
     Number(process.env.SOONWHY_AI_CREDENTIAL_CACHE_TTL_MS) ||
     DEFAULT_CACHE_TTL_MS;
-  private readonly platform: PlatformLlmConfig;
   private readonly tuning: LlmTuning;
 
   constructor(
@@ -69,7 +66,6 @@ export class LlmProviderResolver {
     private readonly cipher: CredentialCipher,
     private readonly catalog: LlmCatalog,
   ) {
-    this.platform = readPlatformLlmConfig();
     this.tuning = readLlmTuning();
   }
 
@@ -96,23 +92,7 @@ export class LlmProviderResolver {
     if (isUsableByok(row)) {
       return { source: "byok", provider: row.provider, model: row.model };
     }
-    if (this.platform.configured) {
-      return {
-        source: "platform",
-        provider: this.platform.providerId,
-        model: this.platform.model,
-      };
-    }
     return { source: "none", provider: null, model: null };
-  }
-
-  /** Platform availability for the settings screen: never the platform key. */
-  describePlatform() {
-    return {
-      configured: this.platform.configured,
-      provider: this.platform.configured ? this.platform.providerId : null,
-      model: this.platform.configured ? this.platform.model : null,
-    };
   }
 
   /** Every write path calls this, so a saved or removed key takes effect at once. */
@@ -142,9 +122,7 @@ export class LlmProviderResolver {
 
   private async load(orgId: string): Promise<ResolvedLlmModel> {
     const row = await this.repository.get(orgId);
-    const model = isUsableByok(row)
-      ? this.fromByok(row)
-      : this.fromPlatformOrNull();
+    const model = isUsableByok(row) ? this.fromByok(row) : null;
     if (!model) throw aiNotConfigured();
     return model;
   }
@@ -158,7 +136,7 @@ export class LlmProviderResolver {
       // payload that genuinely will not open means the stored key is stale.
       if (!(error instanceof CredentialDecryptError)) throw error;
       LlmProviderResolver.logger.warn(
-        `Stored AI credential ${row.id} could not be decrypted; check SOONWHY_CREDENTIAL_ENCRYPTION_KEY`,
+        `Stored AI credential ${row.id} could not be decrypted; check SOONWHY_PII_ENCRYPTION_KEY`,
       );
       throw aiCredentialUnreadable();
     }
@@ -169,21 +147,6 @@ export class LlmProviderResolver {
       baseUrl: this.endpointFor(row.provider, row.baseUrl),
       apiKey,
       credentialId: row.id,
-    };
-  }
-
-  private fromPlatformOrNull(): ResolvedLlmModel | null {
-    if (!this.platform.configured) return null;
-    return {
-      source: "platform",
-      providerId: this.platform.providerId,
-      model: this.platform.model,
-      baseUrl: this.endpointFor(
-        this.platform.providerId,
-        this.platform.baseUrl,
-      ),
-      apiKey: this.platform.apiKey,
-      credentialId: null,
     };
   }
 

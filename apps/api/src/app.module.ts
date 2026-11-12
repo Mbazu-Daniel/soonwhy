@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
 import { RouterModule } from "@nestjs/core";
 import { ScheduleModule } from "@nestjs/schedule";
-import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
+import { APP_GUARD } from "@nestjs/core";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { IdempotencyModule } from "@nestjs/idempotency";
 import { CommonModule } from "./common/common.module";
@@ -49,7 +49,7 @@ import { SlosModule } from "./modules/v1/slos/slos.module";
 import { RetentionModule } from "./modules/v1/retention/retention.module";
 import { ErrorRegressionsModule } from "./modules/v1/error-regressions/error-regressions.module";
 import { HistoricalAnalysisModule } from "./modules/v1/historical-analysis/historical-analysis.module";
-import { AlertSuppressionRulesModule } from "./modules/v1/alert-suppression-rules/alert-suppression-rules.module";
+import { AlertModule } from "./modules/v1/alert/alert.module";
 import { CapacityMonitoringModule } from "./modules/v1/capacity-monitoring/capacity-monitoring.module";
 import { StorageCostModule } from "./modules/v1/storage-cost/storage-cost.module";
 import { SelfMonitoringModule } from "./modules/v1/self-monitoring/self-monitoring.module";
@@ -68,7 +68,6 @@ import { AIInvestigationModule } from "./modules/v1/intelligence/ai-investigatio
 import { RecommendationEngineModule } from "./modules/v1/intelligence/recommendation-engine/recommendation-engine.module";
 import { VerificationEngineModule } from "./modules/v1/intelligence/verification-engine/verification-engine.module";
 import { TelemetryModule } from "./common/telemetry";
-import { MetricsInterceptor } from "./common/telemetry/metrics.interceptor";
 
 const organizationScopedModules = [
   ApiKeysModule,
@@ -99,7 +98,7 @@ const organizationScopedModules = [
   MemberContextModule,
   ErrorRegressionsModule,
   HistoricalAnalysisModule,
-  AlertSuppressionRulesModule,
+  AlertModule,
   CapacityMonitoringModule,
   StorageCostModule,
   QueryCatalogModule,
@@ -122,6 +121,12 @@ const organizationScopedModules = [
   imports: [
     IdempotencyModule.forRoot({
       scope: (req: any) => req.headers['x-org-id'] || req.user?.id || 'global',
+      // No IdempotencyStore is registered yet — the app runs on the in-memory
+      // default. In-memory records don't survive restarts and aren't shared
+      // between instances, so this is only safe for a single API instance.
+      // For multi-replica deployments, implement IdempotencyStore (Redis)
+      // and register it before running more than one API replica.
+      allowInMemoryStorage: true,
     }),
     ScheduleModule.forRoot(),
     CacheModule,
@@ -151,10 +156,6 @@ const organizationScopedModules = [
     ...organizationScopedModules,
   ],
   providers: [
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: MetricsInterceptor,
-    },
     {
       provide: APP_GUARD,
       useClass: ApiThrottlerGuard,

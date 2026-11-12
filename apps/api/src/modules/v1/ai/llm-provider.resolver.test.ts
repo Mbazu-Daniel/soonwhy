@@ -13,7 +13,7 @@ const HEX_KEY_B = "b".repeat(64);
 
 function cipherWith(hexKey: string): CredentialCipher {
   return CredentialCipher.fromEnv({
-    SOONWHY_CREDENTIAL_ENCRYPTION_KEY: hexKey,
+    SOONWHY_PII_ENCRYPTION_KEY: hexKey,
   });
 }
 
@@ -57,9 +57,6 @@ function buildResolver(
 describe("LlmProviderResolver", () => {
   beforeEach(() => {
     vi.unstubAllEnvs();
-    vi.stubEnv("SOONWHY_RCA_API_KEY", "platform-secret");
-    vi.stubEnv("SOONWHY_RCA_MODEL", "openai/gpt-4o");
-    vi.stubEnv("SOONWHY_RCA_PROVIDER", "openai");
   });
 
   afterEach(() => {
@@ -67,7 +64,7 @@ describe("LlmProviderResolver", () => {
     vi.useRealTimers();
   });
 
-  it("prefers the organisation's own credential over the platform key", async () => {
+  it("serves the organisation's own credential", async () => {
     const { resolver } = buildResolver(credentialRow());
 
     const model = await resolver.resolve("org_1");
@@ -108,27 +105,21 @@ describe("LlmProviderResolver", () => {
     });
   });
 
-  it("falls back to the platform credential when the organisation has none", async () => {
+  it("refuses to serve an organisation with no credential", async () => {
     const { resolver } = buildResolver(null);
 
-    const model = await resolver.resolve("org_1");
-
-    expect(model).toMatchObject({
-      source: "platform",
-      providerId: "openai",
-      model: "openai/gpt-4o",
-      credentialId: null,
-      apiKey: "platform-secret",
-      // OpenAI has no registry host: the SDK's own endpoint is used, not a guessed one.
-      baseUrl: null,
+    await expect(resolver.resolve("org_1")).rejects.toMatchObject({
+      status: 503,
+      response: { code: "AI_NOT_CONFIGURED" },
     });
   });
 
   it("ignores a credential the organisation disabled", async () => {
     const { resolver } = buildResolver(credentialRow({ enabled: false }));
 
-    await expect(resolver.resolve("org_1")).resolves.toMatchObject({
-      source: "platform",
+    await expect(resolver.resolve("org_1")).rejects.toMatchObject({
+      status: 503,
+      response: { code: "AI_NOT_CONFIGURED" },
     });
   });
 
@@ -137,13 +128,13 @@ describe("LlmProviderResolver", () => {
       credentialRow({ deletedAt: new Date() }),
     );
 
-    await expect(resolver.resolve("org_1")).resolves.toMatchObject({
-      source: "platform",
+    await expect(resolver.resolve("org_1")).rejects.toMatchObject({
+      status: 503,
+      response: { code: "AI_NOT_CONFIGURED" },
     });
   });
 
-  it("reports AI_NOT_CONFIGURED when neither credential source exists", async () => {
-    vi.stubEnv("SOONWHY_RCA_API_KEY", "");
+  it("reports AI_NOT_CONFIGURED when no credential exists", async () => {
     const { resolver } = buildResolver(null);
 
     await expect(resolver.resolve("org_1")).rejects.toMatchObject({
@@ -247,7 +238,6 @@ describe("LlmProviderResolver", () => {
   });
 
   it("re-reads after a failed resolve instead of caching the failure", async () => {
-    vi.stubEnv("SOONWHY_RCA_API_KEY", "");
     const { resolver, get } = buildResolver(null);
 
     await expect(resolver.resolve("org_1")).rejects.toBeInstanceOf(Error);
@@ -269,8 +259,7 @@ describe("LlmProviderResolver", () => {
     expect(JSON.stringify(summary)).not.toContain("byok-secret");
   });
 
-  it("reports no credential source when neither is configured", async () => {
-    vi.stubEnv("SOONWHY_RCA_API_KEY", "");
+  it("reports no credential source when none is configured", async () => {
     const { resolver } = buildResolver(null);
 
     await expect(resolver.describe("org_1")).resolves.toEqual({
@@ -298,7 +287,6 @@ describe("LlmProviderResolver", () => {
   });
 
   it("meters nothing and fails fast when no credential exists", async () => {
-    vi.stubEnv("SOONWHY_RCA_API_KEY", "");
     const { resolver } = buildResolver(null);
 
     await expect(resolver.resolveForRca("org_1")).rejects.toMatchObject({

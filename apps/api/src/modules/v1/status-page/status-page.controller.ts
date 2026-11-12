@@ -14,10 +14,13 @@ export class StatusPageController {
     @Param("orgId") orgId: string,
     @Param("projectId") projectId: string,
   ) {
-    const probes = await this.probesRepository.getProbes(orgId, projectId);
-    
+    const probes = (await this.probesRepository.getProbes(orgId, projectId)).filter(
+      (probe) => probe.enabled,
+    );
+
     const services = await Promise.all(
       probes.map(async (probe) => {
+        const fresh = this.probesService.withFreshStatus(probe);
         const results = await this.probesRepository.getProbeResults(probe.id, 100);
         const totalChecks = results.length;
         const failedChecks = results.filter((r) => r.status === "down").length;
@@ -66,7 +69,7 @@ export class StatusPageController {
           id: probe.id,
           name: probe.name,
           url: probe.url,
-          status: probe.lastStatus,
+          status: fresh.lastStatus,
           uptimePercent,
           totalChecks,
           failedChecks,
@@ -81,6 +84,8 @@ export class StatusPageController {
       ? "down"
       : services.some((s) => s.status === "degraded")
       ? "degraded"
+      : services.some((s) => s.status === "unknown")
+      ? "unknown"
       : "up";
 
     return {

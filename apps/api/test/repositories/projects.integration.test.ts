@@ -81,11 +81,13 @@ describe.skipIf(!databaseTestsEnabled)("ProjectsRepository", () => {
 
     const defaults = await repository.getProjectSettings(project.id, organization.id);
     const updated = await repository.updateProjectSettings(project.id, organization.id, {
-      captureRequestBody: true,
       maxAttributeCount: 42,
     });
 
-    expect(defaults.captureRequestBody).toBe(false);
+    expect(defaults.captureRequestBody).toBe(true);
+    expect(defaults.captureRequestHeaders).toBe(true);
+    expect(defaults.captureResponseBody).toBe(true);
+    expect(defaults.redactSensitiveData).toBe(true);
     expect(defaults.maxAttributeCount).toBe(100);
     expect(updated).toMatchObject({ captureRequestBody: true, maxAttributeCount: 42 });
   });

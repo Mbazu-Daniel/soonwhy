@@ -21,7 +21,7 @@ export class DlqRepository {
         signal: data.signal,
         deliveryCount: data.deliveryCount,
         reason: data.reason,
-        payload: data.payload as any,
+        payload: data.payload,
         organizationId: data.organizationId,
         projectId: data.projectId,
       })

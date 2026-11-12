@@ -7,12 +7,8 @@ export class EmailChannel {
   constructor(private readonly zeptoMail: ZeptoMailService) {}
 
   async send(input: ChannelSendInput): Promise<ChannelSendResult> {
-    const fromEmail = process.env.ZEPTOMAIL_FROM_EMAIL;
-    const fromName = process.env.ZEPTOMAIL_FROM_NAME ?? "Soonwhy";
-
-    if (!fromEmail) {
-      return { ok: false, error: "ZEPTOMAIL_FROM_EMAIL is not configured" };
-    }
+    const fromEmail = process.env.DEFAULT_FROM_EMAIL ?? "noreply@localhost";
+    const fromName = "Soonwhy";
 
     try {
       await this.zeptoMail.send({
