@@ -1,9 +1,57 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+  - 'sdk/*'
 allowBuilds:
   '@scarf/scarf': true
   argon2: true
-  argon2,esbuild,protobufjs: true
   esbuild: true
   protobufjs: true
+  '@swc/core': true
+  workerd: true
+
+peerDependencyRules:
+  ignoreMissing:
+    - next
+
+overrides:
+  better-auth>next: "-"
+  better-auth>react: "-"
+  better-auth>react-dom: "-"
+  better-auth>pg: "-"
+  better-auth>mongodb: "-"
+  better-auth>mysql2: "-"
+  better-auth>better-sqlite3: "-"
+  better-auth>prisma: "-"
+  better-auth>@prisma/client: "-"
+  better-auth>@sveltejs/kit: "-"
+  better-auth>@lynx-js/react: "-"
+  better-auth>@tanstack/react-start: "-"
+  better-auth>@tanstack/solid-start: "-"
+  better-auth>solid-js: "-"
+  better-auth>svelte: "-"
+  better-auth>vue: "-"
+  better-auth>vitest: "-"
+  better-auth>drizzle-kit: "-"
+  drizzle-orm>@aws-sdk/client-rds-data: "-"
+  drizzle-orm>@cloudflare/workers-types: "-"
+  drizzle-orm>@electric-sql/pglite: "-"
+  drizzle-orm>@libsql/client: "-"
+  drizzle-orm>@libsql/client-wasm: "-"
+  drizzle-orm>@neondatabase/serverless: "-"
+  drizzle-orm>@op-engineering/op-sqlite: "-"
+  drizzle-orm>@planetscale/database: "-"
+  drizzle-orm>@prisma/client: "-"
+  drizzle-orm>@tidbcloud/serverless: "-"
+  drizzle-orm>@types/better-sqlite3: "-"
+  drizzle-orm>@types/pg: "-"
+  drizzle-orm>@types/sql.js: "-"
+  drizzle-orm>@vercel/postgres: "-"
+  drizzle-orm>@xata.io/client: "-"
+  drizzle-orm>better-sqlite3: "-"
+  drizzle-orm>bun-types: "-"
+  drizzle-orm>expo-sqlite: "-"
+  drizzle-orm>knex: "-"
+  drizzle-orm>kysely: "-"
+  drizzle-orm>mysql2: "-"
+  drizzle-orm>pg: "-"
