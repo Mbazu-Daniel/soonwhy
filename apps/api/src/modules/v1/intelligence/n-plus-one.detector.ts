@@ -1,4 +1,5 @@
 import { fingerprintQuery } from "./query-fingerprint";
+import { percentile } from './percentile';
 
 export interface NPlusOneTrace {
   timestamp: string;
@@ -139,17 +140,3 @@ export function detectNPlusOne(
     .slice(0, 100);
 }
 
-function percentile(values: number[], rank: number): number | undefined {
-  const finite = values
-    .filter((value) => Number.isFinite(value) && value >= 0)
-    .sort((a, b) => a - b);
-  if (!finite.length) return undefined;
-
-  const index = (finite.length - 1) * Math.min(1, Math.max(0, rank));
-  const lower = Math.floor(index);
-  const upper = Math.ceil(index);
-  if (lower === upper) return finite[lower];
-
-  const weight = index - lower;
-  return finite[lower]! + (finite[upper]! - finite[lower]!) * weight;
-}

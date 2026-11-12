@@ -1,4 +1,5 @@
 import { fingerprintQuery } from "./query-fingerprint";
+import { percentile } from './percentile';
 
 const MINIMUM_SAMPLES = 5;
 const LOCK_WAIT_THRESHOLD_MS = 250;
@@ -218,21 +219,9 @@ function distribution(values: number[]): {
   p99: number;
 } {
   return {
-    p50: percentile(values, 0.5),
-    p95: percentile(values, 0.95),
-    p99: percentile(values, 0.99),
+    p50: percentile(values, 0.5) ?? 0,
+    p95: percentile(values, 0.95) ?? 0,
+    p99: percentile(values, 0.99) ?? 0,
   };
 }
 
-function percentile(values: number[], rank: number): number {
-  if (!values.length) return 0;
-  const sorted = [...values].sort((left, right) => left - right);
-  const index = (sorted.length - 1) * rank;
-  const lower = Math.floor(index);
-  const upper = Math.ceil(index);
-  if (lower === upper) return sorted[lower] ?? 0;
-  return (
-    (sorted[lower] ?? 0) +
-    ((sorted[upper] ?? 0) - (sorted[lower] ?? 0)) * (index - lower)
-  );
-}

@@ -146,9 +146,9 @@ export function detectProviderFailure(
 ): AIProviderFailureFinding[] {
   const findings: AIProviderFailureFinding[] = [];
 
-  const byProvider = new Map<string, AIOperation[]>();
+  const byProvider = new Map<AIOperation["provider"], AIOperation[]>();
   for (const op of operations) {
-    const existing = byProvider.get(op.provider) || [];
+    const existing = byProvider.get(op.provider) ?? [];
     existing.push(op);
     byProvider.set(op.provider, existing);
   }
@@ -170,7 +170,7 @@ export function detectProviderFailure(
           operationName: first.operationType,
           resourceName: first.model,
         }),
-        provider: provider as any,
+        provider,
         errorCount,
         errorRate,
         affectedModels: Array.from(affectedModels),
@@ -197,15 +197,13 @@ export function detectModelFailure(
   const byModel = new Map<string, AIOperation[]>();
   for (const op of operations) {
     const key = `${op.provider}:${op.model}`;
-    const existing = byModel.get(key) || [];
+    const existing = byModel.get(key) ?? [];
     existing.push(op);
     byModel.set(key, existing);
   }
 
   for (const [key, modelOps] of byModel) {
-    const parts = key.split(":");
-    const provider = parts[0];
-    const model = parts[1];
+    const [provider, model] = key.split(":");
     if (!provider || !model) continue;
 
     const errorCount = modelOps.filter((op) => op.error).length;
@@ -222,7 +220,7 @@ export function detectModelFailure(
           operationName: first.operationType,
           resourceName: first.model,
         }),
-        provider: provider as any,
+        provider: first.provider,
         model,
         errorCount,
         errorRate,
@@ -248,15 +246,13 @@ export function detectRateLimitHits(
   const byModel = new Map<string, AIOperation[]>();
   for (const op of operations) {
     const key = `${op.provider}:${op.model}`;
-    const existing = byModel.get(key) || [];
+    const existing = byModel.get(key) ?? [];
     existing.push(op);
     byModel.set(key, existing);
   }
 
   for (const [key, modelOps] of byModel) {
-    const parts = key.split(":");
-    const provider = parts[0];
-    const model = parts[1];
+    const [provider, model] = key.split(":");
     if (!provider || !model) continue;
 
     const rateLimitErrors = modelOps.filter((op) =>
@@ -278,7 +274,7 @@ export function detectRateLimitHits(
           operationName: first.operationType,
           resourceName: first.model,
         }),
-        provider: provider as any,
+        provider: first.provider,
         model,
         rateLimitHits: rateLimitErrors.length,
         timeWindow: `${(durationMs / 1000).toFixed(0)}s`,

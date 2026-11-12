@@ -1,3 +1,4 @@
+import { percentile } from './percentile';
 export type DatabaseQuerySeverity = "warning" | "critical";
 
 
@@ -102,25 +103,6 @@ export function evaluateDatabaseQuery(
   };
 }
 
-
-export function percentile(
-  values: number[],
-  percentileRank: number,
-): number | undefined {
-  const finite = values
-    .filter((value) => Number.isFinite(value) && value >= 0)
-    .sort((a, b) => a - b);
-  if (!finite.length) return undefined;
-
-  const rank = Math.min(1, Math.max(0, percentileRank));
-  const index = (finite.length - 1) * rank;
-  const lower = Math.floor(index);
-  const upper = Math.ceil(index);
-  if (lower === upper) return finite[lower];
-
-  const weight = index - lower;
-  return finite[lower]! + (finite[upper]! - finite[lower]!) * weight;
-}
 
 function percentChange(value: number, baseline: number): number | undefined {
   if (baseline <= 0) return undefined;

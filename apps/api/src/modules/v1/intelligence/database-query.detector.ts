@@ -1,9 +1,6 @@
 import { fingerprintQuery } from "./query-fingerprint";
-import {
-  evaluateDatabaseQuery,
-  percentile,
-  type DatabaseQuerySignal,
-} from "./database-query.engine";
+import { evaluateDatabaseQuery, type DatabaseQuerySignal } from "./database-query.engine";
+import { percentile } from "./percentile";
 
 export interface DatabaseQueryTrace {
   timestamp: string;

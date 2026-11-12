@@ -1,4 +1,5 @@
 import { fingerprintQuery } from "./query-fingerprint";
+import { percentile } from './percentile';
 
 export interface DatabaseLatencyContributionTrace {
   timestamp: string;
@@ -122,9 +123,9 @@ export function detectDatabaseLatencyContribution(
         (value) => value.contributionPercent,
       );
       const durationValues = observations.map((value) => value.duration);
-      const p50ContributionPercent = percentile(contributionValues, 50);
-      const p95ContributionPercent = percentile(contributionValues, 95);
-      const p95DurationMs = percentile(durationValues, 95);
+      const p50ContributionPercent = percentile(contributionValues, 0.5) ?? 0;
+      const p95ContributionPercent = percentile(contributionValues, 0.95) ?? 0;
+      const p95DurationMs = percentile(durationValues, 0.95) ?? 0;
 
       if (
         p95ContributionPercent < thresholds.minimumP95ContributionPercent ||
@@ -175,14 +176,3 @@ export function detectDatabaseLatencyContribution(
     .slice(0, 100);
 }
 
-function percentile(values: number[], percentileValue: number): number {
-  if (!values.length) return 0;
-  const sorted = [...values].sort((left, right) => left - right);
-  const position = (percentileValue / 100) * (sorted.length - 1);
-  const lower = Math.floor(position);
-  const upper = Math.ceil(position);
-  if (lower === upper) return sorted[lower] ?? 0;
-  const lowerValue = sorted[lower] ?? 0;
-  const upperValue = sorted[upper] ?? lowerValue;
-  return lowerValue + (upperValue - lowerValue) * (position - lower);
-}

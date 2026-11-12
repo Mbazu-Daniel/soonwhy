@@ -1,4 +1,5 @@
 import { createTelemetryIdentity } from "./telemetry-identity";
+import { percentile } from './percentile';
 
 const MIN_SAMPLES = 5;
 const LATENCY_THRESHOLD_MS = 50;
@@ -67,15 +68,15 @@ export function detectCacheDegradation(
     const p50Duration = percentile(
       samples.map((sample) => sample.duration),
       0.5,
-    );
+    ) ?? 0;
     const p95Duration = percentile(
       samples.map((sample) => sample.duration),
       0.95,
-    );
+    ) ?? 0;
     const p99Duration = percentile(
       samples.map((sample) => sample.duration),
       0.99,
-    );
+    ) ?? 0;
     const errorCount = samples.filter(isError).length;
     const errorRate = errorCount / samples.length;
     const baselineP95 =
@@ -185,15 +186,3 @@ function cacheRecommendation(cacheType: CacheType): string {
   return `Inspect ${backend} command latency and errors, connection reuse, hot keys, payload size, and command frequency. Check whether expensive or repeated operations can be reduced or combined.`;
 }
 
-function percentile(values: number[], rank: number): number {
-  if (!values.length) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  const index = (sorted.length - 1) * rank;
-  const lower = Math.floor(index);
-  const upper = Math.ceil(index);
-  if (lower === upper) return sorted[lower] ?? 0;
-  return (
-    (sorted[lower] ?? 0) +
-    ((sorted[upper] ?? 0) - (sorted[lower] ?? 0)) * (index - lower)
-  );
-}

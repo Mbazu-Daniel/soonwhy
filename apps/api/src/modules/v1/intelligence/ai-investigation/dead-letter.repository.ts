@@ -1,16 +1,16 @@
 import { Injectable, Optional } from "@nestjs/common";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import { db } from "../../../../common/db";
 import { deadLetterInvestigations } from "../../../../common/db/schema";
 import type { InvestigationRequest } from "./ai-investigation.types";
-import { db } from "../../../../common/db";
 
 @Injectable()
 export class DeadLetterInvestigationRepository {
-  constructor(@Optional() private readonly customDb?: PostgresJsDatabase<any>) {
-    this.db = customDb || db;
-  }
-
   private readonly db: PostgresJsDatabase<any>;
+
+  constructor(@Optional() customDb?: PostgresJsDatabase<any>) {
+    this.db = customDb ?? db;
+  }
 
   async addFailedInvestigation(
     organizationId: string,
@@ -25,12 +25,11 @@ export class DeadLetterInvestigationRepository {
       organizationId,
       investigationId,
       projectId,
-      request: request as any,
+      request,
       error,
       attemptCount: attemptCount.toString(),
       lastAttemptAt: new Date(),
       expiresAt,
     });
   }
-
 }

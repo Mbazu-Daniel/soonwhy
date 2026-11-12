@@ -1,19 +1,28 @@
-import { Controller, Get, Post, Put, Delete, Body, Param } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Put,
+  Post,
+  Param,
+} from "@nestjs/common";
+import { CurrentOrg, OrgContext } from "../../../common/decorators/current-org.decorator";
 import { DetectorConfigService } from "./detector-config.service";
 
 @Controller("intelligence/detector-config")
 export class DetectorConfigController {
   constructor(private readonly configService: DetectorConfigService) {}
 
-  @Get(":organizationId/:detectorName/:thresholdName")
+  @Get(":detectorName/:thresholdName")
   async getThreshold(
-    @Param("organizationId") organizationId: string,
+    @CurrentOrg() org: OrgContext,
     @Param("detectorName") detectorName: string,
     @Param("thresholdName") thresholdName: string,
     @Body("defaultValue") defaultValue?: number,
   ): Promise<{ value: number }> {
     const value = await this.configService.getDetectorThreshold(
-      organizationId,
+      org.orgId,
       detectorName,
       thresholdName,
       defaultValue ?? 0,
@@ -21,45 +30,45 @@ export class DetectorConfigController {
     return { value };
   }
 
-  @Get(":organizationId/:detectorName")
+  @Get(":detectorName")
   async getDetectorConfigs(
-    @Param("organizationId") organizationId: string,
+    @CurrentOrg() org: OrgContext,
     @Param("detectorName") detectorName: string,
   ): Promise<Record<string, number>> {
-    return this.configService.getDetectorConfigs(organizationId, detectorName);
+    return this.configService.getDetectorConfigs(org.orgId, detectorName);
   }
 
-  @Get(":organizationId")
+  @Get()
   async getAllDetectorConfigs(
-    @Param("organizationId") organizationId: string,
+    @CurrentOrg() org: OrgContext,
   ): Promise<Record<string, Record<string, number>>> {
-    return this.configService.getAllDetectorConfigs(organizationId);
+    return this.configService.getAllDetectorConfigs(org.orgId);
   }
 
-  @Put(":organizationId/:detectorName/:thresholdName")
+  @Put(":detectorName/:thresholdName")
   async setThreshold(
-    @Param("organizationId") organizationId: string,
+    @CurrentOrg() org: OrgContext,
     @Param("detectorName") detectorName: string,
     @Param("thresholdName") thresholdName: string,
     @Body("value") value: number,
   ): Promise<{ success: boolean }> {
-    await this.configService.setDetectorThreshold(organizationId, detectorName, thresholdName, value);
+    await this.configService.setDetectorThreshold(org.orgId, detectorName, thresholdName, value);
     return { success: true };
   }
 
-  @Delete(":organizationId/:detectorName/:thresholdName")
+  @Delete(":detectorName/:thresholdName")
   async deleteThreshold(
-    @Param("organizationId") organizationId: string,
+    @CurrentOrg() org: OrgContext,
     @Param("detectorName") detectorName: string,
     @Param("thresholdName") thresholdName: string,
   ): Promise<{ success: boolean }> {
-    await this.configService.deleteDetectorThreshold(organizationId, detectorName, thresholdName);
+    await this.configService.deleteDetectorThreshold(org.orgId, detectorName, thresholdName);
     return { success: true };
   }
 
-  @Post(":organizationId/cache/clear")
-  async clearCache(@Param("organizationId") organizationId: string): Promise<{ success: boolean }> {
-    this.configService.clearCache(organizationId);
+  @Post("cache/clear")
+  async clearCache(@CurrentOrg() org: OrgContext): Promise<{ success: boolean }> {
+    this.configService.clearCache(org.orgId);
     return { success: true };
   }
 }

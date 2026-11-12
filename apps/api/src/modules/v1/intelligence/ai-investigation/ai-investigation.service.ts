@@ -35,6 +35,7 @@ export class AIInvestigationService {
   private readonly investigations = new Map<string, InvestigationProgress>();
   private readonly results = new Map<string, InvestigationResult>();
   private readonly organizationsByInvestigation = new Map<string, string>();
+  private readonly projectsByInvestigation = new Map<string, string>();
   private readonly circuitBreaker = new CircuitBreaker({
     failureThreshold: 5,
     successThreshold: 2,
@@ -77,22 +78,38 @@ export class AIInvestigationService {
 
   private async persistProgress(investigationId: string): Promise<void> {
     const orgId = this.organizationsByInvestigation.get(investigationId);
+    const projectId = this.projectsByInvestigation.get(investigationId);
     const progress = this.investigations.get(investigationId);
     if (!orgId || !progress || !this.investigationRepo) return;
     try {
-      if (progress.status === "pending") {
-        await this.investigationRepo.createInvestigation(orgId, investigationId, (progress as any).projectId ?? "");
+      if (progress.status === "pending" && projectId) {
+        await this.investigationRepo.createInvestigation(
+          orgId,
+          investigationId,
+          projectId,
+        );
       } else if (progress.status === "analyzing") {
-        await this.investigationRepo.updateProgress(orgId, investigationId, progress.progress, progress.currentStep);
+        await this.investigationRepo.updateProgress(
+          orgId,
+          investigationId,
+          progress.progress,
+          progress.currentStep,
+        );
       }
     } catch (error) {
-      this.logger.warn(`Failed to persist investigation progress ${investigationId}: ${String(error)}`);
+      this.logger.warn(
+        `Failed to persist investigation progress ${investigationId}: ${String(error)}`,
+      );
     }
   }
 
-  async startInvestigation(request: InvestigationRequest, organizationId?: string): Promise<string> {
+  async startInvestigation(
+    request: InvestigationRequest,
+    organizationId?: string,
+  ): Promise<string> {
     const investigationId = randomUUID();
 
+    this.projectsByInvestigation.set(investigationId, request.projectId);
     this.investigations.set(investigationId, {
       investigationId,
       status: "pending",
@@ -110,7 +127,9 @@ export class AIInvestigationService {
             request.projectId,
           );
         } catch (error) {
-          this.logger.warn(`Failed to create persisted investigation ${investigationId}: ${String(error)}`);
+          this.logger.warn(
+            `Failed to create persisted investigation ${investigationId}: ${String(error)}`,
+          );
         }
       }
     }
@@ -239,7 +258,11 @@ export class AIInvestigationService {
       });
       await this.persistAnalyzing(investigationId);
 
-      const analysis = this.parseInvestigationResult(result.object as any, request, investigationId);
+      const analysis = this.parseInvestigationResult(
+        result.object as Record<string, unknown>,
+        request,
+        investigationId,
+      );
 
       this.results.set(investigationId, analysis);
       this.transitionProgress(investigationId, {
@@ -417,28 +440,43 @@ export class AIInvestigationService {
   }
 
   private parseInvestigationResult(
-    result: any,
+    result: Record<string, unknown>,
     request: InvestigationRequest,
     investigationId: string,
   ): InvestigationResult {
+    const rootCause =
+      result.rootCause && typeof result.rootCause === "object"
+        ? (result.rootCause as InvestigationResult["rootCause"])
+        : {
+            primaryCause: "Unknown",
+            contributingFactors: [],
+            affectedComponents: [],
+            impactAssessment: { severity: "medium" as const },
+          };
+
     return {
       investigationId,
-      summary: result.summary || "No summary provided",
-      rootCause: result.rootCause || {
-        primaryCause: "Unknown",
-        contributingFactors: [],
-        affectedComponents: [],
-        impactAssessment: { severity: "medium" },
-      },
-      explanation: result.explanation || "No explanation provided",
-      recommendations: result.recommendations || [],
-      confidence: result.confidence ?? 0.5,
-      evidenceCitations: result.evidenceCitations || [],
-      relatedFindings: result.relatedFindings || [],
+      summary: typeof result.summary === "string" ? result.summary : "No summary provided",
+      rootCause,
+      explanation:
+        typeof result.explanation === "string"
+          ? result.explanation
+          : "No explanation provided",
+      recommendations: Array.isArray(result.recommendations)
+        ? (result.recommendations as string[])
+        : [],
+      confidence:
+        typeof result.confidence === "number" ? result.confidence : 0.5,
+      evidenceCitations: Array.isArray(result.evidenceCitations)
+        ? (result.evidenceCitations as InvestigationResult["evidenceCitations"])
+        : [],
+      relatedFindings: Array.isArray(result.relatedFindings)
+        ? (result.relatedFindings as string[])
+        : [],
       timestamp: new Date().toISOString(),
       modelUsed: request.modelConfig?.model || "gpt-4",
-      tokensUsed: result.tokensUsed,
-      costUsd: result.costUsd,
+      tokensUsed: result.tokensUsed as InvestigationResult["tokensUsed"],
+      costUsd: typeof result.costUsd === "number" ? result.costUsd : undefined,
     };
   }
 
@@ -446,6 +484,7 @@ export class AIInvestigationService {
     this.investigations.delete(investigationId);
     this.results.delete(investigationId);
     this.organizationsByInvestigation.delete(investigationId);
+    this.projectsByInvestigation.delete(investigationId);
     return true;
   }
 }

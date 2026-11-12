@@ -68,4 +68,5 @@ export interface RcaCredentialInfo {
 
 export interface RcaAnalysisOutcome extends RcaProviderResult {
   credential: RcaCredentialInfo;
+  evidence: RcaEvidence;
 }
