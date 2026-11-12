@@ -13,12 +13,12 @@ import {
   OrgContext,
 } from "../../../common/decorators/current-org.decorator";
 import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
-import { AlertSuppressionRulesService } from "./alert-suppression-rules.service";
+import { SuppressionRulesService } from "./suppression-rules.service";
 
 @Controller("projects/:projectId/alert-suppression-rules")
 @UseGuards(TenantGuard)
-export class AlertSuppressionRulesController {
-  constructor(private readonly service: AlertSuppressionRulesService) {}
+export class SuppressionRulesController {
+  constructor(private readonly service: SuppressionRulesService) {}
 
   @Get()
   async getRules(
