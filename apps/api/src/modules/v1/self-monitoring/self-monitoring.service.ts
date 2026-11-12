@@ -8,13 +8,19 @@ export class SelfMonitoringService {
   private readonly logger = new Logger(SelfMonitoringService.name);
 
   async ensureSelfMonitoringAlerts() {
-    const orgId = "soonwhy-internal";
-    const projectId = "platform";
+    const orgId = process.env.SELF_MONITORING_ORG_ID;
+    const projectId = process.env.SELF_MONITORING_PROJECT_ID;
+
+    if (!orgId) {
+      this.logger.log(
+        "Self-monitoring alerts disabled: SELF_MONITORING_ORG_ID is not set",
+      );
+      return;
+    }
 
     try {
-      // Check if self-monitoring alerts exist
       const existing = await db
-        .select()
+        .select({ id: alertRules.id })
         .from(alertRules)
         .where(eq(alertRules.orgId, orgId));
 
@@ -23,10 +29,9 @@ export class SelfMonitoringService {
         return;
       }
 
-      // Create self-monitoring alert rules
       const alerts = [
         {
-          id: `self-pipeline-lag-${Date.now()}`,
+          id: "self-pipeline-lag",
           orgId,
           projectId,
           name: "Pipeline Lag High",
@@ -46,7 +51,7 @@ export class SelfMonitoringService {
           ],
         },
         {
-          id: `self-dlq-rate-${Date.now()}`,
+          id: "self-dlq-rate",
           orgId,
           projectId,
           name: "DLQ High Error Rate",
@@ -66,7 +71,7 @@ export class SelfMonitoringService {
           ],
         },
         {
-          id: `self-ingest-health-${Date.now()}`,
+          id: "self-ingest-health",
           orgId,
           projectId,
           name: "Ingest Worker Unhealthy",
@@ -88,13 +93,13 @@ export class SelfMonitoringService {
       ];
 
       for (const alert of alerts) {
-        await db.insert(alertRules).values(alert);
+        await db.insert(alertRules).values(alert).onConflictDoNothing();
       }
 
       this.logger.log(`Created ${alerts.length} self-monitoring alert rules`);
     } catch (error) {
       this.logger.warn(
-        `Failed to create self-monitoring alerts (organization may not exist): ${error instanceof Error ? error.message : String(error)}`,
+        `Self-monitoring alerts skipped: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

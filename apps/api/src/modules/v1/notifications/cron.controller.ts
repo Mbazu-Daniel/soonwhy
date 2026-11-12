@@ -1,56 +1,20 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Logger,
-  Post,
-  Query,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Logger } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
-import { WeeklySummaryService } from "@soonwhy/shared";
 import { AlertEvaluationService } from "./alert-evaluation.service";
-import { InternalCronGuard } from "../../../common/guards/internal-cron.guard";
 import { maskPii } from "../../../common/privacy/pii-masker";
-import {
-  WeeklySummaryRequestSchema,
-  type WeeklySummaryRequestInput,
-} from "./dto/weekly-summary-request.dto";
 import { db } from "../../../common/db";
 import { alertRules } from "../../../common/db/schema";
 import { eq } from "drizzle-orm";
-import { SyntheticProbesRepository } from "../synthetic-probes/synthetic-probes.repository";
+import { SyntheticProbesService } from "../synthetic-probes/synthetic-probes.service";
 
-@UseGuards(InternalCronGuard)
 @Controller("notifications/cron")
 export class CronController {
   private readonly logger = new Logger(CronController.name);
 
   constructor(
-    private readonly service: WeeklySummaryService,
     private readonly alertEvaluation: AlertEvaluationService,
-    private readonly syntheticProbes: SyntheticProbesRepository,
+    private readonly syntheticProbes: SyntheticProbesService,
   ) {}
-
-  @Post("weekly-summary")
-  async weeklySummary(
-    @Body({ schema: WeeklySummaryRequestSchema })
-    body: WeeklySummaryRequestInput,
-  ) {
-    return this.service.dispatchWeeklySummary(body);
-  }
-
-  @Post("evaluate-alerts")
-  async evaluateAlerts(
-    @Query("projectId") projectId?: string,
-    @Query("orgId") orgId?: string,
-  ) {
-    if (!projectId || !orgId) {
-      throw new BadRequestException("projectId and orgId are required");
-    }
-    await this.alertEvaluation.evaluateProjectRules(orgId, projectId);
-    return { evaluated: true, projectId };
-  }
 
   @Cron(CronExpression.EVERY_MINUTE)
   async scheduledAlertEvaluation() {
@@ -60,13 +24,6 @@ export class CronController {
       .where(eq(alertRules.status, "active"));
 
     const uniqueProjects = new Map<string, { orgId: string; projectId: string }>();
-    for (const rule of activeRules) {
-      if (!rule.projectId) continue;
-      const key = `${rule.orgId}:${rule.projectId}`;
-      if (!uniqueProjects.has(key)) {
-        uniqueProjects.set(key, { orgId: rule.orgId, projectId: rule.projectId });
-      }
-    }
     for (const rule of activeRules) {
       if (!rule.projectId) continue;
       const key = `${rule.orgId}:${rule.projectId}`;
