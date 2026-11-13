@@ -73,3 +73,7 @@ docss*
 
 # Cloudflare
 .wrangler/
+
+# Local service-scoped env files
+.env.api
+.env.ingest
