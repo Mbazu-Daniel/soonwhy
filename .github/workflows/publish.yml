@@ -2,7 +2,7 @@ name: Publish
 
 on:
   push:
-    branches: [main, dev]
+    branches: [dev]
     paths:
       - 'apps/api/**'
       - 'packages/ingest/**'
@@ -13,7 +13,7 @@ on:
       - 'pnpm-workspace.yaml'
       - '.github/workflows/publish.yml'
   pull_request:
-    branches: [main, dev]
+    branches: [dev]
     paths:
       - 'apps/api/**'
       - 'packages/ingest/**'
@@ -27,7 +27,7 @@ concurrency:
 
 jobs:
   build-images:
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -89,3 +89,17 @@ jobs:
           package-type: container
           delete-only-untagged-versions: true
           min-versions-to-keep: 5
+
+  # Merged to dev → images pushed → tell dokploy to re-pull :dev and
+  # redeploy the merged stack. Set DOKPLOY_WEBHOOK_URL as a repo secret
+  # (Dokploy → application → Webhooks). Skipped silently if unset.
+  deploy:
+    needs: build-images
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    env:
+      DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
+    steps:
+      - name: Trigger dokploy redeploy
+        if: env.DOKPLOY_WEBHOOK_URL != ''
+        run: curl -fsS -X POST "$DOKPLOY_WEBHOOK_URL"
