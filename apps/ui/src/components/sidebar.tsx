@@ -48,8 +48,17 @@ interface SessionUser { user: { id: string; email: string; name: string | null; 
 function UserMenu({ collapsed }: { collapsed: boolean }) {
   const navigate = useNavigate();
   const token = getSessionToken();
+  const { orgId } = useProject();
   const { data: session } = useQuery({ queryKey: ['session'], queryFn: () => api.get<SessionUser>('/auth/session'), enabled: !!token, retry: false });
-  const userName = session?.user?.name || session?.user?.email || 'U';
+  const members = useQuery({
+    queryKey: ['organization-members', orgId],
+    queryFn: () => api.get<Array<{ id: string; userId: string; name?: string | null; avatar?: string | null }>>(`/organization/${encodeURIComponent(orgId ?? '')}/members`),
+    enabled: !!orgId,
+    retry: false,
+  });
+  const ownMember = members.data?.find((member) => member.userId === session?.user?.id);
+  const userName = ownMember?.name || session?.user?.name || session?.user?.email || 'U';
+  const userImage = ownMember?.avatar || session?.user?.image || null;
   const userInitial = userName.charAt(0).toUpperCase();
 
   async function handleSignOut() {
@@ -63,8 +72,8 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className={cn('h-11 text-[#F6F6F6] hover:bg-[#151517]', collapsed ? 'w-11 px-0' : 'w-full justify-start gap-3 px-2')} aria-label="User menu">
-            {session?.user?.image ? (
-              <img src={session.user.image} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+            {userImage ? (
+              <img src={userImage} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
             ) : (
               <Avatar className="h-8 w-8 shrink-0"><AvatarFallback className="bg-[#C9E7EB] font-semibold text-[#182012]">{userInitial}</AvatarFallback></Avatar>
             )}
@@ -72,7 +81,7 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent side="top" align="start" className="w-56 border-[#242426] bg-[#0B0B0C] text-[#F6F6F6]">
-          {session?.user && <><div className="px-2 py-2"><p className="truncate text-sm font-medium">{session.user.name || session.user.email}</p>{session.user.name && <p className="truncate text-xs text-muted-foreground">{session.user.email}</p>}</div><DropdownMenuSeparator className="bg-[#242426]" /></>}
+          {session?.user && <><div className="px-2 py-2"><p className="truncate text-sm font-medium">{ownMember?.name || session.user.name || session.user.email}</p>{(ownMember?.name || session.user.name) && <p className="truncate text-xs text-muted-foreground">{session.user.email}</p>}</div><DropdownMenuSeparator className="bg-[#242426]" /></>}
           <DropdownMenuItem onClick={handleSignOut} className="focus:bg-[#151517] focus:text-[#F6F6F6]"><LogOut className="mr-2 h-4 w-4" />Sign out</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

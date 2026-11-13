@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "../../../common/db";
-import { organizations } from "../../../common/db/schema";
+import { invitations, members, organizations } from "../../../common/db/schema";
 
 @Injectable()
 export class OrganizationsRepository {
@@ -47,5 +47,42 @@ export class OrganizationsRepository {
         and(inArray(organizations.id, ids), isNull(organizations.deletedAt)),
       );
     return rows.map((row) => row.id);
+  }
+
+  async getMemberByUserId(organizationId: string, userId: string) {
+    return db.query.members.findFirst({
+      where: and(
+        eq(members.organizationId, organizationId),
+        eq(members.userId, userId),
+      ),
+    });
+  }
+
+  async getInvitationById(invitationId: string) {
+    return db.query.invitations.findFirst({
+      where: eq(invitations.id, invitationId),
+    });
+  }
+
+  async getMemberById(organizationId: string, memberId: string) {
+    return db.query.members.findFirst({
+      where: and(
+        eq(members.organizationId, organizationId),
+        eq(members.id, memberId),
+      ),
+    });
+  }
+
+  async updateMember(
+    organizationId: string,
+    memberId: string,
+    data: { name?: string | null },
+  ) {
+    const [updated] = await db
+      .update(members)
+      .set(data)
+      .where(and(eq(members.id, memberId), eq(members.organizationId, organizationId)))
+      .returning();
+    return updated;
   }
 }

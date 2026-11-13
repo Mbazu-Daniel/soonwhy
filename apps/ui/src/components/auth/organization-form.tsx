@@ -5,6 +5,7 @@ import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { api } from '~/lib/api';
+import { consumeReturnPath } from '~/lib/return-path';
 import { useProject } from '~/lib/project-context';
 
 interface CreatedOrganization {
@@ -40,6 +41,8 @@ export function OrganizationForm() {
       const org = created.organization ?? created;
       if (!org.id || !org.slug) throw new Error('Organization was created without a subdomain');
       setOrganization({ id: org.id, slug: org.slug });
+      const returnPath = consumeReturnPath();
+      if (returnPath) { window.location.assign(returnPath); return; }
       void navigate({ to: '/$organizationSlug', params: { organizationSlug: org.slug } });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create the organization');

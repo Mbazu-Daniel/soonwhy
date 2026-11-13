@@ -14,6 +14,7 @@ import {
 } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { Throttle } from "@nestjs/throttler";
+import { z } from "zod";
 import {
   auth,
   githubEnabled,
@@ -30,6 +31,14 @@ import { AUTH_THROTTLE } from "../../../common/throttling/throttling.constants";
 
 const SOCIAL_PROVIDERS = ["github", "google"] as const;
 type SocialProvider = (typeof SOCIAL_PROVIDERS)[number];
+
+const deleteAccountSchema = z.object({
+  password: z.string().min(1).max(200).optional(),
+});
+
+const acceptInvitationSchema = z.object({
+  invitationId: z.string().min(1).max(100),
+});
 
 @Controller("auth")
 export class AuthController {
@@ -147,6 +156,72 @@ export class AuthController {
     return auth.api.getSession({
       headers: authHeaders(headers),
     });
+  }
+
+  @Post("delete-account")
+  @HttpCode(HttpStatus.OK)
+  async deleteAccount(
+    @Body({ schema: deleteAccountSchema })
+    body: z.output<typeof deleteAccountSchema>,
+    @Headers() headers: Record<string, string>,
+    @Req() req: Request,
+  ) {
+    const session = await auth.api.getSession({
+      headers: authHeaders(headers),
+    });
+
+    const result = await auth.api.deleteUser({
+      body: { password: body.password },
+      headers: authHeaders(headers),
+    });
+
+    await recordAuditEvent({
+      action: "user.delete",
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+      metadata: {
+        userId: session?.user?.id,
+        email: session?.user?.email,
+      },
+    });
+
+    return result;
+  }
+
+  @Get("invitations/:id")
+  async getInvitation(
+    @Param("id") id: string,
+    @Headers() headers: Record<string, string>,
+  ) {
+    return auth.api.getInvitation({
+      headers: authHeaders(headers),
+      query: { id },
+    });
+  }
+
+  @Post("invitations/accept")
+  @HttpCode(HttpStatus.OK)
+  async acceptInvitation(
+    @Body({ schema: acceptInvitationSchema })
+    body: z.output<typeof acceptInvitationSchema>,
+    @Headers() headers: Record<string, string>,
+    @Req() req: Request,
+  ) {
+    const result = await auth.api.acceptInvitation({
+      headers: authHeaders(headers),
+      body: { invitationId: body.invitationId },
+    });
+
+    await recordAuditEvent({
+      userId: result?.member?.userId,
+      organizationId: result?.invitation?.organizationId,
+      action: "invitation.accept",
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+      metadata: { invitationId: body.invitationId },
+    });
+
+    return result;
   }
 }
 
