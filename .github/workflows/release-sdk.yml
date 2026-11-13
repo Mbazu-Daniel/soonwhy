@@ -1,0 +1,91 @@
+# Release the @soonwhy/* SDK packages to npm.
+#
+# Triggers (deliberate only — this never runs on a branch push):
+#   workflow_dispatch  manual run with a dry_run switch; publish requires explicitly choosing false
+#   push: tags sdk-v*  release stamp; the tag proves intent
+#
+# Requires npm Trusted Publishing (OIDC) configured for this repo+workflow on npmjs.com:
+#   org @soonwhy → Access → Trusted Publishers → GitHub (Mbazu-Daniel/soonwhy, workflow=release-sdk.yml)
+# No token is stored anywhere; publishes carry npm provenance.
+
+name: Release SDK
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry-run: build and test, do not publish"
+        type: boolean
+        required: true
+        default: true
+  push:
+    tags:
+      - "sdk-v[0-9]*.[0-9]*.[0-9]*"
+
+concurrency:
+  group: release-sdk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # Optional hardening: create a GitHub Environment named "npm" (with required
+    # reviewers) and add `environment: npm` here to require a second human before publishing.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write        # OIDC for npm trusted publishing
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Verify SDK versions are aligned
+        run: |
+          node - <<'EOF'
+          const fs = require('fs');
+          const pkgs = ['sdk/node', 'sdk/nest', 'sdk/next', 'sdk/vite'];
+          const versions = pkgs.map((d) => JSON.parse(fs.readFileSync(d + '/package.json', 'utf8')));
+          const name = versions.map((v) => v.name);
+          const ver = versions.map((v) => v.version);
+          for (let i = 1; i < ver.length; i++) {
+            if (ver[i] !== ver[0]) throw new Error(`version mismatch: ${name[0]}=${ver[0]} but ${name[i]}=${ver[i]}`);
+          }
+          console.log('aligned at', ver[0]);
+          EOF
+
+      - name: Build SDK packages
+        run: pnpm --filter @soonwhy/node --filter @soonwhy/nest --filter @soonwhy/next --filter @soonwhy/vite build
+
+      - name: Test SDK packages
+        run: pnpm --filter @soonwhy/node --filter @soonwhy/nest --filter @soonwhy/next --filter @soonwhy/vite test -- --run
+
+      - name: Dry run publish
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run == true
+        run: pnpm --filter @soonwhy/node --filter @soonwhy/nest --filter @soonwhy/next --filter @soonwhy/vite publish --access public --no-git-checks --dry-run
+
+      - name: Publish @soonwhy/node
+        if: github.event_name == 'push' || inputs.dry_run == false
+        run: pnpm --filter @soonwhy/node publish --access public --no-git-checks
+
+      - name: Publish @soonwhy/nest
+        if: github.event_name == 'push' || inputs.dry_run == false
+        run: pnpm --filter @soonwhy/nest publish --access public --no-git-checks
+
+      - name: Publish @soonwhy/next
+        if: github.event_name == 'push' || inputs.dry_run == false
+        run: pnpm --filter @soonwhy/next publish --access public --no-git-checks
+
+      - name: Publish @soonwhy/vite
+        if: github.event_name == 'push' || inputs.dry_run == false
+        run: pnpm --filter @soonwhy/vite publish --access public --no-git-checks
