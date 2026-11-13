@@ -13,7 +13,6 @@ storage:
     force_path_style_access: ${QW_S3_FORCE_PATH_STYLE_ACCESS:-true}
 
 rest:
-  listen_address: 0.0.0.0
   listen_port: 7280
 
 indexer:
