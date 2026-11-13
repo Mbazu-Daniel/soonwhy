@@ -31,7 +31,7 @@ export const notificationLogs = pgTable(
     status: text("status", { enum: ["sent", "failed", "pending"] })
       .default("pending")
       .notNull(),
-    providerMessageId: text("provider_message_id"), // external id from zeptomail/slack
+    providerMessageId: text("provider_message_id"), // external id from resend/zeptomail/slack
     error: text("error"),
     payload: jsonb("payload"), // what was sent
     // Outbox pattern fields for idempotent delivery
