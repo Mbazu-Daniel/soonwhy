@@ -1,4 +1,4 @@
-import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
+import { HeadContent, Outlet, createRootRoute } from "@tanstack/react-router";
 import { QueryProvider } from "~/components/query-provider";
 import { ProjectProvider } from "~/lib/project-context";
 import { ConnectServiceProvider } from "~/lib/connect-service";
@@ -24,25 +24,20 @@ export const Route = createRootRoute({
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
   }),
-  shellComponent: RootDocument,
+  component: RootDocument,
 });
 
-function RootDocument({ children }: { children: React.ReactNode }) {
+function RootDocument() {
   return (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <QueryProvider>
-          <ProjectProvider>
-            <ConnectServiceProvider>
-              {children}
-            </ConnectServiceProvider>
-          </ProjectProvider>
-        </QueryProvider>
-        <Scripts />
-      </body>
-    </html>
+    <>
+      <HeadContent />
+      <QueryProvider>
+        <ProjectProvider>
+          <ConnectServiceProvider>
+            <Outlet />
+          </ConnectServiceProvider>
+        </ProjectProvider>
+      </QueryProvider>
+    </>
   );
 }
