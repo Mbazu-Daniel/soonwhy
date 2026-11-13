@@ -5,6 +5,7 @@ import { APP_GUARD } from "@nestjs/core";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { IdempotencyModule } from "@nestjs/idempotency";
 import { CommonModule } from "./common/common.module";
+import { RootController } from "./common/root/root.controller";
 import { ResilienceConfigModule } from "./common/resilience/resilience.module";
 import { ApiThrottlerGuard } from "./common/throttling/api-throttler.guard";
 import { THROTTLER_OPTIONS } from "./common/throttling/throttling.constants";
@@ -157,6 +158,7 @@ const organizationScopedModules = [
     IncidentsModule,
     ...organizationScopedModules,
   ],
+  controllers: [RootController],
   providers: [
     {
       provide: APP_GUARD,

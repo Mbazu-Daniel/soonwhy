@@ -14,7 +14,7 @@ import { initOtelMetrics } from "./common/telemetry/otel-metrics";
 initOtelMetrics();
 
 import { NestFactory } from "@nestjs/core";
-import { Logger, StandardSchemaValidationPipe } from "@nestjs/common";
+import { Logger, RequestMethod, StandardSchemaValidationPipe } from "@nestjs/common";
 import { NestNodeApplication, NodeAdapter } from "@nestjs/platform-node";
 import { OpenAPIObject, SwaggerModule } from "@nestjs/swagger";
 import type { IncomingMessage, ServerResponse } from "http";
@@ -49,7 +49,7 @@ async function bootstrap() {
     }),
   );
 
-  app.setGlobalPrefix("api/v1");
+  app.setGlobalPrefix("api/v1", { exclude: [{ path: "/", method: RequestMethod.GET }] });
 
   app.useGlobalPipes(new StandardSchemaValidationPipe());
   app.useGlobalFilters(new GlobalExceptionFilter());
