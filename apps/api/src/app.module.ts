@@ -10,6 +10,7 @@ import { ResilienceConfigModule } from "./common/resilience/resilience.module";
 import { ApiThrottlerGuard } from "./common/throttling/api-throttler.guard";
 import { THROTTLER_OPTIONS } from "./common/throttling/throttling.constants";
 import { CacheModule } from "./common/cache/cache.module";
+import { DrizzleIdempotencyModule } from "./common/idempotency/drizzle-idempotency.module";
 import { MaintenanceModule } from "./common/maintenance/maintenance.module";
 import { AuthModule } from "./modules/v1/auth";
 import { OrganizationsModule } from "./modules/v1/organizations";
@@ -124,11 +125,12 @@ const organizationScopedModules = [
   imports: [
     IdempotencyModule.forRoot({
       scope: (req: any) => req.headers['x-org-id'] || req.user?.id || 'global',
-      // Idempotency records live in Redis (RedisIdempotencyStore, registered
-      // by the global CacheModule) — they survive restarts and are shared
-      // between instances.
+      // Idempotency records live in Postgres (DrizzleIdempotencyStore,
+      // registered by DrizzleIdempotencyModule) — they survive restarts and
+      // are shared between instances.
     }),
     ScheduleModule.forRoot(),
+    DrizzleIdempotencyModule,
     CacheModule,
     CommonModule,
     ResilienceConfigModule,

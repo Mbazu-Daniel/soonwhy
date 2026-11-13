@@ -4,6 +4,7 @@ import { db } from "../../src/common/db";
 import {
   deadLetterQueue,
   detectionRuns,
+  idempotencyKeys,
   ingestEventReceipts,
   notificationLogs,
 } from "../../src/common/db/schema";
@@ -39,12 +40,14 @@ describe.skipIf(!databaseTestsEnabled)("CleanupService", () => {
       orgId: organization.id,
       projectId: project.id,
       channelType: "email" as const,
+      idempotencyKey: "cleanup-old",
       createdAt: expired(CLEANUP_RETENTION_DAYS.notificationLogs),
     };
     const newNotification = {
       orgId: organization.id,
       projectId: project.id,
       channelType: "email" as const,
+      idempotencyKey: "cleanup-new",
       createdAt: now,
     };
     await db.insert(notificationLogs).values([oldNotification, newNotification]);
@@ -60,6 +63,10 @@ describe.skipIf(!databaseTestsEnabled)("CleanupService", () => {
     const newRun = { ...oldRun, startedAt: now };
     await db.insert(detectionRuns).values([oldRun, newRun]);
 
+    const oldKey = { keyHash: "hash-old", key: "key-old", fingerprint: "fp-old", expiresAt: now.getTime() - 1_000 };
+    const newKey = { keyHash: "hash-new", key: "key-new", fingerprint: "fp-new", expiresAt: now.getTime() + 100_000 };
+    await db.insert(idempotencyKeys).values([oldKey, newKey]);
+
     const report = await service.cleanup(now);
 
     expect(report.results).toEqual([
@@ -67,8 +74,15 @@ describe.skipIf(!databaseTestsEnabled)("CleanupService", () => {
       { table: "dead_letter_queue", deleted: 1 },
       { table: "notification_logs", deleted: 1 },
       { table: "detection_runs", deleted: 1 },
+      { table: "idempotency_keys", deleted: 1 },
     ]);
-    expect(report.deletedTotal).toBe(4);
+    expect(report.deletedTotal).toBe(5);
+
+    const keys = await db
+      .select({ keyHash: idempotencyKeys.keyHash })
+      .from(idempotencyKeys)
+      .where(inArray(idempotencyKeys.keyHash, [oldKey.keyHash, newKey.keyHash]));
+    expect(keys).toEqual([{ keyHash: newKey.keyHash }]);
 
     const receipts = await db
       .select({ id: ingestEventReceipts.eventId })
