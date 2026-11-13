@@ -67,7 +67,6 @@ jobs:
           images: ghcr.io/${{ env.REPO }}-${{ matrix.image-suffix }}
           tags: |
             type=ref,event=branch
-            type=sha,format=short
 
       - name: Build and push ${{ matrix.service }} image
         uses: docker/build-push-action@v7
