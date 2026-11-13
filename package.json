@@ -12,6 +12,8 @@
     "format": "oxfmt",
     "verify:migrations": "node scripts/verify-migrations.mjs",
     "prepare": "husky",
+    "infra:up": "docker compose -f docker-compose.yml up -d",
+    "infra:down": "docker compose -f docker-compose.yml down",
     "registry:up": "docker compose -f docker-compose.verdaccio.yml up -d",
     "registry:down": "docker compose -f docker-compose.verdaccio.yml down",
     "registry:logs": "docker compose -f docker-compose.verdaccio.yml logs -f",
