@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
-import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
+import { QUICKWIT_INDEXES, QuickwitService, requiredEnvInProduction } from "@soonwhy/shared";
 import { parsePrometheus, sumSamples } from "./pipeline-health.metrics";
 
 type Thresholds = {
@@ -27,7 +27,7 @@ type Alert = {
 export class PipelineHealthCron {
   private readonly logger = new Logger(PipelineHealthCron.name);
   private readonly ingestUrl = (
-    process.env.INGEST_URL ?? "http://localhost:3002"
+    requiredEnvInProduction("INGEST_URL", "http://localhost:3002")
   ).replace(/\/$/, "");
   private readonly webhookUrl = process.env.SELF_MONITOR_WEBHOOK_URL?.trim();
   private readonly thresholds: Thresholds = {

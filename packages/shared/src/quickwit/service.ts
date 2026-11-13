@@ -1,6 +1,7 @@
 // fallow-ignore-file unused-class-member
 // Public shared-library API consumed by ingest, API and cron workspaces.
 import { Injectable, Logger } from "@nestjs/common";
+import { requiredEnvInProduction } from "../env";
 
 export interface QuickwitHit<T> {
   _source?: T;
@@ -29,7 +30,7 @@ export interface QuickwitSearchInput {
 export class QuickwitService {
   private readonly logger = new Logger(QuickwitService.name);
   private readonly baseUrl = (
-    process.env.QUICKWIT_URL ?? "http://localhost:7280"
+    requiredEnvInProduction("QUICKWIT_URL", "http://localhost:7280")
   ).replace(/\/$/, "");
   private readonly timeoutMs = parseTimeout(
     process.env.QUICKWIT_TIMEOUT_MS,

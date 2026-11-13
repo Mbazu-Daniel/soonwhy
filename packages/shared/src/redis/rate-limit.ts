@@ -7,6 +7,7 @@ import {
   OnModuleInit,
 } from "@nestjs/common";
 import { Redis } from "ioredis";
+import { requiredEnvInProduction } from "../env";
 
 @Injectable()
 export class RateLimiter implements OnModuleInit, OnModuleDestroy {
@@ -20,10 +21,13 @@ export class RateLimiter implements OnModuleInit, OnModuleDestroy {
       process.env.RATE_LIMIT_PER_MINUTE || "10000",
       10,
     );
-    this.redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379", {
-      lazyConnect: true,
-      maxRetriesPerRequest: 1,
-    });
+    this.redis = new Redis(
+      requiredEnvInProduction("REDIS_URL", "redis://localhost:6379"),
+      {
+        lazyConnect: true,
+        maxRetriesPerRequest: 1,
+      },
+    );
     this.redis.on("error", (error: Error) =>
       this.logger.error("Rate limiter Redis error", error),
     );
