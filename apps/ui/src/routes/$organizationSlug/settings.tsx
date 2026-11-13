@@ -12,6 +12,7 @@ import { useProject } from '~/lib/project-context';
 import { getSessionToken, clearSession, signOut } from '~/lib/auth-client';
 import { QueryErrorState } from '~/components/query-error-state';
 import { CreateProjectDialog } from '~/components/create-project-dialog';
+import { ImageUpload } from '~/components/image-upload';
 
 export const Route = createFileRoute('/$organizationSlug/settings')({
   component: SettingsPage,
@@ -21,6 +22,7 @@ interface Organization {
   id: string;
   name: string;
   slug: string;
+  logo?: string | null;
 }
 
 interface Project {
@@ -33,11 +35,12 @@ interface Member {
   id: string;
   userId: string;
   role: string;
+  avatar?: string | null;
   user: { id: string; name: string | null; email: string };
 }
 
 interface SessionUser {
-  user: { id: string; email: string; name: string | null; emailVerified?: boolean };
+  user: { id: string; email: string; name: string | null; emailVerified?: boolean; image?: string | null };
 }
 
 function SettingsPage() {
@@ -129,6 +132,21 @@ function SettingsPage() {
           <CardTitle className="flex items-center gap-2 text-base"><Building2 className="h-4 w-4 text-[#ACFC15]" />Organization</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
+          <div className="flex items-center gap-4">
+            <ImageUpload
+              kind="organization_logo"
+              size="lg"
+              shape="square"
+              imageUrl={organization?.logo ?? null}
+              fallback={organization?.name?.charAt(0).toUpperCase() ?? 'O'}
+              disabled={!canManage || !organization}
+              onUploaded={() => void queryClient.invalidateQueries({ queryKey: ['organizations'] })}
+            />
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Organization logo</p>
+              <p className="text-xs text-[#989898]">Shown next to the organization name. JPEG, PNG or WebP, up to 5 MB.</p>
+            </div>
+          </div>
           <form onSubmit={submitRename} className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="min-w-0 flex-1 space-y-2">
               <Label htmlFor="organization-name">Name</Label>
@@ -159,9 +177,23 @@ function SettingsPage() {
               {members.data.map((member) => {
                 const label = member.user.name || member.user.email;
                 const initial = label.charAt(0).toUpperCase();
+                const isSelf = member.userId === session.data?.user?.id;
                 return (
                   <div key={member.id} className="flex items-center gap-3 p-4 transition-colors hover:bg-[#151517]">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#151517] text-xs font-semibold text-[#ACFC15]">{initial}</span>
+                    {isSelf ? (
+                      <ImageUpload
+                        kind="member_avatar"
+                        size="sm"
+                        targetId={member.id}
+                        imageUrl={member.avatar ?? null}
+                        fallback={initial}
+                        onUploaded={() => void members.refetch()}
+                      />
+                    ) : member.avatar ? (
+                      <img src={member.avatar} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+                    ) : (
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#151517] text-xs font-semibold text-[#ACFC15]">{initial}</span>
+                    )}
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">{label}</span>
                       <span className="block truncate text-xs text-[#989898]">{member.user.email}</span>
@@ -236,9 +268,14 @@ function SettingsPage() {
           <CardTitle className="flex items-center gap-2 text-base"><UserRound className="h-4 w-4 text-[#ACFC15]" />Profile</CardTitle>
         </CardHeader>
         <CardContent className="flex items-center gap-4">
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#151517] text-base font-semibold text-[#ACFC15]">
-            {(session.data?.user?.name || session.data?.user?.email || '?').charAt(0).toUpperCase()}
-          </span>
+          <ImageUpload
+            kind="user_avatar"
+            size="md"
+            shape="circle"
+            imageUrl={session.data?.user?.image ?? null}
+            fallback={(session.data?.user?.name || session.data?.user?.email || '?').charAt(0).toUpperCase()}
+            onUploaded={() => void queryClient.invalidateQueries({ queryKey: ['session'] })}
+          />
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-medium">{session.data?.user?.name || 'Unnamed user'}</span>
             <span className="block truncate text-xs text-[#989898]">{session.data?.user?.email ?? '—'}</span>

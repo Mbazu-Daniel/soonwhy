@@ -15,6 +15,7 @@ import { OrganizationsModule } from "./modules/v1/organizations";
 import { ApiKeysModule } from "./modules/v1/api-keys";
 import { ServicesModule } from "./modules/v1/services";
 import { ProjectsModule } from "./modules/v1/projects";
+import { UploadsModule } from "./modules/v1/uploads/uploads.module";
 import { HealthModule } from "./modules/v1/health";
 import { DashboardModule } from "./modules/v1/dashboard";
 import { LogsModule } from "./modules/v1/logs";
@@ -73,6 +74,7 @@ const organizationScopedModules = [
   ApiKeysModule,
   ServicesModule,
   ProjectsModule,
+  UploadsModule,
   DashboardModule,
   LogsModule,
   MetricsModule,

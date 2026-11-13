@@ -43,7 +43,7 @@ const adminItems = [
   { to: '/admin/system-health', label: 'System Health', icon: Server },
 ] as const;
 
-interface SessionUser { user: { id: string; email: string; name: string | null }; }
+interface SessionUser { user: { id: string; email: string; name: string | null; image?: string | null }; }
 
 function UserMenu({ collapsed }: { collapsed: boolean }) {
   const navigate = useNavigate();
@@ -63,7 +63,11 @@ function UserMenu({ collapsed }: { collapsed: boolean }) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className={cn('h-11 text-[#F6F6F6] hover:bg-[#151517]', collapsed ? 'w-11 px-0' : 'w-full justify-start gap-3 px-2')} aria-label="User menu">
-            <Avatar className="h-8 w-8 shrink-0"><AvatarFallback className="bg-[#C9E7EB] font-semibold text-[#182012]">{userInitial}</AvatarFallback></Avatar>
+            {session?.user?.image ? (
+              <img src={session.user.image} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+            ) : (
+              <Avatar className="h-8 w-8 shrink-0"><AvatarFallback className="bg-[#C9E7EB] font-semibold text-[#182012]">{userInitial}</AvatarFallback></Avatar>
+            )}
             {!collapsed && <span className="min-w-0 flex-1 text-left"><span className="block truncate text-sm font-medium">{userName}</span>{session?.user?.name && <span className="block truncate text-xs text-[#989898]">{session.user.email}</span>}</span>}
           </Button>
         </DropdownMenuTrigger>
