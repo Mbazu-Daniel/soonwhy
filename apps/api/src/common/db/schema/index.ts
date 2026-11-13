@@ -1,4 +1,4 @@
-export { users, accounts, sessions, members, auditLogs } from "./auth";
+export { users, accounts, sessions, members, invitations, auditLogs } from "./auth";
 export { organizations } from "./organizations";
 export { detectorSettings, type DetectorConfigRow } from "./detector-settings";
 export { projects } from "./projects";

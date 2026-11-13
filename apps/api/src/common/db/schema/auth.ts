@@ -83,6 +83,24 @@ export const members = pgTable("members", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const invitations = pgTable("invitations", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => generateId()),
+  organizationId: text("organization_id")
+    .references(() => organizations.id, { onDelete: "cascade" })
+    .notNull(),
+  email: text("email").notNull(),
+  role: text("role").notNull(),
+  status: text("status").notNull().default("pending"),
+  teamId: text("team_id"),
+  inviterId: text("inviter_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const auditLogs = pgTable("audit_logs", {
   id: text("id")
     .primaryKey()
