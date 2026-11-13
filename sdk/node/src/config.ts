@@ -1,7 +1,7 @@
 import type { SoonwhyOptions } from "./types.js";
 import { DEFAULT_SECURITY_OPTIONS, type SecurityOptions } from "./security.js";
 
-export const DEFAULT_ENDPOINT = "http://localhost:3002/v1";
+export const DEFAULT_ENDPOINT = "https://ingest-soonwhy.oktopals.com/v1";
 export const DEFAULT_BATCH_SIZE = 100;
 export const DEFAULT_FLUSH_INTERVAL_MS = 5_000;
 export const DEFAULT_MAX_RETRIES = 3;
