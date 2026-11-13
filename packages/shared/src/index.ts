@@ -1,5 +1,6 @@
 export { NatsService, type NatsMessageHandler, type NatsServiceOptions } from "./nats/service";
 export { generateEventId } from "./telemetry-identity/event-id";
+export { requiredEnvInProduction } from "./env";
 export { RateLimiter } from "./redis/rate-limit";
 export {
   type CaptureSettings,

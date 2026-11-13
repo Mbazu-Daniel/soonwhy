@@ -15,10 +15,12 @@ const EMPTY_STATS: IngestStatsHealth = {
   peakInFlight: 0,
 };
 
+import { requiredEnvInProduction } from "@soonwhy/shared";
+
 @Injectable()
 export class IngestHealthService {
   private readonly baseUrl = (
-    process.env.INGEST_URL ?? "http://localhost:3002"
+    requiredEnvInProduction("INGEST_URL", "http://localhost:3002")
   ).replace(/\/$/, "");
 
   async getSnapshot(): Promise<IngestHealthSnapshot> {

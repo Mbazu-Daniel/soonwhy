@@ -17,6 +17,7 @@ import {
   JsMsg,
   StorageType,
 } from "nats";
+import { requiredEnvInProduction } from "../env";
 
 export type NatsServiceOptions = {
   /**
@@ -53,7 +54,7 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
   private readonly subscriptions = new Map<string, NatsSubscriptionSnapshot>();
   private readonly required: boolean;
   private readonly config = {
-    url: process.env.NATS_URL ?? "nats://localhost:4222",
+    url: requiredEnvInProduction("NATS_URL", "nats://localhost:4222"),
     streamName: process.env.NATS_STREAM_NAME ?? "TELEMETRY",
     maxBytes: Number(process.env.NATS_MAX_BYTES ?? 1024 * 1024 * 1024),
     maxAgeNs: Number(

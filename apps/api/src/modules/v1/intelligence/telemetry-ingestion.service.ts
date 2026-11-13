@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
 import { connect, NatsConnection } from "nats";
+import { requiredEnvInProduction } from "@soonwhy/shared";
 
 @Injectable()
 export class TelemetryIngestionService implements OnModuleInit, OnModuleDestroy {
@@ -9,7 +10,7 @@ export class TelemetryIngestionService implements OnModuleInit, OnModuleDestroy 
   constructor() {}
 
   async onModuleInit(): Promise<void> {
-    const servers = process.env.NATS_URL || "nats://localhost:4222";
+    const servers = requiredEnvInProduction("NATS_URL", "nats://localhost:4222");
     try {
       this.connection = await connect({ servers, reconnect: true });
       this.logger.log(`Connected to NATS at ${servers}`);

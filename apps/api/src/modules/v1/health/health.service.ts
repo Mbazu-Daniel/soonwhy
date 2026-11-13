@@ -2,13 +2,14 @@ import { Injectable, Logger } from "@nestjs/common";
 import { sql } from "drizzle-orm";
 import { db } from "../../../common/db";
 import { CacheService } from "../../../common/cache/cache.service";
+import { requiredEnvInProduction } from "@soonwhy/shared";
 import { HEALTH_CHECK_TIMEOUT_MS } from "./health.constants";
 import type { DependencyCheck, ReadinessReport } from "./health.types";
 
 @Injectable()
 export class HealthService {
   private readonly logger = new Logger(HealthService.name);
-  private readonly quickwitUrl = (process.env.QUICKWIT_URL ?? "http://localhost:7280").replace(/\/$/, "");
+  private readonly quickwitUrl = (requiredEnvInProduction("QUICKWIT_URL", "http://localhost:7280")).replace(/\/$/, "");
 
   constructor(private readonly cache: CacheService) {}
 
