@@ -24,9 +24,9 @@ describe("CleanupService", () => {
 
     const report = await service.cleanup(new Date("2026-11-05T03:00:00.000Z"));
 
-    expect(report.results.map((result) => result.deleted)).toEqual([2, 2, 2, 2]);
-    expect(report.deletedTotal).toBe(8);
-    expect(db.delete).toHaveBeenCalledTimes(4);
+    expect(report.results.map((result) => result.deleted)).toEqual([2, 2, 2, 2, 2]);
+    expect(report.deletedTotal).toBe(10);
+    expect(db.delete).toHaveBeenCalledTimes(5);
   });
 
   it("keeps cleaning other tables when one delete fails", async () => {
@@ -46,7 +46,7 @@ describe("CleanupService", () => {
       deleted: 0,
       error: "lock timeout",
     });
-    expect(report.deletedTotal).toBe(3);
+    expect(report.deletedTotal).toBe(4);
   });
 
   it("derives the cutoff from the retention window", () => {

@@ -1,26 +1,22 @@
-import { pgTable, text, timestamp, index, jsonb } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
+import type { IdempotencyStoredPayload } from "@nestjs/idempotency";
+import { bigint, index, json, pgTable, text } from "drizzle-orm/pg-core";
 
+/** One row per idempotency record: an in-flight lock, or a completed response. */
 export const idempotencyKeys = pgTable(
   "idempotency_keys",
   {
-    id: text("id").primaryKey(),
-    scope: text("scope").notNull(),
-    endpoint: text("endpoint").notNull(),
-    payloadHash: text("payload_hash").notNull(),
-    statusCode: text("status_code"),
-    responseHeaders: jsonb("response_headers"),
-    responseBody: text("response_body"),
-    createdAt: timestamp("created_at").default(sql`now()`),
-    expiresAt: timestamp("expires_at").notNull(),
+    // SHA-256 of the record key: keys can be longer than an index entry allows.
+    keyHash: text("key_hash").primaryKey(),
+    key: text("key").notNull(),
+    fingerprint: text("fingerprint").notNull(),
+    // The attempt holding the lock; null once the record is completed.
+    owner: text("owner"),
+    // null while in flight. json, not jsonb: jsonb rejects NUL escapes inside strings.
+    response: json("response").$type<IdempotencyStoredPayload>(),
+    // Epoch milliseconds.
+    expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
   },
   (table) => ({
-    scopeIdx: index("idempotency_keys_scope_idx").on(table.scope),
-    expiresIdx: index("idempotency_keys_expires_idx").on(table.expiresAt),
-    compositeIdx: index("idempotency_keys_composite_idx").on(
-      table.scope,
-      table.endpoint,
-      table.payloadHash,
-    ),
+    expiresIdx: index("idempotency_keys_expires_at_idx").on(table.expiresAt),
   }),
 );

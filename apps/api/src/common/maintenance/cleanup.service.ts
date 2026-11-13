@@ -1,10 +1,11 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
-import { lt } from "drizzle-orm";
+import { lt, lte } from "drizzle-orm";
 import { db } from "../db";
 import {
   deadLetterQueue,
   detectionRuns,
+  idempotencyKeys,
   ingestEventReceipts,
   notificationLogs,
 } from "../db/schema";
@@ -31,6 +32,7 @@ export class CleanupService {
       this.removeDeadLetters(now),
       this.removeNotificationLogs(now),
       this.removeDetectionRuns(now),
+      this.removeIdempotencyKeys(now),
     ]);
 
     return {
@@ -82,6 +84,19 @@ export class CleanupService {
           .delete(detectionRuns)
           .where(lt(detectionRuns.startedAt, cutoff(now, CLEANUP_RETENTION_DAYS.detectionRuns)))
           .returning({ id: detectionRuns.id }),
+    );
+  }
+
+  private async removeIdempotencyKeys(now: Date): Promise<CleanupTableResult> {
+    return this.remove(
+      "idempotency_keys",
+      // Expiry is checked inside the DELETE itself, so a row a retry took
+      // over between statements is always kept.
+      () =>
+        db
+          .delete(idempotencyKeys)
+          .where(lte(idempotencyKeys.expiresAt, now.getTime()))
+          .returning({ id: idempotencyKeys.keyHash }),
     );
   }
 
