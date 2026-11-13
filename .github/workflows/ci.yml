@@ -34,5 +34,8 @@ jobs:
         run: pnpm build
       - name: Validate Docker Compose
         run: |
+          touch .env
           docker compose -f docker-compose.local.yml config --quiet
           docker compose -f docker-compose.observability.yml config --quiet
+          docker compose -f docker-compose.api.yml config --quiet
+          docker compose -f docker-compose.ingest.yml config --quiet

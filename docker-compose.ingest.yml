@@ -1,9 +1,16 @@
-# Dokploy stack for the Soonwhy backend + telemetry.
-# postgres and redis are NOT part of this stack — point DATABASE_URL and
-# REDIS_URL at your own instances in the dokploy env form.
-# Only two services get public domains: api and ingest. nats and quickwit
-# stay internal. No host ports are published; dokploy routes domains at
-# the proxy.
+# Soonwhy ingest + its telemetry dependencies (NATS, Quickwit).
+# Other half of the backend + telemetry pair; the app itself is docker-compose.api.yml.
+# This is our exception to the Dockerfile-app rule — we can live with compose here.
+# Postgres and Redis are NOT in this stack — point DATABASE_URL and REDIS_URL at
+# your own instances in the env form (.env next to this file on the server).
+# api and ingest are deployed as two separate apps. Only ingest joins the
+# external network `soonwhy-backend`, so api can reach it as http://ingest:3002;
+# NATS and Quickwit stay on this project's own bridge. Create the shared
+# network once on the host: docker network create soonwhy-backend
+# Only this service gets a public domain (routed at the proxy); no host
+# ports are published. NATS and Quickwit stay internal.
+# Note: the telemetry bridge must NOT be marked internal — Quickwit needs
+# outbound access to R2/S3.
 
 services:
   nats:
@@ -18,6 +25,8 @@ services:
       - .env
     volumes:
       - nats-data:/data
+    networks:
+      - telemetry
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8222/healthz"]
@@ -48,7 +57,9 @@ services:
       AWS_RESPONSE_CHECKSUM_VALIDATION: WHEN_REQUIRED
     volumes:
       - quickwit-data:/quickwit/qwdata
-      - ./infra/dokploy/quickwit.yaml:/quickwit/config/quickwit.yaml:ro
+      - ./infra/telemetry/quickwit.yaml:/quickwit/config/quickwit.yaml:ro
+    networks:
+      - telemetry
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://127.0.0.1:7280/health/livez"]
@@ -57,27 +68,15 @@ services:
       retries: 20
       start_period: 20s
 
-  api:
-    image: ghcr.io/mbazu-daniel/soonwhy-api:${IMAGE_TAG:-dev}
-    env_file:
-      - .env
-    environment:
-      PORT: 3001
-      INGEST_URL: http://ingest:3002
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/api/v1/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
-
   ingest:
     image: ghcr.io/mbazu-daniel/soonwhy-ingest:${IMAGE_TAG:-dev}
     env_file:
       - .env
     environment:
       PORT: 3002
+    networks:
+      - telemetry
+      - soonwhy-backend
     depends_on:
       nats: { condition: service_healthy }
       quickwit: { condition: service_healthy }
@@ -92,3 +91,9 @@ services:
 volumes:
   nats-data:
   quickwit-data:
+
+networks:
+  telemetry:
+  soonwhy-backend:
+    external: true
+    name: soonwhy-backend

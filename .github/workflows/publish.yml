@@ -91,15 +91,30 @@ jobs:
           min-versions-to-keep: 5
 
   # Merged to dev → images pushed → tell dokploy to re-pull :dev and
-  # redeploy the merged stack. Set DOKPLOY_WEBHOOK_URL as a repo secret
-  # (Dokploy → application → Webhooks). Skipped silently if unset.
+  # redeploy. Each service is its own dokploy application with its own
+  # webhook: set DOKPLOY_WEBHOOK_URL_API and DOKPLOY_WEBHOOK_URL_INGEST
+  # as repo secrets (Dokploy → application → Webhooks). If either secret
+  # is unset the job fails — the redeploy is never silently skipped.
   deploy:
     needs: build-images
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [api, ingest]
     env:
-      DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
+      DOKPLOY_WEBHOOK_URL_API: ${{ secrets.DOKPLOY_WEBHOOK_URL_API }}
+      DOKPLOY_WEBHOOK_URL_INGEST: ${{ secrets.DOKPLOY_WEBHOOK_URL_INGEST }}
     steps:
-      - name: Trigger dokploy redeploy
-        if: env.DOKPLOY_WEBHOOK_URL != ''
-        run: curl -fsS -X POST "$DOKPLOY_WEBHOOK_URL"
+      - name: Trigger dokploy redeploy (${{ matrix.service }})
+        run: |
+          case "${{ matrix.service }}" in
+            api)    url="$DOKPLOY_WEBHOOK_URL_API";    secret="DOKPLOY_WEBHOOK_URL_API" ;;
+            ingest) url="$DOKPLOY_WEBHOOK_URL_INGEST"; secret="DOKPLOY_WEBHOOK_URL_INGEST" ;;
+          esac
+          if [ -z "$url" ]; then
+            echo "::error::Repo secret $secret is not set; refusing to skip the dokploy redeploy"
+            exit 1
+          fi
+          curl -fsS -X POST "$url"
