@@ -12,6 +12,11 @@ concurrency:
 jobs:
   checks:
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -30,6 +35,8 @@ jobs:
         run: pnpm verify:migrations
       - name: Test
         run: pnpm test -- --run
+        env:
+          REDIS_URL: redis://localhost:6379
       - name: Build
         run: pnpm build
       - name: Validate Docker Compose
