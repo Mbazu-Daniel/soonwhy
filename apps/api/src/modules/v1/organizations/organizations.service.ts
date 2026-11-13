@@ -118,8 +118,10 @@ export class OrganizationsService {
     organizationId: string,
     userId: string,
     role: string = "member",
+    authorization?: string,
   ) {
     const result = await authApi.addMember({
+      headers: authorization ? { authorization } : undefined,
       body: {
         userId,
         role: [role],
@@ -129,20 +131,157 @@ export class OrganizationsService {
     return result;
   }
 
-  async removeMemberFromOrganization(organizationId: string, userId: string) {
+  async removeMemberFromOrganization(
+    organizationId: string,
+    userId: string,
+    authorization?: string,
+  ) {
+    const member = await this.organizationsRepository.getMemberByUserId(
+      organizationId,
+      userId,
+    );
+    if (!member) {
+      throw new NotFoundException("Member not found");
+    }
     const result = await authApi.removeMember({
+      headers: authorization ? { authorization } : undefined,
       body: {
-        memberIdOrEmail: userId,
+        memberIdOrEmail: member.id,
         organizationId,
       },
     });
     return result;
   }
 
-  async getMembersOfOrganization(organizationId: string) {
+  async getMembersOfOrganization(
+    organizationId: string,
+    authorization?: string,
+  ) {
     const result = await authApi.listMembers({
+      headers: authorization ? { authorization } : undefined,
       query: { organizationId },
     });
+    return result?.members ?? [];
+  }
+
+  async createInvitation(
+    organizationId: string,
+    email: string,
+    role: string,
+    authorization?: string,
+  ) {
+    const result = await authApi.createInvitation({
+      headers: authorization ? { authorization } : undefined,
+      body: {
+        email: email.trim().toLowerCase(),
+        role,
+        organizationId,
+      },
+    });
     return result;
+  }
+
+  async listInvitations(
+    organizationId: string,
+    authorization?: string,
+  ) {
+    const result = await authApi.listInvitations({
+      headers: authorization ? { authorization } : undefined,
+      query: { organizationId },
+    });
+    const invitations = Array.isArray(result) ? result : [];
+    return invitations.filter(
+      (invitation: { status?: string }) =>
+        (invitation.status ?? "pending") === "pending",
+    );
+  }
+
+  async cancelInvitation(
+    organizationId: string,
+    invitationId: string,
+    authorization?: string,
+  ) {
+    const invitation = await this.organizationsRepository.getInvitationById(
+      invitationId,
+    );
+    if (!invitation || invitation.organizationId !== organizationId) {
+      throw new NotFoundException("Invitation not found");
+    }
+    const result = await authApi.cancelInvitation({
+      headers: authorization ? { authorization } : undefined,
+      body: { invitationId },
+    });
+    return result;
+  }
+
+  async updateMemberRole(
+    organizationId: string,
+    memberId: string,
+    role: string,
+    authorization?: string,
+  ) {
+    const result = await authApi.updateMemberRole({
+      headers: authorization ? { authorization } : undefined,
+      body: { memberId, role, organizationId },
+    });
+    return result;
+  }
+
+  async updateMemberProfile(
+    organizationId: string,
+    userId: string,
+    name: string,
+  ) {
+    const member = await this.organizationsRepository.getMemberByUserId(
+      organizationId,
+      userId,
+    );
+    if (!member) {
+      throw new NotFoundException("Member not found");
+    }
+    return this.organizationsRepository.updateMember(organizationId, member.id, {
+      name,
+    });
+  }
+
+  async transferOrganization(
+    organizationId: string,
+    actorUserId: string,
+    targetMemberId: string,
+    authorization?: string,
+  ) {
+    const target = await this.organizationsRepository.getMemberById(
+      organizationId,
+      targetMemberId,
+    );
+    if (!target) {
+      throw new NotFoundException("Member not found");
+    }
+    if (target.userId === actorUserId) {
+      throw new ConflictException(
+        "You already own this organization",
+      );
+    }
+
+    const headers = authorization ? { authorization } : undefined;
+
+    // Promote the target first so the organization never ends up with zero owners.
+    await authApi.updateMemberRole({
+      headers,
+      body: { memberId: target.id, role: "owner", organizationId },
+    });
+
+    const actor = await this.organizationsRepository.getMemberByUserId(
+      organizationId,
+      actorUserId,
+    );
+    if (actor) {
+      await authApi.updateMemberRole({
+        headers,
+        body: { memberId: actor.id, role: "admin", organizationId },
+      });
+    }
+
+    return { success: true };
   }
 }

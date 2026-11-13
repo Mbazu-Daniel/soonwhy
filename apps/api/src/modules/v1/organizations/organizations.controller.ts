@@ -41,6 +41,23 @@ const auditLogListSchema = z.object({
   offset: z.coerce.number().int().min(0).default(0),
 });
 
+const createInvitationSchema = z.object({
+  email: z.string().trim().email().max(320),
+  role: z.enum(["member", "admin"]).optional().default("member"),
+});
+
+const updateMemberRoleSchema = z.object({
+  role: z.enum(["member", "admin"]),
+});
+
+const transferSchema = z.object({
+  memberId: z.string().min(1).max(100),
+});
+
+const updateMemberProfileSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(100),
+});
+
 @Controller("organizations")
 export class OrganizationsController {
   constructor(private readonly organizationsService: OrganizationsService) {}
@@ -153,16 +170,21 @@ export class OrganizationController {
   @Get("members")
   async getMembersOfOrganization(
     @Param("organizationId") organizationId: string,
+    @Headers("authorization") authorization: string | undefined,
     @CurrentMember() member: MemberContext,
   ) {
     this.assertOrganization(member, organizationId);
-    return this.organizationsService.getMembersOfOrganization(organizationId);
+    return this.organizationsService.getMembersOfOrganization(
+      organizationId,
+      authorization,
+    );
   }
 
   @Post("members")
   async addMemberToOrganization(
     @Param("organizationId") organizationId: string,
     @Body() body: { userId: string; role?: string },
+    @Headers("authorization") authorization: string | undefined,
     @CurrentMember() member: MemberContext,
     @Req() req: Request,
   ) {
@@ -174,6 +196,7 @@ export class OrganizationController {
       organizationId,
       body.userId,
       body.role,
+      authorization,
     );
 
     await recordAuditEvent({
@@ -192,6 +215,7 @@ export class OrganizationController {
   async removeMemberFromOrganization(
     @Param("organizationId") organizationId: string,
     @Param("userId") userId: string,
+    @Headers("authorization") authorization: string | undefined,
     @CurrentMember() member: MemberContext,
     @Req() req: Request,
   ) {
@@ -202,6 +226,7 @@ export class OrganizationController {
     const result = await this.organizationsService.removeMemberFromOrganization(
       organizationId,
       userId,
+      authorization,
     );
 
     await recordAuditEvent({
@@ -211,6 +236,176 @@ export class OrganizationController {
       ipAddress: req.ip,
       userAgent: req.headers["user-agent"],
       metadata: { targetUserId: userId },
+    });
+
+    return result;
+  }
+
+  @Post("invitations")
+  async createInvitation(
+    @Param("organizationId") organizationId: string,
+    @Body({ schema: createInvitationSchema })
+    body: z.output<typeof createInvitationSchema>,
+    @Headers("authorization") authorization: string | undefined,
+    @CurrentMember() member: MemberContext,
+    @Req() req: Request,
+  ) {
+    this.assertOrganization(member, organizationId);
+    if (!["owner", "admin"].includes(member.role)) {
+      throw new ForbiddenException("Only owners and admins can invite members");
+    }
+    const result = await this.organizationsService.createInvitation(
+      organizationId,
+      body.email,
+      body.role,
+      authorization,
+    );
+
+    await recordAuditEvent({
+      userId: member.userId,
+      organizationId,
+      action: "invitation.create",
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+      metadata: { email: body.email, role: body.role },
+    });
+
+    return result;
+  }
+
+  @Get("invitations")
+  async listInvitations(
+    @Param("organizationId") organizationId: string,
+    @Headers("authorization") authorization: string | undefined,
+    @CurrentMember() member: MemberContext,
+  ) {
+    this.assertOrganization(member, organizationId);
+    if (!["owner", "admin"].includes(member.role)) {
+      throw new ForbiddenException("Only owners and admins can view invitations");
+    }
+    return this.organizationsService.listInvitations(
+      organizationId,
+      authorization,
+    );
+  }
+
+  @Delete("invitations/:invitationId")
+  async cancelInvitation(
+    @Param("organizationId") organizationId: string,
+    @Param("invitationId") invitationId: string,
+    @Headers("authorization") authorization: string | undefined,
+    @CurrentMember() member: MemberContext,
+    @Req() req: Request,
+  ) {
+    this.assertOrganization(member, organizationId);
+    if (!["owner", "admin"].includes(member.role)) {
+      throw new ForbiddenException("Only owners and admins can cancel invitations");
+    }
+    const result = await this.organizationsService.cancelInvitation(
+      organizationId,
+      invitationId,
+      authorization,
+    );
+
+    await recordAuditEvent({
+      userId: member.userId,
+      organizationId,
+      action: "invitation.cancel",
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+      metadata: { invitationId },
+    });
+
+    return result;
+  }
+
+  @Put("members/:memberId/role")
+  async updateMemberRole(
+    @Param("organizationId") organizationId: string,
+    @Param("memberId") memberId: string,
+    @Body({ schema: updateMemberRoleSchema })
+    body: z.output<typeof updateMemberRoleSchema>,
+    @Headers("authorization") authorization: string | undefined,
+    @CurrentMember() member: MemberContext,
+    @Req() req: Request,
+  ) {
+    this.assertOrganization(member, organizationId);
+    if (!["owner", "admin"].includes(member.role)) {
+      throw new ForbiddenException("Only owners and admins can change roles");
+    }
+    const result = await this.organizationsService.updateMemberRole(
+      organizationId,
+      memberId,
+      body.role,
+      authorization,
+    );
+
+    await recordAuditEvent({
+      userId: member.userId,
+      organizationId,
+      action: "member.role_update",
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+      metadata: { memberId, role: body.role },
+    });
+
+    return result;
+  }
+
+  @Put("member-profile")
+  async updateMemberProfile(
+    @Param("organizationId") organizationId: string,
+    @Body({ schema: updateMemberProfileSchema })
+    body: z.output<typeof updateMemberProfileSchema>,
+    @CurrentMember() member: MemberContext,
+    @Req() req: Request,
+  ) {
+    this.assertOrganization(member, organizationId);
+    const result = await this.organizationsService.updateMemberProfile(
+      organizationId,
+      member.userId,
+      body.name,
+    );
+
+    await recordAuditEvent({
+      userId: member.userId,
+      organizationId,
+      action: "member.profile_update",
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+      metadata: { fields: ["name"] },
+    });
+
+    return result;
+  }
+
+  @Post("transfer")
+  async transferOrganization(
+    @Param("organizationId") organizationId: string,
+    @Body({ schema: transferSchema })
+    body: z.output<typeof transferSchema>,
+    @Headers("authorization") authorization: string | undefined,
+    @CurrentMember() member: MemberContext,
+    @Req() req: Request,
+  ) {
+    this.assertOrganization(member, organizationId);
+    if (member.role !== "owner") {
+      throw new ForbiddenException("Only the owner can transfer the organization");
+    }
+    const result = await this.organizationsService.transferOrganization(
+      organizationId,
+      member.userId,
+      body.memberId,
+      authorization,
+    );
+
+    await recordAuditEvent({
+      userId: member.userId,
+      organizationId,
+      action: "organization.transfer",
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+      metadata: { memberId: body.memberId },
     });
 
     return result;

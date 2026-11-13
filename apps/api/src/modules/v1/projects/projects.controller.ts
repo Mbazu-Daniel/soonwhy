@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Param,
   Post,
@@ -23,6 +24,13 @@ import {
 } from "../../../common/decorators/current-org.decorator";
 import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
 
+function assertCanManageProjects(org: OrgContext): void {
+  const roles = (org.userRole ?? "").split(",").map((role) => role.trim());
+  if (!roles.some((role) => role === "owner" || role === "admin")) {
+    throw new ForbiddenException("Only owners and admins can manage projects");
+  }
+}
+
 @UseGuards(TenantGuard)
 @Controller("projects")
 export class ProjectsController {
@@ -33,6 +41,7 @@ export class ProjectsController {
     @CurrentOrg() org: OrgContext,
     @Body({ schema: CreateProjectDto }) body: CreateProjectInput,
   ) {
+    assertCanManageProjects(org);
     return this.projectsService.createProject(org.orgId, body);
   }
 
@@ -69,11 +78,13 @@ export class ProjectsController {
     @Param("id") id: string,
     @Body({ schema: UpdateProjectDto }) body: UpdateProjectInput,
   ) {
+    assertCanManageProjects(org);
     return this.projectsService.updateProject(id, org.orgId, body);
   }
 
   @Delete(":id")
   async deleteProject(@CurrentOrg() org: OrgContext, @Param("id") id: string) {
+    assertCanManageProjects(org);
     return this.projectsService.deleteProject(id, org.orgId);
   }
 }
