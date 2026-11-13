@@ -6,6 +6,7 @@ import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { SocialButtons } from '~/components/auth/social-buttons';
 import { signIn, setSessionToken } from '~/lib/auth-client';
+import { consumeReturnPath } from '~/lib/return-path';
 import { OrganizationForm } from '~/components/auth/organization-form';
 import { firstOrganization } from '~/lib/open-organization';
 import { useProject } from '~/lib/project-context';
@@ -28,6 +29,8 @@ function SignIn() {
     setPending(false);
     if (!organization) { setNeedsOrganization(true); return; }
     setOrganization(organization);
+    const returnPath = consumeReturnPath();
+    if (returnPath) { window.location.assign(returnPath); return; }
     void navigate({ to: '/$organizationSlug', params: { organizationSlug: organization.slug } });
   }
 

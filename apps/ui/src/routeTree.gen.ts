@@ -30,6 +30,7 @@ import { Route as OrganizationSlugServiceMapRouteImport } from './routes/$organi
 import { Route as OrganizationSlugServicesRouteImport } from './routes/$organizationSlug/services'
 import { Route as OrganizationSlugSettingsRouteImport } from './routes/$organizationSlug/settings'
 import { Route as OrganizationSlugTracesRouteImport } from './routes/$organizationSlug/traces'
+import { Route as AcceptInvitationInvitationIdRouteImport } from './routes/accept-invitation.$invitationId'
 import { Route as AdminDlqRouteImport } from './routes/admin.dlq'
 import { Route as AdminIngestHealthRouteImport } from './routes/admin.ingest-health'
 import { Route as AdminSystemHealthRouteImport } from './routes/admin.system-health'
@@ -171,6 +172,12 @@ const OrganizationSlugTracesRoute = OrganizationSlugTracesRouteImport.update({
   path: '/traces',
   getParentRoute: () => OrganizationSlugRoute,
 } as any)
+const AcceptInvitationInvitationIdRoute =
+  AcceptInvitationInvitationIdRouteImport.update({
+    id: '/accept-invitation/$invitationId',
+    path: '/accept-invitation/$invitationId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AdminDlqRoute = AdminDlqRouteImport.update({
   id: '/admin/dlq',
   path: '/admin/dlq',
@@ -357,6 +364,7 @@ export interface FileRoutesByFullPath {
   '/$organizationSlug/services': typeof OrganizationSlugServicesRoute
   '/$organizationSlug/settings': typeof OrganizationSlugSettingsRoute
   '/$organizationSlug/traces': typeof OrganizationSlugTracesRoute
+  '/accept-invitation/$invitationId': typeof AcceptInvitationInvitationIdRoute
   '/admin/dlq': typeof AdminDlqRoute
   '/admin/ingest-health': typeof AdminIngestHealthRoute
   '/admin/system-health': typeof AdminSystemHealthRoute
@@ -407,6 +415,7 @@ export interface FileRoutesByTo {
   '/$organizationSlug/services': typeof OrganizationSlugServicesRoute
   '/$organizationSlug/settings': typeof OrganizationSlugSettingsRoute
   '/$organizationSlug/traces': typeof OrganizationSlugTracesRoute
+  '/accept-invitation/$invitationId': typeof AcceptInvitationInvitationIdRoute
   '/admin/dlq': typeof AdminDlqRoute
   '/admin/ingest-health': typeof AdminIngestHealthRoute
   '/admin/system-health': typeof AdminSystemHealthRoute
@@ -457,6 +466,7 @@ export interface FileRoutesById {
   '/$organizationSlug/services': typeof OrganizationSlugServicesRoute
   '/$organizationSlug/settings': typeof OrganizationSlugSettingsRoute
   '/$organizationSlug/traces': typeof OrganizationSlugTracesRoute
+  '/accept-invitation/$invitationId': typeof AcceptInvitationInvitationIdRoute
   '/admin/dlq': typeof AdminDlqRoute
   '/admin/ingest-health': typeof AdminIngestHealthRoute
   '/admin/system-health': typeof AdminSystemHealthRoute
@@ -510,6 +520,7 @@ export interface FileRouteTypes {
     | '/$organizationSlug/services'
     | '/$organizationSlug/settings'
     | '/$organizationSlug/traces'
+    | '/accept-invitation/$invitationId'
     | '/admin/dlq'
     | '/admin/ingest-health'
     | '/admin/system-health'
@@ -560,6 +571,7 @@ export interface FileRouteTypes {
     | '/$organizationSlug/services'
     | '/$organizationSlug/settings'
     | '/$organizationSlug/traces'
+    | '/accept-invitation/$invitationId'
     | '/admin/dlq'
     | '/admin/ingest-health'
     | '/admin/system-health'
@@ -609,6 +621,7 @@ export interface FileRouteTypes {
     | '/$organizationSlug/services'
     | '/$organizationSlug/settings'
     | '/$organizationSlug/traces'
+    | '/accept-invitation/$invitationId'
     | '/admin/dlq'
     | '/admin/ingest-health'
     | '/admin/system-health'
@@ -647,6 +660,7 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   OrganizationsRoute: typeof OrganizationsRoute
   RegisterRoute: typeof RegisterRoute
+  AcceptInvitationInvitationIdRoute: typeof AcceptInvitationInvitationIdRoute
   AdminDlqRoute: typeof AdminDlqRoute
   AdminIngestHealthRoute: typeof AdminIngestHealthRoute
   AdminSystemHealthRoute: typeof AdminSystemHealthRoute
@@ -803,6 +817,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$organizationSlug/traces'
       preLoaderRoute: typeof OrganizationSlugTracesRouteImport
       parentRoute: typeof OrganizationSlugRoute
+    }
+    '/accept-invitation/$invitationId': {
+      id: '/accept-invitation/$invitationId'
+      path: '/accept-invitation/$invitationId'
+      fullPath: '/accept-invitation/$invitationId'
+      preLoaderRoute: typeof AcceptInvitationInvitationIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/admin/dlq': {
       id: '/admin/dlq'
@@ -1150,6 +1171,7 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   OrganizationsRoute: OrganizationsRoute,
   RegisterRoute: RegisterRoute,
+  AcceptInvitationInvitationIdRoute: AcceptInvitationInvitationIdRoute,
   AdminDlqRoute: AdminDlqRoute,
   AdminIngestHealthRoute: AdminIngestHealthRoute,
   AdminSystemHealthRoute: AdminSystemHealthRoute,

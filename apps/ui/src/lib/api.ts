@@ -1,4 +1,5 @@
 import { API_BASE, API_PREFIX } from "./config";
+import { setReturnPath } from "./return-path";
 
 /** The API's error envelope (RFC 9457 plus a stable `code` and a user-facing `hint`). */
 export interface ApiProblem {
@@ -6,6 +7,7 @@ export interface ApiProblem {
   title?: string;
   detail?: string;
   hint?: string;
+  status?: number;
 }
 
 class ApiError extends Error {
@@ -20,7 +22,9 @@ class ApiError extends Error {
 }
 
 export function apiProblem(error: unknown): ApiProblem {
-  return error instanceof ApiError ? error.problem : {};
+  return error instanceof ApiError
+    ? { ...error.problem, status: error.status }
+    : {};
 }
 
 const UNSCOPED_PREFIXES = ["/auth", "/organizations", "/health", "/marketing", "/admin", "/public"];
@@ -66,10 +70,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       localStorage.removeItem("org_id");
       localStorage.removeItem("org_slug");
       localStorage.removeItem("project_id");
-      localStorage.setItem(
-        "soonwhy:return-path",
-        window.location.pathname + window.location.search,
-      );
+      setReturnPath(window.location.pathname + window.location.search);
       const path = window.location.pathname;
       if (path !== "/login" && path !== "/register")
         window.location.assign("/login");
