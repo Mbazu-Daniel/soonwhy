@@ -6,8 +6,8 @@ const bumpArgIndex = process.argv.indexOf("--bump");
 const bumpKind = bumpArgIndex === -1 ? "patch" : process.argv[bumpArgIndex + 1];
 const dryRun = !process.argv.includes("--yes");
 
-if (!["major", "minor", "patch"].includes(bumpKind)) {
-  console.error(`unknown --bump=${bumpKind} (expected major|minor|patch)`);
+if (!["major", "minor", "patch", "none"].includes(bumpKind)) {
+  console.error(`unknown --bump=${bumpKind} (expected major|minor|patch|none)`);
   process.exit(2);
 }
 
@@ -29,15 +29,14 @@ if (parts.length !== 3 || parts.some(Number.isNaN)) {
   console.error(`unparseable version: ${current}`);
   process.exit(1);
 }
-const next = bump(parts, bumpKind);
+const next = bumpKind === "none" ? current : bump(parts, bumpKind);
+const bumping = next !== current;
 
 const tag = `sdk-v${next}`;
-const existing = execSync("git tag --list", { encoding: "utf8" }).trim();
-if (existing) {
-  if (existing.split("\n").includes(tag)) {
-    console.error(`tag ${tag} already exists locally`);
-    process.exit(1);
-  }
+const localTags = execSync("git tag --list", { encoding: "utf8" }).trim();
+if (localTags.split("\n").includes(tag)) {
+  console.error(`tag ${tag} already exists locally`);
+  process.exit(1);
 }
 const remoteTags = execSync("git ls-remote --tags origin", { encoding: "utf8" });
 if (remoteTags.includes(`refs/tags/${tag}`)) {
@@ -46,29 +45,36 @@ if (remoteTags.includes(`refs/tags/${tag}`)) {
 }
 
 if (dryRun) {
-  console.log(`SDK aligned at ${current}; would bump to ${next} (--${bumpKind}), commit, tag ${tag}, push`);
+  const action = bumping
+    ? `would bump ${current} -> ${next} (--${bumpKind}), commit, tag ${tag}, push`
+    : `SDK aligned at ${current}; --bump none: would build, test, tag ${tag} at current HEAD, push`;
+  console.log(action);
   process.exit(0);
 }
 
-for (const dir of PACKAGE_DIRS) {
-  const path = `${dir}/package.json`;
-  const pkg = JSON.parse(readFileSync(path, "utf8"));
-  pkg.version = next;
-  writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n");
+if (bumping) {
+  for (const dir of PACKAGE_DIRS) {
+    const path = `${dir}/package.json`;
+    const pkg = JSON.parse(readFileSync(path, "utf8"));
+    pkg.version = next;
+    writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n");
+  }
+  console.log(`wrote ${next} to ${PACKAGE_DIRS.length} SDK packages`);
+  run("git add " + PACKAGE_DIRS.map((d) => `${d}/package.json`).join(" "));
+  run(`git commit -m "chore(sdk): release v${next}"`);
+} else {
+  console.log(`release ${current} as-is (--bump none)`);
 }
-console.log(`wrote ${next} to ${PACKAGE_DIRS.length} SDK packages`);
 
 const pnpm = "pnpm";
 run(`${pnpm} --filter @soonwhy/node --filter @soonwhy/nest --filter @soonwhy/next --filter @soonwhy/vite build`);
 run(`${pnpm} --filter @soonwhy/node --filter @soonwhy/nest --filter @soonwhy/next --filter @soonwhy/vite test -- --run`);
 
-run("git add " + PACKAGE_DIRS.map((d) => `${d}/package.json`).join(" "));
-run(`git commit -m "chore(sdk): release v${next}"`);
 run(`git tag ${tag}`);
-run(`git push`);
+if (bumping) run("git push");
 run(`git push origin ${tag}`);
 console.log(`released ${tag}`);
-console.log(`watch the Release SDK workflow or wait for it: gh run list --workflow release-sdk.yml`);
+console.log(`watch the Release SDK workflow: gh run list --workflow release-sdk.yml`);
 
 function bump([major, minor, patch], kind) {
   if (kind === "major") return [major + 1, 0, 0].join(".");
