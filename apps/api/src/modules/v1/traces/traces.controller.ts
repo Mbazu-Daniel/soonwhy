@@ -5,6 +5,7 @@ import {
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
 } from "@nestjs/common";
 import { TracesService } from "./traces.service";
 import { getTraceStatsSchema, getTracesSchema } from "./dto";
@@ -12,13 +13,16 @@ import {
   CurrentOrg,
   OrgContext,
 } from "../../../common/decorators/current-org.decorator";
+import { AuditSearch, SearchAuditInterceptor } from "../search-audit";
 import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
 
 @UseGuards(TenantGuard)
+@UseInterceptors(SearchAuditInterceptor)
 @Controller("projects/:projectId/traces")
 export class TracesController {
   constructor(private readonly tracesService: TracesService) {}
 
+  @AuditSearch("traces.search")
   @Get()
   async listTraces(
     @CurrentOrg() org: OrgContext,
