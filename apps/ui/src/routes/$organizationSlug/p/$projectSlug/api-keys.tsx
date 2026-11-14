@@ -159,9 +159,9 @@ function ApiKeysPage() {
                   <TableRow key={key.id}>
                     <TableCell className="pl-5 font-medium">{key.name}</TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">{key.prefix}••••••••</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{key.createdAt ? new Date(key.createdAt).toLocaleDateString() : '—'}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{key.lastUsedAt ? formatAge(key.lastUsedAt) : 'Never'}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{key.expiresAt ? new Date(key.expiresAt).toLocaleDateString() : 'Never'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{key.createdAt ? new Date(key.createdAt).toLocaleString() : '—'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleString() : 'Never'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{key.expiresAt ? new Date(key.expiresAt).toLocaleString() : 'Never'}</TableCell>
                     <TableCell className="pr-5 text-right">
                       <Button
                         variant="ghost"
@@ -252,17 +252,3 @@ function CreateKeyDialog({
   );
 }
 
-function formatAge(value: string) {
-  const age = Date.now() - new Date(value).getTime();
-  if (!Number.isFinite(age) || age < 0) return 'Just now';
-  const minutes = Math.floor(age / 60_000);
-  if (minutes < 1) return 'Just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months}mo ago`;
-  return `${Math.floor(months / 12)}y ago`;
-}

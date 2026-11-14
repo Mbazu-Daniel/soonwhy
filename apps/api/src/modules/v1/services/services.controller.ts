@@ -4,11 +4,17 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   UseGuards,
 } from "@nestjs/common";
 import { ServicesService } from "./services.service";
-import { CreateServiceDto, type CreateServiceInput } from "./dto";
+import {
+  CreateServiceDto,
+  UpdateServiceDto,
+  type CreateServiceInput,
+  type UpdateServiceInput,
+} from "./dto";
 import {
   CurrentOrg,
   OrgContext,
@@ -52,6 +58,16 @@ export class ServicesController {
     @Param("id") id: string,
   ) {
     return this.servicesService.getServiceById(id, projectId, org.orgId);
+  }
+
+  @Patch(":id")
+  async updateService(
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+    @Param("id") id: string,
+    @Body({ schema: UpdateServiceDto }) body: UpdateServiceInput,
+  ) {
+    return this.servicesService.updateService(id, projectId, org.orgId, body);
   }
 
   @Delete(":id")
