@@ -46,3 +46,16 @@ export interface LogFilterChip {
   value: string;
   negate: boolean;
 }
+
+export interface LogContextScope {
+  label: string;
+  field: string;
+  value: string;
+}
+
+export interface LogContextResponse {
+  field: string;
+  value: string;
+  before: LogEntry[];
+  after: LogEntry[];
+}
