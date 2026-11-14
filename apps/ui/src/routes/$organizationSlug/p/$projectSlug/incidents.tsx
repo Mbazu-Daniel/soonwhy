@@ -1,12 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
+import { useProject } from '~/lib/project-context';
 import { RefreshCw, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
 import { Card, CardContent } from '~/components/ui/card';
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
 import { api } from '~/lib/api';
 
-export const Route = createFileRoute('/projects/$projectId/incidents')({
+export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/incidents')({
   component: IncidentsPage,
 });
 
@@ -36,21 +37,24 @@ interface IncidentStats {
 }
 
 function IncidentsPage() {
-  const { projectId } = Route.useParams();
+  const { projectId } = useProject();
 
   const incidents = useQuery({
     queryKey: ['incidents', projectId],
     queryFn: () => api.get<Incident[]>(`/projects/${projectId}/incidents`),
     refetchInterval: 30000,
+    enabled: !!projectId,
   });
 
   const stats = useQuery({
     queryKey: ['incident-stats', projectId],
     queryFn: () => api.get<IncidentStats>(`/projects/${projectId}/incidents/stats`),
     refetchInterval: 30000,
+    enabled: !!projectId,
   });
 
   const handleAcknowledge = async (id: number, note?: string) => {
+    if (!projectId) return;
     await api.post(`/projects/${projectId}/incidents/${id}/acknowledge`, {
       acknowledgedBy: 'current-user',
       note,
@@ -60,6 +64,7 @@ function IncidentsPage() {
   };
 
   const handleResolve = async (id: number, note?: string) => {
+    if (!projectId) return;
     await api.post(`/projects/${projectId}/incidents/${id}/resolve`, {
       resolvedBy: 'current-user',
       note,
@@ -107,6 +112,12 @@ function IncidentsPage() {
     const color = colors[severity] || colors.info;
     return <Badge className={color}>{severity}</Badge>;
   };
+
+  if (!projectId) {
+    return (
+      <Card className="shadow-none"><CardContent className="p-12 text-center">Choose a project</CardContent></Card>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 pb-10">
