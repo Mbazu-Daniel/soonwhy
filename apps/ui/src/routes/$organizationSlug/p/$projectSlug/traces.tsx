@@ -2,7 +2,11 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Search, GitBranch, Clock3, ChevronRight, X, FileText, ExternalLink } from 'lucide-react';
 import { ConnectServiceButton } from '~/components/connect-service-button';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { TraceWaterfall } from '~/components/trace/trace-waterfall';
+import { TraceServiceGraph } from '~/components/trace/trace-service-graph';
+import { buildTraceLayout, formatMs } from '~/components/trace/trace.layout';
+import type { TraceSpan } from '~/components/trace/trace.types';
 import { TimeRangeControl, telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
 import { Card, CardContent } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
@@ -26,19 +30,9 @@ interface Trace {
   startTime: string;
 }
 
-interface Span {
-  spanId: string;
-  parentSpanId?: string;
-  name: string;
-  duration: number;
-  timestamp: string;
-  service: string;
-  status?: string;
-}
-
 interface TraceResponse {
   traceId: string;
-  spans: Span[];
+  spans: TraceSpan[];
 }
 
 interface LogEntry {
@@ -74,7 +68,8 @@ function TraceExplorer() {
     enabled: !!projectId && !!selectedTraceId,
   });
 
-  const firstSpan = selectedTrace.data?.spans[0];
+  const layout = useMemo(() => buildTraceLayout(selectedTrace.data?.spans ?? []), [selectedTrace.data]);
+  const firstSpan = layout.rows[0]?.span;
   const traceLogs = useQuery({
     queryKey: ['trace-drawer-logs', projectId, selectedTraceId],
     queryFn: () =>
@@ -155,7 +150,7 @@ function TraceExplorer() {
       {selectedTraceId && (
         <>
           <button type="button" aria-label="Close trace inspector" onClick={() => setSelectedTraceId(undefined)} className="fixed inset-0 z-40 bg-black/20" />
-          <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-xl flex-col border-l bg-background shadow-2xl">
+          <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl flex-col border-l bg-background shadow-2xl">
             <div className="flex items-start justify-between gap-4 border-b p-5">
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[.14em] text-[#16931F]"></p>
@@ -168,30 +163,24 @@ function TraceExplorer() {
               {selectedTrace.isLoading ? (
                 <div className="space-y-3"><Skeleton className="h-20" /><Skeleton className="h-64" /><Skeleton className="h-40" /></div>
               ) : selectedTrace.isError || !selectedTrace.data?.spans.length ? (
-                <div className="py-12 text-center text-sm text-muted-foreground">This trace is no longer available.</div>
+                <div className="py-12 text-center text-sm text-muted-foreground">{selectedTrace.isError ? 'Could not load this trace.' : 'No spans were found for this trace yet. They may still be ingesting.'}<div className="mt-3"><button type="button" onClick={() => void selectedTrace.refetch()} className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted">Retry</button></div></div>
               ) : (
                 <div className="space-y-5">
-                  <div className="grid grid-cols-3 gap-2">
-                    <MiniMetric label="Spans" value={String(selectedTrace.data.spans.length)} />
-                    <MiniMetric label="Services" value={String(new Set(selectedTrace.data.spans.map((span) => span.service)).size)} />
-                    <MiniMetric label="Duration" value={`${Math.max(...selectedTrace.data.spans.map((span) => new Date(span.timestamp).getTime() + span.duration)) - Math.min(...selectedTrace.data.spans.map((span) => new Date(span.timestamp).getTime()))}ms`} />
+                  <div className="grid grid-cols-4 gap-2">
+                    <MiniMetric label="Duration" value={formatMs(layout.totalMs)} />
+                    <MiniMetric label="Spans" value={String(layout.rows.length)} />
+                    <MiniMetric label="Services" value={String(layout.services.length)} />
+                    <MiniMetric label="Errors" value={String(layout.errorCount)} />
                   </div>
 
                   <section>
+                    <h3 className="text-sm font-semibold">Service map</h3>
+                    <div className="mt-3 rounded-lg border p-2"><TraceServiceGraph spans={selectedTrace.data.spans} services={layout.services} /></div>
+                  </section>
+
+                  <section>
                     <h3 className="text-sm font-semibold">Waterfall</h3>
-                    <div className="mt-3 divide-y rounded-lg border">
-                      {selectedTrace.data.spans.map((span) => (
-                        <div key={span.spanId} className="p-3">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-medium">{span.name}</p>
-                              <p className="font-mono text-[10px] text-muted-foreground">{span.service} · {span.spanId}</p>
-                            </div>
-                            <Badge variant="outline">{span.duration}ms</Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <div className="mt-3 overflow-hidden rounded-lg border"><TraceWaterfall layout={layout} compact /></div>
                   </section>
 
                   <section>

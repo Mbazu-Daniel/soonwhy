@@ -8,24 +8,14 @@ import { Badge } from '~/components/ui/badge';
 import { api } from '~/lib/api';
 import { QueryErrorState } from '~/components/query-error-state';
 import { useProject } from '~/lib/project-context';
+import { TraceWaterfall } from '~/components/trace/trace-waterfall';
+import { TraceServiceGraph } from '~/components/trace/trace-service-graph';
+import { buildTraceLayout, formatMs } from '~/components/trace/trace.layout';
+import type { TraceSpan } from '~/components/trace/trace.types';
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/trace/$traceId')({ component: TraceDetail });
 
-interface Span {
-  traceId: string;
-  spanId: string;
-  parentSpanId: string;
-  name: string;
-  duration: number;
-  timestamp: string;
-  service: string;
-  attributes?: Record<string, unknown>;
-  resource?: Record<string, unknown>;
-  status?: string;
-  kind?: string;
-  children: Span[];
-}
-interface TraceResponse { traceId: string; spans: Span[]; tree: Span[]; }
+interface TraceResponse { traceId: string; spans: TraceSpan[]; }
 interface LogEntry { id: string; timestamp: string; level: string; message: string; traceId?: string; spanId?: string; }
 
 function TraceDetail() {
@@ -47,10 +37,8 @@ function TraceDetail() {
     enabled: !!projectId && !!traceId,
   });
 
-  const start = useMemo(() => data?.spans.reduce((min, span) => Math.min(min, new Date(span.timestamp).getTime()), Number.POSITIVE_INFINITY) ?? 0, [data]);
-  const end = useMemo(() => data?.spans.reduce((max, span) => Math.max(max, new Date(span.timestamp).getTime() + span.duration), 0) ?? 0, [data]);
-  const totalDuration = Math.max(0, end - start);
-  const services = [...new Set(data?.spans.map((span) => span.service).filter(Boolean) ?? [])];
+  const layout = useMemo(() => buildTraceLayout(data?.spans ?? []), [data]);
+  const { totalMs: totalDuration, startMs: start, services } = layout;
 
   if (!projectId) return <Card><CardContent className="p-10 text-center">Choose a project</CardContent></Card>;
   if (isError) return <QueryErrorState onRetry={() => void refetch()} />;
@@ -68,39 +56,32 @@ function TraceDetail() {
         <button type="button" onClick={copyTraceId} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium">{copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}{copied ? 'Copied' : 'Copy trace ID'}</button>
       </div>
 
-      <header><h1 className="break-all font-mono text-xl font-semibold">{traceId}</h1><p className="mt-1 text-sm text-muted-foreground">{selected?.name ?? 'Distributed trace'} · {selected?.service ?? 'Unknown service'}</p></header>
+      <header><h1 className="break-all font-mono text-xl font-semibold">{traceId}</h1><p className="mt-1 text-sm text-muted-foreground">{layout.rows[0]?.span.name ?? 'Distributed trace'} · {layout.rows[0]?.span.service ?? 'Unknown service'}</p></header>
 
       {isLoading ? <div className="space-y-4"><Skeleton className="h-24" /><Skeleton className="h-[520px]" /></div> : !data?.spans.length ? (
         <Card><CardContent className="p-12 text-center"><p className="font-medium">Trace not found</p><p className="mt-1 text-sm text-muted-foreground">The trace may have expired or is not available for this project.</p></CardContent></Card>
       ) : (
         <>
           <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Metric label="Duration" value={`${totalDuration.toFixed(1)}ms`} icon={Clock3} />
+            <Metric label="Duration" value={formatMs(totalDuration)} icon={Clock3} />
             <Metric label="Spans" value={String(data.spans.length)} icon={GitBranch} />
             <Metric label="Services" value={String(services.length)} icon={GitBranch} />
             <Metric label="Started" value={new Date(start).toLocaleTimeString()} icon={Clock3} />
           </section>
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-            <Card className="overflow-hidden border-border shadow-none">
-              <CardHeader className="border-b"><CardTitle className="text-base">Waterfall</CardTitle><p className="text-xs text-muted-foreground">Select a span to inspect its context.</p></CardHeader>
-              <CardContent className="p-0">
-                {data.spans.map((span) => {
-                  const left = totalDuration ? Math.max(0, ((new Date(span.timestamp).getTime() - start) / totalDuration) * 100) : 0;
-                  const width = totalDuration ? Math.max(1, (span.duration / totalDuration) * 100) : 1;
-                  const depth = span.parentSpanId ? 16 : 0;
-                  return <button key={span.spanId} type="button" onClick={() => setSelectedSpanId(span.spanId)} className={`grid w-full grid-cols-[minmax(180px,280px)_1fr] gap-3 border-b p-3 text-left hover:bg-muted ${selected?.spanId === span.spanId ? 'bg-muted' : ''}`}>
-                    <div className="min-w-0" style={{ paddingLeft: depth }}><p className="truncate text-sm font-medium">{span.name}</p><p className="truncate font-mono text-[10px] text-muted-foreground">{span.service} · {span.spanId}</p></div>
-                    <div className="relative flex items-center"><div className="absolute inset-x-0 h-1.5 rounded-full bg-muted" /><span className="absolute h-2 rounded-full bg-[#16931F]" style={{ left: `${left}%`, width: `${width}%` }} /><span className="ml-auto font-mono text-[10px] text-muted-foreground">{span.duration}ms</span></div>
-                  </button>;
-                })}
-              </CardContent>
-            </Card>
+            <div className="min-w-0 space-y-4">
+              <Card className="border-border shadow-none"><CardHeader className="border-b"><CardTitle className="text-base">Service map</CardTitle><p className="text-xs text-muted-foreground">How this request moved between services.</p></CardHeader><CardContent className="p-4"><TraceServiceGraph spans={data.spans} services={services} /></CardContent></Card>
+              <Card className="overflow-hidden border-border shadow-none">
+                <CardHeader className="border-b"><CardTitle className="text-base">Waterfall</CardTitle><p className="text-xs text-muted-foreground">Select a span to inspect its context.</p></CardHeader>
+                <CardContent className="p-0"><TraceWaterfall layout={layout} selectedSpanId={selected?.spanId} onSelect={setSelectedSpanId} /></CardContent>
+              </Card>
+            </div>
 
             <div className="space-y-4">
               <Card className="border-border shadow-none"><CardHeader><CardTitle className="text-base">Span details</CardTitle></CardHeader><CardContent>{selected ? <div className="space-y-4">
                 <div><p className="text-xs text-muted-foreground">Operation</p><p className="mt-1 text-sm font-medium">{selected.name}</p></div>
-                <div className="grid grid-cols-2 gap-3"><Fact label="Service" value={selected.service} /><Fact label="Kind" value={selected.kind ?? '—'} /><Fact label="Status" value={selected.status ?? '—'} /><Fact label="Span ID" value={selected.spanId} /></div>
+                <div className="grid grid-cols-2 gap-3"><Fact label="Service" value={selected.service} /><Fact label="Kind" value={selected.kind ?? '—'} /><Fact label="Status" value={selected.status ?? (Number(selected.statusCode ?? 0) >= 2 ? 'error' : 'ok')} /><Fact label="Duration" value={formatMs(selected.duration)} /><Fact label="Span ID" value={selected.spanId} /></div>
                 <JsonBlock title="Attributes" value={selected.attributes} /><JsonBlock title="Resource" value={selected.resource} />
               </div> : <p className="text-sm text-muted-foreground">Select a span.</p>}</CardContent></Card>
 
