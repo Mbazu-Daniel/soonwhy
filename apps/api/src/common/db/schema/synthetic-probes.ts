@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, timestamp, boolean, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, integer, timestamp, boolean, jsonb, index } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 export const syntheticProbes = pgTable('synthetic_probes', {
@@ -32,4 +32,6 @@ export const syntheticProbeResults = pgTable('synthetic_probe_results', {
   responseTimeMs: integer('response_time_ms'),
   errorMessage: text('error_message'),
   checkedAt: timestamp('checked_at').defaultNow(),
-});
+}, (table) => [
+  index('synthetic_probe_results_probe_checked_idx').on(table.probeId, table.checkedAt.desc()),
+]);
