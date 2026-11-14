@@ -72,8 +72,14 @@ export class DetectionService {
     const claimed = await claimQueuedDetectionRun();
     if (!claimed) return undefined;
 
-    const settings = await this.detectorSettings.get(claimed.orgId);
-    await this.assertProjectAccess(claimed.orgId, claimed.projectId);
+    let settings: Awaited<ReturnType<DetectorSettingsService['get']>>;
+    try {
+      settings = await this.detectorSettings.get(claimed.orgId);
+      await this.assertProjectAccess(claimed.orgId, claimed.projectId);
+    } catch (error) {
+      await failDetectionRun(claimed.id, error instanceof Error ? error.message : String(error));
+      throw error;
+    }
     await this.processDetectionRun(claimed, settings);
     return claimed.id;
   }

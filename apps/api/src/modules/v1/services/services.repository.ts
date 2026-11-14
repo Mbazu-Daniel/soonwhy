@@ -87,7 +87,7 @@ export class ServicesRepository {
     ownerId?: string;
     teamId?: string;
   }) {
-    const [svc] = await db.insert(services).values(data).returning();
+    const [svc] = await db.insert(services).values(data).onConflictDoNothing().returning();
     return svc;
   }
 

@@ -12,7 +12,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/common/db/migrate.ts",
     "db:studio": "drizzle-kit studio",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "db:sync": "tsx src/common/db/schema-sync.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1167.0",

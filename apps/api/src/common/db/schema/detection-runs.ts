@@ -17,6 +17,7 @@ export const detectionRuns = pgTable("detection_runs", {
   windowEnd: timestamp("window_end").notNull(),
   status: text("status").notNull(),
   findingsCount: integer("findings_count").notNull().default(0),
+  attempts: integer("attempts").notNull().default(0),
   startedAt: timestamp("started_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
   error: text("error"),

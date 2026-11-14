@@ -18,6 +18,12 @@ export class TeamsService {
         "Team slug already exists in this organization",
       );
     }
-    return this.repository.create(orgId, input);
+    const team = await this.repository.create(orgId, input);
+    if (!team) {
+      throw new ConflictException(
+        "Team slug already exists in this organization",
+      );
+    }
+    return team;
   }
 }

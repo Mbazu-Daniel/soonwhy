@@ -106,11 +106,17 @@ export class ServicesService {
       throw new ConflictException(
         "Service slug already exists in this project",
       );
-    return this.servicesRepository.createService({
+    const created = await this.servicesRepository.createService({
       projectId,
       orgId,
       ...input,
     });
+    if (!created) {
+      throw new ConflictException(
+        "Service slug already exists in this project",
+      );
+    }
+    return created;
   }
 
   async updateService(

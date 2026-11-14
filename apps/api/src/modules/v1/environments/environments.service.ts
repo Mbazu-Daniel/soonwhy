@@ -21,6 +21,12 @@ export class EnvironmentsService {
         "Environment slug already exists in this project",
       );
     }
-    return this.repository.create(projectId, input);
+    const environment = await this.repository.create(projectId, input);
+    if (!environment) {
+      throw new ConflictException(
+        "Environment slug already exists in this project",
+      );
+    }
+    return environment;
   }
 }

@@ -1,5 +1,5 @@
 import { generateId } from "../generate-id";
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uniqueIndex, text, timestamp } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
 
 export const teams = pgTable("teams", {
@@ -13,4 +13,6 @@ export const teams = pgTable("teams", {
   slug: text("slug").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  uniqueIndex("teams_org_id_slug_idx").on(table.orgId, table.slug),
+]);

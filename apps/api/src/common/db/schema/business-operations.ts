@@ -1,5 +1,5 @@
 import { generateId } from "../generate-id";
-import { pgTable, text, timestamp, integer, real } from "drizzle-orm/pg-core";
+import { pgTable, uniqueIndex, text, timestamp, integer, real } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
 import { projects } from "./projects";
 import { services } from "./services";
@@ -32,4 +32,6 @@ export const businessOperations = pgTable("business_operations", {
   sloUnit: text("slo_unit"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  uniqueIndex("business_operations_project_id_slug_idx").on(table.projectId, table.slug),
+]);

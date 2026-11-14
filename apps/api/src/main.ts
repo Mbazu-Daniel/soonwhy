@@ -32,6 +32,7 @@ async function bootstrap() {
   );
 
   app.useLogger(new PiiMaskingLogger());
+  app.enableShutdownHooks();
 
   app.use(helmet());
   app.use(compression());

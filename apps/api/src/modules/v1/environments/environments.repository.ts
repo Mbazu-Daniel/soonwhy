@@ -38,6 +38,7 @@ export class EnvironmentsRepository {
     const [environment] = await db
       .insert(environments)
       .values({ projectId, ...input })
+      .onConflictDoNothing()
       .returning();
     return environment;
   }
