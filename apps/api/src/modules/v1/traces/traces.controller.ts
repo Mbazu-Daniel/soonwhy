@@ -7,7 +7,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { TracesService } from "./traces.service";
-import { getTracesSchema } from "./dto";
+import { getTraceStatsSchema, getTracesSchema } from "./dto";
 import {
   CurrentOrg,
   OrgContext,
@@ -28,6 +28,26 @@ export class TracesController {
     const parsed = getTracesSchema.safeParse({ ...query, projectId });
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     return this.tracesService.listTraces(org.orgId, parsed.data);
+  }
+
+  @Get("stats")
+  async getStats(
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+    @Query() query: Record<string, unknown>,
+  ) {
+    const parsed = getTraceStatsSchema.safeParse({ ...query, projectId });
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.tracesService.getStats(org.orgId, parsed.data);
+  }
+
+  @Get(":traceId/log-counts")
+  async getSpanLogCounts(
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+    @Param("traceId") traceId: string,
+  ) {
+    return this.tracesService.getSpanLogCounts(org.orgId, projectId, traceId);
   }
 
   @Get(":traceId")

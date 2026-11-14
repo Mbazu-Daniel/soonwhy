@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
-import { TracesRepository, TraceRow } from "./traces.repository";
-import { GetTracesInput } from "./dto";
+import { TracesRepository, TraceRow, type TraceScope } from "./traces.repository";
+import { GetTraceStatsInput, GetTracesInput } from "./dto";
+import { decodeOffset, nextOffsetCursor } from "./trace-cursor";
 
 export interface TraceSpan extends TraceRow {
   children: TraceSpan[];
@@ -10,36 +11,37 @@ export interface TraceSpan extends TraceRow {
 export class TracesService {
   constructor(private readonly tracesRepository: TracesRepository) {}
 
-  async listTraces(orgId: string, input: GetTracesInput) {
-    let cursor: { ts: string; traceId: string } | undefined;
-    if (input.cursor) {
-      try {
-        const decoded = JSON.parse(
-          Buffer.from(input.cursor, "base64").toString("utf-8"),
-        );
-        cursor = { ts: decoded.ts, traceId: decoded.traceId };
-      } catch {
-        cursor = undefined;
-      }
-    }
-    const rows = await this.tracesRepository.listTraces({
+  private scopeOf(orgId: string, input: GetTraceStatsInput): TraceScope {
+    return {
       orgId,
       projectId: input.projectId,
       from: input.from ?? new Date(0).toISOString(),
       to: input.to ?? new Date().toISOString(),
-      limit: input.limit,
-      cursor,
       q: input.q,
       service: input.service,
+      operation: input.operation,
+      status: input.status,
+      minDuration: input.minDuration,
+      maxDuration: input.maxDuration,
+    };
+  }
+
+  async listTraces(orgId: string, input: GetTracesInput) {
+    const offset = decodeOffset(input.cursor);
+    const rows = await this.tracesRepository.listTraces({
+      ...this.scopeOf(orgId, input),
+      limit: input.limit,
+      offset,
     });
-    let nextCursor: string | undefined;
-    if (rows.length === input.limit && rows.length > 0) {
-      const last = rows[rows.length - 1]!;
-      nextCursor = Buffer.from(
-        JSON.stringify({ ts: last.start, traceId: last.traceId }),
-      ).toString("base64");
-    }
-    return { data: rows, nextCursor };
+    return { data: rows, nextCursor: nextOffsetCursor(offset, rows.length, input.limit) };
+  }
+
+  getStats(orgId: string, input: GetTraceStatsInput) {
+    return this.tracesRepository.traceStats(this.scopeOf(orgId, input));
+  }
+
+  async getSpanLogCounts(orgId: string, projectId: string, traceId: string) {
+    return { counts: await this.tracesRepository.spanLogCounts({ orgId, projectId, traceId }) };
   }
 
   async getTrace(orgId: string, projectId: string, traceId: string) {

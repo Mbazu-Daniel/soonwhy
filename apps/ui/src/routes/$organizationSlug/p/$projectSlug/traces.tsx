@@ -1,15 +1,20 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { Search, GitBranch, Clock3, ChevronRight, X, FileText, ExternalLink } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { GitBranch, Clock3, ChevronRight, X, FileText, ExternalLink } from 'lucide-react';
 import { ConnectServiceButton } from '~/components/connect-service-button';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { TraceWaterfall } from '~/components/trace/trace-waterfall';
 import { TraceServiceGraph } from '~/components/trace/trace-service-graph';
 import { buildTraceLayout, formatMs } from '~/components/trace/trace.layout';
 import type { TraceSpan } from '~/components/trace/trace.types';
-import { TimeRangeControl, telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
+import { telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
+import { TraceCharts } from '~/components/traces/trace-charts';
+import { TraceFilterBar } from '~/components/traces/trace-filter-bar';
+import { EMPTY_TRACE_FILTERS, hasTraceFilters, type TraceFilterState } from '~/lib/trace-search';
+import { useDebounced } from '~/lib/use-debounced';
+import { useSpanLogCounts, useTracePages, useTraceStats } from '~/lib/use-trace-search';
 import { Card, CardContent } from '~/components/ui/card';
-import { Input } from '~/components/ui/input';
+import { Button } from '~/components/ui/button';
 import { Skeleton } from '~/components/ui/skeleton';
 import { Badge } from '~/components/ui/badge';
 import { api } from '~/lib/api';
@@ -19,16 +24,6 @@ import { useProject } from '~/lib/project-context';
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/traces')({
   component: TraceExplorer,
 });
-
-interface Trace {
-  traceId: string;
-  rootService: string;
-  rootOperation: string;
-  durationMs: number;
-  spanCount: number;
-  status: string;
-  startTime: string;
-}
 
 interface TraceResponse {
   traceId: string;
@@ -47,20 +42,26 @@ function TraceExplorer() {
   const { projectSlug, orgSlug } = useProject();
   const { service: serviceFilter } = Route.useSearch() as { service?: string };
   const { projectId } = useProject();
-  const [q, setQ] = useState('');
+  const [filters, setFilters] = useState<TraceFilterState>({ ...EMPTY_TRACE_FILTERS, service: serviceFilter ?? '' });
   const [range, setRange] = useState<TelemetryRange>('24h');
   const [selectedTraceId, setSelectedTraceId] = useState<string>();
-  const rangeParams = telemetryRangeParams(range);
+  const getRange = useCallback(() => telemetryRangeParams(range), [range]);
 
-  const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['traces', projectId, q, serviceFilter, range],
-    queryFn: () =>
-      api.get<{ data: Trace[]; nextCursor?: string }>(
-        `/projects/${projectId}/traces?${new URLSearchParams({ ...(q ? { q } : {}), ...(serviceFilter ? { service: serviceFilter } : {}), ...rangeParams }).toString()}`,
-      ),
+  const applied = useDebounced(filters);
+  const pages = useTracePages(projectId, applied, getRange, range, 15_000);
+  const stats = useTraceStats(projectId, applied, getRange, range);
+  const services = useQuery({
+    queryKey: ['trace-filter-services', projectId],
+    queryFn: () => api.get<Array<{ name: string }>>(`/projects/${projectId}/services`),
     enabled: !!projectId,
-    placeholderData: keepPreviousData,
+    retry: false,
   });
+  const traces = useMemo(() => {
+    const seen = new Set<string>();
+    return (pages.data?.pages.flatMap((page) => page.data) ?? []).filter((trace) => !seen.has(trace.traceId) && !!seen.add(trace.traceId));
+  }, [pages.data]);
+  const { isLoading, isError, refetch } = pages;
+  const spanLogCounts = useSpanLogCounts(projectId, selectedTraceId);
 
   const selectedTrace = useQuery({
     queryKey: ['trace-drawer', projectId, selectedTraceId],
@@ -80,26 +81,15 @@ function TraceExplorer() {
   });
 
   if (!projectId) return <Empty />;
-  const showingStale = isError && !!data?.data?.length;
-  if (isError && !data?.data?.length) return <QueryErrorState onRetry={() => void refetch()} />;
+  const showingStale = isError && traces.length > 0;
+  if (isError && traces.length === 0) return <QueryErrorState onRetry={() => void refetch()} />;
 
   return (
     <div className="min-h-full space-y-5 pb-8">
       <h1 className="sr-only">Traces</h1>
 
-      <div className="flex items-center gap-2 rounded-lg border border-[#242426] bg-[#0B0B0C] px-2 py-1">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <Search className="h-4 w-4 shrink-0 text-[#989898]" />
-          <Input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder={serviceFilter ? `Traces for ${serviceFilter}` : "Search trace ID, service, or operation"}
-            className="h-9 flex-1 border-none bg-transparent px-0 text-sm placeholder-[#6E6E70] focus:ring-0"
-            aria-label="Search traces"
-          />
-        </div>
-        <TimeRangeControl value={range} onChange={setRange} />
-      </div>
+      <TraceFilterBar filters={filters} onChange={setFilters} services={(services.data ?? []).map((item) => item.name)} range={range} onRange={setRange} />
+      <TraceCharts buckets={stats.data?.buckets ?? []} />
 
       {showingStale && <div className="flex items-center justify-between gap-3 rounded-xl border border-[#5A4A1C] bg-[#2A220F] px-4 py-3 text-xs text-[#D8C68A]"><span>Trace telemetry is temporarily unavailable. Showing the last successful result.</span><button type="button" onClick={() => void refetch()} className="rounded-md border px-2 py-1 hover:bg-background">Retry</button></div>}
 
@@ -109,18 +99,18 @@ function TraceExplorer() {
             <div className="space-y-2 p-4">
               {Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-14" />)}
             </div>
-          ) : !data?.data?.length ? (
+          ) : traces.length === 0 ? (
             <div className="p-12 text-center">
               <GitBranch className="mx-auto h-8 w-8 text-[#16931F]" />
-              <p className="mt-3 font-medium">{q ? 'No traces found' : 'Waiting for your first trace'}</p>
+              <p className="mt-3 font-medium">{hasTraceFilters(applied) ? 'No traces found' : 'Waiting for your first trace'}</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {q ? 'Try a broader search or another trace ID, service, or operation.' : 'Send a real request through your project instrumentation to activate trace exploration.'}
+                {hasTraceFilters(applied) ? 'Try removing a filter or widening the time range.' : 'Send a real request through your project instrumentation to activate trace exploration.'}
               </p>
-              {!q && <ConnectServiceButton className="mt-4" />}
+              {!hasTraceFilters(applied) && <ConnectServiceButton className="mt-4" />}
             </div>
           ) : (
             <div className="divide-y divide-[#DBE5D7]">
-              {data.data.map((t) => (
+              {traces.map((t) => (
                 <button
                   key={t.traceId}
                   type="button"
@@ -137,7 +127,7 @@ function TraceExplorer() {
                     <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="font-mono text-xs">{t.durationMs}ms</span>
                     <Badge variant="outline">{t.spanCount} spans</Badge>
-                    <Badge variant="outline">{t.status}</Badge>
+                    <Badge variant="outline" className={t.status === 'error' ? 'border-[#F8C7C2] text-[#F28B82]' : ''}>{t.status}</Badge>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </button>
@@ -146,6 +136,12 @@ function TraceExplorer() {
           )}
         </CardContent>
       </Card>
+
+      {pages.hasNextPage && (
+        <div className="flex justify-center">
+          <Button variant="outline" size="sm" disabled={pages.isFetchingNextPage} onClick={() => void pages.fetchNextPage()}>{pages.isFetchingNextPage ? 'Loading…' : 'Load more'}</Button>
+        </div>
+      )}
 
       {selectedTraceId && (
         <>
@@ -180,7 +176,7 @@ function TraceExplorer() {
 
                   <section>
                     <h3 className="text-sm font-semibold">Waterfall</h3>
-                    <div className="mt-3 overflow-hidden rounded-lg border"><TraceWaterfall layout={layout} compact /></div>
+                    <div className="mt-3 overflow-hidden rounded-lg border"><TraceWaterfall layout={layout} compact logCounts={spanLogCounts.data?.counts} /></div>
                   </section>
 
                   <section>

@@ -9,9 +9,10 @@ interface TraceWaterfallProps {
   selectedSpanId?: string;
   onSelect?: (spanId: string) => void;
   compact?: boolean;
+  logCounts?: Record<string, number>;
 }
 
-export function TraceWaterfall({ layout, selectedSpanId, onSelect, compact }: TraceWaterfallProps) {
+export function TraceWaterfall({ layout, selectedSpanId, onSelect, compact, logCounts }: TraceWaterfallProps) {
   const { rows, totalMs, services } = layout;
   const labelWidth = compact ? 'minmax(130px,200px)' : 'minmax(180px,300px)';
 
@@ -48,6 +49,7 @@ export function TraceWaterfall({ layout, selectedSpanId, onSelect, compact }: Tr
                   <p className="flex items-center gap-1 truncate text-xs font-medium">
                     {row.isError && <AlertCircle className="h-3 w-3 shrink-0 text-red-600" />}
                     <span className="truncate">{row.span.name}</span>
+                    {logCounts?.[row.span.spanId] ? <span className="shrink-0 rounded border px-1 text-[9px] font-normal text-muted-foreground" title="Logs recorded in this span">{logCounts[row.span.spanId]} logs</span> : null}
                   </p>
                   <p className="truncate text-[10px] text-muted-foreground">{row.span.service}</p>
                 </div>
