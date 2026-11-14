@@ -32,7 +32,6 @@ describe("VerificationAnalyzer", () => {
 
       const result = verifyChange(request);
 
-      // Status depends on overall score - check score instead
       expect(result.overallScore).toBeGreaterThanOrEqual(50);
       expect(result.summary.improved).toBe(2);
     });
@@ -61,9 +60,7 @@ describe("VerificationAnalyzer", () => {
 
       const result = verifyChange(request);
 
-      // Check for degradation in summary
       expect(result.summary.degraded).toBe(2);
-      // Degraded metrics without explicit expectations are warnings, not failures
       expect(result.summary.warned).toBeGreaterThan(0);
     });
   });
@@ -74,7 +71,6 @@ describe("VerificationAnalyzer", () => {
 
       expect(check.isRegression).toBe(true);
       expect(check.changePercent).toBe(100);
-      // 100% change exceeds 20% threshold * 3 = 60%, so critical
       expect(check.severity).toBe("critical");
     });
 

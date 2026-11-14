@@ -42,16 +42,16 @@ export interface EvidenceEdge {
   sourceId: string;
   targetId: string;
   type: EvidenceEdgeType;
-  strength: number; // 0-1 confidence
+  strength: number;
   metadata?: Record<string, unknown>;
 }
 
 export interface EvidenceGraph {
   nodes: Map<string, EvidenceNode>;
   edges: Map<string, EvidenceEdge>;
-  indexedByTrace: Map<string, Set<string>>; // traceId -> nodeIds
-  indexedByService: Map<string, Set<string>>; // serviceName -> nodeIds
-  indexedByDeployment: Map<string, Set<string>>; // deploymentId -> nodeIds
+  indexedByTrace: Map<string, Set<string>>;
+  indexedByService: Map<string, Set<string>>;
+  indexedByDeployment: Map<string, Set<string>>;
 }
 
 export interface GraphPath {

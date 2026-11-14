@@ -27,7 +27,6 @@ export class EvidenceGraphCleanupService {
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async cleanupOldInvestigations(): Promise<void> {
     this.logger.log("Starting old investigations cleanup");
-    // TODO: Add investigation cleanup logic
     this.logger.log("Old investigations cleanup complete");
   }
 }

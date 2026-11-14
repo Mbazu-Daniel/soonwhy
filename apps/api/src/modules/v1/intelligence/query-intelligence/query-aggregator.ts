@@ -6,16 +6,6 @@ import type {
   LargeScanPattern,
 } from "./query-intelligence.types";
 
-/**
- * Aggregate query executions into summary statistics.
- *
- * Computes:
- * - Execution count
- * - Duration statistics (avg, p50, p95, p99)
- * - Error rate
- * - Row counts (affected, scanned, returned)
- * - Time window (first/last seen)
- */
 export function aggregateQueryExecutions(
   executions: QueryExecution[],
 ): QueryAggregation {
@@ -28,11 +18,9 @@ export function aggregateQueryExecutions(
     throw new Error("First execution has no query identity");
   }
 
-  // Count errors
   const errorCount = executions.filter((e) => e.error).length;
   const errorRate = errorCount / executions.length;
 
-  // Aggregate durations
   const durations = executions.map((e) => e.durationMs);
   const totalDurationMs = durations.reduce((sum, d) => sum + d, 0);
   const avgDurationMs = totalDurationMs / durations.length;
@@ -42,7 +30,6 @@ export function aggregateQueryExecutions(
   const p95Index = Math.floor(sortedDurations.length * 0.95);
   const p99Index = Math.floor(sortedDurations.length * 0.99);
 
-  // Aggregate row counts
   const totalRowsAffected = executions.reduce(
     (sum, e) => sum + (e.rowsAffected ?? 0),
     0,
@@ -56,7 +43,6 @@ export function aggregateQueryExecutions(
     0,
   );
 
-  // Time window
   const timestamps = executions.map((e) => new Date(e.timestamp).getTime());
   const firstSeenAt = new Date(Math.min(...timestamps)).toISOString();
   const lastSeenAt = new Date(Math.max(...timestamps)).toISOString();
@@ -79,12 +65,6 @@ export function aggregateQueryExecutions(
   };
 }
 
-/**
- * Detect N+1 query pattern.
- *
- * Identifies when a parent query is followed by multiple similar child queries
- * within the same trace, indicating a potential N+1 problem.
- */
 export function detectNPlusOnePattern(
   executionsByTrace: Map<string, QueryExecution[]>,
   threshold: number = 5,
@@ -94,7 +74,6 @@ export function detectNPlusOnePattern(
   for (const [traceId, traceExecutions] of executionsByTrace) {
     if (traceExecutions.length < threshold + 1) continue;
 
-    // Group by query fingerprint
     const byFingerprint = new Map<string, QueryExecution[]>();
     for (const exec of traceExecutions) {
       const fp = exec.queryIdentity.fingerprint;
@@ -104,7 +83,6 @@ export function detectNPlusOnePattern(
       byFingerprint.get(fp)!.push(exec);
     }
 
-    // Find queries with multiple executions
     for (const [fingerprint, execs] of byFingerprint) {
       if (execs.length < threshold) continue;
 
@@ -127,12 +105,6 @@ export function detectNPlusOnePattern(
   return patterns;
 }
 
-/**
- * Detect large scan patterns.
- *
- * Identifies queries that scan many more rows than they return,
- * indicating inefficient queries or missing indexes.
- */
 export function detectLargeScanPattern(
   aggregation: QueryAggregation,
   scanEfficiencyThreshold: number = 0.1,

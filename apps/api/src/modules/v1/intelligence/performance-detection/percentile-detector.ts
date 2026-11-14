@@ -32,13 +32,6 @@ interface PercentileBaseline {
   samples: number;
 }
 
-/**
- * Detect p50/p95/p99 percentile degradation.
- *
- * Compares observed percentiles against baseline percentiles
- * to detect shifts in the latency distribution, particularly
- * tail latency which affects user experience most.
- */
 export function detectPercentileDegradation(
   observed: { p50: number; p95: number; p99: number },
   baseline: PercentileBaseline | undefined,
@@ -51,7 +44,6 @@ export function detectPercentileDegradation(
     return undefined;
   }
 
-  // Check p95 degradation (most sensitive to tail latency)
   const p95Change = (observed.p95 - baseline.p95) / baseline.p95;
   if (p95Change < config.latencyWarningRelative) return undefined;
 
@@ -89,9 +81,6 @@ export function detectPercentileDegradation(
   };
 }
 
-/**
- * Calculate percentiles from a sample array.
- */
 export function calculatePercentiles(
   values: number[],
 ): { p50: number; p95: number; p99: number } {

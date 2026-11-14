@@ -34,14 +34,14 @@ export interface EvidenceBundle {
 
 export interface EvidenceCitation {
   observationId: string;
-  confidence: number; // 0-1
+  confidence: number;
   relevance: "high" | "medium" | "low";
 }
 
 export interface CorrelationLink {
   relatedIdentity: TelemetryIdentity;
   linkType: "causes" | "caused_by" | "correlated_with" | "same_trace" | "same_deployment";
-  strength: number; // 0-1
+  strength: number;
 }
 
 export interface IssueCandidate {
@@ -49,6 +49,6 @@ export interface IssueCandidate {
   evidence: EvidenceBundle;
   citations: EvidenceCitation[];
   correlations: CorrelationLink[];
-  confidence: number; // 0-1
+  confidence: number;
   status: "candidate" | "confirmed";
 }

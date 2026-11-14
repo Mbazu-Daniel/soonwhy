@@ -17,9 +17,6 @@ interface RuntimeMetricSpec {
   unit: string;
 }
 
-// OTel runtime conventions: utilization is a 0..1 ratio, event loop delay is seconds.
-// Some exporters emit percentages or milliseconds instead, so the detector calibrates
-// values into the spec unit before comparing them with the thresholds.
 const RUNTIME_METRIC_SPECS: readonly RuntimeMetricSpec[] = [
   {
     family: "cpu",
@@ -198,11 +195,9 @@ function groupByMetric(
 
 function calibrate(value: number, spec: RuntimeMetricSpec): number {
   if (spec.unit === "ratio") {
-    // ponytail: exporter calibration. Percent emitters send 0..100, OTel sends 0..1.
     return value > 1 && value <= 100 ? value / 100 : value;
   }
 
-  // ponytail: exporter calibration. Millisecond emitters send values above 1 for these metrics.
   return value > 1 ? value / 1000 : value;
 }
 

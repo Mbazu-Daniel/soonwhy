@@ -1,7 +1,6 @@
 import { percentile } from './percentile';
 export type DatabaseQuerySeverity = "warning" | "critical";
 
-
 export interface DatabaseQueryDistribution {
   p50: number;
   p95: number;
@@ -102,7 +101,6 @@ export function evaluateDatabaseQuery(
     distribution,
   };
 }
-
 
 function percentChange(value: number, baseline: number): number | undefined {
   if (baseline <= 0) return undefined;

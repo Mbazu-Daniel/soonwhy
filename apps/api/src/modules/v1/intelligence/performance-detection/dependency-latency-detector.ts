@@ -25,12 +25,6 @@ const DEFAULT_CONFIG: PerformanceDetectionConfig = {
   eventLoopCriticalMs: 100,
 };
 
-/**
- * Detect external dependency latency regression.
- *
- * Compares observed HTTP/gRPC/Redis dependency latency against baseline
- * and flags when external services become slower.
- */
 export function detectDependencyLatency(
   observedMs: number,
   baseline: PerformanceBaseline | undefined,
@@ -81,12 +75,6 @@ export function detectDependencyLatency(
   );
 }
 
-/**
- * Detect internal service latency regression.
- *
- * Compares observed internal service call latency against baseline
- * and flags when internal microservices become slower.
- */
 export function detectInternalServiceLatency(
   observedMs: number,
   baseline: PerformanceBaseline | undefined,

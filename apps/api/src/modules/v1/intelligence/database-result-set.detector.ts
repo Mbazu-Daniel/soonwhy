@@ -350,7 +350,6 @@ function distributionPair(samples: DatabaseResultSetTrace[]): {
   };
 }
 
-
 function percentileTraceContribution(
   samples: DatabaseResultSetTrace[],
   quantile: number,

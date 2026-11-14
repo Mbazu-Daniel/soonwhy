@@ -25,12 +25,6 @@ const DEFAULT_CONFIG: PerformanceDetectionConfig = {
   eventLoopCriticalMs: 100,
 };
 
-/**
- * Detect database latency regression.
- *
- * Compares observed database query latency against baseline and flags
- * when database operations become slower.
- */
 export function detectDatabaseLatency(
   observedMs: number,
   baseline: PerformanceBaseline | undefined,

@@ -14,7 +14,7 @@ export interface DetectorConfig {
 @Injectable()
 export class DetectorConfigService {
   private readonly logger = new Logger(DetectorConfigService.name);
-  private readonly CACHE_TTL = 3600; // 1 hour
+  private readonly CACHE_TTL = 3600;
 
   constructor(
     @Optional() private readonly customDb?: PostgresJsDatabase<any>,

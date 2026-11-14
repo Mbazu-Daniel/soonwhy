@@ -25,12 +25,6 @@ const DEFAULT_CONFIG: PerformanceDetectionConfig = {
   eventLoopCriticalMs: 100,
 };
 
-/**
- * Detect endpoint latency regression.
- *
- * Compares observed endpoint latency against a baseline and flags
- * when latency increases beyond warning or critical thresholds.
- */
 export function detectEndpointLatencyRegression(
   observedMs: number,
   baseline: PerformanceBaseline | undefined,

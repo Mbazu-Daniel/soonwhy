@@ -188,7 +188,6 @@ function isError(sample: ExternalDependencyTrace): boolean {
   );
 }
 
-
 function recommendationFor(dependencyType: string): string {
   if (dependencyType === "http") {
     return "Inspect downstream latency, HTTP errors, retries, timeouts, and payload size. Check whether repeated calls can be avoided or batched and verify retry behavior is not amplifying load.";

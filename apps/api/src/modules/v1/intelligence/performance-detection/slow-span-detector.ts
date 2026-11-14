@@ -24,12 +24,6 @@ const DEFAULT_CONFIG: PerformanceDetectionConfig = {
   eventLoopCriticalMs: 100,
 };
 
-/**
- * Detect slow spans.
- *
- * Flags individual spans that exceed configured latency thresholds,
- * helping identify specific operations contributing to overall latency.
- */
 export function detectSlowSpans(
   spans: Array<{
     spanName: string;

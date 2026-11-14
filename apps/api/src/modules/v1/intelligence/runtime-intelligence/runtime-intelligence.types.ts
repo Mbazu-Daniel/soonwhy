@@ -11,7 +11,7 @@ export interface RuntimeMetrics {
   activeHandles: number;
   activeRequests: number;
   gcPauseTimeMs: number;
-  gcFrequency: number; // pauses per second
+  gcFrequency: number;
   timestamp: string;
   hostId?: string;
   containerId?: string;

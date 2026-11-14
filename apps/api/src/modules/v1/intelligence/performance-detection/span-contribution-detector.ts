@@ -24,12 +24,6 @@ const DEFAULT_CONFIG: PerformanceDetectionConfig = {
   eventLoopCriticalMs: 100,
 };
 
-/**
- * Detect span contribution to trace duration.
- *
- * Identifies spans that contribute a large percentage of overall trace duration,
- * helping pinpoint bottlenecks in the request path.
- */
 export function detectSpanContribution(
   spanDurationMs: number,
   traceDurationMs: number,
@@ -84,12 +78,6 @@ export function detectSpanContribution(
   };
 }
 
-/**
- * Analyze database time contribution.
- *
- * Calculates what percentage of trace duration is spent in database operations,
- * helping identify when database latency is the bottleneck.
- */
 export function detectDatabaseTimeContribution(
   dbTimeMs: number,
   traceDurationMs: number,

@@ -259,7 +259,6 @@ function distribution(values: number[]): {
   };
 }
 
-
 function percentChange(
   current: number,
   baseline: number | undefined,

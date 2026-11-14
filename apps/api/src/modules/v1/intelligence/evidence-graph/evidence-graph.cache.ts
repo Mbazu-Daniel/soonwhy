@@ -4,10 +4,10 @@ import { Redis } from "ioredis";
 @Injectable()
 export class EvidenceGraphCache {
   private readonly logger = new Logger(EvidenceGraphCache.name);
-  private readonly NODE_TTL = 3600; // 1 hour
-  private readonly EDGE_TTL = 3600; // 1 hour
-  private readonly TRACE_NODES_TTL = 1800; // 30 minutes
-  private readonly SERVICE_NODES_TTL = 1800; // 30 minutes
+  private readonly NODE_TTL = 3600;
+  private readonly EDGE_TTL = 3600;
+  private readonly TRACE_NODES_TTL = 1800;
+  private readonly SERVICE_NODES_TTL = 1800;
 
   constructor(private readonly redis: Redis) {}
 

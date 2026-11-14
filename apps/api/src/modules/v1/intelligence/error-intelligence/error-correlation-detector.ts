@@ -1,8 +1,5 @@
 import type { ErrorOccurrence } from "./error-intelligence.types";
 
-/**
- * Detect error frequency trends.
- */
 export function detectErrorFrequencyTrend(
   occurrences: ErrorOccurrence[],
   windowMinutes: number = 15,
@@ -12,7 +9,6 @@ export function detectErrorFrequencyTrend(
   const now = Date.now();
   const windowMs = windowMinutes * 60 * 1000;
   
-  // Split into two halves
   const midTime = now - windowMs / 2;
   const firstHalf = occurrences.filter((o) => new Date(o.timestamp).getTime() < midTime);
   const secondHalf = occurrences.filter((o) => new Date(o.timestamp).getTime() >= midTime);
@@ -25,12 +21,9 @@ export function detectErrorFrequencyTrend(
   return "stable";
 }
 
-/**
- * Detect error clusters (bursts of similar errors).
- */
 export function detectErrorClusters(
   occurrences: ErrorOccurrence[],
-  clusterWindowMs: number = 60000, // 1 minute
+  clusterWindowMs: number = 60000,
   clusterThreshold: number = 5,
 ): Array<{
   errorFingerprint: string;
@@ -45,7 +38,6 @@ export function detectErrorClusters(
     count: number;
   }> = [];
 
-  // Group by fingerprint
   const byFingerprint = new Map<string, ErrorOccurrence[]>();
   for (const occ of occurrences) {
     if (!byFingerprint.has(occ.errorFingerprint)) {
@@ -54,7 +46,6 @@ export function detectErrorClusters(
     byFingerprint.get(occ.errorFingerprint)!.push(occ);
   }
 
-  // Find clusters for each fingerprint
   for (const [fingerprint, occs] of byFingerprint) {
     occs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
@@ -87,7 +78,6 @@ export function detectErrorClusters(
       }
     }
 
-    // Check final cluster
     if (clusterCount >= clusterThreshold && clusterStart !== null) {
       const lastOcc = occs[occs.length - 1];
       if (lastOcc) {

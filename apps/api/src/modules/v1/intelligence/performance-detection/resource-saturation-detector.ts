@@ -24,12 +24,6 @@ const DEFAULT_CONFIG: PerformanceDetectionConfig = {
   eventLoopCriticalMs: 100,
 };
 
-/**
- * Detect CPU saturation.
- *
- * Flags when CPU usage exceeds warning or critical thresholds,
- * indicating resource exhaustion that may cause performance degradation.
- */
 export function detectCpuSaturation(
   cpuUsagePercent: number,
   hostId?: string,
@@ -73,12 +67,6 @@ export function detectCpuSaturation(
   };
 }
 
-/**
- * Detect memory pressure.
- *
- * Flags when memory usage exceeds warning or critical thresholds,
- * which may lead to OOM kills or GC pressure.
- */
 export function detectMemoryPressure(
   memoryUsagePercent: number,
   hostId?: string,
@@ -124,12 +112,6 @@ export function detectMemoryPressure(
   };
 }
 
-/**
- * Detect event-loop lag (Node.js specific).
- *
- * Flags when the event loop is blocked for extended periods,
- * indicating synchronous operations blocking the main thread.
- */
 export function detectEventLoopLag(
   eventLoopLagMs: number,
   hostId?: string,
@@ -173,12 +155,6 @@ export function detectEventLoopLag(
   };
 }
 
-/**
- * Detect disk I/O pressure.
- *
- * Flags when disk I/O wait times or utilization exceed thresholds,
- * indicating storage bottlenecks.
- */
 export function detectDiskIoPressure(
   diskUtilizationPercent: number,
   diskWaitTimeMs?: number,
@@ -186,7 +162,6 @@ export function detectDiskIoPressure(
   containerId?: string,
   config: PerformanceDetectionConfig = DEFAULT_CONFIG,
 ): ResourceFinding | undefined {
-  // Use disk wait time if available, otherwise use utilization
   const metricValue = diskWaitTimeMs ?? diskUtilizationPercent;
   const unit = diskWaitTimeMs ? "ms" : "%";
   const threshold = diskWaitTimeMs ? 100 : config.cpuWarningThreshold;
@@ -227,12 +202,6 @@ export function detectDiskIoPressure(
   };
 }
 
-/**
- * Detect network I/O pressure.
- *
- * Flags when network I/O utilization or latency exceeds thresholds,
- * indicating network bottlenecks.
- */
 export function detectNetworkIoPressure(
   networkUtilizationPercent: number,
   networkLatencyMs?: number,
@@ -240,7 +209,6 @@ export function detectNetworkIoPressure(
   containerId?: string,
   config: PerformanceDetectionConfig = DEFAULT_CONFIG,
 ): ResourceFinding | undefined {
-  // Use network latency if available, otherwise use utilization
   const metricValue = networkLatencyMs ?? networkUtilizationPercent;
   const unit = networkLatencyMs ? "ms" : "%";
   const threshold = networkLatencyMs ? 100 : config.cpuWarningThreshold;
@@ -281,12 +249,6 @@ export function detectNetworkIoPressure(
   };
 }
 
-/**
- * Detect container resource pressure.
- *
- * Aggregates CPU, memory, and other resource metrics to detect
- * when a container is under resource pressure.
- */
 export function detectContainerResourcePressure(
   metrics: {
     cpuUsagePercent: number;
@@ -298,7 +260,6 @@ export function detectContainerResourcePressure(
   hostId?: string,
   config: PerformanceDetectionConfig = DEFAULT_CONFIG,
 ): ResourceFinding | undefined {
-  // Check for critical conditions first
   if (metrics.oomKilled) {
     const identity = createTelemetryIdentity({
       domain: "infrastructure",
@@ -361,7 +322,6 @@ export function detectContainerResourcePressure(
     };
   }
 
-  // Check for combined resource pressure
   const cpuPressure = metrics.cpuUsagePercent >= config.cpuWarningThreshold;
   const memoryPressure =
     metrics.memoryUsagePercent >= config.memoryWarningThreshold;
@@ -378,7 +338,7 @@ export function detectContainerResourcePressure(
 
     return {
       identity,
-      metric: "cpu", // Primary metric
+      metric: "cpu",
       observedValue: metrics.cpuUsagePercent,
       unit: "%",
       severity: "critical",
@@ -399,12 +359,6 @@ export function detectContainerResourcePressure(
   return undefined;
 }
 
-/**
- * Detect host resource pressure.
- *
- * Aggregates host-level resource metrics to detect when a host
- * is under resource pressure.
- */
 export function detectHostResourcePressure(
   metrics: {
     cpuUsagePercent: number;
@@ -442,7 +396,7 @@ export function detectHostResourcePressure(
 
   return {
     identity,
-    metric: "cpu", // Primary metric
+    metric: "cpu",
     observedValue: metrics.cpuUsagePercent,
     unit: "%",
     severity: pressures.length >= 2 ? "critical" : "warning",
