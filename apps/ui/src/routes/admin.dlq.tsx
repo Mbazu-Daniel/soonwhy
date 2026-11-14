@@ -171,7 +171,6 @@ function DlqPage() {
         </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid gap-4 sm:grid-cols-5">
         <Card className="border-border bg-card shadow-none">
           <CardContent className="p-5">
@@ -205,7 +204,6 @@ function DlqPage() {
         </Card>
       </div>
 
-      {/* Entries Table */}
       <Card className="overflow-hidden shadow-none">
         <CardContent className="p-0">
           {entries.isLoading ? (
@@ -348,7 +346,6 @@ function DlqPage() {
         </CardContent>
       </Card>
 
-      {/* Payload Viewer */}
       {showPayload !== null && (
         <Card className="shadow-none">
           <CardContent className="p-6">

@@ -2,10 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { AlertCircle } from "lucide-react";
 import { apiProblem } from "~/lib/api";
 
-/**
- * RCA failures carry an actionable envelope (`AI_NOT_CONFIGURED`,
- * `AI_QUOTA_EXCEEDED`, …); the generic message alone tells the user nothing to do.
- */
 export function RcaGenerationError({
   error,
   orgSlug,

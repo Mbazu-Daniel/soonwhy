@@ -155,8 +155,6 @@ function LogRow({ log }: { log: LogEntry }) {
   );
 }
 
-
-
 type LogRange = TelemetryRange | 'custom' | 'all';
 
 function LogViewer() {
@@ -215,7 +213,6 @@ function LogViewer() {
 
   return (
     <div className="mx-auto w-full space-y-4">
-      {/* Toolbar: search on the left, time + filters + actions on the right */}
       <div className="flex items-center gap-2 border border-[#242426] rounded-lg bg-[#0B0B0C] px-2 py-1">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <Search className="h-4 w-4 flex-shrink-0 text-[#989898]" />
@@ -289,13 +286,11 @@ function LogViewer() {
         </div>
       </div>
 
-      {/* Results count */}
       <div className="flex items-center justify-between text-xs text-[#6E6E70]">
         <span>{filteredLogs.length.toLocaleString()} loaded events</span>
         <span>Current result set · filters apply to the query</span>
       </div>
 
-      {/* Table */}
       <div className="border border-[#242426] rounded-lg bg-[#0B0B0C] overflow-hidden">
         <table className="w-full text-sm text-left text-[#F6F6F6] rtl:rtl-normal">
           <thead className="text-xs text-[#989898] border-b border-[#242426] bg-[#0B0B0C] sticky top-0 z-10">

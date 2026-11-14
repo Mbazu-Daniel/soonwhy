@@ -4,7 +4,6 @@ export function setReturnPath(path: string) {
   try {
     localStorage.setItem(RETURN_PATH_KEY, path);
   } catch {
-    // private browsing etc. — return paths are best effort
   }
 }
 

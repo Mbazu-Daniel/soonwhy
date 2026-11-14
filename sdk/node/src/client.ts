@@ -13,7 +13,6 @@ import type {
   SoonwhyOptions,
 } from "./types.js";
 
-
 export class Client implements SoonwhyClient {
   private readonly options: ResolvedOptions;
   private readonly batcher: TelemetryBatcher;

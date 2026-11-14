@@ -1,6 +1,5 @@
 const LABEL = { byok: "Your key", platform: "Platform key" } as const;
 
-/** Rows written before the hybrid provider layer carry no attribution and render nothing. */
 export function CredentialSourceChip({
   source,
 }: {

@@ -15,9 +15,7 @@ import { Button } from '~/components/ui/button';
 interface Organization { id: string; name: string; slug: string; }
 interface Project { id: string; name: string; slug: string; }
 
-// Organization-scoped pages live outside the project prefix, so the redirect below must leave them alone.
 const ORGANIZATION_PAGES = new Set(['ai', 'settings']);
-// Org-level paths that map onto the project-scoped page of the same name.
 const PROJECT_PAGE_ALIASES = new Set(['services', 'errors', 'logs', 'traces', 'api-keys', 'alerts', 'metrics', 'intelligence']);
 export const Route = createFileRoute('/$organizationSlug')({ component: OrganizationDashboardLayout });
 
