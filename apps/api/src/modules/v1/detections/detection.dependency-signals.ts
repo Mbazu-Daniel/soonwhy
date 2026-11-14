@@ -1,6 +1,6 @@
 import { QUICKWIT_INDEXES } from '@soonwhy/shared';
 import type { DetectionEvidence } from '../../../common/db/schema/findings';
-import { quickwitTenantQuery, quickwitTerm } from '../../../common/quickwit/query';
+import { quickwitSource, quickwitTenantQuery, quickwitTerm } from '../../../common/quickwit/query';
 import { evaluateDependency } from '../intelligence/dependency-intelligence';
 import { searchDependencyBuckets } from './detection-search.methods';
 import { WINDOW_MS, detectorThresholds, type DetectionStageContext, type DetectionStageDeps } from './detection.stage';
@@ -179,7 +179,7 @@ async function dependencyEvidence(
   });
 
   return (result.hits ?? []).flatMap((hit) => {
-    const source = hit._source;
+    const source = quickwitSource<TraceSource>(hit);
     if (!source) return [];
 
     return [{

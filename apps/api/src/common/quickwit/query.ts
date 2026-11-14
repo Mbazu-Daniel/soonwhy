@@ -27,3 +27,10 @@ export function sanitizeRequestUrl(url: string): string {
     return url;
   }
 }
+
+export function quickwitSource<T = Record<string, any>>(
+  hit: unknown,
+): T | undefined {
+  return ((hit as { _source?: T } | undefined)?._source ??
+    hit) as T | undefined;
+}

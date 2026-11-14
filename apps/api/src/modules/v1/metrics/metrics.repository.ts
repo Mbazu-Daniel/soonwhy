@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
 import {
+  quickwitSource,
   quickwitTerm,
   quickwitTenantQuery,
   quickwitTimestamp,
@@ -164,9 +165,10 @@ export class MetricsRepository {
       },
     );
 
-    const sources = result.hits.flatMap((hit) =>
-      hit._source ? [hit._source] : [],
-    );
+    const sources = result.hits.flatMap((hit) => {
+      const source = quickwitSource<HistogramSource>(hit);
+      return source ? [source] : [];
+    });
     const merged = mergeHistogramSources(sources);
     const total = merged.counts.reduce((sum, count) => sum + count, 0);
 

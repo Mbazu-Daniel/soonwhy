@@ -1,8 +1,8 @@
 import { QUICKWIT_INDEXES } from '@soonwhy/shared';
-import { quickwitTenantQuery, quickwitTerm } from '../../../common/quickwit/query';
+import { quickwitSource, quickwitTenantQuery, quickwitTerm } from '../../../common/quickwit/query';
 import { detectRuntimeDegradation, RUNTIME_METRIC_NAMES, type RuntimeMetricSample } from '../intelligence/runtime-degradation.detector';
 import { WINDOW_MS, type DetectionStageContext, type DetectionStageDeps } from './detection.stage';
-import type { DetectionFinding } from './detection.types';
+import type { DetectionFinding, TraceSource } from './detection.types';
 
 export async function detectRuntimeSignals(
   deps: DetectionStageDeps,
@@ -110,7 +110,7 @@ async function cachedRuntimeMetrics(
   });
 
   return (result.hits ?? []).flatMap((hit) => {
-    const source = hit._source as unknown as {
+    const source = quickwitSource<TraceSource>(hit) as unknown as {
       timestamp?: string;
       service?: string;
       name?: string;

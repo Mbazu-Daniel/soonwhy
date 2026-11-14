@@ -1,5 +1,5 @@
 import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
-import { quickwitTenantQuery, quickwitTerm, sanitizeRequestUrl } from "../../../common/quickwit/query";
+import { quickwitSource, quickwitTenantQuery, quickwitTerm, sanitizeRequestUrl } from "../../../common/quickwit/query";
 import type { DatabaseConnectionPoolSample } from "../intelligence/database-connection-pool.detector";
 import type { DatabaseConnectionWaitSample } from "../intelligence/database-connection-wait.detector";
 import type { DatabaseQueryTrace } from "../intelligence/database-query.detector";
@@ -151,7 +151,7 @@ export async function searchDatabaseConnectionPoolMetrics(
 
   const snapshots = new Map<string, DatabaseConnectionPoolSample>();
   for (const hit of result.hits ?? []) {
-    const source = hit._source;
+    const source = quickwitSource<MetricSource>(hit);
     const timestamp = source?.timestamp;
     const service = source?.service;
     const poolName = source?.connectionPoolName ?? metricString(source?.attributes?.["db.client.connection.pool.name"]);
@@ -195,7 +195,7 @@ export async function searchDatabaseConnectionWaitMetrics(
   });
 
   return (result.hits ?? []).flatMap((hit) => {
-    const source = hit._source;
+    const source = quickwitSource<MetricSource>(hit);
     const timestamp = source?.timestamp;
     const service = source?.service;
     const poolName = source?.connectionPoolName ?? metricString(source?.attributes?.["db.client.connection.pool.name"]) ?? "unknown";
@@ -227,7 +227,7 @@ export async function searchRequestEndpoints(
 
   const endpoints = new Map<string, string>();
   for (const hit of result.hits ?? []) {
-    const source = hit._source;
+    const source = quickwitSource<RequestSource>(hit);
     const traceId = source?.traceId;
     if (!traceId) continue;
 
@@ -253,11 +253,11 @@ export async function searchDatabaseQuerySpans(
     startTimestamp,
     endTimestamp,
     maxHits: 5000,
-    sortBy: ["-duration"],
+    sortBy: ["duration:desc"],
   });
 
   return (result.hits ?? []).flatMap((hit) => {
-    const source = hit._source;
+    const source = quickwitSource<TraceSource>(hit);
     if (!source?.traceId || !source.service) return [];
 
     const query = source.dbQueryText;

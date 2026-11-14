@@ -84,7 +84,7 @@ export class LogsRepository {
     };
     const result = await this.telemetryQuery.search<RawLogRow>("logs", query, {
       maxHits: params.limit,
-      sortBy: ["-timestamp"],
+      sortBy: ["timestamp:desc"],
     });
     return result.hits.flatMap((hit) => {
       const source =

@@ -1,6 +1,6 @@
 import { QUICKWIT_INDEXES } from '@soonwhy/shared';
 import type { DetectionEvidence } from '../../../common/db/schema/findings';
-import { quickwitTenantQuery, quickwitTerm, sanitizeRequestUrl } from '../../../common/quickwit/query';
+import { quickwitSource, quickwitTenantQuery, quickwitTerm, sanitizeRequestUrl } from '../../../common/quickwit/query';
 import { evaluateThroughput } from './detection.engine';
 import { evaluateServicePerformance } from '../intelligence/service-performance.engine';
 import { searchServiceBuckets } from './detection-search.methods';
@@ -240,7 +240,7 @@ async function requestEvidence(
   });
 
   return (result.hits ?? []).flatMap((hit) => {
-    const source = hit._source;
+    const source = quickwitSource<RequestSource>(hit);
     if (!source) return [];
     return [{
       kind: 'request',
