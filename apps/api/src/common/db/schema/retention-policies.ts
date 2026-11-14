@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, timestamp, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, integer, timestamp, boolean, index } from 'drizzle-orm/pg-core';
 
 export const retentionPolicies = pgTable('retention_policies', {
   id: serial('id').primaryKey(),
@@ -13,4 +13,6 @@ export const retentionPolicies = pgTable('retention_policies', {
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
-});
+}, (table) => [
+  index('retention_policies_org_project_idx').on(table.orgId, table.projectId),
+]);

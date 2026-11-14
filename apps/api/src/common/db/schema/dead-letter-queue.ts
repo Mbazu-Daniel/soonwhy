@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, integer, jsonb, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, timestamp, integer, jsonb, boolean, index } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 export const deadLetterQueue = pgTable('dead_letter_queue', {
@@ -17,4 +17,6 @@ export const deadLetterQueue = pgTable('dead_letter_queue', {
   projectId: text('project_id'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
-});
+}, (table) => [
+  index('dead_letter_queue_failed_at_idx').on(table.failedAt),
+]);
