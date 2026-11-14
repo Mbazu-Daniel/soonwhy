@@ -1,13 +1,12 @@
 import { randomUUID } from "crypto";
 import {
-  encryptPii,
-  encryptPiiInText,
   isPiiKey,
   isPiiValue,
 } from "@soonwhy/shared";
 import { stableEventId } from "./event-id";
 import { nanoToMs } from "./time";
 import { spanDetailFields } from "./span-details";
+import { encryptOrRedact, encryptTextOrRedact } from "./pii-safe";
 import type {
   CaptureSettings,
   ParsedLogRecord,
@@ -75,7 +74,7 @@ function sanitizePiiValue(
 ): string {
   const maxLength = settings.maxAttributeValueLength;
   if (typeof value === "string") {
-    if (isPiiKey(key) || isPiiValue(value)) return encryptPii(value);
+    if (isPiiKey(key) || isPiiValue(value)) return encryptOrRedact(value);
     return sanitizeSensitiveText(limitAttributeValue(value, maxLength, depth));
   }
   if (value === null || typeof value !== "object") return String(value);
@@ -89,7 +88,7 @@ function sanitizePiiValue(
     JSON.stringify(value, (childKey, childValue) => {
       if (typeof childValue !== "string") return childValue;
       if (isPiiKey(childKey) || isPiiValue(childValue))
-        return encryptPii(childValue);
+        return encryptOrRedact(childValue);
       return sanitizeSensitiveText(childValue);
     }),
     maxLength,
@@ -116,7 +115,7 @@ function sanitizeSensitiveText(value: string, enabled = true): string {
         value,
       )
     : value;
-  return encryptPiiInText(secretsRedacted);
+  return encryptTextOrRedact(secretsRedacted);
 }
 function sanitizeRequestUrl(value: string): string {
   const trimmed = value.trim();

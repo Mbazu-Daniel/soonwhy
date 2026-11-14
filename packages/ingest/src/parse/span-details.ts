@@ -23,9 +23,9 @@ function exceptionOf(
   span: ParsedSpan,
   sanitize: SpanDetailSanitizers,
 ): SpanExceptionFields {
-  const event = span.events.find((item) => item.name === EXCEPTION_EVENT_NAME);
+  const event = (span.events ?? []).find((item) => item.name === EXCEPTION_EVENT_NAME);
   const attributes = event?.attributes ?? {};
-  const type = String(attributes["exception.type"] ?? span.attributes["error.type"] ?? "");
+  const type = String(attributes["exception.type"] ?? "");
   const message = String(attributes["exception.message"] ?? "");
   const stack = String(attributes["exception.stacktrace"] ?? "");
   return {
@@ -43,8 +43,8 @@ export function spanDetailFields(
   span: ParsedSpan,
   sanitize: SpanDetailSanitizers,
 ): SpanDetailFields {
-  const events: SpanEventRow[] = span.events.slice(0, MAX_SPAN_EVENTS).map((event) => ({
-    name: event.name,
+  const events: SpanEventRow[] = (span.events ?? []).slice(0, MAX_SPAN_EVENTS).map((event) => ({
+    name: sanitize.text(event.name),
     timestamp: eventTimestamp(event.timeUnixNano),
     attributes: sanitize.attributes(
       event.name === EXCEPTION_EVENT_NAME
@@ -54,9 +54,9 @@ export function spanDetailFields(
   }));
   return {
     attributes: sanitize.attributes(span.attributes),
-    resourceAttributes: sanitize.attributes(span.resource.attributes),
+    resourceAttributes: sanitize.attributes(span.resource?.attributes ?? {}),
     events,
-    links: span.links.slice(0, MAX_SPAN_LINKS).map((link) => ({
+    links: (span.links ?? []).slice(0, MAX_SPAN_LINKS).map((link) => ({
       traceId: link.traceId,
       spanId: link.spanId,
       attributes: sanitize.attributes(link.attributes),

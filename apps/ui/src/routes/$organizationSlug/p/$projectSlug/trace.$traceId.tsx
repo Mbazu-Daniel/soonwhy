@@ -22,7 +22,8 @@ interface LogEntry { id: string; timestamp: string; level: string; message: stri
 function TraceDetail() {
   const { organizationSlug, projectSlug, traceId } = Route.useParams();
   const { projectId } = useProject();
-  const [selectedSpanId, setSelectedSpanId] = useState<string>();
+  const [selection, setSelection] = useState<{ traceId: string; spanId: string }>();
+  const selectedSpanId = selection?.traceId === traceId ? selection.spanId : undefined;
   const [copied, setCopied] = useState(false);
 
   const { data, isLoading, isError, refetch } = useQuery({
@@ -75,7 +76,7 @@ function TraceDetail() {
               <Card className="border-border shadow-none"><CardHeader className="border-b"><CardTitle className="text-base">Service map</CardTitle><p className="text-xs text-muted-foreground">How this request moved between services.</p></CardHeader><CardContent className="p-4"><TraceServiceGraph spans={data.spans} services={services} /></CardContent></Card>
               <Card className="overflow-hidden border-border shadow-none">
                 <CardHeader className="border-b"><CardTitle className="text-base">Waterfall</CardTitle><p className="text-xs text-muted-foreground">Select a span to inspect its context.</p></CardHeader>
-                <CardContent className="p-0"><TraceWaterfall layout={layout} selectedSpanId={selected?.spanId} onSelect={setSelectedSpanId} /></CardContent>
+                <CardContent className="p-0"><TraceWaterfall layout={layout} selectedSpanId={selected?.spanId} onSelect={(spanId) => setSelection({ traceId, spanId })} /></CardContent>
               </Card>
             </div>
 

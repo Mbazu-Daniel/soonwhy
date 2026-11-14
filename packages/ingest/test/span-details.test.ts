@@ -95,14 +95,32 @@ describe("span detail fields", () => {
     expect(row.links).toEqual([{ traceId: "c".repeat(32), spanId: "d".repeat(16), attributes: {} }]);
   });
 
-  it("falls back to error.type when there is no exception event", () => {
+  it("keeps error.type separate from exception events", () => {
     const { spans } = parseTracesPayload(payload({ attributes: [attribute("error.type", "timeout")] }));
-    expect(mapSpanToTraceRow(spans[0]!, organization).exceptionType).toBe("timeout");
+    const row = mapSpanToTraceRow(spans[0]!, organization);
+    expect(row.errorType).toBe("timeout");
+    expect(row.exceptionType).toBeUndefined();
   });
 
   it("reads a JSON status code given as an enum name", () => {
     const { spans } = parseTracesPayload(payload({ status: { code: "STATUS_CODE_ERROR", message: "bad" } }));
     expect(spans[0]!.statusCode).toBe(2);
     expect(mapSpanToTraceRow(spans[0]!, organization).statusCode).toBe(2);
+  });
+});
+
+describe("span details on older or sensitive payloads", () => {
+  it("accepts a span without events, links or resource attributes", () => {
+    const { spans } = parseTracesPayload(payload({}));
+    const legacy = { ...spans[0]!, events: undefined, links: undefined, resource: { ...spans[0]!.resource, attributes: undefined } } as never;
+    const row = mapSpanToTraceRow(legacy, organization);
+    expect(row.events).toEqual([]);
+    expect(row.links).toEqual([]);
+    expect(row.resourceAttributes).toEqual({});
+  });
+
+  it("redacts credentials in event names", () => {
+    const { spans } = parseTracesPayload(payload({ events: [{ name: "operation failed password=hunter2", timeUnixNano: "1", attributes: [] }] }));
+    expect(JSON.stringify(mapSpanToTraceRow(spans[0]!, organization).events)).not.toContain("hunter2");
   });
 });

@@ -6,6 +6,10 @@ function newestFirst(a: ErrorLogSource, b: ErrorLogSource): number {
   return (b.timestamp ?? "").localeCompare(a.timestamp ?? "");
 }
 
+function identityOf(traceId: string | undefined, spanId: string | undefined): string {
+  return traceId && spanId ? `${traceId}:${spanId}` : (spanId ?? "");
+}
+
 export function mergeErrorSources(input: {
   logs: ErrorLogSource[];
   spans: SpanErrorSource[];
@@ -20,10 +24,10 @@ export function mergeErrorSources(input: {
 
   const secondary = new Map<string, ErrorLogSource>();
   for (const span of errorSpans.filter((item) => !hasException(item))) {
-    secondary.set(span.spanId, spanToErrorSource(span));
+    secondary.set(identityOf(span.traceId, span.spanId), spanToErrorSource(span));
   }
   for (const request of input.requests) {
-    secondary.set(request.spanId ?? request.id ?? "", requestToErrorSource(request));
+    secondary.set(identityOf(request.traceId, request.spanId ?? request.id), requestToErrorSource(request));
   }
   const extra = [...secondary.values()].filter(
     (item) => !(item.traceId && primaryTraces.has(item.traceId)),
