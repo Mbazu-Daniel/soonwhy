@@ -91,6 +91,15 @@ export class ServicesRepository {
     return svc;
   }
 
+  async updateService(id: string, data: Record<string, string | null | undefined>) {
+    const [svc] = await db
+      .update(services)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(services.id, id))
+      .returning();
+    return svc;
+  }
+
   async deleteService(id: string) {
     await db.delete(services).where(eq(services.id, id));
   }

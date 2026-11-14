@@ -7,6 +7,7 @@ import { Badge } from '~/components/ui/badge';
 import { Skeleton } from '~/components/ui/skeleton';
 import { api } from '~/lib/api';
 import { QueryErrorState } from '~/components/query-error-state';
+import { ServiceEditDialog } from '~/components/service-edit-dialog';
 import { useProject } from '~/lib/project-context';
 import { TimeRangeControl, telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
 
@@ -45,7 +46,7 @@ function ServiceDetail(){
       <Link to="/$organizationSlug/p/$projectSlug/services" params={{ organizationSlug, projectSlug }} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4"/>Services</Link>
       <TimeRangeControl value={range} onChange={setRange}/>
     </div>
-    {(telemetryStale || errorsStale || logsStale) && <div className="rounded-xl border border-[#5A4A1C] bg-[#2A220F] px-4 py-3 text-xs text-[#D8C68A]">Some telemetry is temporarily unavailable. Showing the last successful service data.</div>}\n    <header className="flex items-start gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary"><Activity className="h-5 w-5"/></span><div><h1 className="text-2xl font-semibold">{service.name}</h1><p className="font-mono text-xs text-muted-foreground">{service.slug}</p></div></header>
+    {(telemetryStale || errorsStale || logsStale) && <div className="rounded-xl border border-[#5A4A1C] bg-[#2A220F] px-4 py-3 text-xs text-[#D8C68A]">Some telemetry is temporarily unavailable. Showing the last successful service data.</div>}\n    <header className="flex items-start gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary"><Activity className="h-5 w-5"/></span><div className="flex-1"><h1 className="text-2xl font-semibold">{service.name}</h1><p className="font-mono text-xs text-muted-foreground">{service.slug}</p></div><ServiceEditDialog projectId={projectId} service={service}/></header>
     <nav className="flex flex-wrap gap-1 rounded-xl border bg-muted/40 p-1" aria-label="Service telemetry">
       <span className="rounded-lg bg-background px-3 py-2 text-xs font-medium shadow-sm">Overview</span>
       <Link to="/$organizationSlug/p/$projectSlug/errors" params={{ organizationSlug, projectSlug }} className="rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-background hover:text-foreground">Errors</Link>

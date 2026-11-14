@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { ConflictException } from "@nestjs/common";
+import { ConflictException, NotFoundException } from "@nestjs/common";
 import { ServicesService } from "./services.service";
 
 describe("ServicesService", () => {
@@ -9,6 +9,7 @@ describe("ServicesService", () => {
     getServiceByProjectAndSlug: vi.fn(),
     createService: vi.fn(),
     deleteService: vi.fn(),
+    updateService: vi.fn(),
   };
   const quickwit = { search: vi.fn() };
 
@@ -80,5 +81,29 @@ describe("ServicesService", () => {
       ],
       edges: [{ source: "web", target: "api", requests: 2 }],
     });
+  });
+
+  it("updates only the supplied fields and allows clearing one", async () => {
+    repository.getServiceById.mockResolvedValue({ id: "service-1" });
+    const service = new ServicesService(repository as never, quickwit as never);
+    await service.updateService("service-1", "project-1", "org-1", {
+      language: "TypeScript",
+      framework: null,
+      teamId: undefined,
+    });
+    expect(repository.updateService).toHaveBeenCalledWith("service-1", {
+      language: "TypeScript",
+      framework: null,
+    });
+  });
+
+  it("does not update a service outside the tenant", async () => {
+    repository.updateService.mockClear();
+    repository.getServiceById.mockResolvedValue(undefined);
+    const service = new ServicesService(repository as never, quickwit as never);
+    await expect(
+      service.updateService("service-1", "project-1", "other-org", { language: "Go" }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(repository.updateService).not.toHaveBeenCalled();
   });
 });
