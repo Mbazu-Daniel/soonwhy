@@ -10,7 +10,24 @@ export interface TraceSpan {
   statusMessage?: string;
   kind?: string;
   attributes?: Record<string, unknown>;
-  resource?: Record<string, unknown>;
+  resourceAttributes?: Record<string, unknown>;
+  events?: SpanEvent[];
+  links?: SpanLink[];
+  exceptionType?: string;
+  exceptionMessage?: string;
+  exceptionStacktrace?: string;
+}
+
+export interface SpanEvent {
+  name: string;
+  timestamp: string;
+  attributes: Record<string, unknown>;
+}
+
+export interface SpanLink {
+  traceId: string;
+  spanId: string;
+  attributes: Record<string, unknown>;
 }
 
 export interface SpanRow {

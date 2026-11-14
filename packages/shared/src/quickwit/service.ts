@@ -69,7 +69,10 @@ export class QuickwitService {
   }
 
   async ensureIndex(indexId: string, config: Record<string, unknown>): Promise<void> {
-    if (await this.indexExists(indexId)) return;
+    if (await this.indexExists(indexId)) {
+      await this.syncFieldMappings(indexId, config);
+      return;
+    }
     try {
       await this.request("/api/v1/indexes", {
         method: "POST",
@@ -83,6 +86,40 @@ export class QuickwitService {
         return;
       }
       throw error;
+    }
+  }
+
+  async syncFieldMappings(
+    indexId: string,
+    config: Record<string, unknown>,
+  ): Promise<void> {
+    const desired = fieldMappingsOf(config);
+    if (!desired.length) return;
+    try {
+      const current = await this.request<{
+        index_config?: Record<string, unknown>;
+      }>(`/api/v1/indexes/${encodeURIComponent(indexId)}`, { method: "GET" });
+      const indexConfig = current.index_config;
+      if (!indexConfig) return;
+      const docMapping = (indexConfig.doc_mapping ?? {}) as Record<string, unknown>;
+      const existing = (docMapping.field_mappings ?? []) as FieldMapping[];
+      const merged = mergeFieldMappings(existing, desired);
+      if (!merged.changed) return;
+      const { doc_mapping_uid: _ignored, ...mapping } = docMapping;
+      await this.request(`/api/v1/indexes/${encodeURIComponent(indexId)}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          ...indexConfig,
+          doc_mapping: { ...mapping, field_mappings: merged.fieldMappings },
+        }),
+      });
+      this.logger.log(`Updated field mappings for index ${indexId}`);
+    } catch (error) {
+      this.logger.warn(
+        `Could not update field mappings for ${indexId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
     }
   }
 
@@ -150,4 +187,38 @@ export class QuickwitService {
 function parseTimeout(value: string | undefined, fallback: number): number {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+type FieldMapping = { name?: string; [key: string]: unknown };
+
+function fieldMappingsOf(config: Record<string, unknown>): FieldMapping[] {
+  const docMapping = config.doc_mapping as { field_mappings?: FieldMapping[] } | undefined;
+  return docMapping?.field_mappings ?? [];
+}
+
+const BEHAVIOUR_KEYS = ["type", "tokenizer", "record"] as const;
+
+function sameMapping(existing: FieldMapping, wanted: FieldMapping): boolean {
+  return BEHAVIOUR_KEYS.every(
+    (key) => wanted[key] === undefined || existing[key] === wanted[key],
+  );
+}
+
+export function mergeFieldMappings(
+  existing: FieldMapping[],
+  desired: FieldMapping[],
+): { fieldMappings: FieldMapping[]; changed: boolean } {
+  const result = [...existing];
+  let changed = false;
+  for (const wanted of desired) {
+    const index = result.findIndex((item) => item.name === wanted.name);
+    if (index === -1) {
+      result.push(wanted);
+      changed = true;
+    } else if (!sameMapping(result[index]!, wanted)) {
+      result[index] = wanted;
+      changed = true;
+    }
+  }
+  return { fieldMappings: result, changed };
 }

@@ -12,6 +12,7 @@ import { TraceWaterfall } from '~/components/trace/trace-waterfall';
 import { TraceServiceGraph } from '~/components/trace/trace-service-graph';
 import { buildTraceLayout, formatMs } from '~/components/trace/trace.layout';
 import type { TraceSpan } from '~/components/trace/trace.types';
+import { SpanEvents, SpanException, SpanLinks } from '~/components/trace/span-extras';
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/trace/$traceId')({ component: TraceDetail });
 
@@ -21,7 +22,8 @@ interface LogEntry { id: string; timestamp: string; level: string; message: stri
 function TraceDetail() {
   const { organizationSlug, projectSlug, traceId } = Route.useParams();
   const { projectId } = useProject();
-  const [selectedSpanId, setSelectedSpanId] = useState<string>();
+  const [selection, setSelection] = useState<{ traceId: string; spanId: string }>();
+  const selectedSpanId = selection?.traceId === traceId ? selection.spanId : undefined;
   const [copied, setCopied] = useState(false);
 
   const { data, isLoading, isError, refetch } = useQuery({
@@ -74,7 +76,7 @@ function TraceDetail() {
               <Card className="border-border shadow-none"><CardHeader className="border-b"><CardTitle className="text-base">Service map</CardTitle><p className="text-xs text-muted-foreground">How this request moved between services.</p></CardHeader><CardContent className="p-4"><TraceServiceGraph spans={data.spans} services={services} /></CardContent></Card>
               <Card className="overflow-hidden border-border shadow-none">
                 <CardHeader className="border-b"><CardTitle className="text-base">Waterfall</CardTitle><p className="text-xs text-muted-foreground">Select a span to inspect its context.</p></CardHeader>
-                <CardContent className="p-0"><TraceWaterfall layout={layout} selectedSpanId={selected?.spanId} onSelect={setSelectedSpanId} /></CardContent>
+                <CardContent className="p-0"><TraceWaterfall layout={layout} selectedSpanId={selected?.spanId} onSelect={(spanId) => setSelection({ traceId, spanId })} /></CardContent>
               </Card>
             </div>
 
@@ -82,7 +84,7 @@ function TraceDetail() {
               <Card className="border-border shadow-none"><CardHeader><CardTitle className="text-base">Span details</CardTitle></CardHeader><CardContent>{selected ? <div className="space-y-4">
                 <div><p className="text-xs text-muted-foreground">Operation</p><p className="mt-1 text-sm font-medium">{selected.name}</p></div>
                 <div className="grid grid-cols-2 gap-3"><Fact label="Service" value={selected.service} /><Fact label="Kind" value={selected.kind ?? '—'} /><Fact label="Status" value={selected.status ?? (Number(selected.statusCode ?? 0) >= 2 ? 'error' : 'ok')} /><Fact label="Duration" value={formatMs(selected.duration)} /><Fact label="Span ID" value={selected.spanId} /></div>
-                <JsonBlock title="Attributes" value={selected.attributes} /><JsonBlock title="Resource" value={selected.resource} />
+                <SpanException span={selected} /><JsonBlock title="Attributes" value={selected.attributes} /><JsonBlock title="Resource" value={selected.resourceAttributes} /><SpanEvents span={selected} /><SpanLinks span={selected} organizationSlug={organizationSlug} projectSlug={projectSlug} />
               </div> : <p className="text-sm text-muted-foreground">Select a span.</p>}</CardContent></Card>
 
               <Card className="border-border shadow-none"><CardHeader><CardTitle className="flex items-center gap-2 text-base"><FileText className="h-4 w-4" />{selectedSpanId ? 'Span logs' : 'Correlated logs'}</CardTitle></CardHeader><CardContent className="p-0">{logs.isLoading ? <div className="p-4"><Skeleton className="h-20" /></div> : !logs.data?.data?.length ? <p className="p-5 text-sm text-muted-foreground">No logs correlated with this span or trace.</p> : logs.data.data.slice(0, 8).map((log) => <div key={log.id} className="border-t p-3 first:border-0"><div className="flex items-center gap-2"><Badge variant="outline">{log.level}</Badge><span className="font-mono text-[10px] text-muted-foreground">{new Date(log.timestamp).toLocaleTimeString()}</span></div><p className="mt-1 text-xs">{log.message}</p></div>)}</CardContent></Card>

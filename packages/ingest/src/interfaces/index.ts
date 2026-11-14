@@ -7,4 +7,9 @@ export type {
   ParsedMetricPoint,
   ParseMetricsResult,
 } from "./metrics";
-export type { ParsedSpan, ParseTracesResult } from "./traces";
+export type {
+  ParsedSpan,
+  ParsedSpanEvent,
+  ParsedSpanLink,
+  ParseTracesResult,
+} from "./traces";

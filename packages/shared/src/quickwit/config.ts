@@ -31,6 +31,13 @@ export const QUICKWIT_INDEX_CONFIG = {
       { name: "spanId", type: "text", tokenizer: "raw", fast: true },
       { name: "parentSpanId", type: "text", tokenizer: "raw", fast: true },
       { name: "service", type: "text", tokenizer: "raw", fast: true },
+      {
+        name: "message",
+        type: "text",
+        tokenizer: "default",
+        record: "position",
+        stored: true,
+      },
       { name: "serviceVersion", type: "text", tokenizer: "raw", fast: true },
       { name: "environment", type: "text", tokenizer: "raw", fast: true },
       { name: "region", type: "text", tokenizer: "raw", fast: true },
