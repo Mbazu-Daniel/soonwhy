@@ -13,6 +13,7 @@ import { TraceServiceGraph } from '~/components/trace/trace-service-graph';
 import { buildTraceLayout, formatMs } from '~/components/trace/trace.layout';
 import type { TraceSpan } from '~/components/trace/trace.types';
 import { SpanEvents, SpanException, SpanLinks } from '~/components/trace/span-extras';
+import { useSpanLogCounts } from '~/lib/use-trace-search';
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/trace/$traceId')({ component: TraceDetail });
 
@@ -39,6 +40,7 @@ function TraceDetail() {
     enabled: !!projectId && !!traceId,
   });
 
+  const logCounts = useSpanLogCounts(projectId, traceId);
   const layout = useMemo(() => buildTraceLayout(data?.spans ?? []), [data]);
   const { totalMs: totalDuration, startMs: start, services } = layout;
 
@@ -76,7 +78,7 @@ function TraceDetail() {
               <Card className="border-border shadow-none"><CardHeader className="border-b"><CardTitle className="text-base">Service map</CardTitle><p className="text-xs text-muted-foreground">How this request moved between services.</p></CardHeader><CardContent className="p-4"><TraceServiceGraph spans={data.spans} services={services} /></CardContent></Card>
               <Card className="overflow-hidden border-border shadow-none">
                 <CardHeader className="border-b"><CardTitle className="text-base">Waterfall</CardTitle><p className="text-xs text-muted-foreground">Select a span to inspect its context.</p></CardHeader>
-                <CardContent className="p-0"><TraceWaterfall layout={layout} selectedSpanId={selected?.spanId} onSelect={(spanId) => setSelection({ traceId, spanId })} /></CardContent>
+                <CardContent className="p-0"><TraceWaterfall layout={layout} selectedSpanId={selected?.spanId} onSelect={(spanId) => setSelection({ traceId, spanId })} logCounts={logCounts.data?.counts} /></CardContent>
               </Card>
             </div>
 
