@@ -5,6 +5,7 @@ import {
   HttpStatus,
 } from "@nestjs/common";
 import { Agent } from "@mastra/core/agent";
+import { noopLogger } from "@mastra/core/logger";
 import { buildRcaPrompt, RCA_PROMPT_VERSION } from "./rca.prompt";
 import { RcaAnalysisSchema } from "./rca.validation";
 import type { RcaEvidence, RcaProviderResult } from "./rca.types";
@@ -82,6 +83,7 @@ export class MastraRcaProvider {
         apiKey: config.apiKey,
       },
     });
+    this.agent.__setLogger(noopLogger);
   }
 
   async analyze(input: RcaEvidence): Promise<RcaProviderResult> {

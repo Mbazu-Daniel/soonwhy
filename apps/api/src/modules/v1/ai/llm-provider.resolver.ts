@@ -62,8 +62,8 @@ export class LlmProviderResolver {
       AiRepository,
       "get"
     >,
-    private readonly cipher: CredentialCipher,
-    private readonly catalog: LlmCatalog,
+    @Inject(CredentialCipher) private readonly cipher: CredentialCipher,
+    @Inject(LlmCatalog) private readonly catalog: LlmCatalog,
   ) {
     this.tuning = readLlmTuning();
   }

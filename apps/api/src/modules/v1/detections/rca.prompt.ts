@@ -2,6 +2,14 @@ import type { RcaEvidence } from "./rca.types";
 
 export const RCA_PROMPT_VERSION = "v2";
 
+const ERROR_GROUP_GUIDANCE = [
+  "This evidence describes one application error group, not a latency bottleneck.",
+  "application-frames are the stack frames from the user's own code, innermost first; library and runtime frames were removed. Name the most likely failing function and file from them, and say so only when a frame supports it.",
+  "cause items are the chain of underlying errors, outermost first. The deepest cause is usually closer to the real fault, so weigh it first.",
+  "If there are no application frames, no cause items and no trace, the root cause is not established; say what telemetry is missing, such as a captured stack trace.",
+  "Suggested changes must be concrete fix candidates for the named code path, and each must say what to verify first.",
+].join(" ");
+
 export interface RcaPromptDefinition {
   version: string;
   systemPrompt: string;
@@ -85,9 +93,13 @@ export function buildRcaPrompt(
 ): string {
   const definition = getRcaPromptDefinition(version);
 
+  const guidance =
+    evidence.primaryFinding.type === "error_group" ? [ERROR_GROUP_GUIDANCE, ""] : [];
+
   return [
     definition.systemPrompt,
     "",
+    ...guidance,
     `Prompt version: ${definition.version}`,
     "",
     "Output schema:",

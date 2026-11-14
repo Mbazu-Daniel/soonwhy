@@ -3,7 +3,7 @@ const SENSITIVE_KEY =
 const URL_WITH_QUERY = /https?:\/\/[^\s"'<>]+/gi;
 const MAX_STRING_LENGTH = 500;
 
-function sanitizeString(value: string): string {
+function sanitizeString(value: string, maxLength = MAX_STRING_LENGTH): string {
   const redacted = value.replace(URL_WITH_QUERY, (url) => {
     try {
       const parsed = new URL(url);
@@ -15,9 +15,13 @@ function sanitizeString(value: string): string {
     }
   });
 
-  return redacted.length > MAX_STRING_LENGTH
-    ? redacted.slice(0, MAX_STRING_LENGTH) + "…"
+  return redacted.length > maxLength
+    ? redacted.slice(0, maxLength) + "…"
     : redacted;
+}
+
+export function sanitizeRcaText(value: string, maxLength: number): string {
+  return sanitizeString(value, maxLength);
 }
 
 export function sanitizeRcaValue(value: unknown, key?: string): unknown {

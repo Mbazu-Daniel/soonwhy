@@ -68,7 +68,7 @@ export class AiService {
       AiRepository,
       "get" | "upsert" | "remove" | "recordVerification" | "getInvocationTotals"
     >,
-    private readonly cipher: CredentialCipher,
+    @Inject(CredentialCipher) private readonly cipher: CredentialCipher,
     @Inject(LlmProviderResolver) private readonly resolver: Pick<
       LlmProviderResolver,
       "resolve" | "describe" | "invalidate"

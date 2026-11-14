@@ -3,6 +3,7 @@ import { RcaAnalysisRepository } from "./rca.repository";
 import { RcaPersistenceService } from "./rca.persistence";
 import { RcaService } from "./rca.service";
 import { decodeRcaBottleneck } from "./rca.evidence";
+import { buildErrorRcaEvidence } from "./rca.error-evidence";
 import type { CorrelatedBottleneck } from "./detection.correlation";
 import {
   DatabaseRcaGovernanceSink,
@@ -35,13 +36,13 @@ export class RcaApiService {
     >,
     @Inject(RcaService) private readonly rcaService: Pick<
       RcaService,
-      "analyze" | "describe"
+      "analyze" | "analyzeEvidence" | "describe"
     >,
     @Inject(RcaPersistenceService) private readonly persistence: Pick<
       RcaPersistenceService,
       "findLatest" | "list" | "persist"
     >,
-    private readonly governance: DatabaseRcaGovernanceSink,
+    @Inject(DatabaseRcaGovernanceSink) private readonly governance: DatabaseRcaGovernanceSink,
     @Inject(BillingService) private readonly billing: Pick<
       BillingService,
       "assertQuota" | "recordUsage"
@@ -75,9 +76,10 @@ export class RcaApiService {
     }
 
     const bottleneck = decodeRcaBottleneck(finding);
-    if (!bottleneck) {
+    const errorEvidence = bottleneck ? null : buildErrorRcaEvidence(finding);
+    if (!bottleneck && !errorEvidence) {
       throw new NotFoundException(
-        "Finding does not contain an RCA-supported bottleneck",
+        "Finding is not an RCA-supported bottleneck or error group",
       );
     }
 
@@ -99,11 +101,9 @@ export class RcaApiService {
     try {
       const credential = await this.rcaService.describe(orgId);
       await this.reserveQuota(orgId, credential);
-      const result = await this.rcaService.analyze(
-        orgId,
-        projectId,
-        bottleneck,
-      );
+      const result = bottleneck
+        ? await this.rcaService.analyze(orgId, projectId, bottleneck)
+        : await this.rcaService.analyzeEvidence(orgId, errorEvidence!);
       const evidence = result.evidence;
       const persisted = await this.persistence.persist({
         orgId,
