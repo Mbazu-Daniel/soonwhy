@@ -67,3 +67,20 @@ export interface RequestErrorSource {
   traceId?: string;
   spanId?: string;
 }
+
+export interface SpanErrorSource {
+  id?: string;
+  eventId?: string;
+  timestamp?: string;
+  service?: string;
+  traceId?: string;
+  spanId: string;
+  name?: string;
+  statusCode?: number | string;
+  statusMessage?: string;
+  errorType?: string;
+  exceptionType?: string;
+  exceptionMessage?: string;
+  exceptionStacktrace?: string;
+  attributes?: Record<string, unknown>;
+}

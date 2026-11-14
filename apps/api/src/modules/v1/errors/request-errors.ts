@@ -21,14 +21,3 @@ export function requestToErrorSource(request: RequestErrorSource): ErrorLogSourc
     },
   };
 }
-
-export function mergeErrorSources(
-  logs: ErrorLogSource[],
-  requests: ErrorLogSource[],
-): ErrorLogSource[] {
-  const loggedTraces = new Set(logs.flatMap((log) => (log.traceId ? [log.traceId] : [])));
-  const extra = requests.filter(
-    (request) => !(request.traceId && loggedTraces.has(request.traceId)),
-  );
-  return [...logs, ...extra].sort((a, b) => (b.timestamp ?? "").localeCompare(a.timestamp ?? ""));
-}

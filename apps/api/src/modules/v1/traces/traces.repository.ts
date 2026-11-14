@@ -12,6 +12,13 @@ export interface TraceRow {
   service: string;
   statusCode?: number | string;
   statusMessage?: string;
+  attributes?: Record<string, unknown>;
+  resourceAttributes?: Record<string, unknown>;
+  events?: Array<{ name: string; timestamp: string; attributes: Record<string, unknown> }>;
+  links?: Array<{ traceId: string; spanId: string; attributes: Record<string, unknown> }>;
+  exceptionType?: string;
+  exceptionMessage?: string;
+  exceptionStacktrace?: string;
 }
 
 export interface TraceListRow {

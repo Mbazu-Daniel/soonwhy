@@ -1,0 +1,32 @@
+import { hasException, isErrorSpan, spanToErrorSource } from "./span-errors";
+import { requestToErrorSource } from "./request-errors";
+import type { ErrorLogSource, RequestErrorSource, SpanErrorSource } from "./error.types";
+
+function newestFirst(a: ErrorLogSource, b: ErrorLogSource): number {
+  return (b.timestamp ?? "").localeCompare(a.timestamp ?? "");
+}
+
+export function mergeErrorSources(input: {
+  logs: ErrorLogSource[];
+  spans: SpanErrorSource[];
+  requests: RequestErrorSource[];
+}): ErrorLogSource[] {
+  const errorSpans = input.spans.filter(isErrorSpan);
+  const primary = [
+    ...input.logs,
+    ...errorSpans.filter(hasException).map(spanToErrorSource),
+  ];
+  const primaryTraces = new Set(primary.flatMap((item) => (item.traceId ? [item.traceId] : [])));
+
+  const secondary = new Map<string, ErrorLogSource>();
+  for (const span of errorSpans.filter((item) => !hasException(item))) {
+    secondary.set(span.spanId, spanToErrorSource(span));
+  }
+  for (const request of input.requests) {
+    secondary.set(request.spanId ?? request.id ?? "", requestToErrorSource(request));
+  }
+  const extra = [...secondary.values()].filter(
+    (item) => !(item.traceId && primaryTraces.has(item.traceId)),
+  );
+  return [...primary, ...extra].sort(newestFirst);
+}
