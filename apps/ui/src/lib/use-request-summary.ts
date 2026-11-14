@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '~/lib/api';
 import type { RequestSummary } from '~/lib/request-summary';
 import { telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
@@ -15,6 +15,5 @@ export function useRequestSummary(projectId: string | null | undefined, range: T
     },
     enabled: !!projectId,
     refetchInterval: SUMMARY_REFRESH_MS,
-    placeholderData: keepPreviousData,
   });
 }

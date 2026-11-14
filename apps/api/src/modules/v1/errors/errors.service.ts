@@ -158,10 +158,12 @@ export class ErrorsService {
         ...search,
         query: quickwitTenantQuery(orgId, projectId, `(${levels})${serviceFilter}`),
       }),
-      this.quickwit.search(QUICKWIT_INDEXES.requests, {
-        ...search,
-        query: quickwitTenantQuery(orgId, projectId, `statusCode:>=${HTTP_ERROR_FLOOR}${serviceFilter}`),
-      }),
+      this.quickwit
+        .search(QUICKWIT_INDEXES.requests, {
+          ...search,
+          query: quickwitTenantQuery(orgId, projectId, `statusCode:>=${HTTP_ERROR_FLOOR}${serviceFilter}`),
+        })
+        .catch(() => ({ hits: [] as unknown[] })),
     ]);
     const logSources = logs.hits.flatMap((hit) => {
       const source = quickwitSource<ErrorLogSource>(hit);

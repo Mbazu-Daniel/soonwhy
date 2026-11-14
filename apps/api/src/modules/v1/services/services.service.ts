@@ -8,8 +8,8 @@ import { quickwitSource, quickwitTenantQuery } from "../../../common/quickwit/qu
 import { ServicesRepository } from "./services.repository";
 import { CreateServiceInput, UpdateServiceInput } from "./dto";
 import { observedServiceNames } from "./observed-services";
-import { serviceSlug } from "./service-slug";
-import { SYNC_INTERVAL_MS } from "./service-sync.constants";
+import { serviceSlug, uniqueSlug } from "./service-slug";
+import { MAX_OBSERVED_SERVICES, MAX_SYNC_ROUNDS, SYNC_INTERVAL_MS } from "./service-sync.constants";
 
 interface TraceSpanSource {
   service?: string;
@@ -34,19 +34,24 @@ export class ServicesService {
     if (Date.now() - (this.lastSync.get(key) ?? 0) < SYNC_INTERVAL_MS) return;
     const task = (async () => {
       try {
-        const names = await observedServiceNames(this.quickwit, orgId, projectId);
         const existing = await this.servicesRepository.getServicesByProjectId(projectId, orgId);
-        const known = new Set(existing.flatMap((svc) => [svc.name, svc.slug]));
-        for (const name of names) {
-          const slug = serviceSlug(name);
-          if (known.has(name) || known.has(slug)) continue;
-          known.add(slug);
-          await this.servicesRepository.createService({ projectId, orgId, name, slug });
+        const names = new Set(existing.map((svc) => svc.name));
+        const slugs = new Set(existing.map((svc) => svc.slug));
+        for (let round = 0; round < MAX_SYNC_ROUNDS; round += 1) {
+          const observed = await observedServiceNames(this.quickwit, orgId, projectId, [...names]);
+          const fresh = observed.filter((name) => !names.has(name));
+          for (const name of fresh) {
+            const slug = uniqueSlug(serviceSlug(name), slugs);
+            names.add(name);
+            slugs.add(slug);
+            await this.servicesRepository.createService({ projectId, orgId, name, slug });
+          }
+          if (observed.length < MAX_OBSERVED_SERVICES || !fresh.length) break;
         }
-        this.lastSync.set(key, Date.now());
       } catch {
         return;
       } finally {
+        this.lastSync.set(key, Date.now());
         this.inFlight.delete(key);
       }
     })();

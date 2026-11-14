@@ -146,4 +146,24 @@ describe("ErrorsService", () => {
     const groups = await service.listGroups("org", "project", { from: "2026-11-14T00:00:00Z", to: "2026-11-15T00:00:00Z" });
     expect(groups.reduce((sum, group) => sum + group.count, 0)).toBe(2);
   });
+
+  it("groups request errors by route template, not the concrete url", async () => {
+    const { service } = build([
+      { id: "r1", timestamp: "2026-11-14T10:10:00.000Z", service: "api", method: "GET", route: "GET /users/:username", url: "/users/alice", statusCode: 404, traceId: "t-a", spanId: "s1" },
+      { id: "r2", timestamp: "2026-11-14T10:11:00.000Z", service: "api", method: "GET", route: "GET /users/:username", url: "/users/bob", statusCode: 404, traceId: "t-b", spanId: "s2" },
+    ]);
+    const groups = await service.listGroups("org", "project", { from: "2026-11-14T00:00:00Z", to: "2026-11-15T00:00:00Z" });
+    expect(groups.find((group) => group.errorType === "HTTP 404")?.count).toBe(2);
+  });
+
+  it("keeps log errors when the requests index fails", async () => {
+    const search = vi.fn().mockImplementation(async (index: string) => {
+      if (index.includes("request")) throw new Error("requests down");
+      return { hits: sources.map((source) => ({ _source: source })) };
+    });
+    const cache = { getOrSet: (_key: string, _ttl: number, load: () => Promise<unknown>) => load() };
+    const service = new ErrorsService({ search } as never, cache as never);
+    const groups = await service.listGroups("org", "project", { from: "2026-11-14T00:00:00Z", to: "2026-11-15T00:00:00Z" });
+    expect(groups.reduce((sum, group) => sum + group.count, 0)).toBe(2);
+  });
 });

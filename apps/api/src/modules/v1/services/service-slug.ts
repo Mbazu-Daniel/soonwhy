@@ -10,3 +10,10 @@ export function serviceSlug(name: string): string {
     .replace(/-+$/g, "");
   return slug || FALLBACK_SLUG;
 }
+
+export function uniqueSlug(base: string, taken: Set<string>): string {
+  if (!taken.has(base)) return base;
+  let suffix = 2;
+  while (taken.has(`${base}-${suffix}`)) suffix += 1;
+  return `${base}-${suffix}`;
+}

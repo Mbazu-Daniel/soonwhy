@@ -75,7 +75,6 @@ function DashboardOverviewPage() {
   const { projectSlug, orgSlug } = useProject();
   const { projectId } = useProject();
   const [range, setRange] = useState<TelemetryRange>('24h');
-  const rangeParams = telemetryRangeParams(range);
 
   const { data: telemetryStatus } = useQuery({
     queryKey: ['telemetry-status', projectId],
@@ -85,7 +84,7 @@ function DashboardOverviewPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard-overview', projectId, range],
-    queryFn: () => api.get<DashboardOverview>(`/projects/${projectId}/dashboard/overview?${new URLSearchParams(rangeParams).toString()}`),
+    queryFn: () => api.get<DashboardOverview>(`/projects/${projectId}/dashboard/overview?${new URLSearchParams(telemetryRangeParams(range)).toString()}`),
     enabled: !!projectId,
     placeholderData: keepPreviousData,
     refetchInterval: SUMMARY_REFRESH_MS,

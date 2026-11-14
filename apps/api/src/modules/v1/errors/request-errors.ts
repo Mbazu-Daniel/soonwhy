@@ -3,7 +3,7 @@ import type { ErrorLogSource, RequestErrorSource } from "./error.types";
 
 export function requestToErrorSource(request: RequestErrorSource): ErrorLogSource {
   const status = request.statusCode ?? 0;
-  const target = request.url || request.route || "";
+  const target = request.route || request.url || "";
   return {
     id: request.id ?? request.eventId ?? "",
     timestamp: request.timestamp,
