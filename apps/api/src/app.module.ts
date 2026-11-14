@@ -72,6 +72,8 @@ import { RecommendationEngineModule } from "./modules/v1/intelligence/recommenda
 import { VerificationEngineModule } from "./modules/v1/intelligence/verification-engine/verification-engine.module";
 import { TelemetryModule } from "./common/telemetry";
 
+import { selfObservabilityEnabled } from "./common/telemetry/self-observability";
+
 const organizationScopedModules = [
   ApiKeysModule,
   ServicesModule,
@@ -125,9 +127,6 @@ const organizationScopedModules = [
   imports: [
     IdempotencyModule.forRoot({
       scope: (req: any) => req.headers['x-org-id'] || req.user?.id || 'global',
-      // Idempotency records live in Postgres (DrizzleIdempotencyStore,
-      // registered by DrizzleIdempotencyModule) — they survive restarts and
-      // are shared between instances.
     }),
     ScheduleModule.forRoot(),
     DrizzleIdempotencyModule,
@@ -150,9 +149,9 @@ const organizationScopedModules = [
     ClientEventsModule,
     StatusPageModule,
     DlqModule,
-    IngestHealthModule,
-    PipelineLagModule,
-    SelfMonitoringModule,
+    ...(selfObservabilityEnabled()
+      ? [IngestHealthModule, PipelineLagModule, SelfMonitoringModule]
+      : []),
     PlatformAdminModule,
     IncidentsModule,
     ...organizationScopedModules,

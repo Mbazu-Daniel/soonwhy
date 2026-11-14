@@ -82,21 +82,24 @@ services:
       start_period: 20s
 
  
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.164.0
-    command: ["--config=/etc/otel-collector-config.yaml"]
-    environment:
-      SOONWHY_API_KEY: ${SOONWHY_API_KEY:-}
-    volumes:
-      - ./infra/otel-collector/config.yaml:/etc/otel-collector-config.yaml:ro
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    restart: unless-stopped
-    ports: ["4317:4317", "4318:4318", "8888:8888"]
-    depends_on:
-      ingest: {condition: service_started}
-    pid: host
+  # Self-telemetry dogfood export is disabled (pointing it at a non-existent
+  # endpoint). Re-enable with SELF_OBSERVABILITY_ENABLED=true on the api and
+  # fix this collector's exporter endpoint first.
+  # otel-collector:
+  #   image: otel/opentelemetry-collector-contrib:0.164.0
+  #   command: ["--config=/etc/otel-collector-config.yaml"]
+  #   environment:
+  #     SOONWHY_API_KEY: ${SOONWHY_API_KEY:-}
+  #   volumes:
+  #     - ./infra/otel-collector/config.yaml:/etc/otel-collector-config.yaml:ro
+  #     - /proc:/host/proc:ro
+  #     - /sys:/host/sys:ro
+  #     - /:/rootfs:ro
+  #   restart: unless-stopped
+  #   ports: ["4317:4317", "4318:4318", "8888:8888"]
+  #   depends_on:
+  #     ingest: {condition: service_started}
+  #   pid: host
 
   api:
     build: {context: ., target: build}
@@ -108,9 +111,9 @@ services:
       # FRONTEND_URL: http://localhost:3000
       BETTER_AUTH_URL: http://localhost:3001
       BETTER_AUTH_SECRET: replace-with-a-long-random-secret
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://ingest:3002
-      OTEL_EXPORTER_OTLP_HEADERS: authorization=Bearer ${SOONWHY_API_KEY:-}
       PORT: 3001
+      # Self-observability is off by default in code; set
+      # SELF_OBSERVABILITY_ENABLED=true to re-enable self-export.
       # AI: organisations bring their own provider keys; the platform default is gone.
       SOONWHY_PII_ENCRYPTION_KEY: ${SOONWHY_PII_ENCRYPTION_KEY:-}
       SOONWHY_AI_QUOTA_ENFORCED: ${SOONWHY_AI_QUOTA_ENFORCED:-false}

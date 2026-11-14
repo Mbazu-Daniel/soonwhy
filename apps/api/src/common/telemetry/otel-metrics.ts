@@ -9,6 +9,8 @@ import { resourceFromAttributes } from "@opentelemetry/resources";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
 import { metrics, type Meter } from "@opentelemetry/api";
 import { resolveOtlpEndpoint, resolveOtlpHeaders } from "./otlp-config";
+import { selfObservabilityEnabled } from "./self-observability";
+import { Logger } from "@nestjs/common";
 
 const SERVICE_NAME = process.env.OTEL_SERVICE_NAME ?? "soonwhy-api";
 
@@ -96,7 +98,6 @@ export function getDbQueryCount() {
   return dbQueryCount!;
 }
 
-/** Record the terminal state of a detection run. Never throws. */
 export function recordDetectionRun(
   status: "success" | "failure",
   durationMs: number,
@@ -109,17 +110,14 @@ export function recordDetectionRun(
       { status },
     );
   } catch {
-    // Metrics must never break the detection pipeline.
   }
 }
 
-/** Record one persisted finding, bucketed by severity. Never throws. */
 export function recordDetectionFinding(severity: string) {
   try {
     ensureInstruments();
     detectionFindings!.add(1, { severity });
   } catch {
-    // Metrics must never break the detection pipeline.
   }
 }
 
@@ -133,11 +131,6 @@ export interface AiInvocationMetrics {
   estimatedCostUsd?: number;
 }
 
-/**
- * Record an AI RCA invocation: counts, token usage, estimated spend and
- * duration. Cost is caller-estimated (provider price list, not billing), so
- * treat it as an estimate, not a reconciliation source. Never throws.
- */
 export function recordAiInvocationMetrics(input: AiInvocationMetrics) {
   try {
     ensureInstruments();
@@ -160,18 +153,20 @@ export function recordAiInvocationMetrics(input: AiInvocationMetrics) {
       aiEstimatedCostUsd!.add(input.estimatedCostUsd, attributes);
     }
   } catch {
-    // Metrics must never break the RCA path.
   }
-}/**
- * The in-app Prometheus exporter when PROMETHEUS_METRICS_ENABLED is not
- * "false", else null. The exporter is created with `preventServerStart`;
- * the Nest app mounts it at /metrics itself.
- */
+}
 export function getPrometheusExporter() {
   return prometheusExporter;
 }
 
 export function initOtelMetrics(): MeterProvider | null {
+  if (!selfObservabilityEnabled()) {
+    new Logger("OtelMetrics").log(
+      "Self-observability disabled (SELF_OBSERVABILITY_ENABLED != true); self-metrics export and /metrics off",
+    );
+    ensureInstruments();
+    return null;
+  }
   const url = resolveOtlpEndpoint("metrics");
   const prometheusEnabled =
     (process.env.PROMETHEUS_METRICS_ENABLED ?? "true") !== "false";
