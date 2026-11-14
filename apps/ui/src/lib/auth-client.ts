@@ -114,7 +114,6 @@ export async function signOut(token?: string): Promise<void> {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
   } catch {
-    // Sign out is best-effort — clear local state regardless
   }
 }
 

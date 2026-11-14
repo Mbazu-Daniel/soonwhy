@@ -1,5 +1,5 @@
 import { QUICKWIT_INDEXES } from '@soonwhy/shared';
-import { quickwitTenantQuery } from '../../../common/quickwit/query';
+import { quickwitSource, quickwitTenantQuery } from '../../../common/quickwit/query';
 import { detectDatabaseQueries, type DatabaseQueryTrace } from '../intelligence/database-query.detector';
 import { detectDatabaseQueryVolume, type DatabaseQueryVolumeTrace } from '../intelligence/database-query-volume.detector';
 import { detectDatabaseErrors, type DatabaseErrorTrace } from '../intelligence/database-error.detector';
@@ -751,7 +751,7 @@ async function cachedTraceDurations(
     const traces = new Map<string, { start: number; end: number }>();
 
     for (const hit of result.hits ?? []) {
-      const source = hit._source;
+      const source = quickwitSource<TraceSource>(hit);
       if (!source?.traceId) continue;
 
       const start = new Date(String(source.timestamp ?? '')).getTime();

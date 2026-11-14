@@ -334,8 +334,6 @@ function ExploreEvidenceMenu({ orgSlug, projectSlug }: { orgSlug: string; projec
   );
 }
 
-
-
 function OverviewSkeleton() {
   return (
     <div className="space-y-6">

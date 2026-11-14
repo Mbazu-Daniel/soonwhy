@@ -6,6 +6,7 @@ import {
   Get,
   Headers,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -352,7 +353,7 @@ export class OrganizationController {
     return result;
   }
 
-  @Put("member-profile")
+  @Patch("member-profile")
   async updateMemberProfile(
     @Param("organizationId") organizationId: string,
     @Body({ schema: updateMemberProfileSchema })

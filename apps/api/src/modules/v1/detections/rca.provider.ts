@@ -12,10 +12,6 @@ import type { RcaEvidence, RcaProviderResult } from "./rca.types";
 export interface MastraRcaProviderConfig {
   apiKey: string;
   model: string;
-  /**
-   * Models.dev provider id. Omitted means the OpenAI-compatible transport,
-   * which requires `baseUrl`.
-   */
   providerId?: string;
   baseUrl?: string;
   timeoutMs?: number;
@@ -231,7 +227,6 @@ function statusCodeOf(error: unknown): number | undefined {
       status?: unknown;
       cause?: unknown;
     };
-    // AI SDK provider errors carry `status`; HTTP-ish wrappers use `statusCode`.
     for (const value of [candidate.statusCode, candidate.status]) {
       if (typeof value === "number" && value >= 100 && value <= 599) {
         return value;
@@ -253,10 +248,6 @@ class RcaProviderRequestError extends Error {
   }
 }
 
-/**
- * Provider statuses are not Nest HTTP exceptions, so without this mapping a
- * rate-limited or failing provider would surface as an opaque 500.
- */
 export function toRcaHttpException(error: unknown): unknown {
   if (!(error instanceof RcaProviderRequestError)) return error;
   const body = {

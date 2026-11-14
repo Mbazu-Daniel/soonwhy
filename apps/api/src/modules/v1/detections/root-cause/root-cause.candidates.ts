@@ -1,8 +1,3 @@
-/**
- * Root Cause Candidate Generation
- *
- * Generates root cause candidates from correlated findings across various anomaly types.
- */
 
 import type {
   RootCauseCandidate,
@@ -10,9 +5,6 @@ import type {
   SignalEvidence,
 } from './root-cause.types';
 
-/**
- * Finding types that can contribute to root cause candidates
- */
 interface Finding {
   id: string;
   type: string;
@@ -24,43 +16,27 @@ interface Finding {
   observedValue?: number;
   baselineValue?: number;
   threshold?: number;
-  // Additional finding-specific data
   data?: Record<string, unknown>;
 }
 
-/**
- * Dependency information from traces
- */
 interface DependencyInfo {
   upstream: string[];
   downstream: string[];
 }
 
-/**
- * Generate root cause candidates from correlated findings
- */
 export class CandidateGenerator {
-  /**
-   * Generate candidates from a collection of findings
-   */
   generateFromFindings(findings: Finding[]): RootCauseCandidate[] {
-    // Group findings by service
     const serviceFindings = this.groupByService(findings);
 
-    // Generate service-level candidates
     const serviceCandidates = Object.entries(serviceFindings).map(([serviceName, findings]) =>
       this.generateServiceCandidate(serviceName, findings),
     );
 
-    // Generate operation-level candidates (where operation data is available)
     const operationCandidates = this.generateOperationCandidates(findings);
 
     return [...serviceCandidates, ...operationCandidates];
   }
 
-  /**
-   * Group findings by service name
-   */
   private groupByService(findings: Finding[]): Record<string, Finding[]> {
     const grouped: Record<string, Finding[]> = {};
     for (const finding of findings) {
@@ -72,14 +48,10 @@ export class CandidateGenerator {
     return grouped;
   }
 
-  /**
-   * Generate a service-level candidate
-   */
   private generateServiceCandidate(serviceName: string, findings: Finding[]): RootCauseCandidate {
     const traceIds = [...new Set(findings.map((f) => f.traceId).filter(Boolean))];
     const timeWindow = this.calculateTimeWindow(findings);
 
-    // Extract anomaly data
     const anomalyData = this.extractAnomalyData(findings);
 
     return {
@@ -97,9 +69,6 @@ export class CandidateGenerator {
     };
   }
 
-  /**
-   * Generate operation-level candidates
-   */
   private generateOperationCandidates(findings: Finding[]): RootCauseCandidate[] {
     const candidates: RootCauseCandidate[] = [];
 
@@ -135,9 +104,6 @@ export class CandidateGenerator {
     return candidates;
   }
 
-  /**
-   * Calculate the time window from findings
-   */
   private calculateTimeWindow(findings: Finding[]): { start: string; end: string } {
     const timestamps = findings.map((f) => new Date(f.timestamp).getTime());
     const start = new Date(Math.min(...timestamps)).toISOString();
@@ -145,9 +111,6 @@ export class CandidateGenerator {
     return { start, end };
   }
 
-  /**
-   * Extract anomaly data from findings
-   */
   private extractAnomalyData(findings: Finding[]): RootCauseCandidate['anomalyData'] {
     const anomalyData: RootCauseCandidate['anomalyData'] = {};
 
@@ -165,7 +128,6 @@ export class CandidateGenerator {
       if (finding.severity) {
         anomalyData.severity = finding.severity;
       }
-      // Use first severity or critical if any critical finding exists
       if (finding.severity === 'critical') {
         anomalyData.severity = 'critical';
       }
@@ -174,9 +136,6 @@ export class CandidateGenerator {
     return anomalyData;
   }
 
-  /**
-   * Enrich candidates with dependency information
-   */
   enrichWithDependencies(
     candidates: RootCauseCandidate[],
     dependencyMap: Map<string, DependencyInfo>,

@@ -41,7 +41,6 @@ export interface LlmCredentialSummary {
 }
 
 interface CacheEntry {
-  /** `0` while the credential is still being read, an expiry stamp afterwards. */
   expiresAt: number;
   request: Promise<ResolvedLlmModel>;
 }
@@ -86,7 +85,6 @@ export class LlmProviderResolver {
     };
   }
 
-  /** Which credential would serve this org, without any key material. */
   async describe(orgId: string): Promise<LlmCredentialSummary> {
     const row = await this.repository.get(orgId);
     if (isUsableByok(row)) {
@@ -95,12 +93,10 @@ export class LlmProviderResolver {
     return { source: "none", provider: null, model: null };
   }
 
-  /** Every write path calls this, so a saved or removed key takes effect at once. */
   invalidate(orgId: string): void {
     this.cache.delete(orgId);
   }
 
-  /** Raw credential, key included: only for building a provider in this process. */
   async resolve(orgId: string): Promise<ResolvedLlmModel> {
     const cached = this.cache.get(orgId);
     if (cached && (cached.expiresAt === 0 || cached.expiresAt > Date.now())) {
@@ -132,8 +128,6 @@ export class LlmProviderResolver {
     try {
       apiKey = this.cipher.decrypt(row.encryptedApiKey);
     } catch (error) {
-      // A missing server key is a different fault with a different fix: only a
-      // payload that genuinely will not open means the stored key is stale.
       if (!(error instanceof CredentialDecryptError)) throw error;
       LlmProviderResolver.logger.warn(
         `Stored AI credential ${row.id} could not be decrypted; check SOONWHY_PII_ENCRYPTION_KEY`,

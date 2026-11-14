@@ -7,9 +7,6 @@ import {
   fingerprintHost,
 } from "@soonwhy/shared";
 
-/**
- * Aggregate runtime metrics into summary statistics.
- */
 export function aggregateRuntimeMetrics(
   metrics: RuntimeMetrics[],
 ): RuntimeAggregation {
@@ -60,9 +57,6 @@ export function aggregateRuntimeMetrics(
   };
 }
 
-/**
- * Detect runtime regression by comparing current vs baseline.
- */
 export function detectRuntimeRegression(
   current: RuntimeAggregation,
   baseline: RuntimeAggregation,

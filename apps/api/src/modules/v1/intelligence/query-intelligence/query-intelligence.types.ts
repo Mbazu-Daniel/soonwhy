@@ -69,6 +69,6 @@ export interface LargeScanPattern {
   queryIdentity: QueryIdentity;
   avgRowsScanned: number;
   avgRowsReturned: number;
-  scanEfficiency: number; // rowsReturned / rowsScanned
+  scanEfficiency: number;
   severity: "warning" | "critical";
 }

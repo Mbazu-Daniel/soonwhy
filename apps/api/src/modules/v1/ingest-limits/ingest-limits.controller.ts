@@ -68,7 +68,6 @@ export class IngestLimitsController {
   }
 }
 
-// Internal endpoint without tenant guard for ingest package
 @Controller("internal/ingest-limits")
 export class InternalIngestLimitsController {
   constructor(private readonly service: IngestLimitsService) {}

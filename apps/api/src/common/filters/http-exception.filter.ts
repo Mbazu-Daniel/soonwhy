@@ -33,9 +33,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         body.detail = exResponse;
       } else if (typeof exResponse === "object") {
         body = { ...body, ...exResponse, status };
-        // Object-form exceptions (e.g. ForbiddenException) commonly carry a
-        // `message`; without this, the client saw the opaque default detail.
-        // zod issues are an array of strings — take the first.
         if (!("detail" in exResponse)) {
           const exMessage = (exResponse as { message?: unknown }).message;
           const first = Array.isArray(exMessage)

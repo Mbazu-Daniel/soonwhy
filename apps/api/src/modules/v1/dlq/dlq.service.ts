@@ -36,7 +36,6 @@ export class DlqService {
       throw new Error("Entry already successfully replayed");
     }
 
-    // Check if payload is malformed
     if (entry.payload && typeof entry.payload === "object" && "malformed" in entry.payload) {
       throw new Error("Cannot replay malformed payload");
     }
@@ -45,14 +44,12 @@ export class DlqService {
       throw new Error("Missing organization or project ID for replay");
     }
 
-    // Atomically claim replay to prevent concurrent double-publish/replay races.
     const claimed = await this.repository.claimReplay(id);
     if (!claimed) {
       throw new Error("Entry already successfully replayed or replay in progress");
     }
 
     try {
-      // Republish to the original ingest subject (matches consumer subscription)
       const subject = `ingest.${entry.projectId}.${entry.signal}`;
       const payload = JSON.stringify(entry.payload);
 

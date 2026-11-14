@@ -30,9 +30,6 @@ const socialQueryParam = z.object({
   }),
 });
 
-/**
- * Paths live under the global `api/v1` prefix. Keep keys exactly as served.
- */
 export const authPaths = {
   "/api/v1/auth/providers": {
     get: {

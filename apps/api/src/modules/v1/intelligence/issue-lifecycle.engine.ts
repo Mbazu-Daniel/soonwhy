@@ -2,9 +2,7 @@ import type { Issue } from "./issue.types";
 import type { IssueLifecycle, IssueLifecycleStatus } from "./issue-lifecycle.types";
 
 const ISSUE_TRANSITIONS: Record<IssueLifecycleStatus, ReadonlySet<IssueLifecycleStatus>> = {
-  // Creation enters `active` via createIssueLifecycle.
   active: new Set(["active", "resolved"]),
-  // Evidence newer than resolvedAt transitions back to active (reopen path).
   resolved: new Set(["active", "resolved"]),
 };
 

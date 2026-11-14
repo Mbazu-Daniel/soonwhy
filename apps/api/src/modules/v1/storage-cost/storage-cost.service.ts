@@ -17,11 +17,9 @@ interface StorageCostData {
 export class StorageCostMonitoringService {
   private readonly logger = new Logger(StorageCostMonitoringService.name);
 
-  // Cost per GB per month (adjust based on actual storage provider)
-  private readonly costPerGBPerMonth = 0.023; // $0.023/GB/month (approximate S3 pricing)
+  private readonly costPerGBPerMonth = 0.023;
 
   async getStorageCosts(orgId: string, projectId: string): Promise<StorageCostData> {
-    // Get retention policies for the project
     const policies = await db
       .select()
       .from(retentionPolicies)
@@ -32,8 +30,6 @@ export class StorageCostMonitoringService {
         ),
       );
 
-    // Estimate storage size based on retention periods
-    // In production, this would query actual storage usage from Quickwit
     const logsSizeMB = this.estimateSize(policies, "logs");
     const tracesSizeMB = this.estimateSize(policies, "traces");
     const metricsSizeMB = this.estimateSize(policies, "metrics");
@@ -54,10 +50,8 @@ export class StorageCostMonitoringService {
   }
 
   private estimateSize(policies: any[], dataType: string): number {
-    // Find policy for this data type
     const policy = policies.find((p) => p.dataType === dataType);
     if (!policy) {
-      // Default to 30 days retention if no policy
       return this.calculateEstimatedSize(30);
     }
 
@@ -65,9 +59,7 @@ export class StorageCostMonitoringService {
   }
 
   private calculateEstimatedSize(retentionDays: number): number {
-    // Estimate: 100 MB per day of logs, 50 MB per day of traces, 10 MB per day of metrics
-    // This is a rough estimate - production should use actual storage metrics
-    const dailySizeMB = 160; // Total across all data types
+    const dailySizeMB = 160;
     return dailySizeMB * retentionDays;
   }
 
@@ -79,7 +71,7 @@ export class StorageCostMonitoringService {
       recommendations.push({
         type: "high_cost",
         message: `Storage costs are high ($${costs.estimatedCost.toFixed(2)}/month). Consider reducing retention periods.`,
-        potentialSavings: costs.estimatedCost * 0.3, // 30% potential savings
+        potentialSavings: costs.estimatedCost * 0.3,
       });
     }
 

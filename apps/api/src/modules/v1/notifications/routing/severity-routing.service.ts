@@ -17,17 +17,12 @@ const SEVERITY_RANK: Record<AlertRuleSeverity, number> = {
 export class SeverityRoutingService {
   private readonly logger = new Logger(SeverityRoutingService.name);
 
-  /**
-   * Get the channels that should receive alerts for a given severity level,
-   * based on the alert rule's channel configuration and severity thresholds.
-   */
   async getChannelsForSeverity(
     orgId: string,
     projectId: string,
     minSeverity: AlertRuleSeverity,
     alertRuleId?: string,
   ): Promise<ChannelRecord[]> {
-    // Build query: find alert rules active for this project/org with the given severity
     const ruleCondition =
       alertRules.minSeverity !== undefined
         ? eq(alertRules.minSeverity, minSeverity)
@@ -40,7 +35,7 @@ export class SeverityRoutingService {
         and(
           eq(alertRules.orgId, orgId),
           eq(alertRules.projectId, projectId),
-          sql /* sql */ `${alertRules.status} = 'active'`,
+          sql `${alertRules.status} = 'active'`,
         ),
       );
 
@@ -51,7 +46,6 @@ export class SeverityRoutingService {
       return [];
     }
 
-    // Collect all channel IDs from matching rules
     const channelIds = new Set<string>();
     for (const rule of rules) {
       if (rule.channelIds && rule.channelIds.length > 0) {
@@ -61,7 +55,6 @@ export class SeverityRoutingService {
       }
     }
 
-    // Fetch the actual channel records
     if (channelIds.size === 0) {
       this.logger.warn(
         `No channel IDs found in alert rules for org=${orgId}, project=${projectId}`,
@@ -77,7 +70,7 @@ export class SeverityRoutingService {
           eq(notificationChannels.orgId, orgId),
           eq(notificationChannels.projectId, projectId),
           sql
-          /* sql */ `${notificationChannels.id} IN (${String(channelIds).replace(/,/g, ",")})`,
+`${notificationChannels.id} IN (${String(channelIds).replace(/,/g, ",")})`,
           eq(notificationChannels.isActive, true),
         ),
       );
@@ -89,10 +82,6 @@ export class SeverityRoutingService {
     return channels;
   }
 
-  /**
-   * Determine which channel(s) should receive an alert based on severity and rule configuration.
-   * Returns the best matching channel or undefined if no match.
-   */
   async determineChannel(
     orgId: string,
     projectId: string,
@@ -107,7 +96,6 @@ export class SeverityRoutingService {
     );
 
     if (channels.length === 0) {
-      // Fallback: try lower severity thresholds
       const severityOrder: AlertRuleSeverity[] = [
         "critical",
         "high",
@@ -130,13 +118,9 @@ export class SeverityRoutingService {
       }
     }
 
-    // Return the highest-ranked channel (first one)
     return channels[0] ?? undefined;
   }
 
-  /**
-   * Route an alert to the appropriate channel(s) based on severity and rule configuration.
-   */
   async routeAlert(
     orgId: string,
     projectId: string,
@@ -144,7 +128,6 @@ export class SeverityRoutingService {
     alertRuleId: string,
     payload: any,
   ): Promise<{ channel?: ChannelRecord; success: boolean }> {
-    // Find the alert rule to understand its configuration
     const [rule] = await db
       .select()
       .from(alertRules)
@@ -155,7 +138,6 @@ export class SeverityRoutingService {
       return { channel: undefined, success: false };
     }
 
-    // Get the appropriate channel for this severity
     const channel = await this.determineChannel(
       orgId,
       projectId,

@@ -44,7 +44,6 @@ export function ProbeResultsPanel({ projectId, probeId }: ProbeResultsPanelProps
   const upCount = items.filter((r) => r.status === 'up').length;
   const uptimePercent = items.length ? Math.round((upCount / items.length) * 100) : 0;
 
-  // Prepare chart data
   const chartData = items.slice().reverse().map((result) => ({
     time: new Date(result.checkedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     timestamp: new Date(result.checkedAt).getTime(),
@@ -52,7 +51,6 @@ export function ProbeResultsPanel({ projectId, probeId }: ProbeResultsPanelProps
     status: result.status,
   }));
 
-  // Calculate incidents (consecutive failures)
   const incidents: { start: string; end: string; duration: number }[] = [];
   let currentIncident: { start: string; end: string } | null = null;
 
@@ -74,7 +72,7 @@ export function ProbeResultsPanel({ projectId, probeId }: ProbeResultsPanelProps
         incidents.push({
           start: currentIncident.start,
           end: currentIncident.end,
-          duration: Math.round((end - start) / 1000 / 60), // minutes
+          duration: Math.round((end - start) / 1000 / 60),
         });
         currentIncident = null;
       }

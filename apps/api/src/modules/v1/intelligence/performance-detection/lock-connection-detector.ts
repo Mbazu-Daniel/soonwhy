@@ -25,12 +25,6 @@ const DEFAULT_CONFIG: PerformanceDetectionConfig = {
   eventLoopCriticalMs: 100,
 };
 
-/**
- * Detect lock/wait time issues.
- *
- * Flags when database locks, mutex waits, or other synchronization
- * primitives cause significant wait times.
- */
 export function detectLockWaitTime(
   waitTimeMs: number,
   lockType: "database_lock" | "mutex" | "semaphore" | "file_lock",
@@ -38,7 +32,7 @@ export function detectLockWaitTime(
   serviceName?: string,
   config: PerformanceDetectionConfig = DEFAULT_CONFIG,
 ): LatencyFinding | undefined {
-  if (waitTimeMs < 100) return undefined; // Ignore short waits
+  if (waitTimeMs < 100) return undefined;
 
   const severity = waitTimeMs >= 1000 ? "critical" : "warning";
 
@@ -73,12 +67,6 @@ export function detectLockWaitTime(
   };
 }
 
-/**
- * Detect connection pool saturation.
- *
- * Flags when connection pools (database, HTTP, Redis) are near capacity,
- * indicating resource exhaustion that may cause requests to wait or fail.
- */
 export function detectConnectionPoolSaturation(
   poolMetrics: {
     activeConnections: number;
@@ -93,7 +81,7 @@ export function detectConnectionPoolSaturation(
 ): ResourceFinding | undefined {
   const utilization = poolMetrics.activeConnections / poolMetrics.maxConnections;
 
-  if (utilization < 0.7) return undefined; // Below warning threshold
+  if (utilization < 0.7) return undefined;
 
   const severity = utilization >= 0.9 ? "critical" : "warning";
 
@@ -132,16 +120,10 @@ export function detectConnectionPoolSaturation(
   };
 }
 
-/**
- * Detect GC pressure (Node.js specific).
- *
- * Flags when garbage collection pauses are frequent or long,
- * indicating memory allocation patterns that may cause performance issues.
- */
 export function detectGcPressure(
   gcMetrics: {
     pauseTimeMs: number;
-    frequency: number; // pauses per second
+    frequency: number;
     heapSizeMB: number;
     heapLimitMB: number;
   },
@@ -150,7 +132,6 @@ export function detectGcPressure(
 ): ResourceFinding | undefined {
   const heapUtilization = gcMetrics.heapSizeMB / gcMetrics.heapLimitMB;
 
-  // Check for long GC pauses
   if (gcMetrics.pauseTimeMs >= 100) {
     const identity = createTelemetryIdentity({
       domain: "runtime",
@@ -180,7 +161,6 @@ export function detectGcPressure(
     };
   }
 
-  // Check for high GC frequency
   if (gcMetrics.frequency >= 10) {
     const identity = createTelemetryIdentity({
       domain: "runtime",
@@ -210,7 +190,6 @@ export function detectGcPressure(
     };
   }
 
-  // Check for high heap utilization
   if (heapUtilization >= 0.8) {
     const identity = createTelemetryIdentity({
       domain: "runtime",

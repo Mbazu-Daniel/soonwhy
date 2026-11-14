@@ -36,8 +36,6 @@ function StatusIcon({ status }: { status: NotificationLog['status'] }) {
   return <Clock3 className="h-3.5 w-3.5 text-[#989898]" />;
 }
 
-
-
 function NotificationsPage() {
   const { projectId } = useProject();
   const [offset, setOffset] = useState(0);

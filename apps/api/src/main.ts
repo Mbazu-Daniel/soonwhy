@@ -1,15 +1,10 @@
 import "reflect-metadata";
 
-// Load .env from the repo root before any other module so env-dependent
-// module-level code (e.g. better-auth secret) reads it at import time.
 import "./dotenv";
 
-// Initialize OpenTelemetry tracing BEFORE NestJS bootstraps so all
-// HTTP requests are instrumented from the start.
 import { initOtelTracing } from "./common/telemetry/otel-tracing";
 initOtelTracing();
 
-// Initialize OpenTelemetry metrics (separate SDK from tracing).
 import { initOtelMetrics } from "./common/telemetry/otel-metrics";
 initOtelMetrics();
 
@@ -60,9 +55,6 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Prometheus scrape endpoint. Unprefixed so Prometheus can reach it
-  // without the /api/v1 prefix; set PROMETHEUS_METRICS_TOKEN to require a
-  // bearer token. Disabled with PROMETHEUS_METRICS_ENABLED=false.
   const prometheus = getPrometheusExporter();
   if (prometheus) {
     const scrapeToken = process.env.PROMETHEUS_METRICS_TOKEN;
@@ -84,9 +76,6 @@ async function bootstrap() {
     });
   }
 
-  // Serve the hand-assembled OpenAPI document generated from the zod schemas
-  // used at the validation edge (see common/openapi/document.ts). Auth is
-  // documented today; more paths are registered incrementally.
   SwaggerModule.setup(
     "docs",
     app,
@@ -97,9 +86,6 @@ async function bootstrap() {
     },
   );
 
-  // Pre-create the default telemetry indexes so read paths don't 500 on a
-  // fresh instance (ingest creates them lazily, but reads happen before the
-  // first ingest). Never blocks startup if Quickwit is unreachable.
   await ensureQuickwitIndexes();
 
   const port = process.env.PORT || 8080;

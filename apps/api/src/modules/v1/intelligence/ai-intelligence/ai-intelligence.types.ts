@@ -35,9 +35,6 @@ export interface AIOperation {
   metadata?: Record<string, unknown>;
 }
 
-
-
-
 export interface AIAggregation {
   identity: TelemetryIdentity;
   operationCount: number;
@@ -55,7 +52,6 @@ export interface AIAggregation {
     end: string;
   };
 }
-
 
 export interface AITokenSpikeFinding {
   identity: TelemetryIdentity;

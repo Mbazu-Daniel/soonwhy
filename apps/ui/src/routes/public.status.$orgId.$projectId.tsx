@@ -45,7 +45,7 @@ function PublicStatusPage() {
   const status = useQuery({
     queryKey: ['public-status', orgId, projectId],
     queryFn: () => api.get<StatusPageData>(`/public/status/${orgId}/${projectId}`),
-    refetchInterval: 60000, // Refresh every minute
+    refetchInterval: 60000,
   });
 
   const subscribe = useMutation({

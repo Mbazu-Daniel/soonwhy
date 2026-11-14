@@ -76,7 +76,6 @@ function IngestHealthPage() {
         </Button>
       </div>
 
-      {/* Throughput Metrics */}
       <div className="grid gap-4 sm:grid-cols-4">
         <Card className="border-border bg-card shadow-none">
           <CardContent className="p-5">
@@ -116,7 +115,6 @@ function IngestHealthPage() {
         </Card>
       </div>
 
-      {/* Error Metrics */}
       <div className="grid gap-4 sm:grid-cols-4">
         <Card className="border-border bg-card shadow-none">
           <CardContent className="p-5">
@@ -156,7 +154,6 @@ function IngestHealthPage() {
         </Card>
       </div>
 
-      {/* Performance Metrics */}
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="border-border bg-card shadow-none">
           <CardContent className="p-5">
@@ -187,7 +184,6 @@ function IngestHealthPage() {
         </Card>
       </div>
 
-      {/* Status Indicators */}
       <Card className="shadow-none">
         <CardContent className="p-6">
           <h3 className="text-sm font-medium mb-4">Ingestion Status</h3>

@@ -125,17 +125,14 @@ export class MaintenanceWindowsRepository {
     );
 
     for (const window of activeWindows) {
-      // Check if alert rule is in affected list
       if (window.affectedAlertRules?.includes(alertRuleId)) {
         return true;
       }
 
-      // Check if service is in affected list
       if (serviceName && window.affectedServices?.includes(serviceName)) {
         return true;
       }
 
-      // If no specific rules/services, suppress all alerts
       if (
         (!window.affectedAlertRules || window.affectedAlertRules.length === 0) &&
         (!window.affectedServices || window.affectedServices.length === 0)

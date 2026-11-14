@@ -88,6 +88,8 @@ services:
     environment:
       PORT: 3001
       INGEST_URL: http://ingest:3002
+      # Self-observability is off by default in code (api ignores
+      # OTEL_EXPORTER_OTLP_* unless SELF_OBSERVABILITY_ENABLED=true).
     depends_on:
       ingest: { condition: service_healthy }
     restart: unless-stopped

@@ -219,7 +219,6 @@ export class DedupService {
       )
       .limit(1);
 
-    // Require 2 consecutive failures to fire (incident protection)
     return trigger ? trigger.streakCount >= 2 : false;
   }
 

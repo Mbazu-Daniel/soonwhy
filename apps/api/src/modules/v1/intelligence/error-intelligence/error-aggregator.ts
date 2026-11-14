@@ -1,8 +1,5 @@
 import type { ErrorOccurrence, ErrorAggregation, ErrorCorrelation } from "./error-intelligence.types";
 
-/**
- * Aggregate error occurrences into summary statistics.
- */
 export function aggregateErrors(occurrences: ErrorOccurrence[]): ErrorAggregation {
   if (occurrences.length === 0) {
     throw new Error("Cannot aggregate empty occurrences");
@@ -14,8 +11,8 @@ export function aggregateErrors(occurrences: ErrorOccurrence[]): ErrorAggregatio
   }
 
   const timestamps = occurrences.map((o) => new Date(o.timestamp).getTime());
-  const durationMs = Math.max(...timestamps) - Math.min(...timestamps) || 60000; // Default to 1 minute
-  const errorRate = (occurrences.length / durationMs) * 60000; // errors per minute
+  const durationMs = Math.max(...timestamps) - Math.min(...timestamps) || 60000;
+  const errorRate = (occurrences.length / durationMs) * 60000;
 
   const affectedUsers = new Set(occurrences.map((o) => o.userId).filter((v): v is string => Boolean(v)));
   const affectedEndpoints = new Set(occurrences.map((o) => o.endpoint).filter((v): v is string => Boolean(v)));
@@ -37,9 +34,6 @@ export function aggregateErrors(occurrences: ErrorOccurrence[]): ErrorAggregatio
   };
 }
 
-/**
- * Detect error regression by comparing current vs baseline.
- */
 export function detectErrorRegression(
   current: ErrorAggregation,
   baseline: ErrorAggregation,
@@ -76,9 +70,6 @@ export function detectErrorRegression(
   };
 }
 
-/**
- * Correlate errors with traces, deployments, dependencies, and infrastructure.
- */
 export function correlateError(
   occurrences: ErrorOccurrence[],
 ): ErrorCorrelation {
@@ -93,7 +84,6 @@ export function correlateError(
   const correlatedServices = new Set(occurrences.map((o) => o.serviceName).filter((v): v is string => Boolean(v)));
   const correlatedHosts = new Set(occurrences.map((o) => o.hostId).filter((v): v is string => Boolean(v)));
 
-  // Calculate correlation strength based on variety of correlations
   const correlationStrength = Math.min(
     1,
     (correlatedTraces.size + correlatedDeployments.size + correlatedEndpoints.size) / 10,

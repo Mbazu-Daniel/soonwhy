@@ -5,10 +5,10 @@ import { DetectorSettingsService } from '../detector-settings/detector-settings.
 import { DetectionTelemetryService } from './detection-telemetry.service';
 import { db } from '../../../common/db';
 import { findings } from '../../../common/db/schema/findings';
-import { quickwitTenantQuery, quickwitTerm } from '../../../common/quickwit/query';
+import { quickwitSource, quickwitTenantQuery, quickwitTerm } from '../../../common/quickwit/query';
 import { completeDetectionRun, enqueueDetectionRun, failDetectionRun, startDetectionRun, claimQueuedDetectionRun } from './detection.run';
 import { recordDetectionRun } from '../../../common/telemetry/otel-metrics';
-import type { DetectionFinding } from './detection.types';
+import type { DetectionFinding, RequestSource, TraceSource } from './detection.types';
 import { ProjectsRepository } from '../projects/projects.repository';
 import { DetectionPipeline } from './detection.pipeline';
 import { WINDOW_MS } from './detection.stage';
@@ -188,7 +188,7 @@ export class DetectionService {
     });
 
     return (result.hits ?? []).flatMap((hit) => {
-      const source = hit._source as Record<string, unknown> | undefined;
+      const source = quickwitSource<TraceSource | RequestSource>(hit) as Record<string, unknown> | undefined;
       if (!source) return [];
       return [
         {
@@ -227,7 +227,7 @@ export class DetectionService {
     });
 
     return (result.hits ?? []).flatMap((hit) => {
-      const source = hit._source as Record<string, unknown> | undefined;
+      const source = quickwitSource<TraceSource | RequestSource>(hit) as Record<string, unknown> | undefined;
       if (!source) return [];
       return [
         {

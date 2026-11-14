@@ -118,7 +118,6 @@ export class HistoricalAnalysisService {
     afterDeploymentId: string,
     windowMinutes: number = 60,
   ) {
-    // Get deployment timestamps
     const beforeDeployment = await this.getDeploymentTimestamp(beforeDeploymentId);
     const afterDeployment = await this.getDeploymentTimestamp(afterDeploymentId);
 
@@ -126,14 +125,12 @@ export class HistoricalAnalysisService {
       throw new Error("Deployment not found");
     }
 
-    // Calculate time windows
     const beforeWindowStart = new Date(beforeDeployment.getTime() - windowMinutes * 60 * 1000);
-    const beforeWindowEnd = new Date(beforeDeployment.getTime() - 5 * 60 * 1000); // 5 min buffer
+    const beforeWindowEnd = new Date(beforeDeployment.getTime() - 5 * 60 * 1000);
 
-    const afterWindowStart = new Date(afterDeployment.getTime() + 5 * 60 * 1000); // 5 min buffer
+    const afterWindowStart = new Date(afterDeployment.getTime() + 5 * 60 * 1000);
     const afterWindowEnd = new Date(afterDeployment.getTime() + windowMinutes * 60 * 1000);
 
-    // Get metrics for both windows
     const [beforeMetrics, afterMetrics] = await Promise.all([
       this.getMetricsForPeriod(
         orgId,

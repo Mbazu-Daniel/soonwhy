@@ -4,12 +4,6 @@ import { db } from "../../../common/db";
 import { users } from "../../../common/db/schema/auth";
 import { PlatformAdminController } from "./platform-admin.controller";
 
-/**
- * Platform module. On boot, SOONWHY_STAFF_EMAILS grants 'admin' and
- * SOONWHY_SUPER_ADMIN_EMAILS grants 'super_admin' to matching existing users
- * (never revokes; env only seeds). Platform routes need PlatformAdminGuard /
- * SuperAdminGuard.
- */
 @Module({
   controllers: [PlatformAdminController],
 })

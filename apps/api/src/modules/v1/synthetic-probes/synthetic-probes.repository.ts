@@ -92,7 +92,6 @@ export class SyntheticProbesRepository {
       .limit(limit);
   }
 
-  /** Bounded retention: prune probe results older than `daysOld`. */
   async cleanupOldResults(daysOld: number = 30): Promise<number> {
     const cutoff = new Date(Date.now() - daysOld * 24 * 60 * 60 * 1000);
     const deleted = await db

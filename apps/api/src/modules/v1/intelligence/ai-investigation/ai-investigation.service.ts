@@ -47,7 +47,6 @@ export class AIInvestigationService {
     @Optional() private readonly deadLetterRepo?: DeadLetterInvestigationRepository,
     @Optional() private readonly investigationRepo?: AIInvestigationRepository,
   ) {
-    // Default configuration - can be overridden with specific provider/model
   }
 
   private transitionProgress(
@@ -134,7 +133,6 @@ export class AIInvestigationService {
       }
     }
 
-    // Run investigation asynchronously
     this.runInvestigation(investigationId, request, organizationId).catch((error) => {
       void this.markFailed(
         investigationId,
@@ -142,7 +140,6 @@ export class AIInvestigationService {
         organizationId,
       );
 
-      // Add to dead letter queue if repository available
       if (this.deadLetterRepo && organizationId) {
         this.deadLetterRepo
           .addFailedInvestigation(
@@ -152,7 +149,7 @@ export class AIInvestigationService {
             request,
             error instanceof Error ? error.message : String(error),
             1,
-            new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days TTL
+            new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
           )
           .catch((dlqError) => {
             this.logger.error(`Failed to add to dead letter queue: ${dlqError}`);

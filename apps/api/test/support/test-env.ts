@@ -1,5 +1,3 @@
-// fallow-ignore-file unused-file
-// Used by vitest.e2e.config.ts (setupFiles); fallow cannot see setup references.
 export function testDatabaseUrl(): string {
   if (process.env.TEST_DATABASE_URL) return process.env.TEST_DATABASE_URL;
 

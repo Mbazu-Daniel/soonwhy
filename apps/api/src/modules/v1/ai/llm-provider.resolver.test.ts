@@ -279,7 +279,6 @@ describe("LlmProviderResolver", () => {
     expect(handle.credential).toEqual({
       source: "byok",
       providerId: "groq",
-      // A credential without a saved base URL must not acquire a guessed host.
       model: "openai/gpt-oss-120b",
       credentialId: "aicredential_1",
     });

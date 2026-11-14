@@ -39,7 +39,6 @@ function getAttribute(
   return "";
 }
 
-/** Accepts OTLP JSON hex ids or protobufjs `bytes: String` base64 ids. */
 export function hexId(value: string, expectedLength: number): string {
   if (!value || typeof value !== "string") return "";
 

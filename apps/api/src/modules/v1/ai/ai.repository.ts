@@ -1,5 +1,3 @@
-// fallow-ignore-file unused-class-member
-// Members are consumed via narrowed Pick<AiRepository> DI injection, which fallow cannot see through.
 import { Injectable } from "@nestjs/common";
 import { and, eq, gte, isNull, lt, sql } from "drizzle-orm";
 import { db } from "../../../common/db";
@@ -10,7 +8,6 @@ import {
 
 @Injectable()
 export class AiRepository {
-  /** The live credential. A soft-deleted row stays for audit and never resolves. */
   async get(orgId: string) {
     return db.query.aiProviderCredentials.findFirst({
       where: and(
@@ -20,7 +17,6 @@ export class AiRepository {
     });
   }
 
-  /** Saving over a removed credential revives its row, which the unique index needs. */
   async upsert(data: {
     orgId: string;
     provider: string;
@@ -74,7 +70,6 @@ export class AiRepository {
       .where(eq(aiProviderCredentials.orgId, orgId));
   }
 
-  /** Runs in the period, split by the credential that paid for them. */
   async getInvocationTotals(orgId: string, from: Date, to: Date) {
     return db
       .select({

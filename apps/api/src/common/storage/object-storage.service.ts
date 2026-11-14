@@ -176,7 +176,6 @@ export class ObjectStorageService implements OnModuleInit {
     return this.client;
   }
 
-  /** Public link when a public base URL is configured, else endpoint+bucket+key. */
   publicUrl(key: string): string {
     const base = this.config?.publicBaseUrl?.replace(/\/$/, "");
     if (base) return `${base}/${key}`;

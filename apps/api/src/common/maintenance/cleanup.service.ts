@@ -90,8 +90,6 @@ export class CleanupService {
   private async removeIdempotencyKeys(now: Date): Promise<CleanupTableResult> {
     return this.remove(
       "idempotency_keys",
-      // Expiry is checked inside the DELETE itself, so a row a retry took
-      // over between statements is always kept.
       () =>
         db
           .delete(idempotencyKeys)

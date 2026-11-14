@@ -10,7 +10,6 @@ const TO_OBJECT = {
   objects: true,
 } as const;
 
-/** Shared common/resource/scope pieces used by all three signals. */
 const COMMON = `
 syntax = "proto3";
 package soonwhy.ingest.otlp;
@@ -324,7 +323,6 @@ export function encodePartialSuccess(
   return codec.response.encode(codec.response.create(body)).finish();
 }
 
-/** Decode an OTLP Export*ServiceRequest (JSON-shaped object for our parsers). */
 export function decodeProtobufPayload(
   buffer: Buffer,
   signal: OtlpSignal,
@@ -336,7 +334,6 @@ export function decodeProtobufPayload(
   }
 }
 
-/** Test-only: build a valid ExportTraceServiceRequest from a plain object. */
 export function encodeTraceRequestForTest(value: object): Uint8Array {
   const request = codecs.trace.request;
   return request.encode(request.create(value)).finish();

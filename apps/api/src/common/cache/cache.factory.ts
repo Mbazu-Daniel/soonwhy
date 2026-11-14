@@ -2,13 +2,9 @@ import { Logger } from "@nestjs/common";
 import { requiredEnvInProduction } from "@soonwhy/shared";
 import { Redis } from "ioredis";
 
-
 export async function createRedisClient(): Promise<Redis> {
   const logger = new Logger("RedisClient");
-  // lazyConnect lets us await the handshake before handing the client to Nest,
-  // so commands issued during the first request can't hit the "Stream isn't
-  // writeable" race. enableOfflineQueue stays false so a dead Redis fails
-  // fast (commands reject, the cache is bypassed) instead of hanging requests.
+
   const client = new Redis(
     requiredEnvInProduction("REDIS_URL", "redis://localhost:6379"),
     {

@@ -1,3 +1,4 @@
+import { quickwitSource } from "../../../common/quickwit/query";
 import { Injectable, Logger } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { QUICKWIT_INDEXES, QuickwitService, requiredEnvInProduction } from "@soonwhy/shared";
@@ -128,7 +129,7 @@ export class PipelineHealthCron {
           indexId,
           { query: "*", maxHits: 1, sortBy: ["timestamp:desc"] },
         );
-        const timestamp = result.hits[0]?._source?.timestamp;
+        const timestamp = quickwitSource<{ timestamp?: string }>(result.hits[0])?.timestamp;
         if (!timestamp) continue;
         const value = new Date(timestamp).getTime();
         if (Number.isFinite(value)) latest = Math.max(latest, value);

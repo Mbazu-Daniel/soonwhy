@@ -101,10 +101,6 @@ export function aiBaseUrlInvalid(detail: string): BadRequestException {
   });
 }
 
-/**
- * A quota rejection is a billing fact about the organisation, not a provider
- * failure, so it gets its own code rather than reaching the client as a 500.
- */
 export function aiQuotaExceeded(metric: string): HttpException {
   return new HttpException(
     {

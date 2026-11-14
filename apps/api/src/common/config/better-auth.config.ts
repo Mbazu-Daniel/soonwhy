@@ -149,9 +149,6 @@ export const auth = betterAuth({
       verify: ({ hash, password }) => argon2.verify(hash, password),
     },
   },
-  // emailVerification: {
-  //   sendOnSignUp: true,
-  // },
   user: {
     deleteUser: {
       enabled: true,
@@ -181,10 +178,6 @@ export const auth = betterAuth({
   plugins: [
     bearer(),
     organization({
-      // This deployment has no email verification flow wired up, so waiting
-      // for one would deadlock credential sign-ups from accepting invites.
-      // Recipient matching (invited email must match the session email) still
-      // applies, and invitation ids are unguessable.
       requireEmailVerificationOnInvitation: false,
       schema: {
         organization: {

@@ -35,7 +35,6 @@ describe("Integration: Intelligence Workflow", () => {
   });
 
   afterAll(async () => {
-    // TelemetryIngestionService cleanup handled by onModuleDestroy
   });
 
   it("should initialize telemetry ingestion service", () => {
@@ -87,7 +86,7 @@ describe("Integration: Intelligence Workflow", () => {
       "latencyThresholdPercent",
       20,
     );
-    expect(value).toBe(20); // Should return default after deletion
+    expect(value).toBe(20);
   });
 
   it("should clear cache for organization", () => {

@@ -8,7 +8,7 @@ import { Button } from '~/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '~/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '~/components/ui/avatar';
 import { signOut, clearSession, getSessionToken } from '~/lib/auth-client';
-import { AlertTriangle, BarChart3, Bell, BrainCircuit, Activity, Check, ChevronDown, ChevronRight, Database, GitBranch, KeyRound, LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Plus, ScrollText, Send, Server, Settings, Sparkles } from 'lucide-react';
+import { AlertTriangle, BarChart3, Bell, BrainCircuit, Check, ChevronDown, ChevronRight, Database, GitBranch, KeyRound, LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Plus, ScrollText, Send, Server, Settings, Sparkles } from 'lucide-react';
 import { api } from '~/lib/api';
 import { WorkspaceMenu } from '~/components/workspace-switcher';
 import { CreateProjectDialog } from '~/components/create-project-dialog';
@@ -33,14 +33,11 @@ const navGroups = [
     { to: 'api-keys', label: 'API Keys', icon: KeyRound },
     { to: 'ai', label: 'AI Providers', icon: Sparkles, orgLevel: true },
     { to: 'settings', label: 'Settings', icon: Settings, orgLevel: true },
-    // { to: 'self-observability', label: 'AI & Ops', icon: Activity, orgLevel: true, adminOnly: true },
   ] },
 ] as const;
 
 const adminItems = [
   { to: '/admin/dlq', label: 'DLQ', icon: Database },
-  { to: '/admin/ingest-health', label: 'Ingest Health', icon: Activity },
-  { to: '/admin/system-health', label: 'System Health', icon: Server },
 ] as const;
 
 interface SessionUser { user: { id: string; email: string; name: string | null; image?: string | null }; }

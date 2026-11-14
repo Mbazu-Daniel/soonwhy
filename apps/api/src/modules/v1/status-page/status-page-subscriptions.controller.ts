@@ -11,7 +11,6 @@ export class StatusPageSubscriptionsController {
     @Param("projectId") projectId: string,
     @Body() body: { email: string; slackWebhookUrl?: string },
   ) {
-    // Check if already subscribed
     const existing = await this.repository.getByEmail(orgId, projectId, body.email);
     if (existing) {
       return { message: "Already subscribed", subscription: existing };

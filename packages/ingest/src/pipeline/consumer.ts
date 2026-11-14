@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, BadRequestException } from "@nestjs/common";
+import { Injectable, Logger, OnModuleInit, BadRequestException } from "@nestjs/common";
 import {
   QuickwitService,
   QUICKWIT_INDEX_CONFIG,
@@ -38,6 +38,8 @@ export class IngestConsumer implements OnModuleInit {
     private readonly dlqRepository: DlqRepository,
     private readonly receipts: IngestReceiptRepository,
   ) {}
+
+  private readonly logger = new Logger(IngestConsumer.name);
 
   async onModuleInit() {
     const signals: IngestSignal[] = ["trace", "log", "metric"];
@@ -91,17 +93,26 @@ export class IngestConsumer implements OnModuleInit {
       await this.insertBatch(signal, items);
       msg.ack();
     } catch (error) {
+      const failure =
+        error instanceof Error ? error : new Error(String(error));
       this.metrics.recordError();
       if (error instanceof ReceiptBusyError) {
+        this.logger.debug(
+          `Ingest ${signal} deferred (delivery ${deliveryCount}): ${failure.message}`,
+        );
         msg.nak(CLAIM_LEASE_MS);
         return;
       }
+      this.logger.error(
+        `Ingest ${signal} failed (delivery ${deliveryCount}): ${failure.message}`,
+        failure.stack,
+      );
       if (deliveryCount >= MAX_DELIVERY_ATTEMPTS) {
         await this.sendToDlq(
           signal,
           msg.data,
           deliveryCount,
-          error instanceof Error ? error.message : "insert failed",
+          failure.message,
         );
         msg.ack();
         this.metrics.recordDlq(1);
@@ -144,26 +155,38 @@ export class IngestConsumer implements OnModuleInit {
       payload = { raw: rawData, malformed: true };
     }
 
-    await this.dlqRepository.createDlqEntry({
-      signal,
-      deliveryCount,
-      reason,
-      payload,
-      organizationId: orgId,
-      projectId: projectId,
-    });
+    try {
+      await this.dlqRepository.createDlqEntry({
+        signal,
+        deliveryCount,
+        reason,
+        payload,
+        organizationId: orgId,
+        projectId: projectId,
+      });
 
-    const envelope = {
-      signal,
-      deliveryCount,
-      reason,
-      failedAt: new Date().toISOString(),
-      payload: rawData,
-    };
-    await this.nats.publish(
-      `ingest.dlq.${signal}`,
-      new TextEncoder().encode(JSON.stringify(envelope)),
-    );
+      const envelope = {
+        signal,
+        deliveryCount,
+        reason,
+        failedAt: new Date().toISOString(),
+        payload: rawData,
+      };
+      await this.nats.publish(
+        `ingest.dlq.${signal}`,
+        new TextEncoder().encode(JSON.stringify(envelope)),
+      );
+      this.logger.warn(
+        `DLQ ${signal} after ${deliveryCount} deliveries: ${reason}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to dead-letter ${signal} message (delivery ${deliveryCount}, reason "${reason}"): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
   }
 
   private organizationFrom(payload: IngestPayload): OrganizationContext {
@@ -274,29 +297,52 @@ export class IngestConsumer implements OnModuleInit {
     rows: MappedRow[],
   ) {
     const eventIds = rows.map((r) => r.eventId);
-    const { claimed, committed: committedIds, busy } = await this.receipts.claimBatch(
-      eventIds,
-      organizationId,
-      projectId,
-      signal,
-    );
-
-    if (busy.size > 0) {
-      throw new ReceiptBusyError([...busy][0] ?? "batch busy");
+    let claim: Awaited<ReturnType<typeof this.receipts.claimBatch>>;
+    try {
+      claim = await this.receipts.claimBatch(
+        eventIds,
+        organizationId,
+        projectId,
+        signal,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Receipt claim for "${indexId}" failed: ${message}`);
     }
 
-    const toInsert = rows.filter((r) => claimed.has(r.eventId));
-    this.metrics.recordDuplicate(committedIds.size);
+    if (claim.busy.size > 0) {
+      throw new ReceiptBusyError([...claim.busy][0] ?? "batch busy");
+    }
+
+    const toInsert = rows.filter((r) => claim.claimed.has(r.eventId));
+    this.metrics.recordDuplicate(claim.committed.size);
 
     if (toInsert.length === 0) return;
 
+    let step: "quickwit" | "commit" = "quickwit";
     try {
       await this.quickwit.ingest(indexId, toInsert);
+      step = "commit";
       await this.receipts.commitBatch(toInsert.map((r) => r.eventId));
       this.metrics.recordInserted(toInsert.length);
     } catch (error) {
-      await this.receipts.releaseBatch(toInsert.map((r) => r.eventId));
-      throw error;
+      try {
+        await this.receipts.releaseBatch(toInsert.map((r) => r.eventId));
+      } catch (releaseError) {
+        this.logger.error(
+          `Failed to release ${toInsert.length} receipt claims for "${indexId}": ${
+            releaseError instanceof Error
+              ? releaseError.message
+              : String(releaseError)
+          }`,
+        );
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        step === "quickwit"
+          ? `Quickwit write to "${indexId}" failed: ${message}`
+          : `Receipt commit for "${indexId}" failed: ${message}`,
+      );
     }
   }
 
@@ -306,25 +352,48 @@ export class IngestConsumer implements OnModuleInit {
     indexId: string,
     row: MappedRow,
   ) {
-    const claimed = await this.receipts.claim(
-      row.eventId,
-      organization.organizationId,
-      organization.projectId,
-      signal,
-    );
+    let claimed: Awaited<ReturnType<typeof this.receipts.claim>>;
+    try {
+      claimed = await this.receipts.claim(
+        row.eventId,
+        organization.organizationId,
+        organization.projectId,
+        signal,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Receipt claim for "${indexId}" failed: ${message}`);
+    }
     if (claimed === "committed") {
       this.metrics.recordDuplicate(1);
       return;
     }
     if (claimed === "busy") throw new ReceiptBusyError(row.eventId);
 
+    let step: "quickwit" | "commit" = "quickwit";
     try {
       await this.quickwit.ingest(indexId, [row]);
+      step = "commit";
       await this.receipts.commit(row.eventId);
       this.metrics.recordInserted(1);
     } catch (error) {
-      await this.receipts.release(row.eventId);
-      throw error;
+      try {
+        await this.receipts.release(row.eventId);
+      } catch (releaseError) {
+        this.logger.error(
+          `Failed to release receipt claim for "${indexId}": ${
+            releaseError instanceof Error
+              ? releaseError.message
+              : String(releaseError)
+          }`,
+        );
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        step === "quickwit"
+          ? `Quickwit write to "${indexId}" failed: ${message}`
+          : `Receipt commit for "${indexId}" failed: ${message}`,
+      );
     }
   }
 }

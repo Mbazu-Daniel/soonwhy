@@ -79,7 +79,6 @@ export class SlosService {
     let goodEvents = 0;
     let totalEvents = 0;
 
-    // Fetch metrics based on measurement type
     if (slo.measurementType === "availability" || slo.measurementType === "error_rate") {
       try {
         const buckets = await this.metricsRepository.queryMetrics({
@@ -93,7 +92,7 @@ export class SlosService {
 
         for (const bucket of buckets) {
           const total = (bucket._2xx || 0) + (bucket._3xx || 0) + (bucket._4xx || 0) + (bucket._5xx || 0);
-          const good = (bucket._2xx || 0) + (bucket._3xx || 0); // 2xx and 3xx are "good"
+          const good = (bucket._2xx || 0) + (bucket._3xx || 0);
           
           totalEvents += total;
           goodEvents += good;
@@ -112,11 +111,10 @@ export class SlosService {
           service: slo.serviceName,
         });
 
-        const threshold = slo.goodEventsThreshold || 1000; // Default 1s
+        const threshold = slo.goodEventsThreshold || 1000;
 
         for (const bucket of buckets) {
           totalEvents += bucket.count || 0;
-          // Count requests below threshold as "good"
           if (bucket.p50 && bucket.p50 < threshold) {
             goodEvents += bucket.count || 0;
           }
@@ -141,14 +139,12 @@ export class SlosService {
     const errorBudgetRemaining = compliance - (100 - slo.targetPercentage);
     const errorBudgetBurnRate = this.calculateBurnRate(errorBudgetRemaining, slo.targetPercentage);
 
-    // Update SLO with current compliance
     await this.repository.updateSloCompliance(sloId, orgId, projectId, {
       currentCompliance: compliance,
       errorBudgetRemaining,
       errorBudgetBurnRate,
     });
 
-    // Create snapshot
     await this.repository.createComplianceSnapshot({
       sloId,
       compliance,

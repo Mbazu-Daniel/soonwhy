@@ -140,11 +140,6 @@ export class RcaApiService {
     }
   }
 
-  /**
-   * Only platform-funded calls draw on the organisation's allowance; a key the
-   * organisation paid for itself cannot exhaust it. The check reserves nothing,
-   * so it can let a request through that the post-spend metering then rejects.
-   */
   private async reserveQuota(
     orgId: string,
     credential: LlmCredentialSummary,
@@ -166,12 +161,6 @@ export class RcaApiService {
     }
   }
 
-  /**
-   * Spend is recorded once the analysis exists. Unwinding it would hide what the
-   * organisation was actually charged for, so an overrun after the fact is
-   * reported on the response instead of discarding the result, and a billing
-   * outage never fails a request whose tokens are already spent.
-   */
   private async meter(
     orgId: string,
     projectId: string,

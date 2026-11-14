@@ -127,7 +127,6 @@ function IncidentsPage() {
         </Button>
       </div>
 
-      {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-4">
         <Card className="shadow-none">
           <CardContent className="p-6">
@@ -155,7 +154,6 @@ function IncidentsPage() {
         </Card>
       </div>
 
-      {/* Incidents List */}
       <Card className="shadow-none">
         <CardContent className="p-6">
           {incidents.data && incidents.data.length > 0 ? (

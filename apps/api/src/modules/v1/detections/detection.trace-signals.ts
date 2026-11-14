@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { QUICKWIT_INDEXES } from '@soonwhy/shared';
 import { db } from '../../../common/db';
 import { deployments, services } from '../../../common/db/schema';
-import { quickwitTenantQuery } from '../../../common/quickwit/query';
+import { quickwitSource, quickwitTenantQuery } from '../../../common/quickwit/query';
 import { evaluateTraceSpan } from './detection.engine';
 import { correlateFindings, type DeploymentInfo } from './detection.correlation';
 import type { DetectionStageContext, DetectionStageDeps } from './detection.stage';
@@ -196,7 +196,7 @@ async function cachedTraceSpanCandidates(
   }>();
 
   for (const hit of result.hits) {
-    const source = hit._source;
+    const source = quickwitSource<TraceSource>(hit);
     if (!source?.traceId) continue;
 
     const trace = traces.get(source.traceId) ?? {

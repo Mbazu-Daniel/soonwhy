@@ -17,7 +17,6 @@ export const statusPageSubscriptions = pgTable('status_page_subscriptions', {
   index('status_page_subscriptions_email_idx').on(table.email),
 ]);
 
-// Privacy-preserving status page analytics (Outray pattern)
 export const statusPageAnalytics = pgTable('status_page_analytics', {
   id: text('id').primaryKey().$defaultFn(() => generateId()),
   orgId: text('org_id').references(() => organizations.id, { onDelete: 'cascade' }).notNull(),

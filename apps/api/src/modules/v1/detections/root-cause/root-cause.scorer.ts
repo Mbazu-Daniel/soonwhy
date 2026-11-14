@@ -1,8 +1,3 @@
-/**
- * Root Cause Scorer
- *
- * Calculates weighted scores from signal values.
- */
 
 import type { ScoringWeights, SignalScores } from "./root-cause.types";
 

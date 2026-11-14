@@ -70,15 +70,13 @@ export function verifyRecommendation(
 ): RecommendationVerification {
   const changePercent = ((afterValue - beforeValue) / beforeValue) * 100;
 
-  // Parse improvement string to extract expected percentage
   const improvementMatch = expectedSignal.improvement.match(/(\d+)/);
   const expectedImprovement = improvementMatch?.[1] ? parseInt(improvementMatch[1], 10) : 0;
 
-  // Determine if the direction matches (improvement should reduce values for latency/error, increase for throughput)
   const isImprovementDirection = expectedSignal.improvement.toLowerCase().includes("reduction");
   const actualImprovement = isImprovementDirection ? -changePercent : changePercent;
 
-  const achieved = actualImprovement >= expectedImprovement * 0.5; // Consider achieved if at least 50% of expected
+  const achieved = actualImprovement >= expectedImprovement * 0.5;
   const matchPercent = Math.min((actualImprovement / expectedImprovement) * 100, 100);
 
   return {
@@ -146,7 +144,6 @@ function determineMetricStatus(
   const expectation = expectations?.find((e) => e.metric === metric);
 
   if (!expectation) {
-    // No expectation, warn on significant changes
     if (Math.abs(changePercent) > 30) return "warn";
     return "pass";
   }

@@ -21,7 +21,6 @@ export function generateRecommendations(findings: Finding[]): Recommendation[] {
     recommendations.push(...categoryRecommendations);
   }
 
-  // Deduplicate by title
   const uniqueRecommendations = new Map<string, Recommendation>();
   for (const rec of recommendations) {
     const key = `${rec.category}:${rec.title}`;

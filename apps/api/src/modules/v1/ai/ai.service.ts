@@ -24,12 +24,10 @@ import {
   ChatResponse,
 } from "./intelligence/chat-intelligence";
 
-/** A key is the organisation's money and its secrets, so members only read. */
 export function canManageAi(userRole: string): boolean {
   return ["owner", "admin"].includes(userRole);
 }
 
-/** A short key is fully masked: its last characters are the whole secret. */
 function maskKey(apiKey: string): string {
   return apiKey.length <= 8 ? "••••••••" : `••••${apiKey.slice(-4)}`;
 }
@@ -52,9 +50,7 @@ export type AiConnectionCode =
   | "no_http_endpoint";
 
 export interface AiConnectionResult {
-  /** The provider accepted the credential. */
   readonly ok: boolean;
-  /** Whether an HTTP endpoint existed to ask in the first place. */
   readonly checkable: boolean;
   readonly code: AiConnectionCode;
   readonly detail: string;
@@ -114,7 +110,6 @@ export class AiService {
     };
   }
 
-  /** Every provider this server can actually reach, with how much each offers. */
   async providers(orgId: string, canManage: boolean) {
     const active = await this.resolver.describe(orgId);
     return {
@@ -135,7 +130,6 @@ export class AiService {
         "This server cannot store credentials: no encryption key is configured.",
       );
 
-    // A blank key keeps the stored one, so rotating the model costs no key re-entry.
     const requestedKey = input.apiKey?.trim() ?? "";
     const model = input.model.trim();
     if (!model) throw aiCredentialInvalid("A model is required.");
@@ -145,7 +139,6 @@ export class AiService {
       throw aiProviderUnsupported(providerId);
     }
 
-    // The UI keeps no base URL of its own; omitted means "keep what is stored".
     const baseUrlInput =
       input.baseUrl === undefined
         ? undefined
@@ -202,10 +195,6 @@ export class AiService {
     return { configured: false };
   }
 
-  /**
-   * A draft body tests a key before it is paid for; an empty body tests the
-   * stored one, which is also how a rotated server encryption key gets caught.
-   */
   async testConnection(orgId: string, draft?: Partial<AiCredentialDraft>) {
     const target = draft
       ? await this.resolveDraft(draft)
@@ -245,7 +234,6 @@ export class AiService {
     return result(code, ok, true, describeCheck(code, target));
   }
 
-  /** What the organisation spent this month, split by who paid for the tokens. */
   async usage(orgId: string) {
     const end = new Date();
     const start = new Date(
@@ -275,11 +263,6 @@ export class AiService {
     };
   }
 
-  /**
-   * A base URL is fetched by this process with the organisation's secret in the
-   * header, so it has to be the provider it claims to be: an arbitrary host
-   * would turn the settings screen into a request forwarder.
-   */
   private assertBaseUrlAllowed(providerId: string, rawUrl: string): void {
     let url: URL;
     try {
@@ -364,24 +347,20 @@ export class AiService {
     return warnings;
   }
 
-  /** Handle a chat/triage message from the user */
   async chat(
     message: string,
     orgId: string,
     messageId?: string,
   ): Promise<ChatResponse> {
-    // First try the LLM-based response if credentials are configured
     const credentials = await this.repository.get(orgId);
 
     if (credentials) {
       return await this.chatWithLLM(message, orgId);
     }
 
-    // Fall back to keyword-based intent classification
     return await handleChatMessage(message, orgId, undefined, undefined);
   }
 
-  /** Use LLM to generate a contextual response */
   private async chatWithLLM(
     message: string,
     orgId: string,
@@ -392,40 +371,31 @@ export class AiService {
     }
     const { provider, model, baseUrl } = credentials;
 
-    // Fetch real data to provide contextual responses
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    // Build LLM prompt with context
     const prompt = this.buildLLMPrompt(message, orgId);
 
     try {
-      // Call the LLM provider
       const response = await this.callLLM(provider, model, baseUrl, prompt);
 
-      // Parse and structure the response
       return await this.parseLLMResponse(response, message);
     } catch (error) {
       this.logger.error(
         `LLM chat error: ${error instanceof Error ? maskPii(error.message) : String(error)}`,
         error instanceof Error && error.stack ? maskPii(error.stack) : undefined,
       );
-      // Fall back to keyword-based classification on error
       return await handleChatMessage(message, orgId, undefined, undefined);
     }
   }
 
-  /** Build an LLM prompt with relevant system context */
   private buildLLMPrompt(message: string, orgId: string): string {
     let prompt = `You are an AI assistant for system monitoring and observability. `;
 
-    // Add organization context
     prompt += `The user is from organization ${orgId}. `;
 
-    // Add detection context
     prompt += `The user may be asking about: detection anomalies, SLO burn rates, change-point analysis, or system health. `;
 
-    // Add the user's message
     prompt += `User message: "${message}". `;
 
     prompt += `Please provide a helpful, context-aware response. If the user is asking about detection anomalies, reference recent detections. If asking about SLO burn rates, reference error budgets. `;
@@ -435,21 +405,17 @@ export class AiService {
     return prompt;
   }
 
-  /** Call the LLM provider API */
   private callLLM(
     provider: string,
     model: string,
     baseUrl: string | null,
     prompt: string,
   ): Promise<string> {
-    // In a real implementation, we'd decrypt the API key and make the API call
-    // For now, return a placeholder response indicating LLM would be called
     return Promise.resolve(
       "LLM response would be generated here based on the prompt",
     );
   }
 
-  /** Parse and structure the LLM response into ChatResponse */
   private async parseLLMResponse(
     llmResponse: string,
     originalMessage: string,
@@ -457,14 +423,12 @@ export class AiService {
     const now = new Date();
     const lowerMessage = originalMessage.toLowerCase();
 
-    // Determine suggestions based on response content
     let suggestions: string[] = [
       "Ask about detection anomalies",
       "Check SLO burn rate",
       "Look for change points",
     ];
 
-    // Check for common response patterns and add relevant suggestions
     if (/anomaly/i.test(llmResponse) || /detect/i.test(llmResponse)) {
       suggestions = [
         "Show me current detections",
@@ -501,10 +465,8 @@ export class AiService {
       ];
     }
 
-    // Generate content - use LLM response or fallback to keyword-based
     let content = llmResponse;
 
-    // If the LLM response is a placeholder, fall back to keyword-based
     if (content.includes("LLM response would be generated")) {
       const fallback = await handleChatMessage(originalMessage, "");
       content = fallback.content;

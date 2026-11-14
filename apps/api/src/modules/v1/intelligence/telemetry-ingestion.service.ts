@@ -15,7 +15,6 @@ export class TelemetryIngestionService implements OnModuleInit, OnModuleDestroy 
       this.connection = await connect({ servers, reconnect: true });
       this.logger.log(`Connected to NATS at ${servers}`);
 
-      // Subscribe to telemetry subjects
       const sub = this.connection.subscribe("telemetry.>", {
         queue: "intelligence-processor",
       });
@@ -46,6 +45,5 @@ export class TelemetryIngestionService implements OnModuleInit, OnModuleDestroy 
 
   private async processTelemetry(data: unknown): Promise<void> {
     this.logger.debug(`Processing telemetry: ${JSON.stringify(data)}`);
-    // TODO: Route to appropriate intelligence modules
   }
 }

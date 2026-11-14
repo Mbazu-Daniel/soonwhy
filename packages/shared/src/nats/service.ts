@@ -1,5 +1,3 @@
-// fallow-ignore-file unused-class-member
-// Public shared-library API consumed by ingest and API workspaces.
 import {
   Injectable,
   OnModuleInit,
@@ -20,10 +18,6 @@ import {
 import { requiredEnvInProduction } from "../env";
 
 export type NatsServiceOptions = {
-  /**
-   * When false, connection failures are logged and the service stays inert
-   * instead of crashing the host process. Defaults to true.
-   */
   required?: boolean;
 };
 

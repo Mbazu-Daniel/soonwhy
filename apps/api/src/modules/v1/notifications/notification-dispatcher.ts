@@ -219,7 +219,6 @@ export class NotificationDispatcher {
     const MAX_ATTEMPTS = 10;
     const LEASE_MS = 5 * 60_000;
 
-    // Claim pending notifications that are due for retry
     const toRetry = await db
       .select()
       .from(notificationLogs)
@@ -231,7 +230,6 @@ export class NotificationDispatcher {
             isNull(notificationLogs.nextAttemptAt),
             lt(notificationLogs.nextAttemptAt, now),
           ),
-          // Not leased or lease expired
           or(
             isNull(notificationLogs.leasedUntil),
             lt(notificationLogs.leasedUntil, now),
@@ -268,7 +266,6 @@ export class NotificationDispatcher {
       const attempts = parseInt(log.attempts ?? "0", 10);
 
       if (attempts >= MAX_ATTEMPTS) {
-        // Mark as permanently failed (terminal transition)
         await db
           .update(notificationLogs)
           .set({
@@ -289,7 +286,6 @@ export class NotificationDispatcher {
         continue;
       }
 
-      // Get channel info
       const [channel] = await db
         .select()
         .from(notificationChannels)
@@ -317,7 +313,6 @@ export class NotificationDispatcher {
         continue;
       }
 
-      // Retry sending
       const payload =
         log.payload && typeof log.payload === "object" && !Array.isArray(log.payload)
           ? (log.payload as Record<string, unknown>)
@@ -393,13 +388,11 @@ export class NotificationDispatcher {
   private async logDeliveryWithOutbox(log: DeliveryLog & { idempotencyKey?: string }): Promise<void> {
     const { orgId, projectId, channel, incidentId, alertRuleId, result, payload, idempotencyKey } = log;
 
-    // Explicit delivery state: sent (terminal success) or failed (retryable unless later marked permanent)
     const status = result.ok ? "sent" : "failed";
     const attempts = "1";
     const lastAttemptAt = new Date();
     const nextAttemptAt = result.ok ? null : new Date(Date.now() + Math.pow(2, 1) * 60000);
 
-    // Generate idempotency key if not provided
     const finalIdempotencyKey = idempotencyKey ?? `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
     await db.insert(notificationLogs).values({

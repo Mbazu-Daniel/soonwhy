@@ -25,12 +25,6 @@ const DEFAULT_CONFIG: PerformanceDetectionConfig = {
   eventLoopCriticalMs: 100,
 };
 
-/**
- * Detect queue latency regression.
- *
- * Compares observed queue processing latency against baseline and flags
- * when message queue operations become slower (Kafka, NATS, BullMQ, etc.).
- */
 export function detectQueueLatency(
   observedMs: number,
   baseline: PerformanceBaseline | undefined,
@@ -78,12 +72,6 @@ export function detectQueueLatency(
   );
 }
 
-/**
- * Detect cache latency regression.
- *
- * Compares observed cache operation latency against baseline and flags
- * when cache operations (Redis, Memcached) become slower.
- */
 export function detectCacheLatency(
   observedMs: number,
   baseline: PerformanceBaseline | undefined,
@@ -110,9 +98,8 @@ export function detectCacheLatency(
   const change = (observedMs - baseline.value) / baseline.value;
   const absoluteIncrease = observedMs - baseline.value;
 
-  // Cache operations should be very fast (< 10ms), so use stricter thresholds
   const cacheWarningAbsoluteMs = 10;
-  const cacheWarningRelative = 1; // 100% increase
+  const cacheWarningRelative = 1;
 
   if (
     absoluteIncrease < cacheWarningAbsoluteMs ||

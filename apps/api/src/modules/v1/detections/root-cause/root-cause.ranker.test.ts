@@ -1,8 +1,3 @@
-/**
- * Root Cause Ranker Tests
- *
- * Tests for the deterministic root cause scoring engine
- */
 
 import { describe, it, expect } from 'vitest';
 import { RootCauseRanker } from './root-cause.ranker';

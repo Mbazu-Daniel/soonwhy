@@ -50,7 +50,7 @@ function clearPersistedStep() {
 
 function canTransition(from: Step, to: Step, ctx: { hasOrg: boolean; hasProject: boolean; hasApiKey: boolean }) {
   if (from === to) return true;
-  if (to < from) return true; // allow back navigation
+  if (to < from) return true;
   if (to === 1) return ctx.hasOrg || from === 0;
   if (to === 2) return ctx.hasOrg && ctx.hasProject;
   if (to === 3) return ctx.hasOrg && ctx.hasProject && (ctx.hasApiKey || from === 2);

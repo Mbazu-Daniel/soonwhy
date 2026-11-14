@@ -26,7 +26,7 @@ export interface ErrorAggregation {
   affectedDeployments: string[];
   firstSeenAt: string;
   lastSeenAt: string;
-  errorRate: number; // errors per minute
+  errorRate: number;
 }
 
 export interface ErrorCorrelation {
@@ -35,7 +35,7 @@ export interface ErrorCorrelation {
   correlatedDeployments: string[];
   correlatedDependencies: string[];
   correlatedInfrastructure: string[];
-  correlationStrength: number; // 0-1
+  correlationStrength: number;
 }
 
 export interface ErrorRegression {

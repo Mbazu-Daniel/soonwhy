@@ -268,7 +268,6 @@ function distribution(values: number[]): {
   };
 }
 
-
 function percentileTraceContribution(
   samples: DatabaseBatchTrace[],
   quantile: number,

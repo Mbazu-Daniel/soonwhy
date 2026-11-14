@@ -8,7 +8,6 @@ import { recordAiInvocationMetrics } from "../../../common/telemetry/otel-metric
 export type RcaInvocationStatus = "succeeded" | "failed";
 
 export interface RcaInvocationRecord {
-  /** Caller-supplied so the same id links the invocation log and its usage events. */
   id: string;
   orgId: string;
   projectId: string;
@@ -75,7 +74,6 @@ export class DatabaseRcaGovernanceSink implements RcaGovernanceSink {
       .values({ ...input, status: "failed" });
   }
 }
-
 
 export function toRcaUsageFields(usage: RcaUsage) {
   return {

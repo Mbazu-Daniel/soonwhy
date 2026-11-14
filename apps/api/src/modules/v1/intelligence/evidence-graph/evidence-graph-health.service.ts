@@ -19,11 +19,9 @@ export class EvidenceGraphHealthService {
     const dbStart = Date.now();
     let dbHealthy = false;
     try {
-      // Try a simple query - check if we can at least query
       await this.repository.getNode("health-check", "health-check");
       dbHealthy = true;
     } catch (error) {
-      // Expected to fail on missing node, but proves DB connection works
       const errStr = String(error);
       dbHealthy = errStr.includes("not found") || !errStr.includes("connect");
     }
@@ -42,7 +40,7 @@ export class EvidenceGraphHealthService {
     return {
       database: { healthy: dbHealthy, latency: dbLatency },
       cache: { healthy: cacheHealthy, latency: cacheLatency },
-      graph: { nodes: 0, edges: 0 }, // Would need graph service injection
+      graph: { nodes: 0, edges: 0 },
     };
   }
 }

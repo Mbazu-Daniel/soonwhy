@@ -1,10 +1,5 @@
 import { z } from "zod/v4";
 
-/**
- * Shared OpenAPI components. Reused across paths; `.meta({ id })` registers
- * each as a reusable `#/components/schemas/<id>` entry.
- */
-
 export const problemDetailSchema = z
   .looseObject({
     type: z.string(),

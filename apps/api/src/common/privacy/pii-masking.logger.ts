@@ -1,5 +1,3 @@
-// fallow-ignore-file unused-class-member
-// NestJS consumes this LoggerService through app.useLogger() at runtime; fallow cannot see the interface dispatch.
 import { ConsoleLogger, Injectable, LoggerService } from "@nestjs/common";
 import { maskPiiValue } from "./pii-masker";
 

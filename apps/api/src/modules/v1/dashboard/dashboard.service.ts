@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
-import { quickwitTenantQuery } from "../../../common/quickwit/query";
+import { quickwitSource, quickwitTenantQuery } from "../../../common/quickwit/query";
 import { CacheService } from "../../../common/cache/cache.service";
 import { CACHE_TTL_SECONDS } from "../../../common/cache/cache.constants";
 
@@ -66,16 +66,30 @@ export class DashboardService {
         startTimestamp: range.startTimestamp,
         endTimestamp: range.endTimestamp,
         maxHits,
-        sortBy: ["-timestamp"],
+        sortBy: ["timestamp:desc"],
       },
     );
-    return result.hits.map((h) => h._source ?? {}).filter(Boolean);
+    return result.hits
+      .map((h) => quickwitSource<Record<string, unknown>>(h) ?? {})
+      .filter(Boolean);
   }
 
   private static num(v: unknown): number | null {
     if (v == null) return null;
     const n = Number(v);
     return Number.isFinite(n) ? n : null;
+  }
+
+  private static attrOf(
+    log: Record<string, unknown>,
+    key: string,
+  ): unknown {
+    if (key in log) return log[key];
+    const attrs = log.attributes;
+    if (attrs && typeof attrs === 'object') {
+      return (attrs as Record<string, unknown>)[key];
+    }
+    return undefined;
   }
 
   private static percentile(sorted: number[], p: number): number {
@@ -103,9 +117,9 @@ export class DashboardService {
     const durations: number[] = [];
     let errors = 0;
     for (const log of logs) {
-      const d = DashboardService.num(log["http.duration_ms"]);
+      const d = DashboardService.num(DashboardService.attrOf(log, "http.duration_ms"));
       if (d != null) durations.push(d);
-      const s = DashboardService.num(log["http.status_code"]);
+      const s = DashboardService.num(DashboardService.attrOf(log, "http.status_code"));
       if (s != null && s >= 400) errors += 1;
     }
     durations.sort((a, b) => a - b);
@@ -136,9 +150,9 @@ export class DashboardService {
     const statusBuckets: Record<string, number> = {};
     let errors = 0;
     for (const log of logs) {
-      const d = DashboardService.num(log["http.duration_ms"]);
+      const d = DashboardService.num(DashboardService.attrOf(log, "http.duration_ms"));
       if (d != null) durations.push(d);
-      const s = DashboardService.num(log["http.status_code"]);
+      const s = DashboardService.num(DashboardService.attrOf(log, "http.status_code"));
       if (s != null) {
         const key = Math.floor(s / 100) + "xx";
         statusBuckets[key] = (statusBuckets[key] ?? 0) + 1;
@@ -189,7 +203,7 @@ export class DashboardService {
         const bucket = buckets[bucketIndex];
         if (bucket) {
           bucket.count += 1;
-          const s = DashboardService.num(log["http.status_code"]);
+          const s = DashboardService.num(DashboardService.attrOf(log, "http.status_code"));
           if (s != null && s >= 400) bucket.errors += 1;
         }
       }
@@ -214,9 +228,9 @@ export class DashboardService {
         startTimestamp: Math.floor((Date.now() - 86_400_000) / 1000),
         endTimestamp: Math.floor(Date.now() / 1000),
         maxHits: 1,
-        sortBy: ["-timestamp"],
+        sortBy: ["timestamp:desc"],
       });
-      const latest = result.hits[0]?._source;
+      const latest = quickwitSource<Record<string, any>>(result.hits[0]);
       const lastTelemetryAt = latest?.timestamp ?? null;
       const lastTelemetryAgeMs = lastTelemetryAt
         ? Math.max(0, Date.now() - new Date(lastTelemetryAt).getTime())
@@ -256,9 +270,9 @@ export class DashboardService {
         const service = String(log.service ?? "unknown");
         const entry = byService.get(service) ?? { count: 0, errors: 0, durations: [] };
         entry.count += 1;
-        const s = DashboardService.num(log["http.status_code"]);
+        const s = DashboardService.num(DashboardService.attrOf(log, "http.status_code"));
         if (s != null && s >= 400) entry.errors += 1;
-        const d = DashboardService.num(log["http.duration_ms"]);
+        const d = DashboardService.num(DashboardService.attrOf(log, "http.duration_ms"));
         if (d != null) entry.durations.push(d);
         byService.set(service, entry);
       }
@@ -303,7 +317,7 @@ export class DashboardService {
         startTimestamp: range.startTimestamp,
         endTimestamp: range.endTimestamp,
         maxHits: Math.min(limit * 20, 1000),
-        sortBy: ["-timestamp"],
+        sortBy: ["timestamp:desc"],
       });
       const groups = new Map<
         string,
@@ -317,7 +331,7 @@ export class DashboardService {
         }
       >();
       for (const hit of result.hits) {
-        const source = hit._source as Record<string, unknown> | undefined;
+        const source = quickwitSource<Record<string, unknown>>(hit);
         if (!source) continue;
         const fingerprint = String(
           source.fingerprint ?? source.traceId ?? source.message ?? "",

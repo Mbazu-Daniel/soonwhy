@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
-import { quickwitTenantQuery } from "../../../common/quickwit/query";
+import { quickwitSource, quickwitTenantQuery } from "../../../common/quickwit/query";
 import { ServicesRepository } from "./services.repository";
 import { CreateServiceInput } from "./dto";
 
@@ -32,7 +32,10 @@ export class ServicesService {
       },
     );
     return buildServiceMap(
-      result.hits.flatMap((hit) => (hit._source ? [hit._source] : [])),
+      result.hits.flatMap((hit) => {
+        const source = quickwitSource<TraceSpanSource>(hit);
+        return source ? [source] : [];
+      }),
     );
   }
 

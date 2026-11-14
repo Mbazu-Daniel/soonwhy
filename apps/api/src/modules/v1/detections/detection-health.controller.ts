@@ -8,11 +8,6 @@ import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
 import { OwnerOrAdminGuard } from "../../../common/guards/owner-or-admin.guard";
 import { getDetectionHealth } from "./detection-health";
 
-/**
- * Operator view of the detection engine itself, scoped to the organisation:
- * how many runs happened in the last 24h, how many failed, how long they
- * took and how many findings were produced.
- */
 @ApiTags("detections")
 @ApiBearerAuth()
 @UseGuards(TenantGuard, OwnerOrAdminGuard)

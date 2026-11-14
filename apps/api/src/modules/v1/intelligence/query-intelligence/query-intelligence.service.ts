@@ -19,9 +19,6 @@ import type {
 
 @Injectable()
 export class QueryIntelligenceService {
-  /**
-   * Normalize a SQL query and generate its fingerprint.
-   */
   normalizeQuery(
     query: string,
     databaseSystem?: string,
@@ -33,16 +30,10 @@ export class QueryIntelligenceService {
     return normalizeQuery(query, databaseSystem);
   }
 
-  /**
-   * Aggregate query executions into summary statistics.
-   */
   aggregateExecutions(executions: QueryExecution[]): QueryAggregation {
     return aggregateQueryExecutions(executions);
   }
 
-  /**
-   * Detect query regression by comparing current vs baseline.
-   */
   detectRegression(
     current: QueryAggregation,
     baseline: QueryAggregation,
@@ -61,9 +52,6 @@ export class QueryIntelligenceService {
     );
   }
 
-  /**
-   * Detect N+1 query patterns from trace data.
-   */
   detectNPlusOne(
     executionsByTrace: Map<string, QueryExecution[]>,
     threshold?: number,
@@ -71,9 +59,6 @@ export class QueryIntelligenceService {
     return detectNPlusOnePattern(executionsByTrace, threshold);
   }
 
-  /**
-   * Detect large scan patterns (inefficient queries).
-   */
   detectLargeScan(
     aggregation: QueryAggregation,
     scanEfficiencyThreshold?: number,

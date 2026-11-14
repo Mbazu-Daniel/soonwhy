@@ -59,7 +59,7 @@ function SystemHealthPage() {
   const isHealthy = 
     (ingestStats.data?.dlq ?? 0) === 0 && 
     (ingestStats.data?.errors ?? 0) === 0 &&
-    (pipelineLag.data?.quickwitIndexingLagMs ?? 0) < 60000; // Less than 1 minute lag
+    (pipelineLag.data?.quickwitIndexingLagMs ?? 0) < 60000;
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 pb-10">
@@ -103,7 +103,6 @@ function SystemHealthPage() {
         </div>
       </div>
 
-      {/* Overall Status */}
       <Card className="shadow-none">
         <CardContent className="p-6">
           <h3 className="text-sm font-medium mb-4">Platform Status</h3>
@@ -142,7 +141,6 @@ function SystemHealthPage() {
         </CardContent>
       </Card>
 
-      {/* Ingestion Metrics */}
       <Card className="shadow-none">
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
@@ -172,7 +170,6 @@ function SystemHealthPage() {
         </CardContent>
       </Card>
 
-      {/* Error Metrics */}
       <Card className="shadow-none">
         <CardContent className="p-6">
           <h3 className="text-sm font-medium mb-4">Error Tracking</h3>
@@ -205,7 +202,6 @@ function SystemHealthPage() {
         </CardContent>
       </Card>
 
-      {/* Pipeline Lag */}
       <Card className="shadow-none">
         <CardContent className="p-6">
           <h3 className="text-sm font-medium mb-4">Pipeline Lag</h3>
@@ -226,7 +222,6 @@ function SystemHealthPage() {
         </CardContent>
       </Card>
 
-      {/* DLQ Status */}
       <Card className="shadow-none">
         <CardContent className="p-6">
           <h3 className="text-sm font-medium mb-4">Dead Letter Queue</h3>
@@ -251,7 +246,6 @@ function SystemHealthPage() {
         </CardContent>
       </Card>
 
-      {/* Quick Actions */}
       <Card className="shadow-none">
         <CardContent className="p-6">
           <h3 className="text-sm font-medium mb-4">Quick Actions</h3>

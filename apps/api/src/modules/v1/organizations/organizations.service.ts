@@ -80,8 +80,6 @@ export class OrganizationsService {
           slug: "default",
         });
       } catch {
-        // Best-effort: organization creation should not fail if the
-        // default project already exists or cannot be created.
       }
     }
 
@@ -265,7 +263,6 @@ export class OrganizationsService {
 
     const headers = authorization ? { authorization } : undefined;
 
-    // Promote the target first so the organization never ends up with zero owners.
     await authApi.updateMemberRole({
       headers,
       body: { memberId: target.id, role: "owner", organizationId },

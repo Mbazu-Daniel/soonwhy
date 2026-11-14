@@ -25,7 +25,6 @@ const AiCredentialSchema = z
   .object({
     provider: z.string().min(1).max(50),
     model: z.string().min(1).max(100),
-    // Blank keeps the stored key.
     apiKey: z.string().max(5000).optional(),
     baseUrl: z.string().url().optional().nullable(),
   })
@@ -99,7 +98,6 @@ export class AiController {
     return this.service.remove(org.orgId);
   }
 
-  /** An empty body verifies the stored credential; a full one tests a draft key. */
   @Post("config/test") test(
     @CurrentOrg() org: OrgContext,
     @Body({ schema: ConnectionTestSchema })
@@ -156,7 +154,6 @@ export class AiController {
     return this.service.chat(message, org.orgId);
   }
 
-  /** A key is the organisation's money and its secrets, so members only read. */
   private assertManager(org: OrgContext): void {
     if (!canManageAi(org.userRole)) {
       throw new ForbiddenException(

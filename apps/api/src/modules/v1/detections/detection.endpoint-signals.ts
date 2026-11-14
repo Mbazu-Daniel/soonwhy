@@ -1,6 +1,6 @@
 import { QUICKWIT_INDEXES } from '@soonwhy/shared';
 import type { DetectionEvidence } from '../../../common/db/schema/findings';
-import { quickwitTenantQuery, quickwitTerm, sanitizeRequestUrl } from '../../../common/quickwit/query';
+import { quickwitSource, quickwitTenantQuery, quickwitTerm, sanitizeRequestUrl } from '../../../common/quickwit/query';
 import { evaluateEndpointPerformance } from './performance-detection';
 import { WINDOW_MS, detectorThresholds, type DetectionStageContext, type DetectionStageDeps } from './detection.stage';
 import type { DetectionFinding, EndpointAggregations, RequestSource } from './detection.types';
@@ -264,7 +264,7 @@ async function endpointPerformanceEvidence(
   });
 
   return (result.hits ?? []).flatMap((hit) => {
-    const source = hit._source;
+    const source = quickwitSource<RequestSource>(hit);
     if (!source?.traceId) return [];
 
     return [{

@@ -25,13 +25,6 @@ const DEFAULT_CONFIG: PerformanceDetectionConfig = {
   eventLoopCriticalMs: 100,
 };
 
-/**
- * Detect slow requests.
- *
- * Flags individual requests that exceed configured latency thresholds,
- * regardless of baseline comparison. This catches slow requests even when
- * the endpoint's overall performance is acceptable.
- */
 export function detectSlowRequests(
   requests: Array<{
     method: string;
@@ -79,12 +72,6 @@ export function detectSlowRequests(
   return findings;
 }
 
-/**
- * Detect throughput degradation.
- *
- * Compares observed request rate against baseline and flags when
- * throughput drops below warning or critical thresholds.
- */
 export function detectThroughputDegradation(
   observedRequests: number,
   baseline: { value: number; samples: number } | undefined,

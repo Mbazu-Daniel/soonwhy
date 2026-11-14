@@ -21,9 +21,6 @@ const CONFIG = {
   requestsWarning: 1000,
 };
 
-/**
- * Detect CPU spike.
- */
 export function detectCpuSpike(
   metrics: RuntimeMetrics,
 ): RuntimeFinding | undefined {
@@ -59,9 +56,6 @@ export function detectCpuSpike(
   };
 }
 
-/**
- * Detect memory growth/pressure.
- */
 export function detectMemoryPressure(
   metrics: RuntimeMetrics,
 ): RuntimeFinding | undefined {
@@ -99,9 +93,6 @@ export function detectMemoryPressure(
   };
 }
 
-/**
- * Detect event-loop lag.
- */
 export function detectEventLoopLag(
   metrics: RuntimeMetrics,
 ): RuntimeFinding | undefined {
@@ -137,13 +128,9 @@ export function detectEventLoopLag(
   };
 }
 
-/**
- * Detect GC pressure.
- */
 export function detectGcPressure(
   metrics: RuntimeMetrics,
 ): RuntimeFinding | undefined {
-  // Check for long GC pauses
   if (metrics.gcPauseTimeMs >= CONFIG.gcPauseWarning) {
     const severity =
       metrics.gcPauseTimeMs >= CONFIG.gcPauseCritical ? "critical" : "warning";
@@ -175,7 +162,6 @@ export function detectGcPressure(
     };
   }
 
-  // Check for high GC frequency
   if (metrics.gcFrequency >= CONFIG.gcFrequencyWarning) {
     const identity = createTelemetryIdentity({
       domain: "runtime",
@@ -207,9 +193,6 @@ export function detectGcPressure(
   return undefined;
 }
 
-/**
- * Detect resource exhaustion (handles, requests).
- */
 export function detectResourceExhaustion(
   metrics: RuntimeMetrics,
 ): RuntimeFinding | undefined {
@@ -271,5 +254,5 @@ export function detectResourceExhaustion(
     });
   }
 
-  return findings[0]; // Return first finding for simplicity
+  return findings[0];
 }

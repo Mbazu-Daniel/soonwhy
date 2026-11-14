@@ -102,12 +102,10 @@ export class IngestReceiptRepository {
       if (row.status === "committed") {
         committed.add(row.eventId);
       } else {
-        // Pending but not claimed by us now => actively leased/busy.
         busy.add(row.eventId);
       }
     }
 
-    // Defensive: if a row disappeared between claim and read, treat as busy.
     for (const eventId of unresolved) {
       if (!committed.has(eventId) && !busy.has(eventId)) {
         busy.add(eventId);
