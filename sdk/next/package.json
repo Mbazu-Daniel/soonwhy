@@ -1,6 +1,6 @@
 {
   "name": "@soonwhy/next",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Next.js integration for Soonwhy telemetry. Instruments App Router route handlers and Next.js server errors.",
   "type": "module",
   "main": "./dist/index.js",

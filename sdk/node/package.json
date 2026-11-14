@@ -1,6 +1,6 @@
 {
   "name": "@soonwhy/node",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Node.js SDK for Soonwhy telemetry ingestion with OpenTelemetry auto-instrumentation.",
   "type": "module",
   "main": "./dist/node/index.js",
@@ -28,6 +28,7 @@
     "node": ">=20.19"
   },
   "dependencies": {
+    "@opentelemetry/api": "~1.9.1",
     "@opentelemetry/auto-instrumentations-node": "^0.80.0",
     "@opentelemetry/exporter-trace-otlp-proto": "^0.222.0",
     "@opentelemetry/resources": "^2.11.0",

@@ -10,6 +10,8 @@ export interface ResolvedNodeSdkOptions
   timeoutMs: number;
   sampling: NodeSampling;
   registerShutdownHandlers: boolean;
+  captureUncaughtErrors: boolean;
+  enableSourceMaps: boolean;
   instrumentations: Required<NonNullable<NodeSdkOptions["instrumentations"]>>;
   batchSize: number;
   flushIntervalMs: number;
@@ -79,6 +81,8 @@ export function resolveNodeOptions(
     timeoutMs,
     sampling,
     registerShutdownHandlers: options.registerShutdownHandlers ?? true,
+    captureUncaughtErrors: options.captureUncaughtErrors ?? true,
+    enableSourceMaps: options.enableSourceMaps ?? false,
     instrumentations: {
       http: options.instrumentations?.http ?? true,
       express: options.instrumentations?.express ?? true,

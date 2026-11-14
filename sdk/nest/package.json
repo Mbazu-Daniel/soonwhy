@@ -1,6 +1,6 @@
 {
   "name": "@soonwhy/nest",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "NestJS integration for Soonwhy telemetry. Auto-starts the Node SDK and flushes on shutdown.",
   "type": "module",
   "main": "./dist/index.js",

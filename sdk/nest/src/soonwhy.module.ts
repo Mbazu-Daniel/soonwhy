@@ -6,7 +6,9 @@ import {
   type OnApplicationShutdown,
 } from "@nestjs/common";
 import { initNode, type NodeSdk, type NodeSdkOptions } from "@soonwhy/node";
+import { APP_FILTER } from "@nestjs/core";
 import { SOONWHY_SDK } from "./constants.js";
+import { SoonwhyExceptionFilter } from "./soonwhy.exception-filter.js";
 
 @Module({})
 export class SoonwhyModule implements OnApplicationShutdown {
@@ -16,6 +18,7 @@ export class SoonwhyModule implements OnApplicationShutdown {
       global: true,
       providers: [
         { provide: SOONWHY_SDK, useFactory: () => initNode(options) },
+        { provide: APP_FILTER, useClass: SoonwhyExceptionFilter },
       ],
       exports: [SOONWHY_SDK],
     };

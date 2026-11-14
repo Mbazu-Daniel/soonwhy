@@ -3,6 +3,9 @@ import { createOpenTelemetryRuntime } from "./instrumentation.js";
 import { TelemetryBatcher } from "../batcher.js";
 import { HttpTelemetryTransport } from "../transport.js";
 import { ShutdownHandlers } from "../shutdown.js";
+import { UncaughtErrorHandlers } from "./uncaught.js";
+import { withActiveTrace } from "./trace-context.js";
+import { enableSourceMaps } from "./source-maps.js";
 import type { ResolvedOptions } from "../config.js";
 import type { NodeSdk, NodeSdkOptions } from "./types.js";
 import type { FlushResult, SdkStats } from "../types.js";
@@ -21,9 +24,11 @@ export class Client implements NodeSdk {
   private closed = false;
   private shuttingDown: Promise<void> | undefined;
   private readonly shutdownHandlers = new ShutdownHandlers();
+  private readonly uncaughtHandlers = new UncaughtErrorHandlers();
 
   constructor(options: NodeSdkOptions) {
     this.options = resolveNodeOptions(options);
+    if (this.options.enableSourceMaps) enableSourceMaps();
     const runtime = createOpenTelemetryRuntime(this.options);
     this.sdk = runtime.sdk;
     this.exporter = runtime.exporter;
@@ -49,6 +54,7 @@ export class Client implements NodeSdk {
         : undefined;
 
     if (this.options.registerShutdownHandlers) this.registerShutdownHandlers();
+    if (this.options.captureUncaughtErrors) this.registerUncaughtHandlers();
   }
 
   start(): void {
@@ -58,11 +64,11 @@ export class Client implements NodeSdk {
   }
 
   captureLog(input: Parameters<NodeSdk["captureLog"]>[0]): void {
-    if (!this.closed) this.batcher.captureLog(input);
+    if (!this.closed) this.batcher.captureLog(withActiveTrace(input));
   }
 
   captureError(input: Parameters<NodeSdk["captureError"]>[0]): void {
-    if (!this.closed) this.batcher.captureError(input);
+    if (!this.closed) this.batcher.captureError(withActiveTrace(input));
   }
 
   captureMetric(input: Parameters<NodeSdk["captureMetric"]>[0]): void {
@@ -78,6 +84,7 @@ export class Client implements NodeSdk {
     this.closed = true;
     if (this.interval) clearInterval(this.interval);
     this.removeShutdownHandlers();
+    this.uncaughtHandlers.removeAll();
 
     const result = await this.batcher.flush();
 
@@ -115,6 +122,13 @@ export class Client implements NodeSdk {
       void this.shutdown().finally(() => {
         process.exit(0);
       });
+    });
+  }
+
+  private registerUncaughtHandlers(): void {
+    this.uncaughtHandlers.register((error, kind) => {
+      this.captureError({ error, attributes: { "exception.mechanism": kind } });
+      void this.flush();
     });
   }
 

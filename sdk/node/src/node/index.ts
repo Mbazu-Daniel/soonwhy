@@ -14,3 +14,10 @@ export type {
   FlushResult,
   SdkStats,
 } from "../types.js";
+export { expressErrorHandler, fastifyErrorHook } from "./http-errors.js";
+export type {
+  ErrorCaptureTarget,
+  ExpressErrorHandler,
+  FastifyErrorHook,
+} from "./http-errors.types.js";
+export { enableSourceMaps } from "./source-maps.js";

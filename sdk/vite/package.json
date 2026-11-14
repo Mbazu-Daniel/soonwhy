@@ -1,6 +1,6 @@
 {
   "name": "@soonwhy/vite",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Vite plugin for Soonwhy telemetry. Starts the Node SDK with the dev server and flushes on close.",
   "type": "module",
   "main": "./dist/index.js",
