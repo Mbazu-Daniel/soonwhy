@@ -66,6 +66,7 @@ services:
 
   ingest:
     image: ghcr.io/mbazu-daniel/soonwhy-ingest:${IMAGE_TAG:-dev}
+    pull_policy: always
     env_file:
       - .env
     environment:
@@ -83,6 +84,7 @@ services:
 
   api:
     image: ghcr.io/mbazu-daniel/soonwhy-api:${IMAGE_TAG:-dev}
+    pull_policy: always
     env_file:
       - .env
     environment:
