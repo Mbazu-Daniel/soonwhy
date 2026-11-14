@@ -14,6 +14,7 @@ import {
 } from "../../../common/decorators/current-org.decorator";
 import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
 import { QueryCatalogService } from "./query-catalog.service";
+import { SavedQueryDto, type SavedQueryInput } from "./dto/saved-query.dto";
 
 @Controller("projects/:projectId/query-catalog")
 @UseGuards(TenantGuard)
@@ -55,12 +56,7 @@ export class QueryCatalogController {
   async saveQuery(
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
-    @Body() body: {
-      name: string;
-      description?: string;
-      dataType: string;
-      query: Record<string, unknown>;
-    },
+    @Body({ schema: SavedQueryDto }) body: SavedQueryInput,
   ) {
     return this.service.saveQuery(
       org.orgId,
@@ -81,9 +77,22 @@ export class QueryCatalogController {
     return this.service.getSavedQueries(org.orgId, projectId, dataType);
   }
 
+  @Get("saved-queries/:id")
+  async getSavedQuery(
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+    @Param("id") id: string,
+  ) {
+    return this.service.getSavedQuery(org.orgId, projectId, id);
+  }
+
   @Delete("saved-queries/:id")
-  async deleteSavedQuery(@Param("id") id: string) {
-    await this.service.deleteSavedQuery(id);
+  async deleteSavedQuery(
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+    @Param("id") id: string,
+  ) {
+    await this.service.deleteSavedQuery(org.orgId, projectId, id);
     return { message: "Deleted" };
   }
 }

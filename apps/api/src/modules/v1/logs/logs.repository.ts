@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { quickwitTerm } from "../../../common/quickwit/query";
 import { TelemetryQueryService } from "../../../common/telemetry";
 import { clampHistogramStart, histogramInterval } from "./histogram-interval";
-import { FIELD_SAMPLE_SIZE } from "./logs.constants";
+import { CONTEXT_WINDOW_MS, FIELD_SAMPLE_SIZE, SAME_SECOND_LINES } from "./logs.constants";
 
 export interface RawLogRow {
   id: string;
@@ -109,5 +109,43 @@ export class LogsRepository {
       value: String(bucket.key),
       count: bucket.doc_count,
     }));
+  }
+
+  async queryContext(params: {
+    orgId: string;
+    projectId: string;
+    field: string;
+    value: string;
+    anchorMs: number;
+    lines: number;
+  }) {
+    const filters = [quickwitTerm(params.field, params.value)];
+    const scope = { orgId: params.orgId, projectId: params.projectId, filters };
+    const secondStart = Math.floor(params.anchorMs / 1000) * 1000;
+    const toIso = (ms: number) => new Date(ms).toISOString();
+    const [earlier, sameSecond, later] = await Promise.all([
+      this.telemetryQuery.search<RawLogRow>(
+        "logs",
+        { ...scope, from: toIso(secondStart - CONTEXT_WINDOW_MS), to: toIso(secondStart) },
+        { maxHits: params.lines, sortBy: ["timestamp:desc"] },
+      ),
+      this.telemetryQuery.search<RawLogRow>(
+        "logs",
+        { ...scope, from: toIso(secondStart), to: toIso(secondStart + 1000) },
+        { maxHits: SAME_SECOND_LINES, sortBy: ["timestamp"] },
+      ),
+      this.telemetryQuery.search<RawLogRow>(
+        "logs",
+        { ...scope, from: toIso(secondStart + 1000), to: toIso(secondStart + CONTEXT_WINDOW_MS) },
+        { maxHits: params.lines, sortBy: ["timestamp"] },
+      ),
+    ]);
+    const rowsOf = (hits: unknown[]) =>
+      hits.flatMap((hit) => {
+        const source = (hit as { _source?: RawLogRow })._source ?? (hit as RawLogRow);
+        return source ? [source] : [];
+      });
+    const same = rowsOf(sameSecond.hits);
+    return { before: [...rowsOf(earlier.hits), ...same], after: [...same, ...rowsOf(later.hits)] };
   }
 }
