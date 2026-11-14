@@ -12,6 +12,7 @@ import { MetricCard, StatusCodeBreakdown } from '~/components/metric-cards';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { EmptyProject } from '~/components/empty-state';
 import { metricsInterval } from '~/lib/metrics-interval';
+import { useRequestSummary } from '~/lib/use-request-summary';
 import { statusShare, type RequestSummary } from '~/lib/request-summary';
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/metrics')({
@@ -58,12 +59,7 @@ function MetricsPage() {
     enabled: !!projectId,
   });
 
-  const { data: summary, isLoading: summaryLoading } = useQuery({
-    queryKey: ['metrics-summary', projectId, range, service],
-    queryFn: () => api.get<RequestSummary>(`/metrics/summary?projectId=${encodeURIComponent(projectId!)}&from=${from}&to=${to}${serviceParam}`),
-    enabled: !!projectId,
-    refetchInterval: 15_000,
-  });
+  const { data: summary, isLoading: summaryLoading } = useRequestSummary(projectId, range, service);
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['metrics', projectId, range, service],

@@ -22,6 +22,7 @@ import {
 import { api } from '~/lib/api';
 import { dashboardOverview, type DashboardOverview } from '~/data/dashboard-overview';
 import { axisLabels } from '~/lib/chart-axis';
+import { SUMMARY_REFRESH_MS, useRequestSummary } from '~/lib/use-request-summary';
 import { useProject } from '~/lib/project-context';
 import { useState } from 'react';
 import { TimeRangeControl, telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
@@ -87,7 +88,9 @@ function DashboardOverviewPage() {
     queryFn: () => api.get<DashboardOverview>(`/projects/${projectId}/dashboard/overview?${new URLSearchParams(rangeParams).toString()}`),
     enabled: !!projectId,
     placeholderData: keepPreviousData,
+    refetchInterval: SUMMARY_REFRESH_MS,
   });
+  const { data: summary } = useRequestSummary(projectId, range);
 
   const { data: services } = useQuery({
     queryKey: ['services', projectId],
@@ -107,7 +110,19 @@ function DashboardOverviewPage() {
     return <OverviewSkeleton />;
   }
 
-  const live = data && data.totalRequests > 0 ? data : dashboardOverview;
+  const base = data ?? dashboardOverview;
+  const live: DashboardOverview = summary
+    ? {
+        ...base,
+        totalRequests: summary.totalRequests,
+        errorRate: summary.errorRate,
+        errorCount: summary.errorCount,
+        avgLatency: summary.avgLatency,
+        latencyP50: summary.latencyP50,
+        latencyP95: summary.latencyP95,
+        latencyP99: summary.latencyP99,
+      }
+    : base;
   const overviewStale = isLoading === false && !data && !!telemetryStatus?.lastTelemetryAt;
   const serviceCount = services?.length;
   const ownedCount = services?.filter((service) => service.owner || service.team).length;
