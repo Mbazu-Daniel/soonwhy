@@ -3,7 +3,6 @@ export type DetectorConfigInput = {
   thresholds?: Record<string, number>;
 };
 
-
 export type DetectorDefinition = {
   key: string;
   label: string;
@@ -236,7 +235,6 @@ export const DEFAULT_FEATURE_FLAGS: Record<string, boolean> = Object.fromEntries
     definition.defaultValue,
   ]),
 );
-
 
 export const DETECTOR_THRESHOLD_KEYS: Record<string, readonly string[]> =
   Object.fromEntries(

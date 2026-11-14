@@ -57,8 +57,6 @@ export class DetectorSettingsService {
       );
       return snapshot;
     } catch (error) {
-      // Detectors should remain usable during a settings outage. Admin clients
-      // will see defaults instead of a hard failure, and updates still fail loudly.
       this.logger.warn(
         `Detector settings unavailable for organisation ${organizationId}; using defaults`,
         error instanceof Error ? error.stack : String(error),

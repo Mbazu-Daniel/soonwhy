@@ -54,7 +54,6 @@ export interface DetectionHealthSummary {
     running: number;
     queued: number;
     findings: number;
-    /** completed / (completed + failed), null when no run has finished. */
     successRate: number | null;
     avgDurationMs: number | null;
     maxDurationMs: number | null;
@@ -63,7 +62,6 @@ export interface DetectionHealthSummary {
   recent: DetectionRunHealthEntry[];
 }
 
-/** Pure: fold raw run rows into the operator-facing summary. */
 export function summarizeDetectionRuns(
   rows: DetectionRunHealthRow[],
   now: Date,
@@ -110,7 +108,6 @@ export function summarizeDetectionRuns(
   };
 }
 
-/** Aggregate this organisation's detection runs over the last 24h. */
 export async function getDetectionHealth(
   orgId: string,
   now = new Date(),

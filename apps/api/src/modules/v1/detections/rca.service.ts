@@ -24,7 +24,6 @@ export class RcaService {
     this.ranker = new RootCauseRanker();
   }
 
-  /** Which credential would serve this org, known before any tokens are spent. */
   describe(orgId: string): Promise<LlmCredentialSummary> {
     return this.resolver.describe(orgId);
   }
@@ -37,7 +36,6 @@ export class RcaService {
     const { provider, credential } =
       await this.resolver.resolveForRca(orgId);
 
-    // Generate root cause ranking
     const rankingResult = this.ranker.rank({
       findings: [
         { ...bottleneck.latency, timestamp: bottleneck.latency.window.start.toISOString() },

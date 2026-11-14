@@ -1,8 +1,3 @@
-/**
- * Root Cause Signal Extraction
- *
- * Extracts the four scoring signals from candidates and evidence.
- */
 
 import type {
   RootCauseCandidate,
@@ -10,9 +5,6 @@ import type {
   SignalEvidence,
 } from './root-cause.types';
 
-/**
- * Trace span data for critical-path analysis
- */
 interface TraceSpan {
   spanId: string;
   serviceName: string;
@@ -23,9 +15,6 @@ interface TraceSpan {
   isCriticalPath?: boolean;
 }
 
-/**
- * Error data for propagation analysis
- */
 interface ErrorData {
   timestamp: string;
   serviceName: string;
@@ -33,13 +22,7 @@ interface ErrorData {
   errorMessage: string;
 }
 
-/**
- * Extract all four signals for a candidate
- */
 export class SignalExtractor {
-  /**
-   * Extract all signals for a candidate
-   */
   extractSignals(
     candidate: RootCauseCandidate,
     traces: TraceSpan[][],
@@ -80,33 +63,24 @@ export class SignalExtractor {
     return { scores, evidence };
   }
 
-  /**
-   * Signal A: Anomaly severity
-   * Measures deviation from baseline
-   */
   private extractAnomalySeverity(candidate: RootCauseCandidate): {
     score: number;
     evidence: SignalEvidence['anomalySeverity'];
   } {
     const { anomalyData } = candidate;
 
-    // Start with baseline score
     let score = 0;
 
-    // Percentage deviation contributes to score
     if (anomalyData.percentageDeviation !== undefined) {
-      // Sigmoid-like normalization: 50% deviation = 0.5 score
       score = Math.min(1, Math.max(0, anomalyData.percentageDeviation / 100));
     }
 
-    // Severity label adds weight
     if (anomalyData.severity === 'critical') {
       score = Math.min(1, score + 0.3);
     } else if (anomalyData.severity === 'warning') {
       score = Math.min(1, score + 0.1);
     }
 
-    // Statistical anomaly score (if available)
     if (anomalyData.anomalyScore !== undefined) {
       score = Math.max(score, anomalyData.anomalyScore);
     }
@@ -121,10 +95,6 @@ export class SignalExtractor {
     };
   }
 
-  /**
-   * Signal G: Graph position and propagation
-   * Analyzes dependency graph and temporal relationships
-   */
   private extractGraphPosition(candidate: RootCauseCandidate): {
     score: number;
     evidence: SignalEvidence['graphPosition'];
@@ -132,16 +102,12 @@ export class SignalExtractor {
     const { dependencies } = candidate;
     let score = 0;
 
-    // Upstream dependencies get higher score (likely root cause)
     if (dependencies.upstream.length === 0 && dependencies.downstream.length > 0) {
-      // Leaf service with dependents - could be the cause
       score += 0.3;
     } else if (dependencies.upstream.length > 0 && dependencies.downstream.length === 0) {
-      // Service with no dependents - unlikely to be root cause
       score -= 0.2;
     }
 
-    // Services with many downstream dependents get higher score
     const affectedDependents = dependencies.downstream.length;
     if (affectedDependents > 0) {
       score += Math.min(0.5, affectedDependents * 0.1);
@@ -153,15 +119,11 @@ export class SignalExtractor {
         isUpstream: dependencies.upstream.length > 0,
         isDownstream: dependencies.downstream.length > 0,
         affectedDependents,
-        consistentPattern: false, // Would need trace data to determine
+        consistentPattern: false,
       },
     };
   }
 
-  /**
-   * Signal C: Critical-path contribution
-   * Analyzes how much the candidate contributes to slow traces
-   */
   private extractCriticalPathContribution(
     candidate: RootCauseCandidate,
     allTraces: TraceSpan[][],
@@ -175,7 +137,6 @@ export class SignalExtractor {
     let traceCount = 0;
 
     for (const trace of allTraces) {
-      // Find spans matching this candidate
       const matchingSpans = trace.filter(
         (span) =>
           span.serviceName === candidate.serviceName &&
@@ -186,32 +147,25 @@ export class SignalExtractor {
 
       traceCount++;
 
-      // Calculate total trace duration
       const traceDuration = Math.max(...trace.map((s) => s.duration));
       totalDuration += traceDuration;
 
-      // Sum durations of matching spans
       const totalSpanDuration = matchingSpans.reduce((sum, span) => sum + span.duration, 0);
 
-      // Calculate contribution percentage
       const contributionPercent = totalSpanDuration / traceDuration;
 
-      // Check if on critical path
       const isOnCriticalPath = matchingSpans.some((span) => span.isCriticalPath);
       if (isOnCriticalPath) criticalPathCount++;
 
-      // High contribution increases score
       if (contributionPercent > 0.2) {
         score += contributionPercent;
       }
     }
 
-    // Normalize by number of traces
     if (traceCount > 0) {
       score = score / traceCount;
     }
 
-    // Bonus for being on critical path frequently
     if (traceCount > 0 && criticalPathCount / traceCount > 0.5) {
       score += 0.2;
     }
@@ -219,7 +173,7 @@ export class SignalExtractor {
     return {
       score: Math.min(1, Math.max(0, score)),
       evidence: {
-        spanDuration: undefined, // Could be calculated from spans
+        spanDuration: undefined,
         traceDuration: traceCount > 0 ? totalDuration / traceCount : undefined,
         contributionPercent: undefined,
         isOnCriticalPath: criticalPathCount > 0,
@@ -228,10 +182,6 @@ export class SignalExtractor {
     };
   }
 
-  /**
-   * Signal E: Error-propagation evidence
-   * Determines which candidate reports earliest errors
-   */
   private extractErrorPropagation(
     candidate: RootCauseCandidate,
     errors: ErrorData[],
@@ -257,24 +207,21 @@ export class SignalExtractor {
 
     let score = 0;
 
-    // Error frequency contributes to score
     const errorFrequency = candidateErrors.length;
     score = Math.min(1, errorFrequency * 0.1);
 
-    // Check if this candidate has the earliest error
     const allTimestamps = errors.map((e) => new Date(e.timestamp).getTime());
     const candidateTimestamps = candidateErrors.map((e) => new Date(e.timestamp).getTime());
     const earliestTimestamp = Math.min(...allTimestamps);
     const candidateEarliest = Math.min(...candidateTimestamps);
 
     if (candidateEarliest === earliestTimestamp) {
-      score += 0.3; // Bonus for earliest error
+      score += 0.3;
     }
 
-    // Check if errors are consistent across traces
     const affectedTraces = new Set(candidateErrors.map((e) => e.traceId)).size;
     if (affectedTraces > 1) {
-      score += 0.2; // Bonus for consistency
+      score += 0.2;
     }
 
     return {
@@ -283,7 +230,7 @@ export class SignalExtractor {
         firstErrorTimestamp: candidateErrors[0]?.timestamp,
         errorFrequency,
         affectedTraces,
-        downstreamErrorsFollow: false, // Would need dependency analysis
+        downstreamErrorsFollow: false,
         consistentPattern: affectedTraces > 1,
       },
     };

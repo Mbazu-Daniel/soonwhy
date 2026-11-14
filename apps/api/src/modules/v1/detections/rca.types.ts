@@ -58,7 +58,6 @@ export interface RcaProviderResult {
   promptVersion: string;
 }
 
-/** Which credential served a run. Deliberately carries no key material. */
 export interface RcaCredentialInfo {
   readonly source: LlmCredentialSource;
   readonly providerId: string;

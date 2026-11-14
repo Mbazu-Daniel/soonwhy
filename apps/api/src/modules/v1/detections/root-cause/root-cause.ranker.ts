@@ -1,9 +1,3 @@
-/**
- * Root Cause Ranker
- *
- * Main ranking engine that generates candidates, extracts signals,
- * calculates scores, and returns ranked results.
- */
 
 import { CandidateGenerator } from './root-cause.candidates';
 import { SignalExtractor } from './root-cause.signals';
@@ -16,9 +10,6 @@ import type {
 } from './root-cause.types';
 import { DEFAULT_WEIGHTS } from './root-cause.types';
 
-/**
- * Trace span data
- */
 interface TraceSpan {
   spanId: string;
   serviceName: string;
@@ -29,9 +20,6 @@ interface TraceSpan {
   isCriticalPath?: boolean;
 }
 
-/**
- * Error data
- */
 interface ErrorData {
   timestamp: string;
   serviceName: string;
@@ -39,9 +27,6 @@ interface ErrorData {
   errorMessage: string;
 }
 
-/**
- * Input data for ranking
- */
 export interface RankingInput {
   findings: Array<{
     id: string;
@@ -62,9 +47,6 @@ export interface RankingInput {
   weights?: ScoringWeights;
 }
 
-/**
- * Root Cause Ranker
- */
 export class RootCauseRanker {
   private candidateGenerator: CandidateGenerator;
   private signalExtractor: SignalExtractor;
@@ -74,9 +56,6 @@ export class RootCauseRanker {
     this.signalExtractor = new SignalExtractor();
   }
 
-  /**
-   * Rank root cause candidates from findings and evidence
-   */
   rank(input: RankingInput): RankingResult {
     const {
       findings,
@@ -86,19 +65,15 @@ export class RootCauseRanker {
       weights = DEFAULT_WEIGHTS,
     } = input;
 
-    // Phase 1: Generate candidates
     let candidates = this.candidateGenerator.generateFromFindings(findings);
 
-    // Enrich with dependency information
     candidates = this.candidateGenerator.enrichWithDependencies(candidates, dependencyMap);
 
-    // Phase 2: Extract signals and calculate scores
     const rankedCandidates: RankedCandidate[] = [];
 
     for (const candidate of candidates) {
       const { scores, evidence } = this.signalExtractor.extractSignals(candidate, traces, errors);
 
-      // Calculate score (handles missing signals)
       const { score, availableSignals } = calculateScoreWithMissingSignals(scores, weights);
 
       rankedCandidates.push({
@@ -111,17 +86,14 @@ export class RootCauseRanker {
       });
     }
 
-    // Phase 3: Sort by score descending
     rankedCandidates.sort((a, b) => b.score - a.score);
 
-    // Calculate overall evidence coverage
     const totalSignals = rankedCandidates.reduce(
       (sum, candidate) => sum + candidate.evidenceCoverage,
       0,
     );
     const overallEvidenceCoverage = totalSignals / (rankedCandidates.length * 4);
 
-    // Collect limitations
     const limitations = this.collectLimitations(rankedCandidates);
 
     return {
@@ -132,9 +104,6 @@ export class RootCauseRanker {
     };
   }
 
-  /**
-   * Calculate limitations for a candidate based on missing signals
-   */
   private calculateLimitations(
     scores: Partial<SignalScores>,
     availableSignals: string[],
@@ -157,9 +126,6 @@ export class RootCauseRanker {
     return limitations;
   }
 
-  /**
-   * Collect all limitations across candidates
-   */
   private collectLimitations(candidates: RankedCandidate[]): string[] {
     const uniqueLimitations = new Set<string>();
 

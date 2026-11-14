@@ -141,8 +141,6 @@ export function effectiveFeatureFlags(
   return Object.fromEntries(
     FEATURE_FLAG_DEFINITIONS.map((definition) => {
       const global = environmentFlag(definition.key, env);
-      // An explicit environment disable is an operator override and cannot be
-      // re-enabled from the UI. Otherwise organisation preferences win over defaults.
       const value = global === false
         ? false
         : overrides[definition.key] ?? global ?? DEFAULT_FEATURE_FLAGS[definition.key];
