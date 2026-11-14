@@ -39,9 +39,8 @@ export function initOtelTracing(): NodeSDK | null {
 
   sdk.start();
 
-  process.on("SIGTERM", async () => {
+  process.once("SIGTERM", async () => {
     await sdk.shutdown();
-    process.exit(0);
   });
 
   return sdk;

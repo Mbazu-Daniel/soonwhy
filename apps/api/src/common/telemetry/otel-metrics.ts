@@ -211,10 +211,9 @@ export function initOtelMetrics(): MeterProvider | null {
   metrics.setGlobalMeterProvider(provider);
   ensureInstruments();
 
-  process.on("SIGTERM", async () => {
+  process.once("SIGTERM", async () => {
     await otlpReader?.shutdown();
     await prometheusExporter?.shutdown();
-    process.exit(0);
   });
 
   return provider;
