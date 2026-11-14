@@ -7,6 +7,8 @@ import { Button } from '~/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import { SetupCodeBlock, SetupCopyButton, SetupFlow, SetupStep } from '~/components/setup-flow';
 import { api } from '~/lib/api';
+import { INGEST_BASE } from '~/lib/config';
+import { FRAMEWORKS, type FrameworkId } from '~/lib/integration-guides';
 import { useProject } from '~/lib/project-context';
 import type { ApiKey } from '~/lib/types';
 
@@ -18,102 +20,10 @@ interface TelemetryStatus {
 
 const STEPS = [
   { id: '01', title: 'Ingest token' },
-  { id: '02', title: 'Install SDK' },
+  { id: '02', title: 'Install' },
   { id: '03', title: 'Configure' },
 ] as const;
 
-const FRAMEWORKS = [
-  {
-    id: 'node',
-    label: 'Node.js',
-    fileName: 'instrumentation.ts',
-    install: 'pnpm add @soonwhy/node',
-    code: (key?: string) => `import { initNode } from '@soonwhy/node';
-
-const sdk = initNode({
-  apiKey: process.env.SOONWHY_API_KEY ?? '${key ?? 'YOUR_PROJECT_API_KEY'}',
-  endpoint: process.env.SOONWHY_ENDPOINT,
-  serviceName: 'my-service',
-  environment: 'production',
-});`,
-    note: 'Start instrumentation before importing your application. The first telemetry appears once real traffic flows.',
-  },
-  {
-    id: 'bun',
-    label: 'Bun',
-    fileName: 'instrumentation.ts',
-    install: 'bun add @soonwhy/node',
-    code: (key?: string) => `import { initNode } from '@soonwhy/node';
-
-const sdk = initNode({
-  apiKey: process.env.SOONWHY_API_KEY ?? '${key ?? 'YOUR_PROJECT_API_KEY'}',
-  endpoint: process.env.SOONWHY_ENDPOINT,
-  serviceName: 'my-service',
-  environment: 'production',
-});`,
-    note: 'Start instrumentation before importing your application. The first telemetry appears once real traffic flows.',
-  },
-  {
-    id: 'nestjs',
-    label: 'NestJS',
-    fileName: 'app.module.ts',
-    install: 'pnpm add @soonwhy/nest',
-    code: (key?: string) => `import { Module } from '@nestjs/common';
-import { SoonwhyModule } from '@soonwhy/nest';
-import { AppController } from './app.controller';
-
-@Module({
-  imports: [
-    SoonwhyModule.forRoot({
-      apiKey: process.env.SOONWHY_API_KEY ?? '${key ?? 'YOUR_PROJECT_API_KEY'}',
-      endpoint: process.env.SOONWHY_ENDPOINT,
-      serviceName: 'my-service',
-      environment: 'production',
-    }),
-  ],
-  controllers: [AppController],
-})
-export class AppModule {}`,
-    note: "The SDK flushes telemetry on SIGINT/SIGTERM by default. To let Nest own shutdown instead, set registerShutdownHandlers: false and call app.enableShutdownHooks() in main.ts.",
-  },
-  {
-    id: 'nextjs',
-    label: 'Next.js',
-    fileName: 'instrumentation.ts',
-    install: 'pnpm add @soonwhy/next',
-    code: (key?: string) => `import { createSoonwhyInstrumentation } from '@soonwhy/next';
-
-export const { register, onRequestError } = createSoonwhyInstrumentation({
-  apiKey: process.env.SOONWHY_API_KEY ?? '${key ?? 'YOUR_PROJECT_API_KEY'}',
-  endpoint: process.env.SOONWHY_ENDPOINT,
-  serviceName: 'my-service',
-  environment: 'production',
-});`,
-    note: "Wrap App Router route handlers with withSoonwhy() from @soonwhy/next for route-aware span names; onRequestError reports server errors automatically.",
-  },
-  {
-    id: 'vite',
-    label: 'Vite',
-    fileName: 'vite.config.ts',
-    install: 'pnpm add @soonwhy/vite',
-    code: (key?: string) => `import { defineConfig } from 'vite';
-import soonwhy from '@soonwhy/vite';
-
-export default defineConfig({
-  plugins: [
-    soonwhy({
-      apiKey: process.env.SOONWHY_API_KEY ?? '${key ?? 'YOUR_PROJECT_API_KEY'}',
-      endpoint: process.env.SOONWHY_ENDPOINT,
-      serviceName: 'my-service',
-      environment: 'production',
-    }),
-  ],
-});`,
-    note: 'Applies to the dev server only. Production servers initialize the SDK in their own server entry instead.',
-  },
-] as const;
-
-type FrameworkId = (typeof FRAMEWORKS)[number]['id'];
 
 export function ConnectServiceSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { orgSlug, projectSlug, projectId } = useProject();
@@ -148,7 +58,7 @@ export function ConnectServiceSheet({ open, onClose }: { open: boolean; onClose:
     }
   }
 
-  const configureSnippet = useMemo(() => selected.code(createdKey?.key), [selected, createdKey?.key]);
+  const configureSnippet = useMemo(() => selected.code(createdKey?.key, INGEST_BASE), [selected, createdKey?.key]);
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
@@ -208,11 +118,11 @@ export function ConnectServiceSheet({ open, onClose }: { open: boolean; onClose:
                 )}
               </SetupStep>
 
-              <SetupStep number="02" title="Install the SDK">
-                <p className="mb-1.5 text-xs font-medium text-[#989898]">Framework</p>
+              <SetupStep number="02" title="Install">
+                <p className="mb-1.5 text-xs font-medium text-[#989898]">Integration</p>
                 <div className="mb-4">
                   <Select value={framework} onValueChange={(value) => setFramework(value as FrameworkId)}>
-                    <SelectTrigger aria-label="Framework" className="h-9 w-full border-[#242426] bg-[#151517]">
+                    <SelectTrigger aria-label="Integration" className="h-9 w-full border-[#242426] bg-[#151517]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
