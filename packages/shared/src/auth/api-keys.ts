@@ -1,4 +1,4 @@
-import { Injectable, Inject } from "@nestjs/common";
+import { Injectable, Inject, Logger } from "@nestjs/common";
 import { createHash } from "crypto";
 import { eq } from "drizzle-orm";
 import { apiKeys, projects, projectSettings } from "../db/schema";
@@ -11,6 +11,8 @@ import type { ValidatedApiKey } from "./api-keys.types";
 export class ApiKeysService {
   constructor(@Inject(DB) private readonly db: Db) {}
 
+  private readonly logger = new Logger(ApiKeysService.name);
+
   private hashKey(key: string): string {
     return createHash("sha256").update(key).digest("hex");
   }
@@ -19,6 +21,7 @@ export class ApiKeysService {
     const keyHash = this.hashKey(rawKey);
     const rows = await this.db
       .select({
+        id: apiKeys.id,
         projectId: apiKeys.projectId,
         scopes: apiKeys.scopes,
         expiresAt: apiKeys.expiresAt,
@@ -34,6 +37,19 @@ export class ApiKeysService {
     const key = rows[0];
     if (!key) return undefined;
     if (key.expiresAt && key.expiresAt < new Date()) return undefined;
+
+    try {
+      await this.db
+        .update(apiKeys)
+        .set({ lastUsedAt: new Date() })
+        .where(eq(apiKeys.id, key.id));
+    } catch (error) {
+      this.logger.warn(
+        `Failed to record last_used_at for an api key: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
 
     return {
       projectId: key.projectId,
