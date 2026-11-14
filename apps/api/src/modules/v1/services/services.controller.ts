@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -6,9 +7,12 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import { ServicesService } from "./services.service";
+import { ServiceOperationsService } from "./service-operations.service";
+import { getOperationsSchema } from "./dto/get-operations.dto";
 import {
   CreateServiceDto,
   UpdateServiceDto,
@@ -24,7 +28,10 @@ import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
 @UseGuards(TenantGuard)
 @Controller("projects/:projectId/services")
 export class ServicesController {
-  constructor(private readonly servicesService: ServicesService) {}
+  constructor(
+    private readonly servicesService: ServicesService,
+    private readonly operationsService: ServiceOperationsService,
+  ) {}
 
   @Post()
   async createService(
@@ -49,6 +56,24 @@ export class ServicesController {
     @Param("projectId") projectId: string,
   ) {
     return this.servicesService.getServicesForProject(projectId, org.orgId);
+  }
+
+  @Get(":id/operations")
+  async getServiceOperations(
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+    @Param("id") id: string,
+    @Query() query: Record<string, unknown>,
+  ) {
+    const parsed = getOperationsSchema.safeParse(query);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    const service = await this.servicesService.getServiceById(id, projectId, org.orgId);
+    return this.operationsService.forService({
+      orgId: org.orgId,
+      projectId,
+      service: service.name,
+      ...parsed.data,
+    });
   }
 
   @Get(":id")
