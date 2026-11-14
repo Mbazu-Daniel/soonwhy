@@ -5,7 +5,7 @@ export const RESILIENCE_PRESETS: Record<ResiliencePresetName, ResiliencePreset> 
   webhook: {
     retry: {
       attempts: 3,
-      backoff: { delay: "250ms", factor: 2, maxDelay: "2s" },
+      backoff: { delay: "250ms", factor: 2, maxDelay: "2s", jitter: "full" },
     },
     timeout: "10s",
     circuitBreaker: {
@@ -19,7 +19,7 @@ export const RESILIENCE_PRESETS: Record<ResiliencePresetName, ResiliencePreset> 
   slack: {
     retry: {
       attempts: 3,
-      backoff: { delay: "250ms", factor: 2, maxDelay: "2s" },
+      backoff: { delay: "250ms", factor: 2, maxDelay: "2s", jitter: "full" },
     },
     timeout: "10s",
     circuitBreaker: {
@@ -33,7 +33,7 @@ export const RESILIENCE_PRESETS: Record<ResiliencePresetName, ResiliencePreset> 
   email: {
     retry: {
       attempts: 3,
-      backoff: { delay: "500ms", factor: 2, maxDelay: "5s" },
+      backoff: { delay: "500ms", factor: 2, maxDelay: "5s", jitter: "full" },
     },
     timeout: "15s",
     circuitBreaker: {
@@ -47,7 +47,7 @@ export const RESILIENCE_PRESETS: Record<ResiliencePresetName, ResiliencePreset> 
   probe: {
     retry: {
       attempts: 2,
-      backoff: { delay: "200ms", factor: 1 },
+      backoff: { delay: "200ms", factor: 1, jitter: "full" },
     },
     timeout: "10s",
     circuitBreaker: {
