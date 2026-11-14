@@ -3,7 +3,6 @@ import { db } from "../../../common/db";
 import { incidents } from "../../../common/db/schema";
 import { eq, and, desc, inArray, sql } from "drizzle-orm";
 
-
 @Injectable()
 export class IncidentsRepository {
   async createIncident(data: {

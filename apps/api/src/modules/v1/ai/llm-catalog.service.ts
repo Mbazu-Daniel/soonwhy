@@ -12,11 +12,6 @@ const DEFAULT_TTL_MS = 12 * 60 * 60 * 1000;
 const RETRY_BACKOFF_MS = 5 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 15_000;
 
-/**
- * models.dev answers with explicit `null`s for fields it has not filled in, so
- * every optional field has to accept null as well as absence; `optional()` alone
- * rejects the document and silently drops the whole enrichment.
- */
 const ModelsDevModelSchema = z
   .object({
     name: z.string().nullish(),
@@ -41,7 +36,6 @@ const ModelsDevModelSchema = z
 const ModelsDevProviderSchema = z
   .object({
     name: z.string().nullish(),
-    /** Validated when it is used as a host, because some entries are not URLs. */
     api: z.string().nullish(),
     models: z.record(z.string(), z.unknown()).nullish(),
   })
@@ -141,23 +135,10 @@ export class LlmCatalog {
     };
   }
 
-  /**
-   * The endpoint this provider's credentials are sent to. `null` means Mastra
-   * resolves the host from the provider's own SDK, which is the only safe
-   * alternative to a saved URL: models.dev documents hosts for many providers,
-   * but a documented host is not necessarily one that speaks the request shape
-   * Mastra would send.
-   */
   baseUrlFor(providerId: string): string | null {
     return getProviderConfig(providerId)?.url ?? null;
   }
 
-  /**
-   * The endpoint a provider's key may be sent to: the URL the organisation
-   * chose, else the host this provider is registered with, else `null` for the
-   * provider's own SDK resolution. Anything else fails rather than shipping a
-   * secret to a guessed address.
-   */
   endpointFor(providerId: string, baseUrl: string | null): string | null {
     if (baseUrl) return baseUrl;
     const documented = this.baseUrlFor(providerId);
@@ -166,12 +147,6 @@ export class LlmCatalog {
     throw aiEndpointUnknown(providerId);
   }
 
-  /**
-   * Hostnames this provider's key may legitimately be sent to: the resolved
-   * endpoint plus the API host models.dev documents for the provider. Empty
-   * when nothing documents a host, which is what makes a native-SDK provider
-   * unbotherable over plain HTTP.
-   */
   allowedHostnamesFor(providerId: string): string[] {
     const endpoints = [
       this.baseUrlFor(providerId),
@@ -251,7 +226,6 @@ export class LlmCatalog {
         return index;
       })
       .catch((error: unknown) => {
-        // Enrichment only: the bundled registry keeps AI usable when models.dev is down.
         this.metadata = null;
         this.fetchedAt = Date.now();
         LlmCatalog.logger.warn(
@@ -279,8 +253,6 @@ export class LlmCatalog {
     const document = ModelsDevDocumentSchema.parse(await response.json());
     const index: MetadataIndex = new Map();
 
-    // models.dev is a community catalogue: one malformed provider or model must
-    // not cost the enrichment for every other one.
     for (const [providerId, providerValue] of Object.entries(document)) {
       const provider = ModelsDevProviderSchema.safeParse(providerValue);
       if (!provider.success) continue;

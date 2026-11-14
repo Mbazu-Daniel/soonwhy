@@ -16,10 +16,6 @@ export interface MemberLookup {
   findByUser(userId: string): Promise<{ id: string; userId: string } | null>;
 }
 
-/**
- * Decides the object a caller may upload to, or throws. `lookup` isolates the
- * members-table reads so the decision logic is unit-testable without a DB.
- */
 export async function resolveUploadTarget(
   kind: "user_avatar" | "member_avatar" | "organization_logo",
   orgId: string,

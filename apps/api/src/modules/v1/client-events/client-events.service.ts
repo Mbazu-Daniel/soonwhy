@@ -13,10 +13,6 @@ export class ClientEventsService {
 
   constructor(private readonly quickwit: QuickwitService) {}
 
-  /**
-   * Ingest a batch of client-side events into Quickwit telemetry-logs index.
-   * Events are tagged with org_id and project_id derived from the API key.
-   */
   async ingestEvents(
     orgId: string,
     projectId: string,

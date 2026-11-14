@@ -50,7 +50,6 @@ export class CanaryService {
       throw new Error("Canary deployment not found");
     }
 
-    // Claim run atomically: only pending canaries may start.
     const [claimed] = await db
       .update(canaryDeployments)
       .set({ status: "running", startedAt: new Date(), updatedAt: new Date() })
@@ -75,9 +74,8 @@ export class CanaryService {
       timestamp: string;
     }> = [];
 
-    // Run 10 checks over 2 minutes
     const checks = 10;
-    const intervalMs = 12000; // 12 seconds between checks
+    const intervalMs = 12000;
 
     for (let i = 0; i < checks; i++) {
       const startTime = Date.now();
@@ -111,13 +109,11 @@ export class CanaryService {
         timestamp: new Date().toISOString(),
       });
 
-      // Wait before next check
       if (i < checks - 1) {
         await new Promise((resolve) => setTimeout(resolve, intervalMs));
       }
     }
 
-    // Calculate metrics
     const totalChecks = results.length;
     const successfulChecks = results.filter((r) => r.status === "up").length;
     const errorCount = results.filter((r) => r.status === "down").length;
@@ -135,7 +131,6 @@ export class CanaryService {
     };
 
     try {
-      // Validate against rules
       const rules = (canary.validationRules || {}) as {
         maxResponseTimeMs?: number;
         minSuccessRate?: number;
@@ -165,7 +160,6 @@ export class CanaryService {
         );
       }
 
-      // Persist terminal result only from running state.
       await db
         .update(canaryDeployments)
         .set({

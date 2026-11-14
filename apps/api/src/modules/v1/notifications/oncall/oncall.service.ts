@@ -25,17 +25,10 @@ interface OnCallMember {
   endsAt?: Date;
 }
 
-/**
- * On-Call Rotation Service
- * manages team-based on-call schedules with rotation and escalation
- */
 @Injectable()
 export class OnCallService {
   private readonly logger = new Logger(OnCallService.name);
 
-  /**
-   * Create a new on-call schedule for a team or project.
-   */
   async createSchedule(
     orgId: string,
     projectId: string,
@@ -51,7 +44,6 @@ export class OnCallService {
       startedAt: new Date(),
     }));
 
-    // Insert ownership records for each member as initial assignment
     for (const member of members) {
       await db.insert(incidentOwnership).values({
         orgId,
@@ -81,16 +73,11 @@ export class OnCallService {
     return schedule;
   }
 
-  /**
-   * Get the current on-call member for a project/organization.
-   * Uses round-robin rotation based on incident timestamps.
-   */
   async getCurrentOnCall(
     orgId: string,
     projectId: string,
     incidentId?: string,
   ): Promise<OwnershipRecord | undefined> {
-    // Query the most recent ownership assignment for this project
     const [ownership] = await db
       .select()
       .from(incidentOwnership)
@@ -111,16 +98,11 @@ export class OnCallService {
     return ownership;
   }
 
-  /**
-   * Escalate to the next on-call member in the rotation.
-   * Returns the new on-call assignee.
-   */
   async escalate(
     orgId: string,
     projectId: string,
     currentOwnerId: string,
   ): Promise<{ newOwner: OwnershipRecord; previousOwner: OwnershipRecord }> {
-    // Get current ownership record
     const [current] = await db
       .select()
       .from(incidentOwnership)
@@ -139,7 +121,6 @@ export class OnCallService {
       );
     }
 
-    // Get all members assigned to this project/organization
     const allOwnership = await db
       .select()
       .from(incidentOwnership)
@@ -158,7 +139,6 @@ export class OnCallService {
       throw new Error("No other on-call members available for escalation");
     }
 
-    // Select next member (simple round-robin: first available after current)
     const nextIndex = memberIds.indexOf(currentOwnerId) + 1;
     const nextOwnerId =
       nextIndex < memberIds.length ? memberIds[nextIndex]! : memberIds[0]!;
@@ -180,7 +160,6 @@ export class OnCallService {
       throw new Error(`Next owner ${nextOwnerId} not found`);
     }
 
-    // Record the escalation
     await db.insert(incidentOwnership).values({
       orgId,
       projectId,
@@ -201,9 +180,6 @@ export class OnCallService {
     };
   }
 
-  /**
-   * Handoff on-call responsibility to a specific user.
-   */
   async handoff(
     orgId: string,
     projectId: string,
@@ -211,7 +187,6 @@ export class OnCallService {
     toUserId: string,
     reason: string,
   ): Promise<OwnershipRecord> {
-    // Create new ownership record for the handoff
     const [ownership] = await db
       .insert(incidentOwnership)
       .values({
@@ -219,7 +194,7 @@ export class OnCallService {
         projectId,
         incidentId: `handoff-${Date.now()}`,
         ownerId: toUserId,
-        ownerName: fromUserId, // We'll need user lookup
+        ownerName: fromUserId,
         assignedBy: "handoff",
         assignedByName: "On-Call Handoff",
       })

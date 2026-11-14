@@ -47,7 +47,6 @@ function assertAlertRuleInput(input: { status?: string | null }) {
   }
 }
 
-
 @Injectable()
 export class NotificationService {
   constructor(private readonly dispatcher: NotificationDispatcher) {}
@@ -447,7 +446,6 @@ export class NotificationService {
         ),
       );
   }
-
 
   async listTimelineEvents(
     orgId: string,

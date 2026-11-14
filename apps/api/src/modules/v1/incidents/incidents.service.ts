@@ -25,12 +25,10 @@ export class IncidentsService {
     const existing = await this.repository.getIncidentByIncidentId(data.incidentId);
 
     if (existing) {
-      // Update last evaluated time
       await this.repository.updateIncidentLastEvaluated(existing.id);
       return existing;
     }
 
-    // Create new incident
     const incident = await this.repository.createIncident(data);
     this.logger.log(`Created incident ${data.incidentId} for alert rule ${data.alertRuleId}`);
     return incident;
@@ -40,7 +38,6 @@ export class IncidentsService {
     const activeIncidents = await this.repository.getActiveIncidentsForRule(alertRuleId);
 
     for (const incident of activeIncidents) {
-      // Check if the condition that caused the incident is now satisfied
       const metadata = incident.metadata as Record<string, unknown> | undefined;
       const operator = metadata?.operator as string;
       const threshold = metadata?.threshold as string;

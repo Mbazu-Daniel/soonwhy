@@ -16,7 +16,6 @@ export class BillingService {
     source: string;
     idempotencyKey?: string;
     occurredAt?: Date;
-    /** `false` records spend for visibility without letting it hit a limit. */
     enforce?: boolean;
     metadata?: Record<string, string | number | boolean | null>;
   }) {
@@ -36,12 +35,6 @@ export class BillingService {
     return outcome.event;
   }
 
-  /**
-   * The limit an organisation actually pays for. A top-up row is read first and
-   * applies with no subscription at all, because buying one is how an org on an
-   * unlisted plan still gets AI; a `null` limit on it means unlimited, not
-   * "unset", so it must not fall through to the plan default.
-   */
   private async limitFor(orgId: string, metric: UsageMetric) {
     const subscription = await this.repository.getSubscription(orgId);
     const configured = await this.repository.getQuota(
@@ -59,12 +52,10 @@ export class BillingService {
     return fallback?.limit ?? null;
   }
 
-  /** What the organisation is capped at for a metric this month, `null` for no cap. */
   async getLimit(orgId: string, metric: UsageMetric) {
     return this.limitFor(orgId, metric);
   }
 
-  /** Recording a purchase: there is no payment rail here, only the allowance it bought. */
   async setOrgQuota(input: {
     orgId: string;
     metric: UsageMetric;
@@ -80,11 +71,6 @@ export class BillingService {
     return this.repository.upsertOrgQuota(input);
   }
 
-  /**
-   * Advisory pre-check: it reads the current total and holds nothing, so two
-   * concurrent requests can both pass. The post-spend check in `recordUsage`
-   * is what actually stops the overrun.
-   */
   async assertQuota(
     orgId: string,
     metric: UsageMetric,

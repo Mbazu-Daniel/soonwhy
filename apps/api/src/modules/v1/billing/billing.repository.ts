@@ -1,5 +1,3 @@
-// fallow-ignore-file unused-class-member
-// Members are consumed via narrowed Pick<BillingRepository> DI injection, which fallow cannot see through.
 import { and, desc, eq, gte, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { db } from "../../../common/db";
 import {
@@ -55,7 +53,6 @@ export class BillingRepository {
       .limit(Math.min(Math.max(limit, 1), 100));
   }
 
-  /** The limit an organisation actually pays for: a purchased top-up first, then its plan. */
   async getQuota(orgId: string, planId: string | null, metric: UsageMetric) {
     const planScope = planId
       ? and(
@@ -81,7 +78,6 @@ export class BillingRepository {
     return row;
   }
 
-  /** A purchased top-up: an organisation-scoped row that beats whatever the plan says. */
   async upsertOrgQuota(input: {
     orgId: string;
     metric: UsageMetric;

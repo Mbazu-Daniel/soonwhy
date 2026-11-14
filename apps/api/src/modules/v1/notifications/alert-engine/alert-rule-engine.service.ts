@@ -16,9 +16,6 @@ const SEVERITY_RANK: Record<string, number> = {
 export class AlertRuleEngineService {
   private readonly logger = new Logger(AlertRuleEngineService.name);
 
-  /**
-   * Evaluate an alert rule condition against provided metric data.
-   */
   async evaluateCondition(
     condition: AlertRuleCondition,
     metricData: Record<string, unknown>,
@@ -111,9 +108,7 @@ export class AlertRuleEngineService {
         return;
       }
 
-      // Simplified rate: use current metric value as placeholder
-      // Full implementation would compute (current - baseline) / window_duration
-      const rate = metric; // placeholder
+      const rate = metric;
 
       const shouldSatisfy = this.evaluateOperator(rate, operator, condition.value as number);
       const result = negate ? !shouldSatisfy : shouldSatisfy;
@@ -148,7 +143,6 @@ export class AlertRuleEngineService {
         return;
       }
 
-      // Placeholder: simple OR logic - any sub-condition satisfied means expression satisfied
       resolve({
         result: 'satisfied',
         details: {
@@ -186,9 +180,6 @@ export class AlertRuleEngineService {
     }
   }
 
-  /**
-   * Get channels for alert based on severity and rule configuration
-   */
   async getChannelsForSeverity(
     orgId: string,
     projectId: string,
@@ -228,16 +219,12 @@ export class AlertRuleEngineService {
       );
   }
 
-  /**
-   * Route an alert to the appropriate channel based on severity
-   */
   async routeAlert(
     orgId: string,
     projectId: string,
     severity: string,
     alertRuleId: string,
   ): Promise<{ channel?: any; success: boolean }> {
-    // Find the rule
     const [rule] = await db
       .select()
       .from(alertRules)
@@ -248,13 +235,10 @@ export class AlertRuleEngineService {
       return { channel: undefined, success: false };
     }
 
-    // Determine channel based on severity
     const severityRank = SEVERITY_RANK[severity] ?? 0;
     const ruleRank = SEVERITY_RANK[rule.minSeverity] ?? 0;
 
-    // If rule severity is higher than alert severity, use rule's channels
     if (ruleRank >= severityRank) {
-      // Return channels from rule
       if (rule.channelIds && rule.channelIds.length > 0) {
         const [channel] = await db
           .select()
@@ -264,7 +248,6 @@ export class AlertRuleEngineService {
       }
     }
 
-    // Fallback to lower severity or no routing
     return { channel: undefined, success: false };
   }
 }

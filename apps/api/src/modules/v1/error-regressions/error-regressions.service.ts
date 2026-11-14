@@ -32,7 +32,6 @@ export class ErrorRegressionsService {
       const record = existing[0];
       
       if (!record) {
-        // Fallback to creating new record
         const [created] = await db
           .insert(errorRegressions)
           .values({
@@ -47,7 +46,6 @@ export class ErrorRegressionsService {
         return created;
       }
       
-      // Check if this is a regression (error was previously resolved)
       const isRegression = record.lastResolvedAt !== null;
       
       const [updated] = await db
@@ -73,7 +71,6 @@ export class ErrorRegressionsService {
       return updated;
     }
 
-    // New error
     const [created] = await db
       .insert(errorRegressions)
       .values({

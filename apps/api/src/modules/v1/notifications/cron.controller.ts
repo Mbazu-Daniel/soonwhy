@@ -45,7 +45,6 @@ export class CronController {
     }
   }
 
-  /** Bounded retention for synthetic probe results (default 30 days). */
   @Cron(CronExpression.EVERY_DAY_AT_4AM)
   async scheduledProbeResultsRetention() {
     try {

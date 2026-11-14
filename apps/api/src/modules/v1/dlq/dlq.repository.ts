@@ -1,5 +1,3 @@
-// fallow-ignore-file unused-class-member
-// Members are consumed via narrowed DI injection, which fallow cannot see through.
 import { Injectable } from "@nestjs/common";
 import { db } from "../../../common/db";
 import { deadLetterQueue } from "../../../common/db/schema";

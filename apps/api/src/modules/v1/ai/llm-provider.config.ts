@@ -13,12 +13,6 @@ export interface ModelCostRates {
   outputUsdPerMillion: number;
 }
 
-/**
- * One resolved target for an AI request. `baseUrl` is either the endpoint saved
- * with the credential or the host the provider registry documents for it; `null`
- * leaves the choice to the provider's own SDK, because a key must never travel
- * to a guessed host.
- */
 export interface LlmEndpoint {
   readonly providerId: string;
   readonly model: string;
@@ -53,11 +47,6 @@ export interface AiQuotaConfig {
 
 const DEFAULT_TOKEN_RESERVE = 8_000;
 
-/**
- * Enforcement is off by default because no plan, subscription or quota row is
- * seeded by a fresh install: switching it on without that data would block
- * nothing and only hide the metering. Spend is always recorded.
- */
 export function readAiQuotaConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): AiQuotaConfig {
@@ -76,11 +65,6 @@ export interface AiSettingsConfig {
 
 const DEFAULT_VERIFICATION_TIMEOUT_MS = 8_000;
 
-/**
- * Settings-screen policy. Extra base-URL hosts are for self-hosted gateways
- * that models.dev has never heard of; without them a key could be pointed at
- * any address the API process will then be asked to fetch.
- */
 export function readAiSettingsConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): AiSettingsConfig {

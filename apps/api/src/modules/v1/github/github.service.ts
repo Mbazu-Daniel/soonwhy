@@ -126,7 +126,6 @@ export class GithubService {
         `Created deployment ${deployment!.id} for service ${service.id} from GitHub push`,
       );
 
-      // Correlate deployment with recent findings
       await this.correlateDeploymentWithFindings(
         service.id,
         deployment!.id,
@@ -142,7 +141,6 @@ export class GithubService {
     deploymentId: string,
     deployedAtTimestamp: number,
   ) {
-    // Find the service to get the projectId
     const [service] = await db
       .select()
       .from(services)
@@ -156,14 +154,12 @@ export class GithubService {
       return;
     }
 
-    // Find findings for this service's project
     const allProjectFindings = await db
       .select()
       .from(findings)
       .where(eq(findings.projectId, service.projectId));
 
-    // Correlate each finding with the deployment based on trace IDs and time window
-    const windowMs = 2 * 60 * 60 * 1000; // 2 hours
+    const windowMs = 2 * 60 * 60 * 1000;
     const windowStart = deployedAtTimestamp - windowMs;
     const windowEnd = deployedAtTimestamp + windowMs;
 
@@ -173,12 +169,10 @@ export class GithubService {
         return typeof traceId === "string" && traceId ? [traceId] : [];
       });
 
-      // Check if any trace ID from the finding falls within the deployment time window
       const hasMatchingTrace = traceIdsFromFinding.some((traceId) => {
         const findingTraces = finding.evidence.filter(
           (evidence) => evidence.context?.traceId === traceId,
         );
-        // If finding has traces with timestamps in the window, correlate
         return findingTraces.some((trace) => {
           const traceTimestamp = trace.context?.timestamp;
           return (
@@ -190,8 +184,6 @@ export class GithubService {
       });
 
       if (hasMatchingTrace) {
-        // Mark the finding as correlated with this deployment
-        // In a real implementation, we'd update the finding's evidence or create a linkage
         this.logger.log(
           `Finding ${finding.id} correlated with deployment ${deploymentId} (service: ${serviceId})`,
         );

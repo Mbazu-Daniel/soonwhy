@@ -90,7 +90,6 @@ export class SuppressionRulesService {
   }
 
   private async matchesRule(rule: any, params: SuppressionCheckParams): Promise<boolean> {
-    // Check if rule targets this alert
     if (rule.targetAlertRuleIds && !rule.targetAlertRuleIds.includes(params.alertRuleId)) {
       return false;
     }
@@ -99,25 +98,21 @@ export class SuppressionRulesService {
       return false;
     }
 
-    // Check severity match
     const conditions = rule.conditions as SuppressionConditions;
     if (conditions.severity && !conditions.severity.includes(params.severity)) {
       return false;
     }
 
-    // Check service match
     if (conditions.services && !conditions.services.includes(params.service)) {
       return false;
     }
 
-    // Check schedule
     if (rule.scheduleType === "scheduled") {
       if (!this.isWithinSchedule(rule.scheduleConfig, params.timestamp)) {
         return false;
       }
     }
 
-    // Check conditional
     if (rule.scheduleType === "conditional") {
       const matches = await this.checkConditional(rule.conditionalConfig, params);
       if (!matches) {
@@ -141,12 +136,10 @@ export class SuppressionRulesService {
     const now = new Date(timestamp);
     const currentTime = now.getHours() * 60 + now.getMinutes();
 
-    // Check day of week
     if (config.daysOfWeek && !config.daysOfWeek.includes(now.getDay())) {
       return false;
     }
 
-    // Check time range
     if (config.startTime && config.endTime) {
       const [startH, startM] = config.startTime.split(":").map(Number);
       const [endH, endM] = config.endTime.split(":").map(Number);
@@ -165,8 +158,6 @@ export class SuppressionRulesService {
   }
 
   private async checkConditional(conditionalConfig: any, params: SuppressionCheckParams): Promise<boolean> {
-    // TODO: Implement conditional checks based on metrics
-    // For now, return true to allow simple conditional rules
     return true;
   }
 }

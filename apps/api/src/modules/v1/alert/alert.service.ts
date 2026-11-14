@@ -6,8 +6,8 @@ import { NotificationService } from "../notifications/notification.service";
 import { IncidentsService } from "../incidents/incidents.service";
 
 interface SLOAlertThreshold {
-  errorBudgetPercent: number; // 0-100
-  burnRateThreshold: number; // events per hour
+  errorBudgetPercent: number;
+  burnRateThreshold: number;
   windowMinutes: number;
 }
 
@@ -15,11 +15,10 @@ interface SLOAlertThreshold {
 export class AlertService {
   private readonly logger = new Logger(AlertService.name);
 
-  // Default alert thresholds
   private readonly thresholds: SLOAlertThreshold[] = [
-    { errorBudgetPercent: 10, burnRateThreshold: 100, windowMinutes: 60 }, // Critical: 10% budget, 100 events/hr
-    { errorBudgetPercent: 25, burnRateThreshold: 50, windowMinutes: 60 }, // Warning: 25% budget, 50 events/hr
-    { errorBudgetPercent: 50, burnRateThreshold: 20, windowMinutes: 60 }, // Info: 50% budget, 20 events/hr
+    { errorBudgetPercent: 10, burnRateThreshold: 100, windowMinutes: 60 },
+    { errorBudgetPercent: 25, burnRateThreshold: 50, windowMinutes: 60 },
+    { errorBudgetPercent: 50, burnRateThreshold: 20, windowMinutes: 60 },
   ];
 
   constructor(
@@ -45,7 +44,6 @@ export class AlertService {
   }
 
   private async checkSingleSLO(slo: any) {
-    // Get latest compliance snapshot
     const [latestSnapshot] = await db
       .select()
       .from(sloComplianceSnapshots)
@@ -59,10 +57,8 @@ export class AlertService {
 
     const errorBudgetPercent = latestSnapshot.errorBudgetRemaining || 0;
 
-    // Check each threshold
     for (const threshold of this.thresholds) {
       if (errorBudgetPercent <= threshold.errorBudgetPercent) {
-        // Calculate burn rate
         const burnRate = await this.calculateBurnRate(
           slo.id,
           threshold.windowMinutes,
@@ -92,7 +88,6 @@ export class AlertService {
       return 0;
     }
 
-    // Calculate error budget burn rate (error budget consumption rate)
     const first = snapshots[0];
     const last = snapshots[snapshots.length - 1];
     
@@ -107,7 +102,7 @@ export class AlertService {
       return 0;
     }
 
-    return (budgetChange / timeDiffMinutes) * 60; // per hour
+    return (budgetChange / timeDiffMinutes) * 60;
   }
 
   private async triggerSLOAlert(
@@ -119,10 +114,6 @@ export class AlertService {
     const severity = this.getSeverity(threshold.errorBudgetPercent);
     const title = `SLO Alert: ${slo.name} - Error Budget at ${errorBudgetPercent.toFixed(1)}%`;
     const body = `SLO "${slo.name}" is at risk. Error budget remaining: ${errorBudgetPercent.toFixed(1)}%. Burn rate: ${burnRate.toFixed(2)}/hr. Target: ${slo.targetPercentage}% over ${slo.period}.`;
-
-    // TODO: Check if incident already exists to avoid duplicates
-    // TODO: Create incident using IncidentsService
-    // TODO: Send notification using NotificationService
 
     this.logger.warn(`SLO alert triggered for ${slo.name}: ${errorBudgetPercent.toFixed(1)}% budget remaining`);
   }

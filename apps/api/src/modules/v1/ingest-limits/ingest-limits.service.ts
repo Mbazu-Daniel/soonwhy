@@ -10,7 +10,6 @@ export class IngestLimitsService {
   async getIngestLimits(orgId: string, projectId: string) {
     const limits = await this.repository.getIngestLimits(orgId, projectId);
     
-    // Return defaults if no limits configured
     return limits || {
       maxEventsPerSecond: 1000,
       backpressureEnabled: true,
@@ -54,7 +53,6 @@ export class IngestLimitsService {
       return { accept: true };
     }
 
-    // Check rate limit
     if (currentEventsPerSecond > limits.maxEventsPerSecond) {
       const strategy = limits.backpressureStrategy || 'drop';
       
@@ -75,11 +73,9 @@ export class IngestLimitsService {
       }
     }
 
-    // Check signal-type sampling
     if (signalType) {
       let signalSampleRate = 100;
       
-      // Use per-signal-type rate if configured
       if (signalType === 'trace' && limits.traceSampleRate !== undefined) {
         signalSampleRate = limits.traceSampleRate;
       } else if (signalType === 'metric' && limits.metricSampleRate !== undefined) {
@@ -88,7 +84,6 @@ export class IngestLimitsService {
         signalSampleRate = limits.logSampleRate;
       }
 
-      // Check service-specific override
       if (serviceName && limits.serviceSamplingConfig) {
         const serviceConfig = (limits.serviceSamplingConfig as Record<string, Record<string, number>>)[serviceName];
         if (serviceConfig && serviceConfig[signalType + 's'] !== undefined) {

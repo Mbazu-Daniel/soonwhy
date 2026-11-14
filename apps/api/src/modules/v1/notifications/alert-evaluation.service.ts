@@ -61,10 +61,6 @@ export class AlertEvaluationService {
     private readonly dedupService: DedupService,
   ) {}
 
-  /**
-   * Evaluate all active alert rules for a project against current metrics.
-   * Dispatch alerts for any violated conditions and check for recovery.
-   */
   async evaluateProjectRules(orgId: string, projectId: string): Promise<void> {
     const rules = await db
       .select()
@@ -80,7 +76,7 @@ export class AlertEvaluationService {
     if (!rules.length) return;
 
     const now = new Date();
-    const from = new Date(now.getTime() - 5 * 60 * 1000).toISOString(); // last 5 minutes
+    const from = new Date(now.getTime() - 5 * 60 * 1000).toISOString();
 
     for (const rule of rules) {
       const ruleRow = rule as unknown as AlertRuleRow;
@@ -101,7 +97,6 @@ export class AlertEvaluationService {
           now,
         );
 
-        // Check for recovery on existing incidents
         await this.incidentsService.checkForRecovery(ruleRow.id, metricData);
 
         const route = await this.decideRoute(
@@ -140,8 +135,6 @@ export class AlertEvaluationService {
     const hasNoData = !metricData || Object.keys(metricData).length === 0;
     const satisfied = result.result === "satisfied";
 
-    // Dedupe claims trigger rows, so it must only run for a satisfied
-    // condition with data; suppression and protection are cheap reads after.
     let isDedupe = false;
     let isSuppressed = false;
     let hasIncidentProtection = false;
@@ -339,7 +332,6 @@ export class AlertEvaluationService {
       const latest = buckets[buckets.length - 1];
       if (!latest) return data;
 
-      // Map metric names to bucket fields
       switch (metric) {
         case "http.server.request.duration.p95":
           data.value = latest.p95;

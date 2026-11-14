@@ -114,7 +114,6 @@ describe("LlmCatalog", () => {
       inputUsdPerMillion: 0.15,
       outputUsdPerMillion: 0.6,
     });
-    // Pricing needs both rates before it can attribute a cost.
     expect(catalog.pricing("groq", "llama-3.1-8b-instant")).toBeNull();
     expect(catalog.provider("groq")?.rcaSafeModelCount).toBeGreaterThan(0);
     expect(fetchMock).toHaveBeenCalledTimes(1);

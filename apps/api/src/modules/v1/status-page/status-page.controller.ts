@@ -26,7 +26,6 @@ export class StatusPageController {
         const failedChecks = results.filter((r) => r.status === "down").length;
         const uptimePercent = totalChecks > 0 ? Math.round(((totalChecks - failedChecks) / totalChecks) * 100) : 100;
         
-        // Calculate incidents
         const incidents: { start: string; end: string; duration: number }[] = [];
         let currentIncident: { start: string; end: string } | null = null;
 
@@ -79,7 +78,6 @@ export class StatusPageController {
       }),
     );
 
-    // Calculate overall status
     const overallStatus = services.some((s) => s.status === "down")
       ? "down"
       : services.some((s) => s.status === "degraded")

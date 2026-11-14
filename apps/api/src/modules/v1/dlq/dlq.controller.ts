@@ -37,7 +37,6 @@ export class DlqController {
     return this.service.getDlqEntryById(Number(id));
   }
 
-
   @UseGuards(SuperAdminGuard)
   @Post(":id/replay")
   async replayDlqEntry(@Param("id") id: string) {
