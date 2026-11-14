@@ -7,6 +7,7 @@ import {
 } from "@soonwhy/shared";
 import { stableEventId } from "./event-id";
 import { nanoToMs } from "./time";
+import { spanDetailFields } from "./span-details";
 import type {
   CaptureSettings,
   ParsedLogRecord,
@@ -164,6 +165,16 @@ export function mapSpanToTraceRow(span: ParsedSpan, organization: OrganizationCo
     dependencyName: getDependencyName(span),
     ...(dependencyOperationName ? { dependencyOperationName } : {}),
     ...getDatabaseAttributes(span),
+    ...spanDetailFields(span, {
+      attributes: (attributes) =>
+        safeLogAttributes(
+          Object.fromEntries(
+            Object.entries(attributes).filter(([, value]) => value !== undefined),
+          ),
+          organization.captureSettings,
+        ),
+      text: (value) => sanitizeSensitiveText(value),
+    }),
   };
 }
 function getDatabaseAttributes(
