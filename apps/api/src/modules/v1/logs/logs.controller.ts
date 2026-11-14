@@ -4,10 +4,12 @@ import {
   Get,
   Param,
   Query,
+  Res,
   UseGuards,
 } from "@nestjs/common";
+import type { Response } from "express";
 import { LogsService } from "./logs.service";
-import { getFieldValuesSchema, getLogsSchema } from "./dto";
+import { exportLogsSchema, getContextSchema, getFieldValuesSchema, getLogsSchema } from "./dto";
 import {
   CurrentOrg,
   OrgContext,
@@ -28,6 +30,33 @@ export class LogsController {
     const parsed = getLogsSchema.safeParse({ ...query, projectId });
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     return this.logsService.getHistogram(org.orgId, parsed.data);
+  }
+
+  @Get("context")
+  async getContext(
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+    @Query() query: Record<string, unknown>,
+  ) {
+    const parsed = getContextSchema.safeParse({ ...query, projectId });
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.logsService.getContext(org.orgId, parsed.data);
+  }
+
+  @Get("export")
+  async exportLogs(
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+    @Query() query: Record<string, unknown>,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const parsed = exportLogsSchema.safeParse({ ...query, projectId });
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    const file = await this.logsService.exportLogs(org.orgId, parsed.data);
+    response.setHeader("Content-Type", file.contentType);
+    response.setHeader("Content-Disposition", `attachment; filename="${file.filename}"`);
+    response.setHeader("Cache-Control", "no-store");
+    return file.body;
   }
 
   @Get("fields")

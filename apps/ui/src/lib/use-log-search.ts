@@ -19,6 +19,10 @@ function paramsOf(search: LogSearchParams, extra: Record<string, string> = {}): 
   return params.toString();
 }
 
+export function exportParams(search: LogSearchParams, format: 'ndjson' | 'csv'): string {
+  return paramsOf(search, { format, limit: '1000' });
+}
+
 export function useLogPages(search: LogSearchParams, refetchMs: number | false) {
   return useInfiniteQuery({
     queryKey: ['log-pages', search.projectId, search.level, search.service, search.q, search.rangeKey],

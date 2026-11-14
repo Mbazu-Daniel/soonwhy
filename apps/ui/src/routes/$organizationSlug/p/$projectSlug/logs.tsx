@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Skeleton } from '~/components/ui/skeleton';
@@ -9,33 +9,65 @@ import { LogFieldPanel } from '~/components/logs/log-field-panel';
 import { LogHistogram } from '~/components/logs/log-histogram';
 import { LogRow } from '~/components/logs/log-row';
 import { LogToolbar } from '~/components/logs/log-toolbar';
+import { LogExportMenu } from '~/components/logs/log-export-menu';
+import { LogViewsMenu } from '~/components/logs/log-views-menu';
 import { useProject } from '~/lib/project-context';
 import { buildQuery, chipToken, sameChip } from '~/lib/log-query';
 import { logWindow, refreshMs, type LogRange } from '~/lib/log-range';
 import type { LogFilterChip } from '~/lib/log-types';
+import { viewFromSearch, type LogsSearch, type LogViewState } from '~/lib/log-view';
+import { useSharedView } from '~/lib/use-saved-views';
 import { useLogHistogram, useLogPages, type LogSearchParams } from '~/lib/use-log-search';
 
-interface LogsSearch { service?: string }
+const searchText = (value: unknown, max = 4000): string | undefined =>
+  typeof value === 'string' && value ? value.slice(0, max) : undefined;
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/logs')({
   component: LogViewer,
   validateSearch: (search: Record<string, unknown>): LogsSearch => ({
-    service: typeof search.service === 'string' && search.service ? search.service : undefined,
+    service: searchText(search.service, 200),
+    traceId: searchText(search.traceId, 200),
+    spanId: searchText(search.spanId, 200),
+    q: searchText(search.q, 2000),
+    level: searchText(search.level, 20),
+    range: searchText(search.range, 20),
+    from: searchText(search.from, 40),
+    to: searchText(search.to, 40),
+    f: searchText(search.f),
+    view: searchText(search.view, 200),
   }),
 });
 
 function LogViewer() {
   const { organizationSlug, projectSlug } = Route.useParams();
-  const { service: initialService } = Route.useSearch();
+  const urlSearch = Route.useSearch();
   const { projectId } = useProject();
-  const [range, setRange] = useState<LogRange>('24h');
-  const [customFrom, setCustomFrom] = useState('');
-  const [customTo, setCustomTo] = useState('');
-  const [level, setLevel] = useState('all');
+  const [initial] = useState(() => viewFromSearch(urlSearch));
+  const [range, setRange] = useState<LogRange>(initial.range);
+  const [customFrom, setCustomFrom] = useState(initial.customFrom);
+  const [customTo, setCustomTo] = useState(initial.customTo);
+  const [level, setLevel] = useState(initial.level);
   const [refresh, setRefresh] = useState('off');
-  const [draft, setDraft] = useState('');
-  const [text, setText] = useState('');
-  const [chips, setChips] = useState<LogFilterChip[]>(initialService ? [{ field: 'service', value: initialService, negate: false }] : []);
+  const [draft, setDraft] = useState(initial.q);
+  const [text, setText] = useState(initial.q);
+  const [chips, setChips] = useState<LogFilterChip[]>(initial.chips);
+  const shared = useSharedView(projectId, urlSearch.view);
+
+  function applyView(view: LogViewState) {
+    setRange(view.range);
+    setCustomFrom(view.customFrom);
+    setCustomTo(view.customTo);
+    setLevel(view.level);
+    setDraft(view.q);
+    setText(view.q);
+    setChips(view.chips);
+  }
+
+  useEffect(() => {
+    if (shared.data) applyView(shared.data.view);
+  }, [shared.data]);
+
+  const currentView: LogViewState = { q: text, level, range, customFrom, customTo, chips };
 
   const relative = range !== 'custom' && range !== 'all';
   const search = useMemo<LogSearchParams>(
@@ -76,6 +108,14 @@ function LogViewer() {
 
   return (
     <div className="mx-auto w-full space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-[#6E6E70]">{shared.data ? `Opened view: ${shared.data.name}` : shared.isError ? 'That saved view was not found.' : ''}</p>
+        <div className="flex items-center gap-2">
+          <LogExportMenu search={search} total={total} />
+          <LogViewsMenu projectId={projectId} view={currentView} onApply={applyView} />
+        </div>
+      </div>
+
       <LogToolbar
         draft={draft} onDraft={setDraft} onRun={run}
         range={range} onRange={setRange}
@@ -124,7 +164,7 @@ function LogViewer() {
                 {pages.isLoading ? (
                   <tr><td colSpan={6} className="p-4"><Skeleton className="h-40" /></td></tr>
                 ) : logs.length > 0 ? (
-                  logs.map((log) => <LogRow key={log.id} log={log} organizationSlug={organizationSlug} projectSlug={projectSlug} onFilter={addChip} />)
+                  logs.map((log) => <LogRow key={log.id} log={log} projectId={projectId} organizationSlug={organizationSlug} projectSlug={projectSlug} onFilter={addChip} />)
                 ) : (
                   <tr><td colSpan={6} className="p-8 text-center text-[#6E6E70]">No logs match this query. Try a broader search or remove a filter.</td></tr>
                 )}

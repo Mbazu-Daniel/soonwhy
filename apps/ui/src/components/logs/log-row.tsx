@@ -4,6 +4,8 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Badge } from '~/components/ui/badge';
 import type { LogEntry } from '~/lib/log-types';
 import { LEVEL_TREATMENT, statusBadgeClass } from '~/components/logs/log-styles';
+import { LogContext } from '~/components/logs/log-context';
+import { contextScopes } from '~/lib/log-context-scopes';
 
 export function parseAttributes(attributes: LogEntry['attributes']): Record<string, unknown> {
   if (typeof attributes === 'string') {
@@ -27,16 +29,19 @@ function parseRequestMessage(log: LogEntry) {
 
 interface LogRowProps {
   log: LogEntry;
+  projectId: string | null | undefined;
   organizationSlug: string;
   projectSlug: string;
   onFilter: (field: string, value: string, negate: boolean) => void;
 }
 
-export function LogRow({ log, organizationSlug, projectSlug, onFilter }: LogRowProps) {
+export function LogRow({ log, projectId, organizationSlug, projectSlug, onFilter }: LogRowProps) {
   const [expanded, setExpanded] = useState(false);
+  const [showContext, setShowContext] = useState(false);
   const fields = parseAttributes(log.attributes);
   const request = parseRequestMessage(log);
   const status = log.status ?? request?.status ?? (fields['http.status_code'] as string | undefined);
+  const scopes = contextScopes(log, fields);
   const expandable = Object.keys(fields).length > 0 || Boolean(log.traceId) || Boolean(log.stackTrace);
 
   return (
@@ -74,6 +79,12 @@ export function LogRow({ log, organizationSlug, projectSlug, onFilter }: LogRowP
                 </>
               )}
             </div>
+            {scopes.length > 0 && (
+              <div className="space-y-2">
+                <button type="button" aria-expanded={showContext} className="rounded border border-[#242426] px-2 py-1 text-xs hover:bg-[#0B0B0C]" onClick={() => setShowContext(!showContext)}>{showContext ? 'Hide surrounding lines' : 'Show surrounding lines'}</button>
+                {showContext && <LogContext projectId={projectId} log={log} scopes={scopes} />}
+              </div>
+            )}
             {log.stackTrace && <pre className="max-h-64 overflow-auto rounded border border-[#242426] bg-[#0B0B0C] p-3 text-xs leading-5">{log.stackTrace}</pre>}
             {Object.keys(fields).length > 0 && (
               <table className="w-full text-[11px]">

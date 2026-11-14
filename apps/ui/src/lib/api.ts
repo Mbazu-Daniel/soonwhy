@@ -38,7 +38,7 @@ function scopePath(path: string, orgId: string | null): string {
   return `/organization/${encodeURIComponent(orgId)}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+function authedRequest(path: string, options: RequestInit = {}): { url: string; init: RequestInit } {
   const orgId =
     typeof window !== "undefined" ? localStorage.getItem("org_id") : null;
   const url = `${API_BASE}${API_PREFIX}${scopePath(path, orgId)}`;
@@ -59,7 +59,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     headers["X-Org-Id"] = orgId;
   }
 
-  const res = await fetch(url, { ...options, headers });
+  return { url, init: { ...options, headers } };
+}
+
+async function send(path: string, options: RequestInit = {}): Promise<Response> {
+  const { url, init } = authedRequest(path, options);
+  const res = await fetch(url, init);
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ message: res.statusText }));
@@ -87,11 +92,21 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     );
   }
 
+  return res;
+}
+
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const res = await send(path, options);
   if (res.status === 204) return undefined as T;
   return res.json();
 }
 
 export const api = {
+  blob: async (path: string): Promise<{ blob: Blob; filename: string | null }> => {
+    const res = await send(path, { headers: { Accept: "*/*" } });
+    const disposition = res.headers.get("Content-Disposition") ?? "";
+    return { blob: await res.blob(), filename: /filename="([^"]+)"/.exec(disposition)?.[1] ?? null };
+  },
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body?: unknown) =>
     request<T>(path, {
