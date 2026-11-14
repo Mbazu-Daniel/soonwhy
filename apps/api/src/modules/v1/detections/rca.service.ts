@@ -1,7 +1,7 @@
 import type { CorrelatedBottleneck } from "./detection.correlation";
 import { buildRcaEvidence } from "./rca.evidence";
 import { validateRcaAnalysis } from "./rca.validation";
-import type { RcaAnalysisOutcome, RcaCredentialInfo } from "./rca.types";
+import type { RcaAnalysisOutcome, RcaCredentialInfo, RcaEvidence } from "./rca.types";
 import type { MastraRcaProvider } from "./rca.provider";
 import type { LlmCredentialSummary } from "../ai/llm-provider.resolver";
 import { RootCauseRanker } from "./root-cause/root-cause.ranker";
@@ -26,6 +26,21 @@ export class RcaService {
 
   describe(orgId: string): Promise<LlmCredentialSummary> {
     return this.resolver.describe(orgId);
+  }
+
+  async analyzeEvidence(
+    orgId: string,
+    evidence: RcaEvidence,
+  ): Promise<RcaAnalysisOutcome> {
+    const { provider, credential } = await this.resolver.resolveForRca(orgId);
+    const result = await provider.analyze(evidence);
+    return {
+      analysis: validateRcaAnalysis(result.analysis, evidence),
+      usage: result.usage,
+      promptVersion: result.promptVersion,
+      credential,
+      evidence,
+    };
   }
 
   async analyze(

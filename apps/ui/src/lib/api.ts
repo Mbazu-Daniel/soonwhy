@@ -113,6 +113,8 @@ export const api = {
       method: "POST",
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     }),
+  stream: (path: string, body: unknown, signal?: AbortSignal) =>
+    send(path, { method: "POST", body: JSON.stringify(body), signal }),
   put: <T>(path: string, body: unknown) =>
     request<T>(path, { method: "PUT", body: JSON.stringify(body) }),
   patch: <T>(path: string, body: unknown) =>

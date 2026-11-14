@@ -1,3 +1,4 @@
+import { formatErrorStack } from "./stack.js";
 import {
   sanitizeAttributes,
   sanitizeMessage,
@@ -72,7 +73,7 @@ export function toErrorLog(input: ErrorInput): LogInput {
     attributes: {
       ...input.attributes,
       "exception.type": error.name,
-      ...(error.stack ? { "exception.stacktrace": error.stack } : {}),
+      ...(error.stack ? { "exception.stacktrace": formatErrorStack(error) } : {}),
     },
     traceId: input.traceId,
     spanId: input.spanId,

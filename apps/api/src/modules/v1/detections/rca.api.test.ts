@@ -109,6 +109,13 @@ function harness(input: GenerateHarness = {}) {
         model: cred.model,
       },
     ),
+    analyzeEvidence: vi.fn().mockResolvedValue({
+      analysis: analysis(),
+      usage: { requestDurationMs: 12, retries: 0, ...input.usage },
+      promptVersion: "v2",
+      credential: cred,
+      evidence: {},
+    }),
     analyze: vi.fn().mockResolvedValue({
       analysis: analysis(),
       usage: { requestDurationMs: 12, retries: 0, ...input.usage },
@@ -149,7 +156,7 @@ describe("RcaApiService", () => {
       list: vi.fn(),
       persist: vi.fn(),
     };
-    const orchestrator = { analyze: vi.fn(), describe: vi.fn() };
+    const orchestrator = { analyze: vi.fn(), analyzeEvidence: vi.fn(), describe: vi.fn() };
     const governance = { recordSuccess: vi.fn(), recordFailure: vi.fn() };
     const service = new RcaApiService(
       repository,
@@ -180,6 +187,7 @@ describe("RcaApiService", () => {
         provider: "groq",
         model: "openai/gpt-oss-120b",
       }),
+      analyzeEvidence: vi.fn(),
       analyze: vi.fn().mockResolvedValue({
         analysis: analysis(),
         usage: { requestDurationMs: 12, retries: 0 },
@@ -277,7 +285,7 @@ describe("RcaApiService", () => {
       list: vi.fn(),
       persist: vi.fn(),
     };
-    const orchestrator = { analyze: vi.fn(), describe: vi.fn() };
+    const orchestrator = { analyze: vi.fn(), analyzeEvidence: vi.fn(), describe: vi.fn() };
     const governance = { recordSuccess: vi.fn(), recordFailure: vi.fn() };
     const service = new RcaApiService(
       repository,
@@ -289,7 +297,7 @@ describe("RcaApiService", () => {
 
     await expect(
       service.generate("org_1", "project_1", "finding_1", true),
-    ).rejects.toThrow("Finding does not contain an RCA-supported bottleneck");
+    ).rejects.toThrow("Finding is not an RCA-supported bottleneck or error group");
     expect(governance.recordFailure).not.toHaveBeenCalled();
   });
 
@@ -302,7 +310,7 @@ describe("RcaApiService", () => {
     };
     const service = new RcaApiService(
       repository,
-      { analyze: vi.fn(), describe: vi.fn() },
+      { analyze: vi.fn(), analyzeEvidence: vi.fn(), describe: vi.fn() },
       persistence,
       { recordSuccess: vi.fn(), recordFailure: vi.fn() },
       billingStub(),
@@ -452,5 +460,29 @@ describe("RcaApiService", () => {
       h.service.generate("org_1", "project_1", "finding_1", true),
     ).resolves.toEqual({ id: "rca_2" });
     expect(h.governance.recordFailure).not.toHaveBeenCalled();
+  });
+
+  it("analyzes an error-group finding through the error evidence path", async () => {
+    const h = harness();
+    h.repository.findFinding.mockResolvedValue(
+      finding({
+        type: "error_group",
+        title: "TypeError in checkout-api",
+        observedValue: 5,
+        evidence: [
+          { kind: "metric", label: "Occurrences", value: 5, context: { traceCount: 2 } },
+          { kind: "log", label: "Application frames", value: "at run (/app/src/run.ts:1:1)" },
+        ],
+      }),
+    );
+
+    await h.service.generate("org_1", "project_1", "finding_1", false);
+
+    expect(h.orchestrator.analyze).not.toHaveBeenCalled();
+    expect(h.orchestrator.analyzeEvidence).toHaveBeenCalledWith(
+      "org_1",
+      expect.objectContaining({ primaryFinding: expect.objectContaining({ type: "error_group" }) }),
+    );
+    expect(h.persistence.persist).toHaveBeenCalled();
   });
 });

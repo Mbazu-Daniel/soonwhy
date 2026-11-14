@@ -134,3 +134,27 @@ describe("traceIdsOf", () => {
     expect(traceIdsOf(sources, errorFingerprint(sources[0]!), 2)).toEqual(["c", "b"]);
   });
 });
+
+describe("PII in error messages", () => {
+  const source = (email: string) => ({
+    id: email,
+    service: "api",
+    level: "error",
+    timestamp: "2026-11-14T10:00:00Z",
+    message: `user pii:v1:${email} failed`,
+    stackTrace: `Error: pii:v1:${email}\n    at run (/app/src/run.ts:1:1)`,
+  });
+
+  it("groups messages that differ only by an encrypted PII value", () => {
+    const groups = groupErrorLogs([source("AAAA_1"), source("BBBB-2")] as never);
+    expect(groups).toHaveLength(1);
+    expect(groups[0]!.count).toBe(2);
+  });
+
+  it("never exposes the ciphertext in the message or stack", () => {
+    const [group] = groupErrorLogs([source("AAAA_1")] as never);
+    expect(group!.errorMessage).toBe("user [redacted] failed");
+    expect(group!.exception).not.toContain("pii:v1:");
+    expect(group!.exception).toContain("at run (/app/src/run.ts:1:1)");
+  });
+});

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { FINGERPRINT_LENGTH, MAX_MESSAGE_LENGTH } from "./error.constants";
 import type { ErrorLogSource } from "./error.types";
 
+const PII_TOKEN_PATTERN = /pii:v1:[A-Za-z0-9_-]+/g;
 const UUID_PATTERN = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 const LONG_HEX_PATTERN = /\b[0-9a-f]{16,}\b/gi;
 const QUERY_STRING_PATTERN = /(\/[^\s?]*)\?\S*/g;
@@ -11,6 +12,7 @@ const WHITESPACE_PATTERN = /\s+/g;
 
 export function normalizeErrorMessage(message: string): string {
   return message
+    .replace(PII_TOKEN_PATTERN, "<pii>")
     .replace(QUERY_STRING_PATTERN, "$1")
     .replace(UUID_PATTERN, "<id>")
     .replace(LONG_HEX_PATTERN, "<id>")
@@ -19,6 +21,10 @@ export function normalizeErrorMessage(message: string): string {
     .replace(WHITESPACE_PATTERN, " ")
     .trim()
     .slice(0, MAX_MESSAGE_LENGTH);
+}
+
+export function maskPiiTokens(text: string): string {
+  return text.replace(PII_TOKEN_PATTERN, "[redacted]");
 }
 
 export function parseAttributes(

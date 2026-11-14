@@ -43,6 +43,8 @@ export interface ErrorTimelineBucket {
 }
 
 export interface ErrorGroupDetail extends ErrorGroup {
+  findingId: string | null;
+  issue: ErrorIssueState;
   occurrences: ErrorOccurrence[];
   traceIds: string[];
   timeline: ErrorTimelineBucket[];
@@ -86,3 +88,12 @@ export interface SpanErrorSource {
   exceptionStacktrace?: string;
   attributes?: Record<string, unknown>;
 }
+export type ErrorIssueStatus = "unresolved" | "resolved" | "ignored" | "regressed";
+export type ErrorIssueStatusInput = "unresolved" | "resolved" | "ignored";
+
+export interface ErrorIssueState {
+  status: ErrorIssueStatus;
+  resolvedAt: string | null;
+}
+
+export type ErrorGroupSummary = ErrorGroup & { issue: ErrorIssueState };

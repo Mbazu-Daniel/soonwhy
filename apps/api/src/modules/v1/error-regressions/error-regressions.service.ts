@@ -85,7 +85,12 @@ export class ErrorRegressionsService {
     return created;
   }
 
-  async markAsResolved(fingerprint: string, resolvedBy: string) {
+  async markAsResolved(
+    orgId: string,
+    projectId: string,
+    fingerprint: string,
+    resolvedBy: string,
+  ) {
     const [updated] = await db
       .update(errorRegressions)
       .set({
@@ -94,7 +99,13 @@ export class ErrorRegressionsService {
         isRegression: false,
         updatedAt: new Date(),
       })
-      .where(eq(errorRegressions.fingerprint, fingerprint))
+      .where(
+        and(
+          eq(errorRegressions.fingerprint, fingerprint),
+          eq(errorRegressions.orgId, orgId),
+          eq(errorRegressions.projectId, projectId),
+        ),
+      )
       .returning();
 
     return updated;
@@ -143,10 +154,16 @@ export class ErrorRegressionsService {
       .limit(limit);
   }
 
-  async markRegressionNotified(id: number) {
+  async markRegressionNotified(orgId: string, projectId: string, id: number) {
     await db
       .update(errorRegressions)
       .set({ regressionNotified: true })
-      .where(eq(errorRegressions.id, id));
+      .where(
+        and(
+          eq(errorRegressions.id, id),
+          eq(errorRegressions.orgId, orgId),
+          eq(errorRegressions.projectId, projectId),
+        ),
+      );
   }
 }

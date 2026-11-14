@@ -10,6 +10,10 @@ import { api } from '~/lib/api';
 import { QueryErrorState } from '~/components/query-error-state';
 import { useProject } from '~/lib/project-context';
 import { TELEMETRY_RANGES, TimeRangeControl, telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
+import { InvestigationPanel } from '~/components/errors/investigation-panel';
+import { StackTraceView } from '~/components/errors/stack-trace-view';
+import { IssueStatusActions } from '~/components/errors/issue-status';
+import { ErrorAnalysis } from '~/components/errors/error-analysis';
 import { shortId, type ErrorGroupDetail, type FindingResult } from '~/lib/error-groups';
 
 interface ErrorSearch { range: TelemetryRange }
@@ -98,6 +102,7 @@ function ErrorDetail() {
           <span>Last seen {new Date(group.lastSeen).toLocaleString()}</span>
           <span className="font-mono">ID {group.fingerprint}</span>
         </div>
+        <IssueStatusActions projectId={projectId} fingerprint={group.fingerprint} issue={group.issue} />
         <div className="flex flex-wrap items-center gap-2">
           <Button size="sm" variant="outline" disabled={createFinding.isPending} onClick={() => createFinding.mutate()}>
             {createFinding.isPending ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Plus className="mr-2 h-3.5 w-3.5" />}Create finding
@@ -134,7 +139,7 @@ function ErrorDetail() {
         <Card className="border-border shadow-none">
           <CardContent className="space-y-3 p-5">
             <p className="text-sm font-medium">Stack trace</p>
-            {stack ? <pre className="max-h-96 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs leading-5">{stack}</pre> : <p className="text-sm text-muted-foreground">No stack trace was captured for this error.</p>}
+            {stack ? <StackTraceView stack={stack} /> : <p className="text-sm text-muted-foreground">No stack trace was captured for this error. HTTP status errors carry no stack; log it with captureError to get one.</p>}
           </CardContent>
         </Card>
         <Card className="border-border shadow-none">
@@ -162,6 +167,10 @@ function ErrorDetail() {
           </CardContent>
         </Card>
       </section>
+
+      <ErrorAnalysis projectId={projectId} organizationSlug={organizationSlug} fingerprint={fingerprint} rangeQuery={rangeQuery} findingId={group.findingId} />
+
+      <InvestigationPanel projectId={projectId} organizationSlug={organizationSlug} suggestion={`Why is "${group.errorMessage.slice(0, 120)}" happening in ${group.service}?`} />
 
       <Card className="border-border shadow-none">
         <CardContent className="p-0">

@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
+import { summarizeStack } from "./stack-summary";
 import { and, eq } from "drizzle-orm";
 import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
 import { CacheService } from "../../../common/cache/cache.service";
@@ -13,6 +14,13 @@ import {
 } from "../../../common/quickwit/query";
 import { ERROR_SPAN_FILTER, REQUEST_SPAN_FILTER } from "../../../common/telemetry/span-filters";
 import { normalizeErrorMessage } from "./error-fingerprint";
+import { UNRESOLVED, deriveIssueState } from "./error-issue-state";
+import {
+  clearIssueState,
+  findIssueState,
+  listIssueStates,
+  saveIssueState,
+} from "./error-issue-states.store";
 import { mergeErrorSources } from "./error-sources";
 import { buildTimeline, groupErrorLogs, occurrencesOf, traceIdsOf } from "./error-groups";
 import {
@@ -25,6 +33,9 @@ import {
 import type {
   ErrorGroup,
   ErrorGroupDetail,
+  ErrorGroupSummary,
+  ErrorIssueState,
+  ErrorIssueStatusInput,
   ErrorLogSource,
   ErrorRange,
   RequestErrorSource,
@@ -48,14 +59,36 @@ export class ErrorsService {
     orgId: string,
     projectId: string,
     query: ErrorQuery & { limit?: number } = {},
-  ): Promise<ErrorGroup[]> {
+  ): Promise<ErrorGroupSummary[]> {
     const range = this.rangeOf(query.from, query.to);
     const limit = query.limit ?? 50;
     const key = `errors:${orgId}:${projectId}:${limit}:${range.start}:${range.end}:${query.service ?? ""}`;
-    return this.cache.getOrSet(key, CACHE_TTL_SECONDS.dashboardOverview, async () => {
+    const groups = await this.cache.getOrSet(key, CACHE_TTL_SECONDS.dashboardOverview, async () => {
       const sources = await this.fetchSources(orgId, projectId, range, query.service);
       return groupErrorLogs(sources).slice(0, limit);
     });
+    const states = await listIssueStates({ orgId, projectId });
+    return groups.map((group) => ({
+      ...group,
+      issue: deriveIssueState(states.get(group.fingerprint), group.lastSeen),
+    }));
+  }
+
+  async setStatus(
+    orgId: string,
+    projectId: string,
+    fingerprint: string,
+    status: ErrorIssueStatusInput,
+    userId: string | null,
+  ): Promise<ErrorIssueState> {
+    const scope = { orgId, projectId };
+    if (status === "unresolved") {
+      await clearIssueState(scope, fingerprint);
+      return UNRESOLVED;
+    }
+    const resolvedAt = status === "resolved" ? new Date() : null;
+    const row = await saveIssueState({ ...scope, fingerprint, status, resolvedAt, userId });
+    return deriveIssueState(row, "");
   }
 
   async getGroup(
@@ -70,10 +103,37 @@ export class ErrorsService {
     if (!group) throw new NotFoundException("Error group not found in this time range");
     return {
       ...group,
+      findingId: await this.findingIdOf(orgId, projectId, group),
+      issue: deriveIssueState(await findIssueState({ orgId, projectId }, fingerprint), group.lastSeen),
       occurrences: occurrencesOf(sources, fingerprint),
       traceIds: traceIdsOf(sources, fingerprint),
       timeline: buildTimeline(sources, fingerprint, range),
     };
+  }
+
+  private titleOf(group: ErrorGroup): string {
+    return `${group.errorType} in ${group.service}: ${normalizeErrorMessage(group.errorMessage)}`;
+  }
+
+  private async findingIdOf(
+    orgId: string,
+    projectId: string,
+    group: ErrorGroup,
+  ): Promise<string | null> {
+    const [existing] = await db
+      .select({ id: findings.id })
+      .from(findings)
+      .where(
+        and(
+          eq(findings.orgId, orgId),
+          eq(findings.projectId, projectId),
+          eq(findings.type, ERROR_FINDING_TYPE),
+          eq(findings.serviceName, group.service),
+          eq(findings.title, this.titleOf(group)),
+        ),
+      )
+      .limit(1);
+    return existing?.id ?? null;
   }
 
   async createFinding(
@@ -83,7 +143,7 @@ export class ErrorsService {
     query: ErrorQuery = {},
   ) {
     const group = await this.getGroup(orgId, projectId, fingerprint, query);
-    const title = `${group.errorType} in ${group.service}: ${normalizeErrorMessage(group.errorMessage)}`;
+    const title = this.titleOf(group);
     const values = {
       severity: this.severityOf(group),
       description: `${group.count} occurrences across ${group.traceCount} traces between ${group.firstSeen} and ${group.lastSeen}.`,
@@ -229,6 +289,30 @@ export class ErrorsService {
     if (group.exception) {
       evidence.push({ kind: "log", label: "Stack trace", value: group.exception.slice(0, 2000) });
     }
+    evidence.push(...this.stackEvidenceOf(group.exception));
+    return evidence;
+  }
+
+  private stackEvidenceOf(stack: string): DetectionEvidence[] {
+    const summary = summarizeStack(stack);
+    if (!summary) return [];
+    const evidence: DetectionEvidence[] = [];
+    if (summary.applicationFrames.length > 0) {
+      evidence.push({
+        kind: "log",
+        label: "Application frames",
+        value: summary.applicationFrames.join("\n"),
+        context: { exception: summary.header },
+      });
+    }
+    summary.causes.forEach((cause, index) => {
+      evidence.push({
+        kind: "log",
+        label: `Cause ${index + 1}`,
+        value: cause.header,
+        context: { topFrame: cause.topFrame },
+      });
+    });
     return evidence;
   }
 }

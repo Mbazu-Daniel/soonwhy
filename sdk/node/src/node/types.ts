@@ -16,6 +16,8 @@ export interface NodeSdkOptions {
   timeoutMs?: number;
   sampling?: NodeSampling;
   registerShutdownHandlers?: boolean;
+  captureUncaughtErrors?: boolean;
+  enableSourceMaps?: boolean;
   instrumentations?: {
     http?: boolean;
     express?: boolean;

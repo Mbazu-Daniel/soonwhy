@@ -8,7 +8,8 @@ import { Badge } from '~/components/ui/badge';
 import { Skeleton } from '~/components/ui/skeleton';
 import { api } from '~/lib/api';
 import { RcaGenerationError } from '~/components/ai/rca-generation-error';
-import { CredentialSourceChip } from '~/components/ai/credential-source-chip';
+import { RcaContent, type RcaAnalysis } from '~/components/ai/rca-content';
+import { isRcaSupported } from '~/lib/rca-support';
 import { QueryErrorState } from '~/components/query-error-state';
 import { useProject } from '~/lib/project-context';
 import { useState } from 'react';
@@ -18,7 +19,6 @@ export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/intellig
 type FindingType = 'latency' | 'error_rate' | 'throughput' | 'dependency_latency' | 'trace_span' | 'bottleneck' | 'error_group' | 'database_query' | 'database_n_plus_one' | 'database_query_volume' | 'database_error' | 'database_latency_contribution' | 'database_connection_pool' | 'database_timeout' | 'database_result_set' | 'database_connection_wait' | 'database_batch' | 'database_dependency_degradation' | 'external_dependency_degradation' | 'redis_degradation' | 'queue_degradation' | 'performance';
 type Severity = 'warning' | 'critical';
 interface DetectionFinding { id: string; projectId: string; serviceName: string; type: FindingType; severity: Severity; title: string; description: string; observedValue: number; threshold: number; unit: string; windowStart: string; windowEnd: string; evidence: Array<{ kind: string; label: string; value: number | string; context?: Record<string, unknown> }>; }
-interface RcaAnalysis { id: string; serviceName: string; severity: Severity; summary: string; rootCause: string; contributingFactors: string[]; investigationSteps: string[]; suggestedChanges: string[]; evidenceRefs: string[]; confidence: 'low' | 'medium' | 'high'; limitations: string[]; provider: string; model: string; promptVersion: string; credentialSource: 'byok' | 'platform' | null; quotaWarning?: boolean; createdAt: string; }
 
 function DetectionOverview() {
   const { organizationSlug } = Route.useParams();
@@ -31,7 +31,7 @@ function DetectionOverview() {
   const evidence = selected?.evidence.filter((item) => item.kind !== 'recommendation') ?? [];
   const recommendations = selected?.evidence.filter((item) => item.kind === 'recommendation') ?? [];
   const startInvestigation = useMutation({ mutationFn: (findingId: string) => api.post<{ id: string }>(`/projects/${projectId}/investigations`, { findingId }) });
-  const isBottleneck = selected?.type === 'bottleneck';
+  const isBottleneck = isRcaSupported(selected?.type);
   const { data: rca, isLoading: rcaLoading } = useQuery({ queryKey: ['rca', projectId, selected?.id], queryFn: () => api.get<RcaAnalysis>(`/projects/${projectId}/findings/${selected?.id}/rca`), enabled: !!projectId && !!selected?.id && isBottleneck, retry: false });
   const { data: history } = useQuery({ queryKey: ['rca-history', projectId, selected?.id], queryFn: () => api.get<RcaAnalysis[]>(`/projects/${projectId}/findings/${selected?.id}/rca/history`), enabled: !!projectId && !!selected?.id && isBottleneck });
   const generate = useMutation({ mutationFn: (regenerate: boolean) => api.post<RcaAnalysis>(`/projects/${projectId}/findings/${selected?.id}/rca`, { regenerate }), onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['rca', projectId, selected?.id] }); void queryClient.invalidateQueries({ queryKey: ['rca-history', projectId, selected?.id] }); } });
@@ -49,7 +49,5 @@ function DetectionOverview() {
     </div>}
   </div>;
 }
-function RcaContent({ rca, history }: { rca: RcaAnalysis; history: RcaAnalysis[] }) { return <div className="mt-5 space-y-5"><div className="rounded-lg border border-border bg-secondary p-4"><div className="flex flex-wrap gap-3 text-xs text-[#182012]/70"><span>Confidence: <strong className="text-[#182012]">{rca.confidence}</strong></span><span>Model: {rca.model}</span><span>Prompt: {rca.promptVersion}</span><CredentialSourceChip source={rca.credentialSource} /><span>{new Date(rca.createdAt).toLocaleString()}</span></div><p className="mt-3 text-sm leading-6 text-[#182012]">{rca.summary}</p></div><RcaList title="Root cause" items={[rca.rootCause]} /><RcaList title="Contributing factors" items={rca.contributingFactors} /><RcaList title="Investigation path" items={rca.investigationSteps} /><RcaList title="Suggested next steps" items={rca.suggestedChanges} /><RcaList title="Limitations" items={rca.limitations} />{history.length > 1 && <p className="text-xs text-muted-foreground">History: {history.length}</p>}</div>; }
-function RcaList({ title, items }: { title: string; items: string[] }) { if (!items.length) return null; return <div><h3 className="text-sm font-semibold">{title}</h3><ul className="mt-2 space-y-2 text-sm leading-6 text-muted-foreground">{items.map((item, index) => <li key={`${title}-${index}`} className="border-l-2 border-[#8BD125] pl-3">{item}</li>)}</ul></div>; }
 function SeverityIcon({ severity }: { severity: Severity }) { return severity === 'critical' ? <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#8A1C13]" aria-label="Critical" /> : <Clock className="mt-0.5 h-4 w-4 shrink-0 text-[#713F12]" aria-label="Warning" />; }
 

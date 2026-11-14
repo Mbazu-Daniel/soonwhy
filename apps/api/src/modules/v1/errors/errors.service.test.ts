@@ -6,6 +6,7 @@ const dbState = vi.hoisted(() => ({
   selects: [] as unknown[][],
   inserted: [] as Record<string, unknown>[],
   updated: [] as Record<string, unknown>[],
+  deleted: 0,
 }));
 
 vi.mock("../../../common/db", () => {
@@ -21,7 +22,14 @@ vi.mock("../../../common/db", () => {
       insert: () => ({
         values: (value: Record<string, unknown>) => {
           dbState.inserted.push(value);
-          return { returning: () => Promise.resolve([{ id: "new-finding", ...value }]) };
+          const returning = () => Promise.resolve([{ id: "new-finding", ...value }]);
+          return { returning, onConflictDoUpdate: () => ({ returning }) };
+        },
+      }),
+      delete: () => ({
+        where: () => {
+          dbState.deleted += 1;
+          return Promise.resolve();
         },
       }),
       update: () => ({
@@ -100,7 +108,7 @@ describe("ErrorsService", () => {
   });
 
   it("creates a critical finding with trace evidence", async () => {
-    dbState.selects = [[], [{ id: "service-1" }]];
+    dbState.selects = [[], [], [], [{ id: "service-1" }]];
     const { service } = build();
     const result = await service.createFinding("org", "project", fingerprint, { from: "2026-11-14T00:00:00Z", to: "2026-11-15T00:00:00Z" });
     expect(result.status).toBe("created");
@@ -121,7 +129,7 @@ describe("ErrorsService", () => {
   });
 
   it("updates the existing finding instead of duplicating it", async () => {
-    dbState.selects = [[{ id: "old-finding" }]];
+    dbState.selects = [[{ id: "old-finding" }], [], [{ id: "old-finding" }]];
     const { service } = build();
     const result = await service.createFinding("org", "project", fingerprint, { from: "2026-11-14T00:00:00Z", to: "2026-11-15T00:00:00Z" });
     expect(result.status).toBe("updated");
@@ -197,5 +205,42 @@ describe("ErrorsService", () => {
     const groups = await service.listGroups("org", "project", { from: "2026-11-14T00:00:00Z", to: "2026-11-15T00:00:00Z" });
     const boom = groups.filter((group) => group.errorMessage.includes("/boom"));
     expect(boom.reduce((sum, group) => sum + group.count, 0)).toBe(1);
+  });
+
+  it("exposes the id of the finding already created for the group", async () => {
+    dbState.selects = [[{ id: "finding-9" }]];
+    const { service } = build();
+    const detail = await service.getGroup("org", "project", fingerprint);
+    expect(detail.findingId).toBe("finding-9");
+  });
+
+  describe("issue lifecycle", () => {
+    it("marks a resolved group as regressed when it occurs after the resolution", async () => {
+      dbState.selects = [[{ fingerprint, status: "resolved", resolvedAt: new Date("2026-11-14T09:00:00Z") }]];
+      const { service } = build();
+      const [group] = await service.listGroups("org", "project", { from: "2026-11-14T00:00:00Z", to: "2026-11-15T00:00:00Z" });
+      expect(group!.issue.status).toBe("regressed");
+    });
+
+    it("keeps a group resolved when nothing newer has happened", async () => {
+      dbState.selects = [[{ fingerprint, status: "resolved", resolvedAt: new Date("2026-11-14T12:00:00Z") }]];
+      const { service } = build();
+      const [group] = await service.listGroups("org", "project", { from: "2026-11-14T00:00:00Z", to: "2026-11-15T00:00:00Z" });
+      expect(group!.issue.status).toBe("resolved");
+    });
+
+    it("stores the status for the caller's org and project only", async () => {
+      const { service } = build();
+      const state = await service.setStatus("org_a", "project_a", fingerprint, "ignored", "user_1");
+      expect(state.status).toBe("ignored");
+      expect(dbState.inserted[0]).toMatchObject({ orgId: "org_a", projectId: "project_a", fingerprint, status: "ignored", updatedBy: "user_1" });
+    });
+
+    it("reopens by removing the stored state", async () => {
+      const { service } = build();
+      const state = await service.setStatus("org_a", "project_a", fingerprint, "unresolved", "user_1");
+      expect(state.status).toBe("unresolved");
+      expect(dbState.deleted).toBe(1);
+    });
   });
 });
