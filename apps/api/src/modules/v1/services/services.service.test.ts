@@ -81,4 +81,28 @@ describe("ServicesService", () => {
       edges: [{ source: "web", target: "api", requests: 2 }],
     });
   });
+
+  it("registers services seen in telemetry that have no row yet", async () => {
+    const search = vi.fn().mockResolvedValue({
+      aggregations: { services: { buckets: [{ key: "mivacampus-api" }, { key: "Billing API" }] } },
+    });
+    repository.getServicesByProjectId.mockResolvedValue([{ name: "mivacampus-api", slug: "mivacampus-api" }]);
+    repository.createService.mockClear();
+    const service = new ServicesService(repository as never, { search } as never);
+    await service.getServicesForProject("project-sync", "org-1");
+    expect(repository.createService).toHaveBeenCalledTimes(1);
+    expect(repository.createService).toHaveBeenCalledWith({
+      projectId: "project-sync",
+      orgId: "org-1",
+      name: "Billing API",
+      slug: "billing-api",
+    });
+  });
+
+  it("still lists services when telemetry cannot be read", async () => {
+    const search = vi.fn().mockRejectedValue(new Error("quickwit down"));
+    repository.getServicesByProjectId.mockResolvedValue([{ name: "api", slug: "api" }]);
+    const service = new ServicesService(repository as never, { search } as never);
+    await expect(service.getServicesForProject("project-down", "org-1")).resolves.toHaveLength(1);
+  });
 });
