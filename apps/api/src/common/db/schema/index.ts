@@ -88,3 +88,4 @@ export { aiInvestigations } from "./ai-investigations"
 export { deadLetterInvestigations } from "./dead-letter-investigations"
 export { idempotencyKeys } from "./idempotency-keys"
 export { uploads, type UploadKind, type UploadStatus } from "./uploads";
+export { errorIssueStates, type ErrorIssueStateRow, type StoredErrorIssueStatus } from "./error-issue-states";

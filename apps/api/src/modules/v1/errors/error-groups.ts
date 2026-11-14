@@ -1,4 +1,4 @@
-import { errorFingerprint, errorTypeOf, parseAttributes } from "./error-fingerprint";
+import { errorFingerprint, errorTypeOf, maskPiiTokens, parseAttributes } from "./error-fingerprint";
 import { MAX_OCCURRENCES, MAX_TRACE_LINKS, TIMELINE_BUCKETS } from "./error.constants";
 import type {
   ErrorGroup,
@@ -18,10 +18,10 @@ function toOccurrence(source: ErrorLogSource): ErrorOccurrence {
     id: source.id ?? "",
     timestamp: source.timestamp ?? "",
     level: source.level ?? "error",
-    message: source.message ?? "",
+    message: maskPiiTokens(source.message ?? ""),
     traceId: source.traceId ?? "",
     spanId: source.spanId ?? "",
-    stackTrace: source.stackTrace ?? "",
+    stackTrace: maskPiiTokens(source.stackTrace ?? ""),
     attributes: parseAttributes(source.attributes),
   };
 }
@@ -39,7 +39,7 @@ export function groupErrorLogs(sources: ErrorLogSource[]): ErrorGroup[] {
         traces,
         group: {
           fingerprint,
-          errorMessage: source.message ?? "",
+          errorMessage: maskPiiTokens(source.message ?? ""),
           errorType: errorTypeOf(source),
           service: source.service ?? "",
           level: source.level ?? "error",
@@ -50,7 +50,7 @@ export function groupErrorLogs(sources: ErrorLogSource[]): ErrorGroup[] {
           traceId: source.traceId ?? "",
           spanId: source.spanId ?? "",
           logId: source.id ?? "",
-          exception: source.stackTrace ?? "",
+          exception: maskPiiTokens(source.stackTrace ?? ""),
         },
       });
       continue;
@@ -62,11 +62,11 @@ export function groupErrorLogs(sources: ErrorLogSource[]): ErrorGroup[] {
     if (timestamp < group.firstSeen) group.firstSeen = timestamp;
     if (timestamp > group.lastSeen) {
       group.lastSeen = timestamp;
-      group.errorMessage = source.message ?? group.errorMessage;
+      group.errorMessage = maskPiiTokens(source.message ?? group.errorMessage);
       group.traceId = source.traceId ?? "";
       group.spanId = source.spanId ?? "";
       group.logId = source.id ?? "";
-      group.exception = source.stackTrace ?? "";
+      group.exception = maskPiiTokens(source.stackTrace ?? "");
     }
   }
   return [...groups.values()]

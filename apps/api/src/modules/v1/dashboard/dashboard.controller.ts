@@ -1,4 +1,8 @@
-import { Controller, Get, Param, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, NotFoundException, Query, UnauthorizedException, UseGuards } from "@nestjs/common";
+import { z } from "zod";
+import { CurrentUser, type AuthUser } from "../../../common/decorators/current-user.decorator";
+import { ERROR_FINGERPRINT_PATTERN } from "../errors/error.constants";
+import { ErrorStatusSchema } from "../errors/error-status.schema";
 import { DashboardService } from "./dashboard.service";
 import { ErrorsService } from "../errors";
 import {
@@ -80,5 +84,18 @@ export class DashboardController {
     @Query("to") to?: string,
   ) {
     return this.errorsService.createFinding(org.orgId, projectId, fingerprint, { from, to });
+  }
+
+  @Post("errors/:fingerprint/status")
+  async setErrorStatus(
+    @CurrentOrg() org: OrgContext,
+    @CurrentUser() user: AuthUser | null,
+    @Param("projectId") projectId: string,
+    @Param("fingerprint") fingerprint: string,
+    @Body({ schema: ErrorStatusSchema }) body: z.output<typeof ErrorStatusSchema>,
+  ) {
+    if (!user) throw new UnauthorizedException("Sign in to change an issue status");
+    if (!ERROR_FINGERPRINT_PATTERN.test(fingerprint)) throw new NotFoundException("Error group not found");
+    return this.errorsService.setStatus(org.orgId, projectId, fingerprint, body.status, user.id);
   }
 }
