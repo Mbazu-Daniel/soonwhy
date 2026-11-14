@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { quickwitTerm } from "../../../common/quickwit/query";
 import { TelemetryQueryService } from "../../../common/telemetry";
-import { histogramInterval } from "./histogram-interval";
+import { clampHistogramStart, histogramInterval } from "./histogram-interval";
 import { FIELD_SAMPLE_SIZE } from "./logs.constants";
 
 export interface RawLogRow {
@@ -56,7 +56,8 @@ function scopeOf(params: LogFilter) {
 export class LogsRepository {
   constructor(private readonly telemetryQuery: TelemetryQueryService) {}
 
-  async queryHistogram(params: LogFilter) {
+  async queryHistogram(filter: LogFilter) {
+    const params = { ...filter, from: clampHistogramStart(filter.from, filter.to) };
     const result = await this.telemetryQuery.search<never>("logs", scopeOf(params), {
       maxHits: 0,
       aggregations: {

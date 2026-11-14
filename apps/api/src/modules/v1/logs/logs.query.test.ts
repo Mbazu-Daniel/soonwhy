@@ -1,6 +1,6 @@
 import { BadRequestException } from "@nestjs/common";
 import { describe, expect, it, vi } from "vitest";
-import { histogramInterval } from "./histogram-interval";
+import { clampHistogramStart, histogramInterval } from "./histogram-interval";
 import { assertQueryableField, fieldNamesFromSample } from "./log-fields";
 import { decodeOffset, nextOffsetCursor } from "./logs.cursor";
 import { LogsService } from "./logs.service";
@@ -12,6 +12,11 @@ describe("histogramInterval", () => {
     expect(histogramInterval("2026-11-14T00:00:00Z", "2026-11-14T01:00:00Z")).toBe("60s");
     expect(histogramInterval("2026-11-14T00:00:00Z", "2026-11-15T00:00:00Z")).toBe("1800s");
     expect(histogramInterval("2026-11-01T00:00:00Z", "2026-11-15T00:00:00Z")).toBe("21600s");
+  });
+
+  it("limits the histogram start to 90 days before the end", () => {
+    expect(clampHistogramStart("1970-01-01T00:00:00.000Z", "2026-11-14T00:00:00.000Z")).toBe("2026-08-16T00:00:00.000Z");
+    expect(clampHistogramStart("2026-11-13T00:00:00.000Z", "2026-11-14T00:00:00.000Z")).toBe("2026-11-13T00:00:00.000Z");
   });
 
   it("never returns an interval above one day", () => {

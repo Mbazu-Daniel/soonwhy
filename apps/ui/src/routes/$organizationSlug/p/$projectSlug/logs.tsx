@@ -36,20 +36,27 @@ function LogViewer() {
   const [draft, setDraft] = useState('');
   const [text, setText] = useState('');
   const [chips, setChips] = useState<LogFilterChip[]>(initialService ? [{ field: 'service', value: initialService, negate: false }] : []);
-  const [tick, setTick] = useState(0);
 
   const relative = range !== 'custom' && range !== 'all';
-  const search = useMemo<LogSearchParams>(() => {
-    const window = logWindow(range, customFrom, customTo);
-    return { projectId, ...window, level, service: '', q: buildQuery(text, chips) };
-    // tick re-evaluates relative ranges on Run
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, range, customFrom, customTo, level, text, chips, tick]);
+  const search = useMemo<LogSearchParams>(
+    () => ({
+      projectId,
+      rangeKey: relative ? range : `${range}:${customFrom}:${customTo}`,
+      getWindow: () => logWindow(range, customFrom, customTo),
+      level,
+      service: '',
+      q: buildQuery(text, chips),
+    }),
+    [projectId, range, relative, customFrom, customTo, level, text, chips],
+  );
   const polling = relative ? refreshMs(refresh) : false;
 
   const pages = useLogPages(search, polling);
   const histogram = useLogHistogram(search, polling);
-  const logs = useMemo(() => pages.data?.pages.flatMap((page) => page.data) ?? [], [pages.data]);
+  const logs = useMemo(() => {
+    const seen = new Set<string>();
+    return (pages.data?.pages.flatMap((page) => page.data) ?? []).filter((log) => !seen.has(log.id) && !!seen.add(log.id));
+  }, [pages.data]);
   const total = pages.data?.pages[0]?.total ?? 0;
 
   function addChip(field: string, value: string, negate: boolean) {
@@ -59,7 +66,7 @@ function LogViewer() {
 
   function run() {
     setText(draft);
-    setTick((value) => value + 1);
+    if (draft === text) void pages.refetch();
   }
 
   if (!projectId) return <EmptyProject />;
