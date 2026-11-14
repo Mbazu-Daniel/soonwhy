@@ -54,7 +54,22 @@ export class QuickwitService {
     return response.json() as Promise<T>;
   }
 
+  private async indexExists(indexId: string): Promise<boolean> {
+    try {
+      const list = await this.request<
+        Array<{ index_config?: { index_id?: string } }>
+      >("/api/v1/indexes", { method: "GET" });
+      return (
+        Array.isArray(list) &&
+        list.some((entry) => entry?.index_config?.index_id === indexId)
+      );
+    } catch {
+      return false;
+    }
+  }
+
   async ensureIndex(indexId: string, config: Record<string, unknown>): Promise<void> {
+    if (await this.indexExists(indexId)) return;
     try {
       await this.request("/api/v1/indexes", {
         method: "POST",
