@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { OutboundHttpService } from "../../../common/resilience/outbound-http.service";
 import { db } from "../../../common/db";
 import { canaryDeployments } from "../../../common/db/schema";
@@ -39,16 +39,8 @@ export class CanaryService {
     return canary;
   }
 
-  async runCanary(canaryId: number) {
-    const [canary] = await db
-      .select()
-      .from(canaryDeployments)
-      .where(eq(canaryDeployments.id, canaryId))
-      .limit(1);
-
-    if (!canary) {
-      throw new Error("Canary deployment not found");
-    }
+  async runCanary(scope: { orgId: string; projectId: string }, canaryId: number) {
+    const canary = await this.getCanary(scope, canaryId);
 
     const [claimed] = await db
       .update(canaryDeployments)
@@ -202,12 +194,19 @@ export class CanaryService {
     }
   }
 
-  async getCanary(canaryId: number) {
+  async getCanary(scope: { orgId: string; projectId: string }, canaryId: number) {
     const [canary] = await db
       .select()
       .from(canaryDeployments)
-      .where(eq(canaryDeployments.id, canaryId))
+      .where(
+        and(
+          eq(canaryDeployments.id, canaryId),
+          eq(canaryDeployments.orgId, scope.orgId),
+          eq(canaryDeployments.projectId, scope.projectId),
+        ),
+      )
       .limit(1);
+    if (!canary) throw new NotFoundException("Canary deployment not found");
     return canary;
   }
 

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { and, eq } from "drizzle-orm";
 import { db } from "../../../common/db";
 import { retentionPolicies } from "../../../common/db/schema";
@@ -59,7 +59,7 @@ export class RetentionPoliciesService {
       .where(eq(retentionPolicies.isActive, true));
   }
 
-  async updatePolicy(id: number, data: {
+  async updatePolicy(scope: { orgId: string; projectId: string }, id: number, data: {
     retentionDays?: number;
     maxStorageGb?: number;
     autoCleanup?: boolean;
@@ -72,13 +72,26 @@ export class RetentionPoliciesService {
         ...data,
         updatedAt: new Date(),
       })
-      .where(eq(retentionPolicies.id, id))
+      .where(this.ownedBy(scope, id))
       .returning();
+    if (!policy) throw new NotFoundException("Retention policy not found");
     return policy;
   }
 
-  async deletePolicy(id: number) {
-    await db.delete(retentionPolicies).where(eq(retentionPolicies.id, id));
+  async deletePolicy(scope: { orgId: string; projectId: string }, id: number) {
+    const deleted = await db
+      .delete(retentionPolicies)
+      .where(this.ownedBy(scope, id))
+      .returning({ id: retentionPolicies.id });
+    if (deleted.length === 0) throw new NotFoundException("Retention policy not found");
+  }
+
+  private ownedBy(scope: { orgId: string; projectId: string }, id: number) {
+    return and(
+      eq(retentionPolicies.id, id),
+      eq(retentionPolicies.orgId, scope.orgId),
+      eq(retentionPolicies.projectId, scope.projectId),
+    );
   }
 
   async executePolicy(policy: RetentionPolicy, now = new Date()): Promise<CleanupPolicyResult> {

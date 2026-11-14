@@ -43,15 +43,21 @@ export class SuppressionRulesController {
 
   @Put(":id")
   async updateRule(
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
     @Param("id") id: string,
     @Body() body: any,
   ) {
-    return this.service.updateRule(id, body);
+    return this.service.updateRule({ orgId: org.orgId, projectId }, id, body);
   }
 
   @Delete(":id")
-  async deleteRule(@Param("id") id: string) {
-    await this.service.deleteRule(id);
+  async deleteRule(
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+    @Param("id") id: string,
+  ) {
+    await this.service.deleteRule({ orgId: org.orgId, projectId }, id);
     return { message: "Rule deleted" };
   }
 

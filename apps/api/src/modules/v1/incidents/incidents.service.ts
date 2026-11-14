@@ -1,5 +1,5 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { IncidentsRepository } from "./incidents.repository";
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { IncidentsRepository, type IncidentScope } from "./incidents.repository";
 import { NotificationService } from "../notifications/notification.service";
 import type { AlertRuleSeverity } from "../../../common/db/schema";
 
@@ -88,12 +88,16 @@ export class IncidentsService {
     });
   }
 
-  async acknowledgeIncident(id: number, acknowledgedBy: string, note?: string) {
-    return this.repository.acknowledgeIncident(id, acknowledgedBy, note);
+  async acknowledgeIncident(scope: IncidentScope, id: number, acknowledgedBy: string, note?: string) {
+    const incident = await this.repository.acknowledgeIncident(id, acknowledgedBy, note, scope);
+    if (!incident) throw new NotFoundException("Incident not found or not firing");
+    return incident;
   }
 
-  async resolveIncident(id: number, resolvedBy?: string, note?: string) {
-    return this.repository.resolveIncident(id, resolvedBy, note);
+  async resolveIncident(scope: IncidentScope, id: number, resolvedBy?: string, note?: string) {
+    const incident = await this.repository.resolveIncident(id, resolvedBy, note, scope);
+    if (!incident) throw new NotFoundException("Incident not found or already resolved");
+    return incident;
   }
 
   async getIncidents(

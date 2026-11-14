@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { NotFoundException } from "@nestjs/common";
 import { SyntheticProbesService } from "./synthetic-probes.service";
 
 vi.mock("./probe-http.js", () => ({
@@ -57,16 +58,17 @@ function memoryRepo() {
     }),
     getProbes: vi.fn(async (orgId: string, projectId: string) =>
       probes.filter((p) => p.orgId === orgId && p.projectId === projectId)),
-    getProbeById: vi.fn(async (probeId: number) =>
-      probes.find((p) => p.id === probeId)),
-    updateProbe: vi.fn(async (probeId: number, input: any) => {
-      const probe = probes.find((p) => p.id === probeId);
-      Object.assign(probe, input, { updatedAt: new Date() });
+    getProbeById: vi.fn(async (scope: any, probeId: number) =>
+      probes.find((p) => p.id === probeId && p.orgId === scope.orgId && p.projectId === scope.projectId)),
+    updateProbe: vi.fn(async (scope: any, probeId: number, input: any) => {
+      const probe = probes.find((p) => p.id === probeId && p.orgId === scope.orgId && p.projectId === scope.projectId);
+      if (probe) Object.assign(probe, input, { updatedAt: new Date() });
       return probe;
     }),
-    deleteProbe: vi.fn(async (probeId: number) => {
-      const i = probes.findIndex((p) => p.id === probeId);
+    deleteProbe: vi.fn(async (scope: any, probeId: number) => {
+      const i = probes.findIndex((p) => p.id === probeId && p.orgId === scope.orgId && p.projectId === scope.projectId);
       if (i >= 0) probes.splice(i, 1);
+      return i >= 0;
     }),
     createResult: vi.fn(async (probeId: number, result: any) => {
       resultId += 1;
@@ -219,7 +221,7 @@ describe("SyntheticProbesService", () => {
       lastCheckAt: stale,
     });
 
-    const decorated = await service.getProbeById(stored.id);
+    const decorated = await service.getProbeById({ orgId: "org", projectId: "project" }, stored.id);
     expect(decorated?.lastStatus).toBe("unknown");
   });
 
@@ -250,5 +252,23 @@ describe("SyntheticProbesService", () => {
     const skipped = repository.probes.find((p) => p.id === fresh.id);
     expect(ran.lastCheckAt).not.toBeNull();
     expect(skipped.lastCheckAt?.getTime()).toBeLessThanOrEqual(Date.now());
+  });
+
+  describe("tenant scoping", () => {
+    const owner = { orgId: "org", projectId: "project" };
+    const other = { orgId: "other-org", projectId: "project" };
+    const otherProject = { orgId: "org", projectId: "other-project" };
+
+    it("does not read, change, delete, list results of or run another tenant's probe", async () => {
+      const stored = await repository.createProbe("org", "project", { name: "x", url: "https://app.example.com/health" });
+      for (const scope of [other, otherProject]) {
+        await expect(service.getProbeById(scope, stored.id)).rejects.toBeInstanceOf(NotFoundException);
+        await expect(service.updateProbe(scope, stored.id, { name: "taken" })).rejects.toBeInstanceOf(NotFoundException);
+        await expect(service.deleteProbe(scope, stored.id)).rejects.toBeInstanceOf(NotFoundException);
+        await expect(service.getProbeResults(scope, stored.id)).rejects.toBeInstanceOf(NotFoundException);
+        await expect(service.executeProbeById(scope, stored.id)).rejects.toBeInstanceOf(NotFoundException);
+      }
+      expect((await service.getProbeById(owner, stored.id)).name).toBe("x");
+    });
   });
 });

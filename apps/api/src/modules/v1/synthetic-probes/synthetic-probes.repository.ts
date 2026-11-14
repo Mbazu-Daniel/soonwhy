@@ -3,6 +3,16 @@ import { db } from "../../../common/db";
 import { syntheticProbes, syntheticProbeResults } from "../../../common/db/schema";
 import { eq, desc, and, lt, isNull, or, sql } from "drizzle-orm";
 
+export type ProbeScope = { orgId: string; projectId: string };
+
+function probeWhere(scope: ProbeScope, id: number) {
+  return and(
+    eq(syntheticProbes.id, id),
+    eq(syntheticProbes.orgId, scope.orgId),
+    eq(syntheticProbes.projectId, scope.projectId),
+  );
+}
+
 @Injectable()
 export class SyntheticProbesRepository {
   async createProbe(orgId: string, projectId: string, input: any) {
@@ -39,28 +49,32 @@ export class SyntheticProbesRepository {
       .orderBy(desc(syntheticProbes.createdAt));
   }
 
-  async getProbeById(id: number) {
+  async getProbeById(scope: ProbeScope, id: number) {
     const [probe] = await db
       .select()
       .from(syntheticProbes)
-      .where(eq(syntheticProbes.id, id));
+      .where(probeWhere(scope, id));
     return probe;
   }
 
-  async updateProbe(id: number, input: any) {
+  async updateProbe(scope: ProbeScope, id: number, input: any) {
     const [probe] = await db
       .update(syntheticProbes)
       .set({
         ...input,
         updatedAt: new Date(),
       })
-      .where(eq(syntheticProbes.id, id))
+      .where(probeWhere(scope, id))
       .returning();
     return probe;
   }
 
-  async deleteProbe(id: number) {
-    await db.delete(syntheticProbes).where(eq(syntheticProbes.id, id));
+  async deleteProbe(scope: ProbeScope, id: number) {
+    const deleted = await db
+      .delete(syntheticProbes)
+      .where(probeWhere(scope, id))
+      .returning({ id: syntheticProbes.id });
+    return deleted.length > 0;
   }
 
   async createResult(probeId: number, result: {

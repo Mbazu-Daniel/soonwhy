@@ -1,5 +1,5 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { MaintenanceWindowsRepository } from "./maintenance-windows.repository";
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { MaintenanceWindowsRepository, type WindowScope } from "./maintenance-windows.repository";
 
 @Injectable()
 export class MaintenanceWindowsService {
@@ -39,6 +39,7 @@ export class MaintenanceWindowsService {
   }
 
   async updateMaintenanceWindow(
+    scope: WindowScope,
     id: number,
     data: {
       name?: string;
@@ -51,11 +52,15 @@ export class MaintenanceWindowsService {
       recurringSchedule?: Record<string, unknown>;
     },
   ) {
-    return this.repository.updateMaintenanceWindow(id, data);
+    const window = await this.repository.updateMaintenanceWindow(scope, id, data);
+    if (!window) throw new NotFoundException("Maintenance window not found");
+    return window;
   }
 
-  async deleteMaintenanceWindow(id: number) {
-    await this.repository.deleteMaintenanceWindow(id);
+  async deleteMaintenanceWindow(scope: WindowScope, id: number) {
+    if (!(await this.repository.deleteMaintenanceWindow(scope, id))) {
+      throw new NotFoundException("Maintenance window not found");
+    }
   }
 
   async isAlertSuppressed(

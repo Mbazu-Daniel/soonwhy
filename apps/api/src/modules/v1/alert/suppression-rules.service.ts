@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { alertSuppressionRules } from "../../../common/db/schema";
 import { db } from "../../../common/db";
 import { eq, and, or } from "drizzle-orm";
@@ -63,18 +63,35 @@ export class SuppressionRulesService {
       );
   }
 
-  async updateRule(id: string, data: Partial<typeof alertSuppressionRules.$inferInsert>) {
+  async updateRule(
+    scope: { orgId: string; projectId: string },
+    id: string,
+    data: Partial<typeof alertSuppressionRules.$inferInsert>,
+  ) {
+    const { id: _id, orgId: _orgId, projectId: _projectId, createdAt: _createdAt, ...changes } = data;
     const [updated] = await db
       .update(alertSuppressionRules)
-      .set({ ...data, updatedAt: new Date() })
-      .where(eq(alertSuppressionRules.id, id))
+      .set({ ...changes, updatedAt: new Date() })
+      .where(this.ownedBy(scope, id))
       .returning();
-
+    if (!updated) throw new NotFoundException("Suppression rule not found");
     return updated;
   }
 
-  async deleteRule(id: string) {
-    await db.delete(alertSuppressionRules).where(eq(alertSuppressionRules.id, id));
+  async deleteRule(scope: { orgId: string; projectId: string }, id: string) {
+    const deleted = await db
+      .delete(alertSuppressionRules)
+      .where(this.ownedBy(scope, id))
+      .returning({ id: alertSuppressionRules.id });
+    if (deleted.length === 0) throw new NotFoundException("Suppression rule not found");
+  }
+
+  private ownedBy(scope: { orgId: string; projectId: string }, id: string) {
+    return and(
+      eq(alertSuppressionRules.id, id),
+      eq(alertSuppressionRules.orgId, scope.orgId),
+      eq(alertSuppressionRules.projectId, scope.projectId),
+    );
   }
 
   async shouldSuppressAlert(params: SuppressionCheckParams): Promise<{ suppressed: boolean; reason?: string }> {

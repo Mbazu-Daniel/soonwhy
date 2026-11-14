@@ -5,6 +5,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Post,
   Put,
   UseGuards,
@@ -53,18 +54,27 @@ export class RetentionPoliciesController {
   }
 
   @Put(":id")
-  async updatePolicy(@Param("id") id: string, @Body() body: unknown) {
+  async updatePolicy(
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+    @Param("id", ParseIntPipe) id: number,
+    @Body() body: unknown,
+  ) {
     const parsed = updateRetentionPolicyBodySchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.flatten());
     }
 
-    return this.service.updatePolicy(Number(id), parsed.data);
+    return this.service.updatePolicy({ orgId: org.orgId, projectId }, id, parsed.data);
   }
 
   @Delete(":id")
-  async deletePolicy(@Param("id") id: string) {
-    await this.service.deletePolicy(Number(id));
+  async deletePolicy(
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+    @Param("id", ParseIntPipe) id: number,
+  ) {
+    await this.service.deletePolicy({ orgId: org.orgId, projectId }, id);
     return { message: "Deleted" };
   }
 

@@ -3,6 +3,16 @@ import { db } from "../../../common/db";
 import { maintenanceWindows } from "../../../common/db/schema";
 import { eq, and, gt, lt } from "drizzle-orm";
 
+export type WindowScope = { orgId: string; projectId: string };
+
+function windowWhere(scope: WindowScope, id: number) {
+  return and(
+    eq(maintenanceWindows.id, id),
+    eq(maintenanceWindows.orgId, scope.orgId),
+    eq(maintenanceWindows.projectId, scope.projectId),
+  );
+}
+
 @Injectable()
 export class MaintenanceWindowsRepository {
   async createMaintenanceWindow(data: {
@@ -69,6 +79,7 @@ export class MaintenanceWindowsRepository {
   }
 
   async updateMaintenanceWindow(
+    scope: WindowScope,
     id: number,
     data: {
       name?: string;
@@ -87,8 +98,9 @@ export class MaintenanceWindowsRepository {
         endTime: maintenanceWindows.endTime,
       })
       .from(maintenanceWindows)
-      .where(eq(maintenanceWindows.id, id))
+      .where(windowWhere(scope, id))
       .limit(1);
+    if (!existing) return undefined;
 
     const startTime = data.startTime ?? existing?.startTime;
     const endTime = data.endTime ?? existing?.endTime;
@@ -102,13 +114,17 @@ export class MaintenanceWindowsRepository {
         ...data,
         updatedAt: new Date(),
       })
-      .where(eq(maintenanceWindows.id, id))
+      .where(windowWhere(scope, id))
       .returning();
     return window;
   }
 
-  async deleteMaintenanceWindow(id: number) {
-    await db.delete(maintenanceWindows).where(eq(maintenanceWindows.id, id));
+  async deleteMaintenanceWindow(scope: WindowScope, id: number) {
+    const deleted = await db
+      .delete(maintenanceWindows)
+      .where(windowWhere(scope, id))
+      .returning({ id: maintenanceWindows.id });
+    return deleted.length > 0;
   }
 
   async isAlertSuppressed(
