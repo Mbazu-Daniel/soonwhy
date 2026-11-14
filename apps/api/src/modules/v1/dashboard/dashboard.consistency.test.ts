@@ -8,16 +8,26 @@ const aggregations = {
   average: { value: 120.6 },
   status: {
     buckets: [
-      { key: "2xx", doc_count: 37 },
       { key: "3xx", doc_count: 0 },
       { key: "4xx", doc_count: 251 },
-      { key: "5xx", doc_count: 6 },
     ],
   },
 };
 
 function build() {
-  const search = vi.fn().mockImplementation(async (_index: string, request: { aggregations: Record<string, unknown> }) => {
+  const search = vi.fn().mockImplementation(async (_index: string, request: { query: string; aggregations: Record<string, unknown> }) => {
+    const failedOnly = request.query.includes("httpStatusCode:>=400");
+    if (failedOnly && "services" in request.aggregations) {
+      return { num_hits: 257, hits: [], aggregations: { services: { buckets: [{ key: "api", doc_count: 257 }] } } };
+    }
+    if (failedOnly && "over_time" in request.aggregations) {
+      return {
+        num_hits: 257,
+        hits: [],
+        aggregations: { over_time: { buckets: [{ key_as_string: "2026-11-14T10:00:00Z", doc_count: 90 }, { key_as_string: "2026-11-14T11:00:00Z", doc_count: 167 }] } },
+      };
+    }
+    if (failedOnly) return { num_hits: 257, hits: [], aggregations: {} };
     if ("services" in request.aggregations) {
       return {
         num_hits: 294,
@@ -90,6 +100,22 @@ describe("overview and metrics agree", () => {
     expect(services).toEqual([
       { service: "api", requestCount: 294, errorCount: 257, errorRate: 87.41, p95Latency: 342 },
     ]);
+  });
+
+  it("counts requests from entry spans in the trace index, the same rule as the service pages", async () => {
+    const { metrics } = build();
+    await metrics.getSummary("org", { projectId: "project", from, to });
+    const search = (metrics as unknown as { metricsRepository: { quickwit: { search: ReturnType<typeof vi.fn> } } }).metricsRepository.quickwit.search;
+    for (const [index, request] of search.mock.calls) {
+      expect(index).toContain("trace");
+      expect(request.query).toContain("spanKind:2 OR spanKind:5 OR parentSpanId");
+    }
+  });
+
+  it("splits time series errors by bucket", async () => {
+    const { metrics } = build();
+    const series = await (metrics as unknown as { metricsRepository: MetricsRepository }).metricsRepository.queryMetrics({ orgId: "org", projectId: "project", from, to, interval: "1h", service: "" });
+    expect(series.map((point) => [point.count, point._4xx + point._5xx, point._2xx])).toEqual([[100, 90, 10], [194, 167, 27]]);
   });
 
   it("applies a service filter to the summary query only", async () => {

@@ -3,6 +3,7 @@ import {
   errorRateOf,
   healthScore,
   percentileOf,
+  spanStatusCounts,
   statusCountsOf,
   summarize,
   summaryInterval,
@@ -54,5 +55,24 @@ describe("request summary", () => {
     expect(summaryInterval(3_600_000)).toBe("5m");
     expect(summaryInterval(24 * 3_600_000)).toBe("1h");
     expect(summaryInterval(30 * 24 * 3_600_000)).toBe("1d");
+  });
+});
+
+describe("spanStatusCounts", () => {
+  const classes = (three: number, four: number) => ({ status: { buckets: [{ key: "3xx", doc_count: three }, { key: "4xx", doc_count: four }] } });
+
+  it("treats failed spans that are not client errors as server errors and the rest as successful", () => {
+    expect(spanStatusCounts(100, 30, classes(5, 20))).toEqual({ _2xx: 65, _3xx: 5, _4xx: 20, _5xx: 10 });
+  });
+
+  it("counts requests without an http status, such as jobs, as successful unless they failed", () => {
+    expect(spanStatusCounts(10, 0, classes(0, 0))).toEqual({ _2xx: 10, _3xx: 0, _4xx: 0, _5xx: 0 });
+    expect(spanStatusCounts(10, 2, classes(0, 0))).toEqual({ _2xx: 8, _3xx: 0, _4xx: 0, _5xx: 2 });
+  });
+
+  it("never reports negative or oversized counts", () => {
+    const counts = spanStatusCounts(5, 9, classes(0, 7));
+    expect(Object.values(counts).every((value) => value >= 0)).toBe(true);
+    expect(Object.values(counts).reduce((sum, value) => sum + value, 0)).toBe(5);
   });
 });
