@@ -23,7 +23,9 @@ function stubDb(
       from: () => ({
         innerJoin: () => ({
           leftJoin: () => ({
-            where: async () => (row ? [row] : []),
+            leftJoin: () => ({
+              where: async () => (row ? [row] : []),
+            }),
           }),
         }),
       }),
@@ -34,6 +36,16 @@ function stubDb(
 }
 
 describe("ApiKeysService.validateKey", () => {
+  it("rejects a key whose service account is disabled", async () => {
+    const { db } = stubDb({ ...validRow, serviceAccountId: "sa-1", serviceAccountDisabledAt: new Date() });
+    expect(await new ApiKeysService(db).validateKey("soonwhy_x")).toBeUndefined();
+  });
+
+  it("accepts a key whose service account is active", async () => {
+    const { db } = stubDb({ ...validRow, serviceAccountId: "sa-1", serviceAccountDisabledAt: null });
+    expect(await new ApiKeysService(db).validateKey("soonwhy_x")).toBeDefined();
+  });
+
   it("returns the auth context for a valid key and records last_used_at", async () => {
     const { db, update, where } = stubDb(validRow);
     const service = new ApiKeysService(db);

@@ -1,6 +1,7 @@
 import { generateId } from "../generate-id";
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { projects } from "./projects";
+import { serviceAccounts } from "./service-accounts";
 
 export const apiKeys = pgTable("api_keys", {
   id: text("id")
@@ -15,5 +16,8 @@ export const apiKeys = pgTable("api_keys", {
   scopes: text("scopes").array().default([]),
   expiresAt: timestamp("expires_at"),
   lastUsedAt: timestamp("last_used_at"),
+  serviceAccountId: text("service_account_id").references(() => serviceAccounts.id, {
+    onDelete: "cascade",
+  }),
   createdAt: timestamp("created_at").defaultNow(),
 });

@@ -41,6 +41,7 @@ export class ApiKeysService {
     if (!result) return null;
     const key = result.apiKey;
     if (key.expiresAt && key.expiresAt < new Date()) return null;
+    if (key.serviceAccountId && result.serviceAccountDisabledAt) return null;
     await this.apiKeysRepository.updateLastUsedAt(key.id);
     return {
       projectId: key.projectId,

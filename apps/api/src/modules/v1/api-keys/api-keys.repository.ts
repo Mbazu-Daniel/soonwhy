@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { and, eq } from "drizzle-orm";
 import { createHash, randomBytes } from "crypto";
 import { db } from "../../../common/db";
-import { apiKeys, projects } from "../../../common/db/schema";
+import { apiKeys, projects, serviceAccounts } from "../../../common/db/schema";
 
 @Injectable()
 export class ApiKeysRepository {
@@ -47,9 +47,14 @@ export class ApiKeysRepository {
 
   async getApiKeyWithProjectByHash(keyHash: string) {
     const [result] = await db
-      .select({ apiKey: apiKeys, organizationId: projects.organizationId })
+      .select({
+        apiKey: apiKeys,
+        organizationId: projects.organizationId,
+        serviceAccountDisabledAt: serviceAccounts.disabledAt,
+      })
       .from(apiKeys)
       .innerJoin(projects, eq(apiKeys.projectId, projects.id))
+      .leftJoin(serviceAccounts, eq(serviceAccounts.id, apiKeys.serviceAccountId))
       .where(eq(apiKeys.keyHash, keyHash))
       .limit(1);
     return result;
@@ -60,6 +65,7 @@ export class ApiKeysRepository {
     name: string;
     scopes: string[];
     expiresAt?: Date;
+    serviceAccountId?: string;
   }) {
     const rawKey = this.generateKey();
     const prefix = rawKey.substring(0, 15);
@@ -74,6 +80,7 @@ export class ApiKeysRepository {
         keyHash,
         scopes: data.scopes,
         expiresAt: data.expiresAt ?? null,
+        serviceAccountId: data.serviceAccountId ?? null,
       })
       .returning();
 

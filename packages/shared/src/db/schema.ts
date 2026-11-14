@@ -18,6 +18,11 @@ export const projects = pgTable("projects", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const serviceAccounts = pgTable("service_accounts", {
+  id: text("id").primaryKey(),
+  disabledAt: timestamp("disabled_at"),
+});
+
 export const apiKeys = pgTable("api_keys", {
   id: text("id").primaryKey(),
   projectId: text("project_id")
@@ -29,6 +34,9 @@ export const apiKeys = pgTable("api_keys", {
   scopes: text("scopes").array().default([]),
   expiresAt: timestamp("expires_at"),
   lastUsedAt: timestamp("last_used_at"),
+  serviceAccountId: text("service_account_id").references(() => serviceAccounts.id, {
+    onDelete: "cascade",
+  }),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

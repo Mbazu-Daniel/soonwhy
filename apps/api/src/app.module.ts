@@ -52,6 +52,7 @@ import { MaintenanceWindowsModule } from "./modules/v1/maintenance-windows/maint
 import { IngestLimitsModule } from "./modules/v1/ingest-limits/ingest-limits.module";
 import { SlosModule } from "./modules/v1/slos/slos.module";
 import { SearchAuditModule } from "./modules/v1/search-audit";
+import { ServiceAccountsModule } from "./modules/v1/service-accounts";
 import { RetentionModule } from "./modules/v1/retention/retention.module";
 import { ErrorRegressionsModule } from "./modules/v1/error-regressions/error-regressions.module";
 import { HistoricalAnalysisModule } from "./modules/v1/historical-analysis/historical-analysis.module";
@@ -161,6 +162,7 @@ const organizationScopedModules = [
     DlqModule,
     IndexHealthModule,
     SearchAuditModule,
+    ServiceAccountsModule,
     ...(selfObservabilityEnabled()
       ? [IngestHealthModule, PipelineLagModule, SelfMonitoringModule]
       : []),
