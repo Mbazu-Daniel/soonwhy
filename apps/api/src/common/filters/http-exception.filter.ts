@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Logger,
 } from "@nestjs/common";
+import { STATUS_CODES } from "node:http";
 import { Response } from "express";
 import { maskPii } from "../privacy/pii-masker";
 
@@ -47,6 +48,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           typeof (exResponse as { error?: unknown }).error === "string"
         ) {
           body.title = (exResponse as { error: string }).error;
+        } else if (!("title" in exResponse)) {
+          body.title = STATUS_CODES[status] ?? body.title;
+        }
+        if (
+          !("detail" in exResponse) &&
+          body.detail === "An unexpected error occurred" &&
+          "fieldErrors" in exResponse
+        ) {
+          body.detail = "Request validation failed";
         }
       }
     } else if (isApiError(exception)) {
