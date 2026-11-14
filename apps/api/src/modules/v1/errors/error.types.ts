@@ -53,3 +53,17 @@ export interface ErrorRange {
   startTimestamp: number;
   endTimestamp: number;
 }
+
+export interface RequestErrorSource {
+  id?: string;
+  eventId?: string;
+  timestamp?: string;
+  service?: string;
+  method?: string;
+  route?: string;
+  url?: string;
+  statusCode?: number;
+  duration?: number;
+  traceId?: string;
+  spanId?: string;
+}

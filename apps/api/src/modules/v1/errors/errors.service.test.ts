@@ -63,8 +63,10 @@ const sources: ErrorLogSource[] = [
 ];
 const fingerprint = errorFingerprint(sources[0]!);
 
-function build() {
-  const search = vi.fn().mockResolvedValue({ hits: sources.map((source) => ({ _source: source })) });
+function build(requests: Record<string, unknown>[] = []) {
+  const search = vi.fn().mockImplementation(async (index: string) => ({
+    hits: (index.includes("request") ? requests : sources).map((source) => ({ _source: source })),
+  }));
   const cache = { getOrSet: (_key: string, _ttl: number, load: () => Promise<unknown>) => load() };
   const service = new ErrorsService({ search } as never, cache as never);
   return { service, search };
@@ -125,5 +127,23 @@ describe("ErrorsService", () => {
     expect(result.status).toBe("updated");
     expect(dbState.inserted).toHaveLength(0);
     expect(dbState.updated[0]).toMatchObject({ observedValue: 2 });
+  });
+
+  it("turns 4xx responses with no error log into error groups", async () => {
+    const { service } = build([
+      { id: "r1", timestamp: "2026-11-14T10:10:00.000Z", service: "api", method: "GET", url: "/nope", route: "", statusCode: 404, duration: 2, traceId: "t-404-a", spanId: "s1" },
+      { id: "r2", timestamp: "2026-11-14T10:11:00.000Z", service: "api", method: "GET", url: "/nope", route: "", statusCode: 404, duration: 3, traceId: "t-404-b", spanId: "s2" },
+    ]);
+    const groups = await service.listGroups("org", "project", { from: "2026-11-14T00:00:00Z", to: "2026-11-15T00:00:00Z" });
+    const notFound = groups.find((group) => group.errorType === "HTTP 404");
+    expect(notFound).toMatchObject({ count: 2, traceCount: 2, service: "api", errorMessage: "GET /nope 404" });
+  });
+
+  it("does not count a request twice when its trace already has an error log", async () => {
+    const { service } = build([
+      { id: "r1", timestamp: "2026-11-14T10:05:00.000Z", service: "api", method: "GET", url: "/requests", statusCode: 500, traceId: "trace-2", spanId: "span-2" },
+    ]);
+    const groups = await service.listGroups("org", "project", { from: "2026-11-14T00:00:00Z", to: "2026-11-15T00:00:00Z" });
+    expect(groups.reduce((sum, group) => sum + group.count, 0)).toBe(2);
   });
 });

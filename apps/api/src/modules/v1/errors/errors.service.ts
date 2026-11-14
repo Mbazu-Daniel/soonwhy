@@ -12,11 +12,13 @@ import {
   quickwitTerm,
 } from "../../../common/quickwit/query";
 import { normalizeErrorMessage } from "./error-fingerprint";
+import { mergeErrorSources, requestToErrorSource } from "./request-errors";
 import { buildTimeline, groupErrorLogs, occurrencesOf } from "./error-groups";
 import {
   DEFAULT_RANGE_MS,
   ERROR_FINDING_TYPE,
   ERROR_LOG_LEVELS,
+  HTTP_ERROR_FLOOR,
   MAX_ERROR_HITS,
 } from "./error.constants";
 import type {
@@ -24,6 +26,7 @@ import type {
   ErrorGroupDetail,
   ErrorLogSource,
   ErrorRange,
+  RequestErrorSource,
 } from "./error.types";
 
 export interface ErrorQuery {
@@ -148,18 +151,27 @@ export class ErrorsService {
     service?: string,
   ): Promise<ErrorLogSource[]> {
     const levels = ERROR_LOG_LEVELS.map((level) => quickwitTerm("level", level)).join(" OR ");
-    const filter = service ? `(${levels}) AND ${quickwitTerm("service", service)}` : levels;
-    const result = await this.quickwit.search(QUICKWIT_INDEXES.logs, {
-      query: quickwitTenantQuery(orgId, projectId, filter),
-      startTimestamp: range.startTimestamp,
-      endTimestamp: range.endTimestamp,
-      maxHits: MAX_ERROR_HITS,
-      sortBy: ["timestamp:desc"],
-    });
-    return result.hits.flatMap((hit) => {
+    const serviceFilter = service ? ` AND ${quickwitTerm("service", service)}` : "";
+    const search = { startTimestamp: range.startTimestamp, endTimestamp: range.endTimestamp, maxHits: MAX_ERROR_HITS, sortBy: ["timestamp:desc"] };
+    const [logs, requests] = await Promise.all([
+      this.quickwit.search(QUICKWIT_INDEXES.logs, {
+        ...search,
+        query: quickwitTenantQuery(orgId, projectId, `(${levels})${serviceFilter}`),
+      }),
+      this.quickwit.search(QUICKWIT_INDEXES.requests, {
+        ...search,
+        query: quickwitTenantQuery(orgId, projectId, `statusCode:>=${HTTP_ERROR_FLOOR}${serviceFilter}`),
+      }),
+    ]);
+    const logSources = logs.hits.flatMap((hit) => {
       const source = quickwitSource<ErrorLogSource>(hit);
       return source ? [source] : [];
     });
+    const requestSources = requests.hits.flatMap((hit) => {
+      const source = quickwitSource<RequestErrorSource>(hit);
+      return source ? [requestToErrorSource(source)] : [];
+    });
+    return mergeErrorSources(logSources, requestSources);
   }
 
   private severityOf(group: ErrorGroup): "warning" | "critical" {
