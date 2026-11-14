@@ -11,6 +11,7 @@ import {
   quickwitTenantQuery,
   quickwitTerm,
 } from "../../../common/quickwit/query";
+import { ERROR_SPAN_FILTER, REQUEST_SPAN_FILTER } from "../../../common/telemetry/span-filters";
 import { normalizeErrorMessage } from "./error-fingerprint";
 import { mergeErrorSources } from "./error-sources";
 import { buildTimeline, groupErrorLogs, occurrencesOf } from "./error-groups";
@@ -19,7 +20,6 @@ import {
   ERROR_FINDING_TYPE,
   ERROR_LOG_LEVELS,
   HTTP_ERROR_FLOOR,
-  SPAN_ERROR_STATUS,
   MAX_ERROR_HITS,
 } from "./error.constants";
 import type {
@@ -165,7 +165,7 @@ export class ErrorsService {
       optional(
         this.quickwit.search(QUICKWIT_INDEXES.traces, {
           ...search,
-          query: quickwitTenantQuery(orgId, projectId, `statusCode:${SPAN_ERROR_STATUS}${serviceFilter}`),
+          query: quickwitTenantQuery(orgId, projectId, `(${ERROR_SPAN_FILTER} OR (httpStatusCode:>=${HTTP_ERROR_FLOOR} AND ${REQUEST_SPAN_FILTER}))${serviceFilter}`),
         }),
       ),
       optional(

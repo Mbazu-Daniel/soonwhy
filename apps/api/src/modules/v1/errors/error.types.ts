@@ -78,6 +78,7 @@ export interface SpanErrorSource {
   name?: string;
   statusCode?: number | string;
   statusMessage?: string;
+  httpStatusCode?: number;
   errorType?: string;
   exceptionType?: string;
   exceptionMessage?: string;

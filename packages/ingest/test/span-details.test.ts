@@ -124,3 +124,17 @@ describe("span details on older or sensitive payloads", () => {
     expect(JSON.stringify(mapSpanToTraceRow(spans[0]!, organization).events)).not.toContain("hunter2");
   });
 });
+
+describe("http status on spans", () => {
+  it("stores a numeric http status code from either attribute name", () => {
+    const stable = parseTracesPayload(payload({ attributes: [attribute("http.response.status_code", "404")] }));
+    expect(mapSpanToTraceRow(stable.spans[0]!, organization).httpStatusCode).toBe(404);
+    const legacy = parseTracesPayload(payload({ attributes: [attribute("http.status_code", "503")] }));
+    expect(mapSpanToTraceRow(legacy.spans[0]!, organization).httpStatusCode).toBe(503);
+  });
+
+  it("leaves it out when the value is not a status code", () => {
+    const { spans } = parseTracesPayload(payload({ attributes: [attribute("http.status_code", "abc")] }));
+    expect(mapSpanToTraceRow(spans[0]!, organization).httpStatusCode).toBeUndefined();
+  });
+});
