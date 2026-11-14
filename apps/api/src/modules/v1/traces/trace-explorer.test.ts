@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { bucketInterval } from "../../../common/telemetry/bucket-interval";
+import { bucketInterval, clampBucketStart } from "../../../common/telemetry/bucket-interval";
 import { decodeOffset, nextOffsetCursor } from "./trace-cursor";
 import { traceFilters, traceIdList } from "./trace-filters";
 import { buildTraceList } from "./trace-list";
@@ -48,6 +48,10 @@ describe("buildTraceList", () => {
 });
 
 describe("offset cursor and interval", () => {
+  it("limits chart ranges to 90 days", () => {
+    expect(clampBucketStart("1970-01-01T00:00:00.000Z", "2026-11-14T00:00:00.000Z")).toBe("2026-08-16T00:00:00.000Z");
+  });
+
   it("pages by offset and stops at a short page", () => {
     expect(decodeOffset(nextOffsetCursor(0, 20, 20))).toBe(20);
     expect(nextOffsetCursor(0, 5, 20)).toBeUndefined();

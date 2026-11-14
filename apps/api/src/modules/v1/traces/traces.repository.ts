@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { quickwitSource, quickwitTerm } from "../../../common/quickwit/query";
 import { TelemetryQueryService } from "../../../common/telemetry";
-import { bucketInterval } from "../../../common/telemetry/bucket-interval";
+import { bucketInterval, clampBucketStart } from "../../../common/telemetry/bucket-interval";
 import { ERROR_SPAN_FILTER } from "../../../common/telemetry/span-filters";
 import { MAX_SPAN_LOG_BUCKETS, MAX_STATUS_TRACE_IDS } from "./traces.constants";
 import { traceFilters, traceIdList, type TraceFilter } from "./trace-filters";
@@ -106,7 +106,8 @@ export class TracesRepository {
     );
   }
 
-  async traceStats(scope: TraceScope) {
+  async traceStats(requested: TraceScope) {
+    const scope = { ...requested, from: clampBucketStart(requested.from, requested.to) };
     const errorIds = await this.errorTraceIds(scope);
     const status = this.statusFilter(scope, errorIds);
     if (status === "none") return { interval: bucketInterval(scope.from, scope.to), buckets: [] };

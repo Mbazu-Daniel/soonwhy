@@ -2,7 +2,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { GitBranch, Clock3, ChevronRight, X, FileText, ExternalLink } from 'lucide-react';
 import { ConnectServiceButton } from '~/components/connect-service-button';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { TraceWaterfall } from '~/components/trace/trace-waterfall';
 import { TraceServiceGraph } from '~/components/trace/trace-service-graph';
 import { buildTraceLayout, formatMs } from '~/components/trace/trace.layout';
@@ -45,11 +45,11 @@ function TraceExplorer() {
   const [filters, setFilters] = useState<TraceFilterState>({ ...EMPTY_TRACE_FILTERS, service: serviceFilter ?? '' });
   const [range, setRange] = useState<TelemetryRange>('24h');
   const [selectedTraceId, setSelectedTraceId] = useState<string>();
-  const rangeParams = telemetryRangeParams(range);
+  const getRange = useCallback(() => telemetryRangeParams(range), [range]);
 
   const applied = useDebounced(filters);
-  const pages = useTracePages(projectId, applied, rangeParams, range, 15_000);
-  const stats = useTraceStats(projectId, applied, rangeParams, range);
+  const pages = useTracePages(projectId, applied, getRange, range, 15_000);
+  const stats = useTraceStats(projectId, applied, getRange, range);
   const services = useQuery({
     queryKey: ['trace-filter-services', projectId],
     queryFn: () => api.get<Array<{ name: string }>>(`/projects/${projectId}/services`),

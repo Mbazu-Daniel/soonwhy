@@ -4,11 +4,11 @@ import { traceFilterParams, type TraceFilterState, type TraceListItem, type Trac
 
 interface Range { from: string; to: string }
 
-export function useTracePages(projectId: string | null | undefined, filters: TraceFilterState, range: Range, rangeKey: string, refetchMs: number | false) {
+export function useTracePages(projectId: string | null | undefined, filters: TraceFilterState, getRange: () => Range, rangeKey: string, refetchMs: number | false) {
   return useInfiniteQuery({
     queryKey: ['trace-pages', projectId, filters, rangeKey],
     queryFn: ({ pageParam }) => {
-      const params = traceFilterParams(filters, range);
+      const params = traceFilterParams(filters, getRange());
       params.set('limit', '20');
       if (pageParam) params.set('cursor', pageParam);
       return api.get<{ data: TraceListItem[]; nextCursor?: string }>(`/projects/${projectId}/traces?${params.toString()}`);
@@ -21,10 +21,10 @@ export function useTracePages(projectId: string | null | undefined, filters: Tra
   });
 }
 
-export function useTraceStats(projectId: string | null | undefined, filters: TraceFilterState, range: Range, rangeKey: string) {
+export function useTraceStats(projectId: string | null | undefined, filters: TraceFilterState, getRange: () => Range, rangeKey: string) {
   return useQuery({
     queryKey: ['trace-stats', projectId, filters, rangeKey],
-    queryFn: () => api.get<{ interval: string; buckets: TraceStatBucket[] }>(`/projects/${projectId}/traces/stats?${traceFilterParams(filters, range).toString()}`),
+    queryFn: () => api.get<{ interval: string; buckets: TraceStatBucket[] }>(`/projects/${projectId}/traces/stats?${traceFilterParams(filters, getRange()).toString()}`),
     enabled: !!projectId,
     placeholderData: keepPreviousData,
     retry: false,
