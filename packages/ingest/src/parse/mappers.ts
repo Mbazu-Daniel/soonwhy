@@ -7,6 +7,7 @@ import { stableEventId } from "./event-id";
 import { nanoToMs } from "./time";
 import { spanDetailFields } from "./span-details";
 import { encryptOrRedact, encryptTextOrRedact } from "./pii-safe";
+import { httpStatusCodeOf } from "./http-fields";
 import type {
   CaptureSettings,
   ParsedLogRecord,
@@ -164,6 +165,7 @@ export function mapSpanToTraceRow(span: ParsedSpan, organization: OrganizationCo
     dependencyName: getDependencyName(span),
     ...(dependencyOperationName ? { dependencyOperationName } : {}),
     ...getDatabaseAttributes(span),
+    ...httpFields(span),
     ...spanDetailFields(span, {
       attributes: (attributes) =>
         safeLogAttributes(
@@ -530,3 +532,8 @@ export function mapMetricToRow(
 }
 
 
+
+function httpFields(span: ParsedSpan): { httpStatusCode?: number } {
+  const httpStatusCode = httpStatusCodeOf(span.attributes);
+  return httpStatusCode === undefined ? {} : { httpStatusCode };
+}
