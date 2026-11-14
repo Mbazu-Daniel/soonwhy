@@ -1,13 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { quickwitTerm } from "../../../common/quickwit/query";
 import { TelemetryQueryService } from "../../../common/telemetry";
+import { ERROR_SPAN_FILTER, REQUEST_SPAN_FILTER } from "../../../common/telemetry/span-filters";
 import {
   DEPENDENCY_SPAN_FILTER,
-  ERROR_SPAN_FILTER,
   LATENCY_PERCENTS,
   MAX_DEPENDENCIES,
   MAX_OPERATIONS,
-  REQUEST_SPAN_FILTER,
 } from "./service-operations.constants";
 import { buildDependencies, buildOperations, failingOperations } from "./service-operations";
 import type { ServiceOperations, TermBuckets } from "./service-operations.types";
