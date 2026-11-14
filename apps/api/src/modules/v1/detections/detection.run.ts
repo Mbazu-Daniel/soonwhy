@@ -105,18 +105,42 @@ function toDate(value: unknown): Date {
   return parsed;
 }
 
+const DEFAULT_STALE_MINUTES = 30;
+export const MAX_RUN_ATTEMPTS = 3;
+
+function staleMinutes(): number {
+  const parsed = Number(process.env.DETECTION_RUN_STALE_MINUTES);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_STALE_MINUTES;
+}
+
+export async function failExhaustedDetectionRuns(): Promise<void> {
+  await db.execute(sql`
+    UPDATE detection_runs
+    SET status = 'failed',
+        error = 'Worker stopped before the run finished',
+        completed_at = now()
+    WHERE status = 'running'
+      AND attempts >= ${MAX_RUN_ATTEMPTS}
+      AND started_at < now() - make_interval(mins => ${staleMinutes()})
+  `);
+}
+
 export async function claimQueuedDetectionRun(): Promise<ClaimedDetectionRun | undefined> {
+  await failExhaustedDetectionRuns();
   const result = await db.execute(sql`
     WITH claimed AS (
       SELECT id
       FROM detection_runs
       WHERE status = 'queued'
+         OR (status = 'running'
+             AND attempts < ${MAX_RUN_ATTEMPTS}
+             AND started_at < now() - make_interval(mins => ${staleMinutes()}))
       ORDER BY started_at ASC
       FOR UPDATE SKIP LOCKED
       LIMIT 1
     )
     UPDATE detection_runs AS run
-    SET status = 'running', started_at = now()
+    SET status = 'running', started_at = now(), attempts = run.attempts + 1
     FROM claimed
     WHERE run.id = claimed.id
     RETURNING run.id AS "id",
