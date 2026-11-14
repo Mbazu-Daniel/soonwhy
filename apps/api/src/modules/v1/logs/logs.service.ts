@@ -64,6 +64,9 @@ export class LogsService {
         level: r.level,
         service: r.service,
         message: r.message,
+        traceId: r.traceId ?? "",
+        spanId: r.spanId ?? "",
+        stackTrace: r.stackTrace ?? "",
         attributes,
       };
     });

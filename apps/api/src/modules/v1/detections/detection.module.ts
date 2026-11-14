@@ -9,6 +9,7 @@ import { DetectionJobRunner } from './detection-job.runner';
 import { DetectorSettingsModule } from '../detector-settings/detector-settings.module';
 import { ProjectsModule } from '../projects/projects.module';
 import { IssueLifecycleModule } from '../intelligence/issue-lifecycle.module';
+import { ErrorsModule } from '../errors';
 import { CacheModule } from '../../../common/cache/cache.module';
 import { TelemetryModule } from '../../../common/telemetry/telemetry.module';
 
@@ -19,6 +20,7 @@ import { TelemetryModule } from '../../../common/telemetry/telemetry.module';
     IssueLifecycleModule,
     CacheModule,
     TelemetryModule,
+    ErrorsModule,
   ],
   controllers: [DetectionController, DetectionHealthController],
   providers: [

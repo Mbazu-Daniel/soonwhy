@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import {
   CurrentOrg,
@@ -7,13 +7,17 @@ import {
 import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
 import { DetectionService } from "./detection.service";
 import { listDetectionRuns } from "./detection.run";
+import { ErrorsService } from "../errors";
 
 @UseGuards(TenantGuard)
 @ApiTags("detections")
 @ApiBearerAuth()
 @Controller("projects/:projectId/detections")
 export class DetectionController {
-  constructor(private readonly detectionService: DetectionService) {}
+  constructor(
+    private readonly detectionService: DetectionService,
+    private readonly errorsService: ErrorsService,
+  ) {}
 
   @Post("run")
   async run(
@@ -51,10 +55,13 @@ export class DetectionController {
   async createFromError(
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
-    @Body() body: { fingerprint?: string; service?: string },
+    @Body() body: { fingerprint?: string; from?: string; to?: string },
   ) {
-    if (!body.fingerprint) throw new Error("fingerprint is required");
-    return { status: 'accepted', fingerprint: body.fingerprint, service: body.service };
+    if (!body.fingerprint) throw new BadRequestException("fingerprint is required");
+    return this.errorsService.createFinding(org.orgId, projectId, body.fingerprint, {
+      from: body.from,
+      to: body.to,
+    });
   }
 
   @Get()

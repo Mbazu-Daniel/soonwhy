@@ -24,8 +24,8 @@ const navGroups = [
     { to: 'traces', label: 'Traces', icon: GitBranch },
     { to: 'metrics', label: 'Metrics', icon: BarChart3 },
   ] },
-  { label: 'Intelligence', items: [
-    { to: 'intelligence', label: 'Intelligence', icon: BrainCircuit },
+  { label: 'Findings', items: [
+    { to: 'intelligence/findings', label: 'Findings', icon: BrainCircuit },
   ] },
   { label: 'Configuration', items: [
     { to: 'alerts', label: 'Alerts', icon: Bell },

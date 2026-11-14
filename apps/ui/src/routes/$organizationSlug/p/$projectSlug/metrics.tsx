@@ -11,6 +11,8 @@ import { TimeRangeControl, telemetryRangeParams, type TelemetryRange } from '~/c
 import { MetricCard, StatusCodeBreakdown } from '~/components/metric-cards';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { EmptyProject } from '~/components/empty-state';
+import { metricsInterval } from '~/lib/metrics-interval';
+import { statusShare, type RequestSummary } from '~/lib/request-summary';
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/metrics')({
   component: MetricsPage,
@@ -45,13 +47,29 @@ interface HostMetricsResponse {
 function MetricsPage() {
   const { projectId } = useProject();
   const [range, setRange] = useState<TelemetryRange>('24h');
+  const [service, setService] = useState('');
   const { from, to } = telemetryRangeParams(range);
+  const interval = metricsInterval(new Date(to).getTime() - new Date(from).getTime());
+  const serviceParam = service ? `&service=${encodeURIComponent(service)}` : '';
+
+  const { data: serviceList } = useQuery({
+    queryKey: ['services', projectId],
+    queryFn: () => api.get<Array<{ id: string; name: string }>>(`/projects/${projectId}/services`),
+    enabled: !!projectId,
+  });
+
+  const { data: summary, isLoading: summaryLoading } = useQuery({
+    queryKey: ['metrics-summary', projectId, range, service],
+    queryFn: () => api.get<RequestSummary>(`/metrics/summary?projectId=${encodeURIComponent(projectId!)}&from=${from}&to=${to}${serviceParam}`),
+    enabled: !!projectId,
+    refetchInterval: 15_000,
+  });
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['metrics', projectId, range],
+    queryKey: ['metrics', projectId, range, service],
     queryFn: () =>
       api.get<MetricsResponse>(
-        `/metrics?projectId=${encodeURIComponent(projectId!)}&from=${from}&to=${to}&interval=5m`,
+        `/metrics?projectId=${encodeURIComponent(projectId!)}&from=${from}&to=${to}&interval=${interval}${serviceParam}`,
       ),
     enabled: !!projectId,
     refetchInterval: 15_000,
@@ -71,28 +89,7 @@ function MetricsPage() {
     return <QueryErrorState onRetry={() => void refetch()} />;
 
   const buckets = data?.buckets ?? [];
-  const totalRequests = buckets.reduce((sum, b) => sum + b.count, 0);
-  const totalErrors = buckets.reduce((sum, b) => sum + (b.statusCodes._4xx ?? 0) + (b.statusCodes._5xx ?? 0), 0);
-  const errorRate = totalRequests ? (totalErrors / totalRequests) * 100 : 0;
-  const p50s = buckets.filter((b) => b.p50 > 0);
-  const avgP50 = p50s.length ? Math.round(p50s.reduce((sum, b) => sum + b.p50, 0) / p50s.length) : 0;
-  const p95s = buckets.filter((b) => b.p95 > 0);
-  const avgP95 = p95s.length ? Math.round(p95s.reduce((sum, b) => sum + b.p95, 0) / p95s.length) : 0;
-  const avgP99 = buckets.filter((b) => b.p99 > 0).length
-    ? Math.round(
-        buckets
-          .filter((b) => b.p99 > 0)
-          .reduce((sum, b) => sum + b.p99, 0) /
-          buckets.filter((b) => b.p99 > 0).length,
-      )
-    : 0;
-
-  const latestStatus = buckets[buckets.length - 1]?.statusCodes ?? {};
-  const statusTotal =
-    (latestStatus._2xx ?? 0) +
-    (latestStatus._3xx ?? 0) +
-    (latestStatus._4xx ?? 0) +
-    (latestStatus._5xx ?? 0);
+  const statusCodes = summary?.statusCodes ?? { _2xx: 0, _3xx: 0, _4xx: 0, _5xx: 0 };
 
   const hostBuckets = hostData?.buckets ?? [];
   const latestHost = hostBuckets[hostBuckets.length - 1];
@@ -110,15 +107,26 @@ function MetricsPage() {
             <TabsTrigger value="application">Application</TabsTrigger>
             <TabsTrigger value="infrastructure">Infrastructure</TabsTrigger>
           </TabsList>
-          <TimeRangeControl value={range} onChange={setRange} />
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={service}
+              onChange={(event) => setService(event.target.value)}
+              aria-label="Filter by service"
+              className="h-9 rounded-lg border border-border bg-muted px-3 text-xs text-foreground"
+            >
+              <option value="">All services</option>
+              {(serviceList ?? []).map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}
+            </select>
+            <TimeRangeControl value={range} onChange={setRange} />
+          </div>
         </div>
         <TabsContent value="application" className="space-y-6">
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            <MetricCard label="Total requests" value={totalRequests.toLocaleString()} icon={Activity} />
-            <MetricCard label="Error rate" value={errorRate.toFixed(2)} suffix="%" icon={AlertTriangle} />
-            <MetricCard label="P50 latency" value={String(avgP50)} suffix="ms" icon={Gauge} />
-            <MetricCard label="P95 latency" value={String(avgP95)} suffix="ms" icon={Clock3} />
-            <MetricCard label="P99 latency" value={String(avgP99)} suffix="ms" icon={Zap} />
+            <MetricCard label="Total requests" value={summaryLoading ? '—' : (summary?.totalRequests ?? 0).toLocaleString()} icon={Activity} />
+            <MetricCard label="Error rate" value={summaryLoading ? '—' : (summary?.errorRate ?? 0).toFixed(2)} suffix="%" icon={AlertTriangle} />
+            <MetricCard label="P50 latency" value={summaryLoading ? '—' : String(summary?.latencyP50 ?? 0)} suffix="ms" icon={Gauge} />
+            <MetricCard label="P95 latency" value={summaryLoading ? '—' : String(summary?.latencyP95 ?? 0)} suffix="ms" icon={Clock3} />
+            <MetricCard label="P99 latency" value={summaryLoading ? '—' : String(summary?.latencyP99 ?? 0)} suffix="ms" icon={Zap} />
           </section>
 
           <section className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(300px,.75fr)]">
@@ -161,13 +169,13 @@ function MetricsPage() {
               <CardContent className="p-5">
                 <div className="mb-4">
                   <p className="text-sm font-medium">Status codes</p>
-                  <p className="text-xs text-muted-foreground">Latest interval</p>
+                  <p className="text-xs text-muted-foreground">Whole selected range</p>
                 </div>
                 <StatusCodeBreakdown
                   codes={[
-                    { label: '2xx', percentage: statusTotal ? Math.round(((latestStatus._2xx ?? 0) / statusTotal) * 100) : 0, color: 'bg-[#16931F]' },
-                    { label: '4xx', percentage: statusTotal ? Math.round(((latestStatus._4xx ?? 0) / statusTotal) * 100) : 0, color: 'bg-[#F2C66D]' },
-                    { label: '5xx', percentage: statusTotal ? Math.round(((latestStatus._5xx ?? 0) / statusTotal) * 100) : 0, color: 'bg-[#F28B82]' },
+                    { label: '2xx', percentage: statusShare(statusCodes, '_2xx'), color: 'bg-[#16931F]' },
+                    { label: '4xx', percentage: statusShare(statusCodes, '_4xx'), color: 'bg-[#F2C66D]' },
+                    { label: '5xx', percentage: statusShare(statusCodes, '_5xx'), color: 'bg-[#F28B82]' },
                   ]}
                 />
               </CardContent>

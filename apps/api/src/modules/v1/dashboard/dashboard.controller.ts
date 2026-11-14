@@ -1,5 +1,6 @@
-import { Controller, Get, Param, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Param, Post, Query, UseGuards } from "@nestjs/common";
 import { DashboardService } from "./dashboard.service";
+import { ErrorsService } from "../errors";
 import {
   CurrentOrg,
   OrgContext,
@@ -9,7 +10,10 @@ import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
 @UseGuards(TenantGuard)
 @Controller("projects/:projectId/dashboard")
 export class DashboardController {
-  constructor(private readonly dashboardService: DashboardService) {}
+  constructor(
+    private readonly dashboardService: DashboardService,
+    private readonly errorsService: ErrorsService,
+  ) {}
 
   @Get("overview")
   async getOverview(
@@ -48,13 +52,33 @@ export class DashboardController {
     @Query("to") to?: string,
     @Query("service") service?: string,
   ) {
-    return this.dashboardService.getErrors(
-      org.orgId,
-      projectId,
-      limit ? parseInt(limit, 10) : 50,
+    return this.errorsService.listGroups(org.orgId, projectId, {
+      limit: limit ? parseInt(limit, 10) : 50,
       from,
       to,
       service,
-    );
+    });
+  }
+
+  @Get("errors/:fingerprint")
+  async getError(
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+    @Param("fingerprint") fingerprint: string,
+    @Query("from") from?: string,
+    @Query("to") to?: string,
+  ) {
+    return this.errorsService.getGroup(org.orgId, projectId, fingerprint, { from, to });
+  }
+
+  @Post("errors/:fingerprint/finding")
+  async createErrorFinding(
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+    @Param("fingerprint") fingerprint: string,
+    @Query("from") from?: string,
+    @Query("to") to?: string,
+  ) {
+    return this.errorsService.createFinding(org.orgId, projectId, fingerprint, { from, to });
   }
 }

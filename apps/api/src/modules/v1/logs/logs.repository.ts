@@ -8,6 +8,9 @@ export interface RawLogRow {
   level: string;
   service: string;
   message: string;
+  traceId?: string;
+  spanId?: string;
+  stackTrace?: string;
   attributes: Record<string, unknown> | string;
 }
 

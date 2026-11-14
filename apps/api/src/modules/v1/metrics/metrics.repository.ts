@@ -17,6 +17,23 @@ import type {
   MetricPercentiles,
 } from "./percentiles.types";
 
+import {
+  MAX_SERVICES,
+  STATUS_RANGES,
+} from "./request-summary.constants";
+import {
+  errorCountOf,
+  errorRateOf,
+  percentileOf,
+  statusCountsOf,
+} from "./request-summary";
+import type {
+  RawRequestSummary,
+  ServiceAggregation,
+  ServiceRequestSummary,
+  SummaryAggregation,
+} from "./request-summary.types";
+
 export interface MetricsBucket {
   bucket: string;
   count: number;
@@ -138,6 +155,74 @@ export class MetricsRepository {
         _3xx: status.get("3xx") ?? 0,
         _4xx: status.get("4xx") ?? 0,
         _5xx: status.get("5xx") ?? 0,
+      };
+    });
+  }
+
+  async querySummary(params: {
+    orgId: string;
+    projectId: string;
+    from: string;
+    to: string;
+    service?: string;
+  }): Promise<RawRequestSummary> {
+    const filters = params.service ? [quickwitTerm("service", params.service)] : [];
+    const result = await this.quickwit.search(QUICKWIT_INDEXES.requests, {
+      query: quickwitTenantQuery(
+        params.orgId,
+        params.projectId,
+        filters.length ? filters.join(" AND ") : "*",
+      ),
+      startTimestamp: quickwitTimestamp(params.from),
+      endTimestamp: quickwitTimestamp(params.to),
+      maxHits: 0,
+      aggregations: {
+        latency: { percentiles: { field: "duration", percents: [50, 95, 99] } },
+        average: { avg: { field: "duration" } },
+        status: { range: { field: "statusCode", ranges: STATUS_RANGES } },
+      },
+    });
+    const aggregation = (result.aggregations ?? {}) as SummaryAggregation;
+    return {
+      total: result.num_hits,
+      average: aggregation.average?.value ?? 0,
+      p50: percentileOf(aggregation, 50),
+      p95: percentileOf(aggregation, 95),
+      p99: percentileOf(aggregation, 99),
+      status: statusCountsOf(aggregation),
+    };
+  }
+
+  async queryServiceSummaries(params: {
+    orgId: string;
+    projectId: string;
+    from: string;
+    to: string;
+  }): Promise<ServiceRequestSummary[]> {
+    const result = await this.quickwit.search(QUICKWIT_INDEXES.requests, {
+      query: quickwitTenantQuery(params.orgId, params.projectId),
+      startTimestamp: quickwitTimestamp(params.from),
+      endTimestamp: quickwitTimestamp(params.to),
+      maxHits: 0,
+      aggregations: {
+        services: {
+          terms: { field: "service", size: MAX_SERVICES },
+          aggs: {
+            latency: { percentiles: { field: "duration", percents: [95] } },
+            status: { range: { field: "statusCode", ranges: STATUS_RANGES } },
+          },
+        },
+      },
+    });
+    const aggregation = result.aggregations?.services as ServiceAggregation | undefined;
+    return (aggregation?.buckets ?? []).map((bucket) => {
+      const errors = errorCountOf(statusCountsOf(bucket));
+      return {
+        service: bucket.key,
+        requestCount: bucket.doc_count,
+        errorCount: errors,
+        errorRate: errorRateOf(errors, bucket.doc_count),
+        p95Latency: Math.round(percentileOf(bucket, 95)),
       };
     });
   }
