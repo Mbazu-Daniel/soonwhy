@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_FIELD_VALUES } from "../logs.constants";
 
 export const getLogsSchema = z.object({
   projectId: z.string().min(1),
@@ -16,4 +17,10 @@ export const getLogsSchema = z.object({
   cursor: z.string().optional(),
 });
 
+export const getFieldValuesSchema = getLogsSchema.extend({
+  field: z.string().min(1).max(160),
+  size: z.coerce.number().int().min(1).max(MAX_FIELD_VALUES).optional().default(10),
+});
+
 export type GetLogsInput = z.infer<typeof getLogsSchema>;
+export type GetFieldValuesInput = z.infer<typeof getFieldValuesSchema>;
