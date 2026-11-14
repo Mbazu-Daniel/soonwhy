@@ -22,6 +22,28 @@ describe("Soonwhy Node SDK foundation", () => {
     );
   });
 
+  it("stamps a log when it is captured, not when it is flushed", async () => {
+    const fetch = vi.fn().mockResolvedValue(new Response("{}", { status: 200 }));
+    const client = init(options({ fetch }));
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
+    client.captureError({ error: new Error("first") });
+    vi.setSystemTime(new Date("2026-01-01T00:00:05.000Z"));
+    client.captureLog({ level: "info", message: "second" });
+    vi.setSystemTime(new Date("2026-01-01T00:01:00.000Z"));
+    await client.flush();
+    vi.useRealTimers();
+
+    const body = JSON.parse(String(fetch.mock.calls[0]?.[1]?.body));
+    const times = body.resourceLogs[0].scopeLogs[0].logRecords.map(
+      (record: { timeUnixNano: string }) => Number(BigInt(record.timeUnixNano) / 1_000_000n),
+    );
+    expect(times).toEqual([
+      Date.parse("2026-01-01T00:00:00.000Z"),
+      Date.parse("2026-01-01T00:00:05.000Z"),
+    ]);
+  });
+
   it("batches manual telemetry and sends OTLP JSON", async () => {
     const fetch = vi
       .fn()

@@ -24,7 +24,7 @@ export class TelemetryBatcher {
   ) {}
 
   captureLog(input: LogInput): void {
-    this.logs.push(input);
+    this.logs.push({ ...input, timestamp: input.timestamp ?? Date.now() });
     this.scheduleFlushIfFull();
   }
 
