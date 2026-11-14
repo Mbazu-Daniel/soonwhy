@@ -24,6 +24,25 @@ export interface QuickwitSearchInput {
   aggregations?: Record<string, unknown>;
 }
 
+export interface QuickwitIndexDescription {
+  index_id: string;
+  num_published_splits: number;
+  size_published_splits: number;
+  num_published_docs: number;
+  size_published_docs_uncompressed: number;
+  min_timestamp?: number | null;
+  max_timestamp?: number | null;
+}
+
+export interface QuickwitSplit {
+  split_state: string;
+  update_timestamp?: number;
+  publish_timestamp?: number | null;
+  num_docs?: number;
+  footer_offsets?: { start: number; end: number };
+  maturity?: { type: string; maturation_period_millis?: number };
+}
+
 @Injectable()
 export class QuickwitService {
   private readonly logger = new Logger(QuickwitService.name);
@@ -52,6 +71,22 @@ export class QuickwitService {
     }
 
     return response.json() as Promise<T>;
+  }
+
+  describeIndex(indexId: string): Promise<QuickwitIndexDescription> {
+    return this.request<QuickwitIndexDescription>(
+      `/api/v1/indexes/${encodeURIComponent(indexId)}/describe`,
+      { method: "GET" },
+    );
+  }
+
+  async listSplits(indexId: string, limit = 1000): Promise<QuickwitSplit[]> {
+    const states = "Published,Staged,MarkedForDeletion";
+    const result = await this.request<{ splits?: QuickwitSplit[] }>(
+      `/api/v1/indexes/${encodeURIComponent(indexId)}/splits?limit=${Math.trunc(limit)}&split_states=${states}`,
+      { method: "GET" },
+    );
+    return result.splits ?? [];
   }
 
   private async indexExists(indexId: string): Promise<boolean> {

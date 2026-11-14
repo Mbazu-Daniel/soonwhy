@@ -5,6 +5,7 @@ import { Card, CardContent } from '~/components/ui/card';
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
 import { api } from '~/lib/api';
+import { INDEX_STATUS_LABEL, formatAge, formatBytes, type IndexHealthSnapshot, type IndexStatus } from '~/lib/index-health';
 
 export const Route = createFileRoute('/admin/system-health')({
   component: SystemHealthPage,
@@ -37,6 +38,13 @@ interface DlqStats {
   failed: number;
 }
 
+const INDEX_STATUS_COLOR: Record<IndexStatus, string> = {
+  healthy: 'text-[#16931F]',
+  stale: 'text-[#E5A100]',
+  empty: 'text-muted-foreground',
+  unavailable: 'text-[#F2555A]',
+};
+
 function SystemHealthPage() {
   const ingestStats = useQuery({
     queryKey: ['ingest-health-stats'],
@@ -53,6 +61,12 @@ function SystemHealthPage() {
   const dlqStats = useQuery({
     queryKey: ['dlq-stats'],
     queryFn: () => api.get<DlqStats>('/admin/dlq/stats'),
+    refetchInterval: 30000,
+  });
+
+  const indexHealth = useQuery({
+    queryKey: ['index-health'],
+    queryFn: () => api.get<IndexHealthSnapshot>('/admin/index-health'),
     refetchInterval: 30000,
   });
 
@@ -96,6 +110,7 @@ function SystemHealthPage() {
               void ingestStats.refetch();
               void pipelineLag.refetch();
               void dlqStats.refetch();
+              void indexHealth.refetch();
             }}
           >
             <RefreshCw className="h-4 w-4" />
@@ -219,6 +234,53 @@ function SystemHealthPage() {
               <p className="text-lg font-semibold">{pipelineLag.data?.quickwitPendingDocs.toLocaleString() || 0}</p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-none">
+        <CardContent className="p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-sm font-medium">Index Health</h3>
+            <span className="text-xs text-muted-foreground">
+              No recent events after {indexHealth.data?.staleAfterMinutes ?? 60} min
+            </span>
+          </div>
+          {indexHealth.isError ? (
+            <p role="alert" className="text-xs text-[#F2555A]">Could not load index health.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="text-muted-foreground">
+                  <tr>
+                    <th className="pb-2 pr-4 font-normal">Index</th>
+                    <th className="pb-2 pr-4 font-normal">Status</th>
+                    <th className="pb-2 pr-4 text-right font-normal">Documents</th>
+                    <th className="pb-2 pr-4 text-right font-normal">Size</th>
+                    <th className="pb-2 pr-4 text-right font-normal">Splits</th>
+                    <th className="pb-2 pr-4 font-normal">Last event</th>
+                    <th className="pb-2 font-normal">Last publish</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(indexHealth.data?.indexes ?? []).map((index) => (
+                    <tr key={index.indexId} className="border-t border-[#242426]">
+                      <td className="py-2 pr-4 font-mono">{index.indexId}</td>
+                      <td className={`py-2 pr-4 ${INDEX_STATUS_COLOR[index.status]}`} title={index.error}>
+                        {INDEX_STATUS_LABEL[index.status]}
+                      </td>
+                      <td className="py-2 pr-4 text-right tabular-nums">{index.documents.toLocaleString()}</td>
+                      <td className="py-2 pr-4 text-right tabular-nums">{formatBytes(index.sizeBytes)}</td>
+                      <td className="py-2 pr-4 text-right tabular-nums" title={`${index.splits.immature} immature, ${index.splits.staged} staged, ${index.splits.markedForDeletion} marked for deletion`}>
+                        {index.splits.published.toLocaleString()}{index.splits.truncated ? '+' : ''}
+                      </td>
+                      <td className="py-2 pr-4">{formatAge(index.newestEventAt)}</td>
+                      <td className="py-2">{formatAge(index.splits.lastPublishedAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
