@@ -7,6 +7,9 @@ import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
 import { quickwitSource, quickwitTenantQuery } from "../../../common/quickwit/query";
 import { ServicesRepository } from "./services.repository";
 import { CreateServiceInput, UpdateServiceInput } from "./dto";
+import { observedServiceNames } from "./observed-services";
+import { serviceSlug, uniqueSlug } from "./service-slug";
+import { MAX_OBSERVED_SERVICES, MAX_SYNC_ROUNDS, SYNC_INTERVAL_MS } from "./service-sync.constants";
 
 interface TraceSpanSource {
   service?: string;
@@ -16,10 +19,45 @@ interface TraceSpanSource {
 
 @Injectable()
 export class ServicesService {
+  private readonly lastSync = new Map<string, number>();
+  private readonly inFlight = new Map<string, Promise<void>>();
+
   constructor(
     private readonly servicesRepository: ServicesRepository,
     private readonly quickwit: QuickwitService,
   ) {}
+
+  private async syncObservedServices(projectId: string, orgId: string): Promise<void> {
+    const key = `${orgId}:${projectId}`;
+    const running = this.inFlight.get(key);
+    if (running) return running;
+    if (Date.now() - (this.lastSync.get(key) ?? 0) < SYNC_INTERVAL_MS) return;
+    const task = (async () => {
+      try {
+        const existing = await this.servicesRepository.getServicesByProjectId(projectId, orgId);
+        const names = new Set(existing.map((svc) => svc.name));
+        const slugs = new Set(existing.map((svc) => svc.slug));
+        for (let round = 0; round < MAX_SYNC_ROUNDS; round += 1) {
+          const observed = await observedServiceNames(this.quickwit, orgId, projectId, [...names]);
+          const fresh = observed.filter((name) => !names.has(name));
+          for (const name of fresh) {
+            const slug = uniqueSlug(serviceSlug(name), slugs);
+            names.add(name);
+            slugs.add(slug);
+            await this.servicesRepository.createService({ projectId, orgId, name, slug });
+          }
+          if (observed.length < MAX_OBSERVED_SERVICES || !fresh.length) break;
+        }
+      } catch {
+        return;
+      } finally {
+        this.lastSync.set(key, Date.now());
+        this.inFlight.delete(key);
+      }
+    })();
+    this.inFlight.set(key, task);
+    return task;
+  }
 
   async getServiceMap(projectId: string, orgId: string) {
     const result = await this.quickwit.search<TraceSpanSource>(
@@ -50,6 +88,7 @@ export class ServicesService {
   }
 
   async getServicesForProject(projectId: string, orgId: string) {
+    await this.syncObservedServices(projectId, orgId);
     return this.servicesRepository.getServicesByProjectId(projectId, orgId);
   }
 

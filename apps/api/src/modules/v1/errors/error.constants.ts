@@ -6,3 +6,5 @@ export const DEFAULT_RANGE_MS = 86_400_000;
 export const MAX_MESSAGE_LENGTH = 300;
 export const FINGERPRINT_LENGTH = 16;
 export const ERROR_FINDING_TYPE = "error_group";
+export const HTTP_ERROR_FLOOR = 400;
+export const HTTP_SERVER_ERROR_FLOOR = 500;

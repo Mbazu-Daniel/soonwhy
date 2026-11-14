@@ -106,4 +106,77 @@ describe("ServicesService", () => {
     ).rejects.toBeInstanceOf(NotFoundException);
     expect(repository.updateService).not.toHaveBeenCalled();
   });
+
+  it("registers services seen in telemetry that have no row yet", async () => {
+    const search = vi.fn().mockResolvedValue({
+      aggregations: { services: { buckets: [{ key: "mivacampus-api" }, { key: "Billing API" }] } },
+    });
+    repository.getServicesByProjectId.mockResolvedValue([{ name: "mivacampus-api", slug: "mivacampus-api" }]);
+    repository.createService.mockClear();
+    const service = new ServicesService(repository as never, { search } as never);
+    await service.getServicesForProject("project-sync", "org-1");
+    expect(repository.createService).toHaveBeenCalledTimes(1);
+    expect(repository.createService).toHaveBeenCalledWith({
+      projectId: "project-sync",
+      orgId: "org-1",
+      name: "Billing API",
+      slug: "billing-api",
+    });
+  });
+
+  it("still lists services when telemetry cannot be read", async () => {
+    const search = vi.fn().mockRejectedValue(new Error("quickwit down"));
+    repository.getServicesByProjectId.mockResolvedValue([{ name: "api", slug: "api" }]);
+    const service = new ServicesService(repository as never, { search } as never);
+    await expect(service.getServicesForProject("project-down", "org-1")).resolves.toHaveLength(1);
+  });
+
+  it("keeps two telemetry names whose slugs collide", async () => {
+    const search = vi.fn().mockResolvedValueOnce({
+      aggregations: { services: { buckets: [{ key: "payments.prod" }, { key: "payments_prod" }] } },
+    }).mockResolvedValue({ aggregations: { services: { buckets: [] } } });
+    repository.getServicesByProjectId.mockResolvedValue([]);
+    repository.createService.mockClear();
+    const service = new ServicesService(repository as never, { search } as never);
+    await service.getServicesForProject("project-collide", "org-1");
+    const slugs = repository.createService.mock.calls.map((call) => (call[0] as { slug: string }).slug);
+    expect(slugs).toEqual(["payments-prod", "payments-prod-2"]);
+  });
+
+  it("registers from the indexes that answered when one fails", async () => {
+    const search = vi.fn().mockImplementation(async (index: string) => {
+      if (index.includes("trace")) throw new Error("traces down");
+      return { aggregations: { services: { buckets: index.includes("log") ? [{ key: "worker" }] : [] } } };
+    });
+    repository.getServicesByProjectId.mockResolvedValue([]);
+    repository.createService.mockClear();
+    const service = new ServicesService(repository as never, { search } as never);
+    await service.getServicesForProject("project-partial", "org-1");
+    expect(repository.createService).toHaveBeenCalledWith(expect.objectContaining({ name: "worker" }));
+  });
+
+  it("does not retry immediately after a failed sync", async () => {
+    const search = vi.fn().mockRejectedValue(new Error("down"));
+    repository.getServicesByProjectId.mockResolvedValue([]);
+    const service = new ServicesService(repository as never, { search } as never);
+    await service.getServicesForProject("project-backoff", "org-1");
+    const calls = search.mock.calls.length;
+    await service.getServicesForProject("project-backoff", "org-1");
+    expect(search.mock.calls.length).toBe(calls);
+  });
+
+  it("keeps asking for names it has not seen when the first page is full", async () => {
+    const full = Array.from({ length: 200 }, (_, n) => ({ key: `svc-${n}` }));
+    const search = vi.fn()
+      .mockResolvedValueOnce({ aggregations: { services: { buckets: full } } })
+      .mockResolvedValueOnce({ aggregations: { services: { buckets: [] } } })
+      .mockResolvedValueOnce({ aggregations: { services: { buckets: [] } } })
+      .mockResolvedValueOnce({ aggregations: { services: { buckets: [{ key: "late-service" }] } } })
+      .mockResolvedValue({ aggregations: { services: { buckets: [] } } });
+    repository.getServicesByProjectId.mockResolvedValue([]);
+    repository.createService.mockClear();
+    const service = new ServicesService(repository as never, { search } as never);
+    await service.getServicesForProject("project-many", "org-1");
+    expect(repository.createService).toHaveBeenCalledWith(expect.objectContaining({ name: "late-service" }));
+  });
 });
