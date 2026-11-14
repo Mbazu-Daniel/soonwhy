@@ -123,9 +123,15 @@ function DashboardOverviewPage() {
       </div>
 
       {(telemetryStatus?.status === 'stale' || overviewStale) && (
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-[#5A4A1C] bg-[#2A220F] px-4 py-3 text-xs text-[#D8C68A]">
-          <span>Telemetry is stale. Showing the last available result while new events are awaited.</span>
-          <span className="shrink-0">{telemetryStatus.lastTelemetryAt ? new Date(telemetryStatus.lastTelemetryAt).toLocaleTimeString() : 'Unknown'}</span>
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-[#5A4A1C] bg-[#2A220F] px-4 py-3 text-xs text-[#D8C68A]">
+          <div>
+            <p className="font-medium text-[#E8DCA6]">No new telemetry in the last 5 minutes</p>
+            <p className="mt-0.5 text-[#B3A470]">Figures below are from the last events received. This usually means the connected service is idle right now; if it is getting traffic, the shipper may have stopped sending.</p>
+          </div>
+          <div className="shrink-0 text-right">
+            <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[#8A7B4E]">Last event</p>
+            <p className="mt-0.5 font-mono">{telemetryStatus?.lastTelemetryAt ? new Date(telemetryStatus.lastTelemetryAt).toLocaleString() : 'Unknown'}</p>
+          </div>
         </div>
       )}
 
