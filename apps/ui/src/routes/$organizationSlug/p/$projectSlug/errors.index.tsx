@@ -11,6 +11,9 @@ import { QueryErrorState } from '~/components/query-error-state';
 import { useProject } from '~/lib/project-context';
 import { TimeRangeControl, telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
 import type { ErrorGroup, FindingResult } from '~/lib/error-groups';
+import { IssueStatusBadge } from '~/components/errors/issue-status';
+import { STATUS_FILTERS, countByFilter, matchesFilter } from '~/lib/error-status';
+import type { StatusFilter } from '~/lib/error-status.types';
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/errors/')({ component: ProjectErrors });
 
@@ -18,6 +21,7 @@ function ProjectErrors() {
   const { organizationSlug, projectSlug } = Route.useParams();
   const { projectId } = useProject();
   const [range, setRange] = useState<TelemetryRange>('24h');
+  const [filter, setFilter] = useState<StatusFilter>('open');
   const [activeFingerprint, setActiveFingerprint] = useState<string | null>(null);
   const rangeQuery = new URLSearchParams(telemetryRangeParams(range)).toString();
   const queryClient = useQueryClient();
@@ -35,13 +39,25 @@ function ProjectErrors() {
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['detections', projectId] }),
   });
 
+  const counts = countByFilter((errors ?? []).map((error) => error.issue.status));
+  const visible = (errors ?? []).filter((error) => matchesFilter(error.issue.status, filter));
+
   if (!projectId) return <Card><CardContent className="p-10 text-center"><p className="font-medium">Choose a project</p></CardContent></Card>;
   if (isError && !errors) return <QueryErrorState onRetry={() => void refetch()} />;
 
   return (
     <div className="mx-auto w-full space-y-6 pb-10">
       <h1 className="sr-only">Errors</h1>
-      <div className="flex flex-wrap items-end justify-end gap-4"><TimeRangeControl value={range} onChange={setRange} /></div>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div role="tablist" aria-label="Status" className="flex gap-1 rounded-lg border border-border p-1">
+          {STATUS_FILTERS.map((item) => (
+            <button key={item.value} type="button" role="tab" aria-selected={filter === item.value} onClick={() => setFilter(item.value)} className={`rounded-md px-3 py-1 text-xs font-medium ${filter === item.value ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+              {item.label} <span className="text-muted-foreground">{counts[item.value]}</span>
+            </button>
+          ))}
+        </div>
+        <TimeRangeControl value={range} onChange={setRange} />
+      </div>
       {isError && errors && (
         <div className="rounded-xl border border-[#5A4A1C] bg-[#2A220F] px-4 py-3 text-xs text-[#D8C68A]">
           Showing the last successful error data. <button type="button" className="font-medium underline" onClick={() => void refetch()}>Retry</button>
@@ -52,15 +68,15 @@ function ProjectErrors() {
         <CardContent className="p-0">
           {isLoading && !errors ? (
             <div className="space-y-2 p-5">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16" />)}</div>
-          ) : !errors?.length ? (
+          ) : !visible.length ? (
             <div className="p-12 text-center">
               <AlertCircle className="mx-auto h-8 w-8 text-[#16931F]" />
-              <p className="mt-3 font-medium">No errors found</p>
-              <p className="mt-1 text-sm text-[#989898]">No errors in this time range.</p>
+              <p className="mt-3 font-medium">{errors?.length ? 'Nothing in this view' : 'No errors found'}</p>
+              <p className="mt-1 text-sm text-[#989898]">{errors?.length ? 'Try another status filter.' : 'No errors in this time range.'}</p>
             </div>
           ) : (
             <div className="divide-y divide-[#1B1B1D]">
-              {errors.map((error) => {
+              {visible.map((error) => {
                 const creating = createFinding.isPending && activeFingerprint === error.fingerprint;
                 return (
                   <article key={error.fingerprint} className="flex flex-col gap-4 p-5 transition-colors hover:bg-[#151517] lg:flex-row lg:items-center">
@@ -75,6 +91,7 @@ function ProjectErrors() {
                         <div className="flex flex-wrap items-center gap-2">
                           <h2 className="truncate font-mono text-sm font-medium">{error.errorMessage}</h2>
                           <Badge variant="outline">{error.errorType}</Badge>
+                          <IssueStatusBadge status={error.issue.status} />
                         </div>
                         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#989898]">
                           <span className="font-medium text-foreground">{error.service}</span>

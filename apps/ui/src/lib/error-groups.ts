@@ -1,4 +1,12 @@
+export type IssueStatus = 'unresolved' | 'resolved' | 'ignored' | 'regressed';
+
+export interface ErrorIssueState {
+  status: IssueStatus;
+  resolvedAt: string | null;
+}
+
 export interface ErrorGroup {
+  issue: ErrorIssueState;
   fingerprint: string;
   errorMessage: string;
   errorType: string;
@@ -26,6 +34,7 @@ export interface ErrorOccurrence {
 }
 
 export interface ErrorGroupDetail extends ErrorGroup {
+  findingId: string | null;
   occurrences: ErrorOccurrence[];
   traceIds: string[];
   timeline: Array<{ start: string; count: number }>;
