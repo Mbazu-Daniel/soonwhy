@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import { QueryErrorState } from '~/components/query-error-state';
 import { api } from '~/lib/api';
 import { useProject } from '~/lib/project-context';
+import { MCP_READ_SCOPE } from '~/lib/api-key-scopes';
 import type { ApiKey } from '~/lib/types';
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/api-keys')({ component: ApiKeysPage });
@@ -157,7 +158,10 @@ function ApiKeysPage() {
               ) : (
                 filtered.map((key) => (
                   <TableRow key={key.id}>
-                    <TableCell className="pl-5 font-medium">{key.name}</TableCell>
+                    <TableCell className="pl-5 font-medium">
+                      {key.name}
+                      {key.scopes?.includes(MCP_READ_SCOPE) && <span className="ml-2 rounded border border-border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">MCP</span>}
+                    </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">{key.prefix}••••••••</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{key.createdAt ? new Date(key.createdAt).toLocaleString() : '—'}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleString() : 'Never'}</TableCell>
@@ -207,9 +211,13 @@ function CreateKeyDialog({
 }) {
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
+  const [mcpAccess, setMcpAccess] = useState(false);
 
   const create = useMutation({
-    mutationFn: () => api.post<ApiKey>(`/projects/${projectId}/api-keys`, { name: name.trim() || 'Ingestion key' }),
+    mutationFn: () => api.post<ApiKey>(`/projects/${projectId}/api-keys`, {
+      name: name.trim() || (mcpAccess ? 'MCP key' : 'Ingestion key'),
+      scopes: mcpAccess ? [MCP_READ_SCOPE] : [],
+    }),
     onSuccess: (key) => {
       onCreated(key);
       void queryClient.invalidateQueries({ queryKey: ['api-keys', projectId] });
@@ -241,6 +249,13 @@ function CreateKeyDialog({
               autoFocus
             />
           </div>
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" className="mt-1" checked={mcpAccess} onChange={(event) => setMcpAccess(event.target.checked)} />
+            <span>
+              Allow read access over MCP
+              <span className="block text-xs text-muted-foreground">Lets an AI assistant read this project's errors, logs, traces and findings. It cannot change anything. Leave off for ingestion keys.</span>
+            </span>
+          </label>
           {create.isError && <p role="alert" className="text-sm text-destructive">Could not create the key. Try again.</p>}
           <Button type="submit" className="w-full" disabled={create.isPending}>
             {create.isPending ? <Loader2 className="animate-spin" /> : <Plus />}

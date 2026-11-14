@@ -71,6 +71,7 @@ import { EvidenceGraphModule } from "./modules/v1/intelligence/evidence-graph/ev
 import { AIInvestigationModule } from "./modules/v1/intelligence/ai-investigation/ai-investigation.module";
 import { RecommendationEngineModule } from "./modules/v1/intelligence/recommendation-engine/recommendation-engine.module";
 import { VerificationEngineModule } from "./modules/v1/intelligence/verification-engine/verification-engine.module";
+import { SoonwhyMcpModule } from "./modules/v1/mcp";
 import { RcaModule } from "./modules/v1/detections/rca.module";
 import { TelemetryModule } from "./common/telemetry";
 
@@ -157,6 +158,7 @@ const organizationScopedModules = [
       ? [IngestHealthModule, PipelineLagModule, SelfMonitoringModule]
       : []),
     PlatformAdminModule,
+    SoonwhyMcpModule,
     IncidentsModule,
     ...organizationScopedModules,
   ],
