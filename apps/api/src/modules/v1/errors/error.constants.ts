@@ -17,3 +17,9 @@ export const CAUSE_MARKER = /^Caused by:\s*/;
 export const LIBRARY_FRAME = /(?:^|[\\/])node_modules[\\/]|\bnode:|\binternal\//;
 export const ERROR_ISSUE_STATES_LIMIT = 2000;
 export const ERROR_FINGERPRINT_PATTERN = /^[0-9a-f]{16}$/;
+
+export const REQUEST_LOG_MATCH_WINDOW_MS = 2000;
+
+export const FINGERPRINT_FRAME_COUNT = 3;
+export const FRAME_PATTERN = /^at\s+(?:(.*?)\s+\()?(.*?)\)?$/;
+export const FRAME_POSITION_PATTERN = /(?::\d+){1,2}$/;
