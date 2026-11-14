@@ -90,3 +90,18 @@ describe("TracesRepository", () => {
     expect(await repository.spanLogCounts({ orgId: "o", projectId: "p", traceId: "t" })).toEqual({ s1: 3 });
   });
 });
+
+describe("trace id filter", () => {
+  it("restricts entry spans to the given traces", () => {
+    expect(traceFilters({ traceIds: ["a", "b"] })).toContain('traceId:("a" OR "b")');
+    expect(traceFilters({ traceIds: [] }).some((filter) => filter.startsWith("traceId:"))).toBe(false);
+  });
+
+  it("parses a comma separated list and rejects odd ids or too many", async () => {
+    const { getTracesSchema } = await import("./dto");
+    const base = { projectId: "p" };
+    expect(getTracesSchema.parse({ ...base, traceIds: "a, b ,c" }).traceIds).toEqual(["a", "b", "c"]);
+    expect(getTracesSchema.safeParse({ ...base, traceIds: 'a" OR org_id:x' }).success).toBe(false);
+    expect(getTracesSchema.safeParse({ ...base, traceIds: Array.from({ length: 101 }, (_, i) => `t${i}`).join(",") }).success).toBe(false);
+  });
+});

@@ -11,10 +11,12 @@ describe('trace filter params', () => {
     expect(params.get('status')).toBe('error');
     expect(params.get('minDuration')).toBe('0');
     expect(params.has('maxDuration')).toBe(false);
+    expect(traceFilterParams({ ...EMPTY_TRACE_FILTERS, traceIds: 'a,b' }, range).get('traceIds')).toBe('a,b');
   });
 
   it('knows when any filter is active', () => {
     expect(hasTraceFilters(EMPTY_TRACE_FILTERS)).toBe(false);
     expect(hasTraceFilters({ ...EMPTY_TRACE_FILTERS, operation: 'GET /' })).toBe(true);
+    expect(hasTraceFilters({ ...EMPTY_TRACE_FILTERS, traceIds: 'a' })).toBe(true);
   });
 });
