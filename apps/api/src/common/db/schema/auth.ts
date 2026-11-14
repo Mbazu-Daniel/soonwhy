@@ -68,6 +68,17 @@ export const sessions = pgTable("sessions", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const verifications = pgTable("verifications", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => generateId()),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const members = pgTable("members", {
   id: text("id")
     .primaryKey()

@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { bearer, organization } from "better-auth/plugins";
+import { bearer, genericOAuth, organization } from "better-auth/plugins";
 import { APIError } from "better-auth/api";
 import argon2 from "argon2";
 import { and, eq, sql } from "drizzle-orm";
@@ -9,10 +9,14 @@ import { db } from "../db";
 import * as schema from "../db/schema";
 import * as dotenv from "dotenv";
 dotenv.config();
+import { oidc } from "./oidc.config";
 
 export const githubEnabled = Boolean(
   process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET,
 );
+
+export const oidcEnabled = oidc !== null;
+export const oidcProvider = oidc ? { id: oidc.providerId, name: oidc.name } : null;
 
 export const googleEnabled = Boolean(
   process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET,
@@ -133,6 +137,7 @@ export const auth = betterAuth({
       user: schema.users,
       account: schema.accounts,
       session: schema.sessions,
+      verification: schema.verifications,
       organization: schema.organizations,
       member: schema.members,
       organizations: schema.organizations,
@@ -182,6 +187,23 @@ export const auth = betterAuth({
   },
   plugins: [
     bearer(),
+    ...(oidc
+      ? [
+          genericOAuth({
+            config: [
+              {
+                providerId: oidc.providerId,
+                discoveryUrl: oidc.discoveryUrl,
+                clientId: oidc.clientId,
+                clientSecret: oidc.clientSecret,
+                scopes: oidc.scopes,
+                pkce: true,
+                requireIdTokenVerification: true,
+              },
+            ],
+          }),
+        ]
+      : []),
     organization({
       requireEmailVerificationOnInvitation: false,
       schema: {

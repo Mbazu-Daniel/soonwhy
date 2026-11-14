@@ -50,6 +50,7 @@ export interface AuthProviders {
   emailAndPassword: boolean;
   google: boolean;
   github: boolean;
+  oidc: { id: string; name: string } | null;
 }
 
 export async function signIn(email: string, password: string): Promise<AuthResult> {
@@ -85,7 +86,7 @@ export async function signUp(email: string, password: string): Promise<AuthResul
 }
 
 export async function getAuthProviders(): Promise<AuthProviders> {
-  const fallback: AuthProviders = { emailAndPassword: true, google: false, github: false };
+  const fallback: AuthProviders = { emailAndPassword: true, google: false, github: false, oidc: null };
 
   try {
     const res = await fetch(`${API_BASE}${API_PREFIX}/auth/providers`, {
@@ -96,6 +97,14 @@ export async function getAuthProviders(): Promise<AuthProviders> {
   } catch {
     return fallback;
   }
+}
+
+export function getSsoSignInUrl(callbackPath = '/auth/callback'): string {
+  const callbackURL = typeof window !== 'undefined'
+    ? new URL(callbackPath, window.location.origin).toString()
+    : callbackPath;
+
+  return `${API_BASE}${API_PREFIX}/auth/sso?callbackURL=${encodeURIComponent(callbackURL)}`;
 }
 
 export function getSocialSignInUrl(provider: 'google' | 'github', callbackPath = '/auth/callback'): string {
