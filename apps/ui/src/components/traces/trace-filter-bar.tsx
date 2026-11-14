@@ -27,6 +27,12 @@ export function TraceFilterBar({ filters, onChange, services, range, onRange }: 
         </div>
         <TimeRangeControl value={range} onChange={onRange} />
       </div>
+      {filters.traceIds && (
+        <p className="flex items-center gap-2 px-1 text-xs text-[#989898]">
+          Showing {filters.traceIds.split(',').length.toLocaleString()} traces from an error group, over the last 30 days.
+          <button type="button" className="underline hover:text-[#F6F6F6]" onClick={() => set({ traceIds: '' })}>Show all traces</button>
+        </p>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <Select value={filters.service || ALL} onValueChange={(value) => set({ service: value === ALL ? '' : value })}>
           <SelectTrigger aria-label="Service" className="h-9 w-[160px] border-[#242426] bg-[#151517] px-2 text-xs"><SelectValue /></SelectTrigger>

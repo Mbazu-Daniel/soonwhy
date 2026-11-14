@@ -108,6 +108,11 @@ function ErrorDetail() {
             </Link>
           )}
           {createFinding.isError && <span className="text-sm text-[#8A1C13]">{createFinding.error instanceof Error ? createFinding.error.message : 'Could not create finding.'}</span>}
+          {group.traceIds.length > 0 && (
+            <Link to="/$organizationSlug/p/$projectSlug/traces" params={{ organizationSlug, projectSlug }} search={{ ids: group.traceIds.join(',') }}>
+              <Button size="sm" variant="outline"><GitBranch className="mr-2 h-3.5 w-3.5" />Open {group.traceIds.length === group.traceCount ? `all ${group.traceCount.toLocaleString()}` : `latest ${group.traceIds.length.toLocaleString()} of ${group.traceCount.toLocaleString()}`} in traces</Button>
+            </Link>
+          )}
           <div className="ml-auto"><TimeRangeControl value={range} onChange={(value) => void navigate({ search: { range: value } })} /></div>
         </div>
       </header>

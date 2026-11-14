@@ -27,6 +27,7 @@ export interface ErrorOccurrence {
 
 export interface ErrorGroupDetail extends ErrorGroup {
   occurrences: ErrorOccurrence[];
+  traceIds: string[];
   timeline: Array<{ start: string; count: number }>;
 }
 

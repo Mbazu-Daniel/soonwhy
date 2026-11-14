@@ -10,7 +10,7 @@ import type { TraceSpan } from '~/components/trace/trace.types';
 import { telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
 import { TraceCharts } from '~/components/traces/trace-charts';
 import { TraceFilterBar } from '~/components/traces/trace-filter-bar';
-import { EMPTY_TRACE_FILTERS, hasTraceFilters, type TraceFilterState } from '~/lib/trace-search';
+import { EMPTY_TRACE_FILTERS, hasTraceFilters, retentionWindow, type TraceFilterState } from '~/lib/trace-search';
 import { useDebounced } from '~/lib/use-debounced';
 import { useSpanLogCounts, useTracePages, useTraceStats } from '~/lib/use-trace-search';
 import { Card, CardContent } from '~/components/ui/card';
@@ -23,6 +23,10 @@ import { useProject } from '~/lib/project-context';
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/traces')({
   component: TraceExplorer,
+  validateSearch: (search: Record<string, unknown>): { service?: string; ids?: string } => ({
+    service: typeof search.service === 'string' && search.service ? search.service.slice(0, 200) : undefined,
+    ids: typeof search.ids === 'string' && search.ids ? search.ids.slice(0, 6500) : undefined,
+  }),
 });
 
 interface TraceResponse {
@@ -40,16 +44,17 @@ interface LogEntry {
 
 function TraceExplorer() {
   const { projectSlug, orgSlug } = useProject();
-  const { service: serviceFilter } = Route.useSearch() as { service?: string };
+  const { service: serviceFilter, ids: idsFilter } = Route.useSearch();
   const { projectId } = useProject();
-  const [filters, setFilters] = useState<TraceFilterState>({ ...EMPTY_TRACE_FILTERS, service: serviceFilter ?? '' });
+  const [filters, setFilters] = useState<TraceFilterState>({ ...EMPTY_TRACE_FILTERS, service: serviceFilter ?? '', traceIds: idsFilter ?? '' });
   const [range, setRange] = useState<TelemetryRange>('24h');
   const [selectedTraceId, setSelectedTraceId] = useState<string>();
-  const getRange = useCallback(() => telemetryRangeParams(range), [range]);
-
   const applied = useDebounced(filters);
-  const pages = useTracePages(projectId, applied, getRange, range, 15_000);
-  const stats = useTraceStats(projectId, applied, getRange, range);
+  const byIds = applied.traceIds !== '';
+  const getRange = useCallback(() => byIds ? retentionWindow() : telemetryRangeParams(range), [range, byIds]);
+  const rangeKey = byIds ? 'ids' : range;
+  const pages = useTracePages(projectId, applied, getRange, rangeKey, 15_000);
+  const stats = useTraceStats(projectId, applied, getRange, rangeKey);
   const services = useQuery({
     queryKey: ['trace-filter-services', projectId],
     queryFn: () => api.get<Array<{ name: string }>>(`/projects/${projectId}/services`),
