@@ -28,11 +28,6 @@ export async function platformRoleFor(userId: string | undefined): Promise<Platf
   return role === PLATFORM_ROLE.ADMIN || role === PLATFORM_ROLE.SUPER_ADMIN ? role : PLATFORM_ROLE.NONE;
 }
 
-/**
- * Restricts a route to any Soonwhy staff member (admin or super_admin).
- * Staff see platform-wide data across organizations
- * (DLQ, ingest health, platform metrics).
- */
 @Injectable()
 export class PlatformAdminGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -48,10 +43,6 @@ export class PlatformAdminGuard implements CanActivate {
   }
 }
 
-/**
- * Restricts a route to Soonwhy super_admins only.
- * Destructive platform operations (DLQ replay/delete, platform alerts).
- */
 @Injectable()
 export class SuperAdminGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {

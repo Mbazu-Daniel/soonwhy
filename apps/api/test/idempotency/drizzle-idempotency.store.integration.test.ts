@@ -15,7 +15,6 @@ describe.skipIf(!databaseTestsEnabled)("DrizzleIdempotencyStore", () => {
   const createStore = () => new DrizzleIdempotencyStore(new IdempotencyStorage());
 
   describe("the IdempotencyStore contract", () => {
-    // Date is faked, not timers: the driver keeps its own timers.
     beforeEach(() => vi.useFakeTimers({ toFake: ["Date"] }));
     afterEach(() => vi.useRealTimers());
 

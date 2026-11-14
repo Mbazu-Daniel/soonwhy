@@ -1,12 +1,6 @@
 import { createDocument } from "zod-openapi";
 import { authPaths } from "./auth-paths";
 
-/**
- * Hand-assembled from zod schemas (single source of truth). Starts with the
- * auth slice; organization and remaining modules register their paths here as
- * they are documented. Route handlers keep using @Body({ schema }) — this
- * module only projects the same schemas into an OpenAPI document.
- */
 export const apiDocument = createDocument({
   openapi: "3.1.0",
   info: {

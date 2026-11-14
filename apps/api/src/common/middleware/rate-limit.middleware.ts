@@ -18,7 +18,6 @@ export class RateLimitMiddleware implements NestMiddleware {
   private readonly trackers = new Map<string, RateLimitEntry>();
 
   constructor() {
-    // Default limits per endpoint type
     this.limits.set("default", { windowMs: 60000, maxRequests: 100 });
     this.limits.set("ai-investigation", { windowMs: 60000, maxRequests: 10 });
     this.limits.set("ai-intelligence", { windowMs: 60000, maxRequests: 50 });

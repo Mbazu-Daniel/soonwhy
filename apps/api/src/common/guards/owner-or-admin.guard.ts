@@ -6,11 +6,6 @@ import {
 } from "@nestjs/common";
 import type { TenantRequest } from "../middleware/tenant-context.middleware";
 
-/**
- * Restricts an org-scoped route to organisation owners and admins.
- * Relies on TenantContextMiddleware having set req.orgId/req.userRole
- * (i.e. applies under /organization/:organizationId/*). Run after TenantGuard.
- */
 @Injectable()
 export class OwnerOrAdminGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {

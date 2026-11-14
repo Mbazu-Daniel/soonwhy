@@ -1,5 +1,3 @@
-// fallow-ignore-file unused-class-member
-// Members are consumed by the @nestjs/idempotency interceptor through the IdempotencyStore contract, which fallow cannot see.
 import { createHash } from "node:crypto";
 import { Injectable } from "@nestjs/common";
 import {
@@ -29,14 +27,9 @@ export class DrizzleIdempotencyStore implements IdempotencyStore {
     lockTtl: number,
   ): Promise<IdempotencyAcquireResult> {
     const hash = hashOf(key);
-    // A second round only happens when the row was released or expired
-    // between the two statements below.
     for (let attempt = 0; attempt < 5; attempt++) {
       const now = Date.now();
       const lock = { fingerprint, owner, response: null, expiresAt: now + lockTtl };
-      // Insert the lock, or take over an expired row. Of many concurrent
-      // callers, PostgreSQL lets one write, and re-checks `setWhere` for the
-      // others against the winner's row: they get no row back.
       const taken = await db
         .insert(idempotencyKeys)
         .values({ keyHash: hash, key, ...lock })

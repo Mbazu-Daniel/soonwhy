@@ -1,18 +1,12 @@
 import { Injectable, Logger } from "@nestjs/common";
 
 const PII_PATTERNS = [
-  // Email addresses
   { pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, replacement: "[EMAIL]" },
-  // Phone numbers (various formats)
   { pattern: /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g, replacement: "[PHONE]" },
   { pattern: /\+?\d{1,3}[- ]?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}\b/g, replacement: "[PHONE]" },
-  // Credit card numbers (basic pattern)
   { pattern: /\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b/g, replacement: "[CARD]" },
-  // SSN (US format)
   { pattern: /\b\d{3}[- ]?\d{2}[- ]?\d{4}\b/g, replacement: "[SSN]" },
-  // IP addresses (may want to keep for debugging, but can mask)
   { pattern: /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, replacement: "[IP]" },
-  // API keys/tokens (common patterns)
   { pattern: /\b[A-Za-z0-9]{32,}\b/g, replacement: "[TOKEN]" },
 ];
 
