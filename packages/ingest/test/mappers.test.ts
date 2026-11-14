@@ -402,3 +402,61 @@ describe("OTLP JSON parse + telemetry mappers", () => {
     expect(row.service).toBe("api");
   });
 });
+
+describe("exception stack traces", () => {
+  const stack = [
+    "Error: user bob@example.com not found",
+    "    at UsersService.find (/app/src/users/users.service.ts:42:11)",
+    "    at /app/node_modules/express/lib/router/layer.js:95:5",
+    "Caused by: Error: connection refused 10.0.0.12",
+    "    at Pool.acquire (/app/src/db/pool.ts:8:2)",
+  ].join("\n");
+
+  function rowFor(attributes: Array<{ key: string; value: { stringValue: string } }>) {
+    const { records } = parseLogsPayload({
+      resourceLogs: [
+        {
+          resource: { attributes: [{ key: "service.name", value: { stringValue: "api" } }] },
+          scopeLogs: [{ logRecords: [{ timeUnixNano: "1700000000000000000", severityNumber: 17, body: { stringValue: "boom" }, attributes }] }],
+        },
+      ],
+    });
+    return mapLogToRow(records[0]!, organization as never);
+  }
+
+  it("keeps the frames readable when the stack contains PII", () => {
+    const row = rowFor([{ key: "exception.stacktrace", value: { stringValue: stack } }]);
+    expect(row.stackTrace.startsWith("pii:v1:")).toBe(false);
+    expect(row.stackTrace).toContain("at UsersService.find (/app/src/users/users.service.ts:42:11)");
+    expect(row.stackTrace).toContain("Caused by: Error: connection refused");
+    expect(row.stackTrace).not.toContain("bob@example.com");
+    expect(row.stackTrace).not.toContain("10.0.0.12");
+    expect(row.stackTrace).toContain("pii:v1:");
+  });
+
+  it("does the same for the stored attribute", () => {
+    const row = rowFor([{ key: "exception.stacktrace", value: { stringValue: stack } }]);
+    const attribute = String((row.attributes as Record<string, string>)["exception.stacktrace"]);
+    expect(attribute.startsWith("pii:v1:")).toBe(false);
+    expect(attribute).toContain("users.service.ts:42:11");
+  });
+
+  it("still encrypts other attributes whole when they hold PII", () => {
+    const row = rowFor([{ key: "user.note", value: { stringValue: "contact bob@example.com" } }]);
+    expect(String((row.attributes as Record<string, string>)["user.note"]).startsWith("pii:v1:")).toBe(true);
+  });
+
+  it("leaves a stack without PII untouched", () => {
+    const clean = "Error: boom\n    at run (/app/src/run.ts:1:1)";
+    expect(rowFor([{ key: "exception.stacktrace", value: { stringValue: clean } }]).stackTrace).toBe(clean);
+  });
+
+  it("does not lose tail frames when PII encryption makes the stack longer", () => {
+    const frames = Array.from({ length: 60 }, (_, i) => `    at Fn${i} (/app/f${i}.ts:${i}:1) host 10.0.${i}.1`).join("\n");
+    const plain = `Error: boom\n${frames}`;
+    expect(plain.length).toBeLessThan(4096);
+    const row = rowFor([{ key: "exception.stacktrace", value: { stringValue: plain } }]);
+    expect(row.stackTrace.length).toBeGreaterThan(4096);
+    expect(row.stackTrace).toContain("at Fn59 (/app/f59.ts:59:1)");
+  });
+});

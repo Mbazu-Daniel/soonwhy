@@ -8,6 +8,11 @@ import { nanoToMs } from "./time";
 import { spanDetailFields } from "./span-details";
 import { encryptOrRedact, encryptTextOrRedact } from "./pii-safe";
 import { httpStatusCodeOf } from "./http-fields";
+import {
+  EXCEPTION_STACKTRACE_KEY,
+  FREE_TEXT_ATTRIBUTE_KEYS,
+  MAX_STORED_STACK_LENGTH,
+} from "./exception-attributes";
 import type {
   CaptureSettings,
   ParsedLogRecord,
@@ -75,6 +80,9 @@ function sanitizePiiValue(
 ): string {
   const maxLength = settings.maxAttributeValueLength;
   if (typeof value === "string") {
+    if (FREE_TEXT_ATTRIBUTE_KEYS.has(key)) {
+      return sanitizeSensitiveText(limitAttributeValue(value, maxLength, depth));
+    }
     if (isPiiKey(key) || isPiiValue(value)) return encryptOrRedact(value);
     return sanitizeSensitiveText(limitAttributeValue(value, maxLength, depth));
   }
@@ -435,10 +443,10 @@ export function mapLogToRow(record: ParsedLogRecord, organization: OrganizationC
       settings.maxAttributeValueLength,
     ),
     attributes: attrs,
-    stackTrace: sanitizeSensitiveText(
-      String(safeAttributes["exception.stacktrace"] ?? ""),
-      true,
-    ).slice(0, settings.maxAttributeValueLength),
+    stackTrace: String(safeAttributes[EXCEPTION_STACKTRACE_KEY] ?? "").slice(
+      0,
+      MAX_STORED_STACK_LENGTH,
+    ),
   };
 }
 export function mapMetricToRow(
