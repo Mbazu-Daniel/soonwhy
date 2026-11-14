@@ -1,5 +1,5 @@
 import { errorFingerprint, errorTypeOf, parseAttributes } from "./error-fingerprint";
-import { MAX_OCCURRENCES, TIMELINE_BUCKETS } from "./error.constants";
+import { MAX_OCCURRENCES, MAX_TRACE_LINKS, TIMELINE_BUCKETS } from "./error.constants";
 import type {
   ErrorGroup,
   ErrorLogSource,
@@ -84,6 +84,22 @@ export function occurrencesOf(
     .map(toOccurrence)
     .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
     .slice(0, limit);
+}
+
+export function traceIdsOf(
+  sources: ErrorLogSource[],
+  fingerprint: string,
+  limit = MAX_TRACE_LINKS,
+): string[] {
+  const seen = new Set<string>();
+  const matching = sources
+    .filter((source) => source.traceId && errorFingerprint(source) === fingerprint)
+    .sort((a, b) => (b.timestamp ?? "").localeCompare(a.timestamp ?? ""));
+  for (const source of matching) {
+    seen.add(source.traceId!);
+    if (seen.size >= limit) break;
+  }
+  return [...seen];
 }
 
 export function buildTimeline(

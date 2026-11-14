@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { errorFingerprint, errorTypeOf, normalizeErrorMessage } from "./error-fingerprint";
-import { buildTimeline, groupErrorLogs, occurrencesOf } from "./error-groups";
+import { buildTimeline, groupErrorLogs, occurrencesOf, traceIdsOf } from "./error-groups";
 import type { ErrorLogSource } from "./error.types";
 
 function log(overrides: Partial<ErrorLogSource> = {}): ErrorLogSource {
@@ -117,5 +117,20 @@ describe("occurrencesOf and buildTimeline", () => {
     expect(timeline).toHaveLength(24);
     expect(timeline.reduce((sum, bucket) => sum + bucket.count, 0)).toBe(2);
     expect(timeline[0]!.count).toBe(1);
+  });
+});
+
+describe("traceIdsOf", () => {
+  const entry = (traceId: string | undefined, timestamp: string) => ({ timestamp, service: "api", level: "error", message: "boom", traceId });
+
+  it("lists each trace of the group once, newest first, without sources that have no trace", () => {
+    const sources = [entry("t1", "2026-11-14T10:00:00.000Z"), entry("t2", "2026-11-14T11:00:00.000Z"), entry("t1", "2026-11-14T12:00:00.000Z"), entry(undefined, "2026-11-14T13:00:00.000Z")];
+    const fingerprint = errorFingerprint(sources[0]!);
+    expect(traceIdsOf(sources, fingerprint)).toEqual(["t1", "t2"]);
+  });
+
+  it("stops at the limit", () => {
+    const sources = ["a", "b", "c"].map((id, index) => entry(id, `2026-11-14T10:0${index}:00.000Z`));
+    expect(traceIdsOf(sources, errorFingerprint(sources[0]!), 2)).toEqual(["c", "b"]);
   });
 });

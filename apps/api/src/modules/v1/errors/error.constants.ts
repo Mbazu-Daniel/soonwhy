@@ -1,6 +1,7 @@
 export const ERROR_LOG_LEVELS = ["error", "fatal"];
 export const MAX_ERROR_HITS = 1000;
 export const MAX_OCCURRENCES = 50;
+export const MAX_TRACE_LINKS = 100;
 export const TIMELINE_BUCKETS = 24;
 export const DEFAULT_RANGE_MS = 86_400_000;
 export const MAX_MESSAGE_LENGTH = 300;

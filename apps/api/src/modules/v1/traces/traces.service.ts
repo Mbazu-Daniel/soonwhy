@@ -18,6 +18,7 @@ export class TracesService {
       from: input.from ?? new Date(0).toISOString(),
       to: input.to ?? new Date().toISOString(),
       q: input.q,
+      traceIds: input.traceIds,
       service: input.service,
       operation: input.operation,
       status: input.status,

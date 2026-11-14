@@ -44,6 +44,7 @@ export interface ErrorTimelineBucket {
 
 export interface ErrorGroupDetail extends ErrorGroup {
   occurrences: ErrorOccurrence[];
+  traceIds: string[];
   timeline: ErrorTimelineBucket[];
 }
 

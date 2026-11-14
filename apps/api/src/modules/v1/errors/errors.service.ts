@@ -14,7 +14,7 @@ import {
 import { ERROR_SPAN_FILTER, REQUEST_SPAN_FILTER } from "../../../common/telemetry/span-filters";
 import { normalizeErrorMessage } from "./error-fingerprint";
 import { mergeErrorSources } from "./error-sources";
-import { buildTimeline, groupErrorLogs, occurrencesOf } from "./error-groups";
+import { buildTimeline, groupErrorLogs, occurrencesOf, traceIdsOf } from "./error-groups";
 import {
   DEFAULT_RANGE_MS,
   ERROR_FINDING_TYPE,
@@ -71,6 +71,7 @@ export class ErrorsService {
     return {
       ...group,
       occurrences: occurrencesOf(sources, fingerprint),
+      traceIds: traceIdsOf(sources, fingerprint),
       timeline: buildTimeline(sources, fingerprint, range),
     };
   }
