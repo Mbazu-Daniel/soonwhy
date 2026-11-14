@@ -6,7 +6,7 @@ import {
 import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
 import { quickwitSource, quickwitTenantQuery } from "../../../common/quickwit/query";
 import { ServicesRepository } from "./services.repository";
-import { CreateServiceInput } from "./dto";
+import { CreateServiceInput, UpdateServiceInput } from "./dto";
 
 interface TraceSpanSource {
   service?: string;
@@ -72,6 +72,21 @@ export class ServicesService {
       orgId,
       ...input,
     });
+  }
+
+  async updateService(
+    id: string,
+    projectId: string,
+    orgId: string,
+    input: UpdateServiceInput,
+  ) {
+    await this.getServiceById(id, projectId, orgId);
+    const changes = Object.fromEntries(
+      Object.entries(input).filter(([, value]) => value !== undefined),
+    ) as Record<string, string | null>;
+    if (!Object.keys(changes).length) return this.getServiceById(id, projectId, orgId);
+    await this.servicesRepository.updateService(id, changes);
+    return this.getServiceById(id, projectId, orgId);
   }
 
   async deleteService(id: string, projectId: string, orgId: string) {
