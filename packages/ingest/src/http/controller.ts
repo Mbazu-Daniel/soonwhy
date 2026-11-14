@@ -19,11 +19,11 @@ import {
   NatsService,
   RateLimiter,
   type ValidatedApiKey,
-  generateEventId,
 } from "@soonwhy/shared";
 import { IngestStats } from "../pipeline/stats";
 import { IngestConcurrency } from "../pipeline/concurrency";
 import { chunkItemsBySize, positiveInt } from "../pipeline/batcher";
+import { batchEventId } from "../pipeline/batch-id";
 import {
   DEFAULT_PUBLISH_BATCH_SIZE,
   DEFAULT_PUBLISH_MAX_BYTES,
@@ -282,13 +282,15 @@ export class IngestController {
     );
 
     for (const chunk of chunks) {
-      const eventId = generateEventId({
-        signal,
-        organizationId: auth.organizationId,
-        projectId: auth.projectId,
-        captureSettings: auth.captureSettings,
-        itemCount: chunk.length,
-      });
+      const eventId = batchEventId(
+        {
+          signal,
+          organizationId: auth.organizationId,
+          projectId: auth.projectId,
+          captureSettings: auth.captureSettings,
+        },
+        chunk,
+      );
 
       const batch: IngestBatch = {
         version: 1,

@@ -77,8 +77,9 @@ function makeConsumer(options?: {
   return { consumer, quickwit, receipts, stats };
 }
 
-function message(payload: unknown) {
+function message(payload: unknown, subject = "ingest.proj_1.log") {
   return {
+    subject,
     data: new TextEncoder().encode(JSON.stringify(payload)),
     info: { deliveryCount: 1 },
     ack: vi.fn(),
@@ -134,5 +135,32 @@ describe("IngestConsumer batch handling", () => {
     expect(receipts.releaseBatch).toHaveBeenCalledOnce();
     expect(msg.nak).toHaveBeenCalledOnce();
     expect(msg.ack).not.toHaveBeenCalled();
+  });
+
+  it("writes a repeated record once and claims each event id once", async () => {
+    const { consumer, quickwit, receipts } = makeConsumer();
+    const repeated = { ...batch(["same"]), items: [logItem("same"), logItem("same")] };
+    repeated.items[1]!.timestamp = repeated.items[0]!.timestamp;
+    const msg = message(repeated);
+
+    await handle(consumer, "log", msg);
+
+    const [ids] = receipts.claimBatch.mock.calls[0]!;
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).toHaveLength(1);
+    expect(quickwit.ingest.mock.calls[0]![1]).toHaveLength(1);
+    expect(msg.ack).toHaveBeenCalledOnce();
+  });
+
+  it("acks a dead-letter message without treating it as telemetry", async () => {
+    const { consumer, quickwit, receipts, stats } = makeConsumer();
+    const msg = message({ signal: "log", reason: "boom", payload: "{}" }, "ingest.dlq.log");
+
+    await handle(consumer, "log", msg);
+
+    expect(msg.ack).toHaveBeenCalledOnce();
+    expect(quickwit.ingest).not.toHaveBeenCalled();
+    expect(receipts.claimBatch).not.toHaveBeenCalled();
+    expect(stats.recordError).not.toHaveBeenCalled();
   });
 });
