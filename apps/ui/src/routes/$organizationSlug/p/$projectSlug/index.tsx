@@ -8,6 +8,7 @@ import {
   ChevronDown,
   Clock3,
   Compass,
+  RefreshCw,
   GitBranch,
   Server,
 } from 'lucide-react';
@@ -22,6 +23,7 @@ import {
 import { api } from '~/lib/api';
 import { dashboardOverview, type DashboardOverview } from '~/data/dashboard-overview';
 import { axisLabels } from '~/lib/chart-axis';
+import type { AiSummary } from '~/lib/types';
 import { SUMMARY_REFRESH_MS, useRequestSummary } from '~/lib/use-request-summary';
 import { useProject } from '~/lib/project-context';
 import { useState } from 'react';
@@ -34,32 +36,67 @@ export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/')({
 });
 
 function AIDashboardSummary({ orgSlug, projectSlug }: { orgSlug: string; projectSlug: string }) {
+  const { projectId } = useProject();
+  const [refreshNonce, setRefreshNonce] = useState(0);
+  const summary = useQuery({
+    queryKey: ['ai-summary', projectId, refreshNonce],
+    queryFn: () =>
+      api.get<AiSummary>(
+        `/intelligence/summary?projectId=${projectId}${refreshNonce ? '&refresh=1' : ''}`,
+      ),
+    enabled: !!projectId,
+    staleTime: 60 * 60_000,
+  });
   return (
     <section className="rounded-2xl border border-[#34451D] bg-[#11170D] p-5 sm:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex gap-3">
+        <div className="flex min-w-0 gap-3">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#ACFC15]/10 text-[#ACFC15]">
             <BrainCircuit className="h-4 w-4" />
           </span>
-          <div>
+          <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[.14em] text-[#ACFC15]">AI summary</p>
-            <h2 className="mt-1 text-sm font-semibold text-[#F6F6F6]">
-              Your system looks stable, with a few signals worth watching.
-            </h2>
-            <p className="mt-2 max-w-3xl text-xs leading-5 text-[#A9B09F]">
-              SoonWhy can turn connected traces, logs and findings into a short explanation of what changed,
-              why it matters and where to investigate next.
-            </p>
+            {summary.isLoading ? (
+              <div className="mt-2 max-w-xl space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+            ) : !summary.data ? (
+              <>
+                <h2 className="mt-1 text-sm font-semibold text-[#F6F6F6]">Summary unavailable right now</h2>
+                <p className="mt-2 max-w-3xl text-xs leading-5 text-[#A9B09F]">
+                  The dashboard cannot build a summary at the moment. Open the AI investigation to dig through the data directly.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="mt-1 max-w-3xl text-sm leading-6 text-[#E7EDE1]">{summary.data.summary}</p>
+                <p className="mt-2 text-[10px] uppercase tracking-[0.14em] text-[#7C8B6A]">
+                  {summary.data.source === 'byok' ? `byok${summary.data.model ? ` · ${summary.data.model}` : ''}` : 'Deterministic'} · Refreshes hourly · Updated {new Date(summary.data.generatedAt).toLocaleTimeString()}
+                </p>
+              </>
+            )}
           </div>
         </div>
-        <Link
-          to="/$organizationSlug/p/$projectSlug/intelligence/investigations"
-          params={{ organizationSlug: orgSlug!, projectSlug: projectSlug! }}
-          className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-[#34451D] px-3 py-2 text-xs font-medium text-[#ACFC15] hover:bg-[#ACFC15]/5"
-        >
-          Open AI investigation
-          <ArrowUpRight className="h-3.5 w-3.5" />
-        </Link>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <Link
+            to="/$organizationSlug/p/$projectSlug/intelligence/investigations"
+            params={{ organizationSlug: orgSlug!, projectSlug: projectSlug! }}
+            className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-[#34451D] px-3 py-2 text-xs font-medium text-[#ACFC15] hover:bg-[#ACFC15]/5"
+          >
+            Open AI investigation
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </Link>
+          <button
+            type="button"
+            onClick={() => setRefreshNonce((value) => value + 1)}
+            disabled={summary.isFetching || !projectId}
+            className="inline-flex items-center gap-1.5 text-[10px] font-medium text-[#A9B09F] hover:text-[#E7EDE1] disabled:opacity-50"
+          >
+            <RefreshCw className={summary.isFetching ? 'h-3 w-3 animate-spin' : 'h-3 w-3'} />
+            {summary.isFetching ? 'Refreshing' : 'Refresh now'}
+          </button>
+        </div>
       </div>
     </section>
   );

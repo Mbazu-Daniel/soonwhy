@@ -5,4 +5,5 @@ export const CACHE_TTL_SECONDS = {
   queryCatalog: 300,
   detectionSearch: 30,
   detectorSettings: 60,
+  summary: 3600,
 } as const;

@@ -9,5 +9,6 @@ import { MetricsModule } from "../metrics/metrics.module";
   imports: [TelemetryModule, ErrorsModule, MetricsModule],
   controllers: [DashboardController],
   providers: [DashboardService],
+  exports: [DashboardService],
 })
 export class DashboardModule {}

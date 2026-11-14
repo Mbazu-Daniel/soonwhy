@@ -64,6 +64,7 @@ import { InfrastructureIntelligenceModule } from "./modules/v1/intelligence/infr
 import { DependencyIntelligenceModule } from "./modules/v1/intelligence/dependency-intelligence/dependency-intelligence.module";
 import { DeploymentIntelligenceModule } from "./modules/v1/intelligence/deployment-intelligence/deployment-intelligence.module";
 import { AIIntelligenceModule } from "./modules/v1/intelligence/ai-intelligence/ai-intelligence.module";
+import { AiSummaryModule } from "./modules/v1/intelligence/ai-summary/ai-summary.module";
 import { TraceIntelligenceModule } from "./modules/v1/intelligence/trace-intelligence/trace-intelligence.module";
 import { LogIntelligenceModule } from "./modules/v1/intelligence/log-intelligence/log-intelligence.module";
 import { EvidenceGraphModule } from "./modules/v1/intelligence/evidence-graph/evidence-graph.module";
@@ -119,6 +120,7 @@ const organizationScopedModules = [
   LogIntelligenceModule,
   EvidenceGraphModule,
   AIInvestigationModule,
+  AiSummaryModule,
   RecommendationEngineModule,
   VerificationEngineModule,
 ];
