@@ -1,9 +1,43 @@
 import { decodeAttributes } from "./attributes";
 import { nanoToMs } from "./time";
 import { hexId, resourceFromAttributes } from "./types";
-import type { ParsedSpan, ParseTracesResult } from "../interfaces";
+import type {
+  ParsedSpan,
+  ParsedSpanEvent,
+  ParsedSpanLink,
+  ParseTracesResult,
+} from "../interfaces";
 
 export type { ParseTracesResult };
+
+const STATUS_CODE_NAMES: Record<string, number> = {
+  STATUS_CODE_UNSET: 0,
+  STATUS_CODE_OK: 1,
+  STATUS_CODE_ERROR: 2,
+};
+
+function normalizeStatusCode(code: unknown): number {
+  if (typeof code === "number") return code;
+  if (typeof code === "string") return STATUS_CODE_NAMES[code] ?? (Number(code) || 0);
+  return 0;
+}
+
+function parseEvents(events: any[] | undefined): ParsedSpanEvent[] {
+  return (events ?? []).map((event) => ({
+    name: String(event.name ?? ""),
+    timeUnixNano: String(event.timeUnixNano ?? event.time_unix_nano ?? "0"),
+    attributes: decodeAttributes(event.attributes || []),
+  }));
+}
+
+function parseLinks(links: any[] | undefined): ParsedSpanLink[] {
+  return (links ?? []).flatMap((link) => {
+    const traceId = hexId(link.traceId || link.trace_id || "", 32);
+    const spanId = hexId(link.spanId || link.span_id || "", 16);
+    if (!traceId || !spanId) return [];
+    return [{ traceId, spanId, attributes: decodeAttributes(link.attributes || []) }];
+  });
+}
 
 export function parseTracesPayload(payload: any): ParseTracesResult {
   const resourceSpans = payload.resourceSpans || payload.resource_spans || [];
@@ -47,10 +81,12 @@ export function parseTracesPayload(payload: any): ParseTracesResult {
             startTimeUnixNano,
             endTimeUnixNano,
             durationMs: nanoToMs(endTimeUnixNano) - nanoToMs(startTimeUnixNano),
-            statusCode: status.code || 0,
+            statusCode: normalizeStatusCode(status.code),
             statusMessage: status.message || "",
             resource: parsedResource,
             attributes: decodeAttributes(span.attributes || []),
+            events: parseEvents(span.events),
+            links: parseLinks(span.links),
           });
         } catch {
           rejected++;

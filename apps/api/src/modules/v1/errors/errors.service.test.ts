@@ -63,9 +63,9 @@ const sources: ErrorLogSource[] = [
 ];
 const fingerprint = errorFingerprint(sources[0]!);
 
-function build(requests: Record<string, unknown>[] = []) {
+function build(requests: Record<string, unknown>[] = [], spans: Record<string, unknown>[] = []) {
   const search = vi.fn().mockImplementation(async (index: string) => ({
-    hits: (index.includes("request") ? requests : sources).map((source) => ({ _source: source })),
+    hits: (index.includes("request") ? requests : index.includes("trace") ? spans : sources).map((source) => ({ _source: source })),
   }));
   const cache = { getOrSet: (_key: string, _ttl: number, load: () => Promise<unknown>) => load() };
   const service = new ErrorsService({ search } as never, cache as never);
@@ -158,12 +158,44 @@ describe("ErrorsService", () => {
 
   it("keeps log errors when the requests index fails", async () => {
     const search = vi.fn().mockImplementation(async (index: string) => {
-      if (index.includes("request")) throw new Error("requests down");
+      if (index.includes("request") || index.includes("trace")) throw new Error("down");
       return { hits: sources.map((source) => ({ _source: source })) };
     });
     const cache = { getOrSet: (_key: string, _ttl: number, load: () => Promise<unknown>) => load() };
     const service = new ErrorsService({ search } as never, cache as never);
     const groups = await service.listGroups("org", "project", { from: "2026-11-14T00:00:00Z", to: "2026-11-15T00:00:00Z" });
     expect(groups.reduce((sum, group) => sum + group.count, 0)).toBe(2);
+  });
+
+  it("builds a group from an exception span with its type, message and stack", async () => {
+    const span = (spanId: string, traceId: string, at: string) => ({
+      id: spanId, timestamp: at, service: "api", traceId, spanId, name: "GET /users/:id", spanKind: 2, statusCode: 2,
+      exceptionType: "TypeError", exceptionMessage: "x is not a function",
+      exceptionStacktrace: "TypeError: x\n    at handler (app.js:10:3)",
+    });
+    const { service } = build([], [span("s1", "t1", "2026-11-14T10:20:00.000Z"), span("s2", "t2", "2026-11-14T10:21:00.000Z")]);
+    const groups = await service.listGroups("org", "project", { from: "2026-11-14T00:00:00Z", to: "2026-11-15T00:00:00Z" });
+    const group = groups.find((item) => item.errorType === "TypeError");
+    expect(group).toMatchObject({ count: 2, traceCount: 2, errorMessage: "TypeError: x is not a function" });
+    expect(group?.exception).toContain("at handler (app.js:10:3)");
+  });
+
+  it("drops a plain error span and its request when the trace already has an error log", async () => {
+    const { service } = build(
+      [{ id: "r1", timestamp: "2026-11-14T10:05:00.000Z", service: "api", method: "GET", url: "/requests", statusCode: 500, traceId: "trace-2", spanId: "span-2" }],
+      [{ id: "sp", timestamp: "2026-11-14T10:05:00.000Z", service: "api", traceId: "trace-2", spanId: "span-2", name: "GET", statusCode: 2 }],
+    );
+    const groups = await service.listGroups("org", "project", { from: "2026-11-14T00:00:00Z", to: "2026-11-15T00:00:00Z" });
+    expect(groups.reduce((sum, group) => sum + group.count, 0)).toBe(2);
+  });
+
+  it("counts a failed server span once when its request is also listed", async () => {
+    const { service } = build(
+      [{ id: "r9", timestamp: "2026-11-14T11:00:00.000Z", service: "api", method: "GET", route: "/boom", statusCode: 500, traceId: "t9", spanId: "s9" }],
+      [{ id: "sp9", timestamp: "2026-11-14T11:00:00.000Z", service: "api", traceId: "t9", spanId: "s9", name: "GET /boom", statusCode: 2 }],
+    );
+    const groups = await service.listGroups("org", "project", { from: "2026-11-14T00:00:00Z", to: "2026-11-15T00:00:00Z" });
+    const boom = groups.filter((group) => group.errorMessage.includes("/boom"));
+    expect(boom.reduce((sum, group) => sum + group.count, 0)).toBe(1);
   });
 });

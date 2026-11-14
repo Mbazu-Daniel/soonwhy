@@ -10,7 +10,7 @@ export function resourceFromAttributes(
   resourceAttrs: ResourceAttributes,
 ): ResourceAttributes {
   return {
-    attributes: {},
+    attributes: resourceAttrs.attributes,
     serviceName:
       getAttribute(resourceAttrs.attributes, "service.name") ||
       "unknown_service",
