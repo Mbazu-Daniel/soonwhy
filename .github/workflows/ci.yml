@@ -2,12 +2,12 @@ name: CI
 
 on:
   push:
-    branches: ["main"]
+    branches: [dev, main]
   pull_request:
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   checks:
@@ -38,3 +38,98 @@ jobs:
           docker compose -f docker-compose.local.yml config --quiet
           docker compose -f docker-compose.observability.yml config --quiet
           docker compose -f docker-compose.stack.yml config --quiet
+
+  build-images:
+    needs: checks
+    if: github.event_name == 'push' && contains(fromJSON('["refs/heads/dev","refs/heads/main"]'), github.ref)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: api
+            dockerfile: apps/api/Dockerfile
+            image-suffix: api
+          - service: ingest
+            dockerfile: packages/ingest/Dockerfile
+            image-suffix: ingest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lowercase repository name
+        run: |
+          REPO_LC=${GITHUB_REPOSITORY,,}
+          echo "REPO=${REPO_LC}" >> $GITHUB_ENV
+          echo "PACKAGE_NAME=${REPO_LC##*/}-${{ matrix.image-suffix }}" >> $GITHUB_ENV
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ env.REPO }}-${{ matrix.image-suffix }}
+          tags: |
+            type=ref,event=branch
+
+      - name: Build and push ${{ matrix.service }} image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+      - name: Prune untagged GHCR manifests
+        uses: actions/delete-package-versions@v5
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+        with:
+          package-name: ${{ env.PACKAGE_NAME }}
+          package-type: container
+          delete-only-untagged-versions: true
+          min-versions-to-keep: 5
+
+  # Merged to dev or main → images pushed → tell dokploy to re-pull the
+  # branch tag and redeploy. One compose app serves api + ingest + telemetry; set
+  # DOKPLOY_WEBHOOK_URL as a repo secret (Dokploy → app → Webhooks).
+  # If the secret is unset the job fails — the redeploy is never silently skipped.
+  deploy:
+    needs: build-images
+    if: github.event_name == 'push' && contains(fromJSON('["refs/heads/dev","refs/heads/main"]'), github.ref)
+    runs-on: ubuntu-latest
+    env:
+      DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
+      DOKPLOY_BRANCH: ${{ vars.DOKPLOY_BRANCH || github.ref_name }}
+    steps:
+      - name: Trigger dokploy redeploy
+        run: |
+          if [ -z "$DOKPLOY_WEBHOOK_URL" ]; then
+            echo "::error::Repo secret DOKPLOY_WEBHOOK_URL is not set; refusing to skip the dokploy redeploy"
+            exit 1
+          fi
+          out=$(curl -sS -X POST "$DOKPLOY_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-GitHub-Event: push" \
+            -d "{\"ref\":\"refs/heads/${DOKPLOY_BRANCH}\"}" \
+            -w $'\n%{http_code}')
+          code=${out##*$'\n'}
+          body=${out%$'\n'*}
+          echo "dokploy answered $code: $body"
+          if [ "$code" -ge 400 ] || grep -qiE 'not match|error|fail|invalid|not found' <<<"$body"; then
+            echo "::error::Dokploy did not start a deploy (branch sent: ${DOKPLOY_BRANCH}). Set the repo variable DOKPLOY_BRANCH to the branch configured on the Dokploy app."
+            exit 1
+          fi
