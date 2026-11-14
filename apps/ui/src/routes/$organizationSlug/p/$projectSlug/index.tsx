@@ -21,6 +21,7 @@ import {
 } from '~/components/ui/dropdown-menu';
 import { api } from '~/lib/api';
 import { dashboardOverview, type DashboardOverview } from '~/data/dashboard-overview';
+import { axisLabels } from '~/lib/chart-axis';
 import { useProject } from '~/lib/project-context';
 import { useState } from 'react';
 import { TimeRangeControl, telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
@@ -133,7 +134,7 @@ function DashboardOverviewPage() {
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Metric label="Connected services" value={serviceCount == null ? '—' : String(serviceCount)} icon={Server} tone="dark" detail="Registered in this project" />
         <Metric label="Total requests" value={formatNumber(live.totalRequests)} icon={Activity} detail="Across monitored services" />
-        <Metric label="Error rate" value={String(live.errorRate)} suffix="%" icon={AlertTriangle} detail="Application failures" />
+        <Metric label="Error rate" value={live.errorRate.toFixed(2)} suffix="%" icon={AlertTriangle} detail="Responses with a 4xx or 5xx status" />
         <Metric label="P95 latency" value={String(live.latencyP95)} suffix="ms" icon={Clock3} detail="Response time" />
       </section>
 
@@ -161,14 +162,10 @@ function DashboardOverviewPage() {
                 )}
               </div>
               <div className="mt-3 flex justify-between text-[10px] text-[#6E6E70]">
-                <span>00:00</span>
-                <span>06:00</span>
-                <span>12:00</span>
-                <span>18:00</span>
-                <span>Now</span>
+                {axisLabels((data?.timeSeries ?? []).map((point) => point.timestamp)).map((label, index) => <span key={index}>{label}</span>)}
               </div>
               <div className="mt-5 grid grid-cols-3 gap-4 border-t border-[#1B1B1D] pt-5">
-                <Mini label="Requests/sec" value={formatNumber(live.requestRate)} />
+                <Mini label="Requests/min" value={(live.requestRate * 60).toLocaleString(undefined, { maximumFractionDigits: 1 })} />
                 <Mini label="P99 latency" value={`${live.latencyP99}ms`} />
                 <Mini label="Avg latency" value={`${live.avgLatency}ms`} />
               </div>

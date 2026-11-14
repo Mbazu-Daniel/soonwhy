@@ -1,6 +1,7 @@
 export interface DashboardOverview {
   score: number;
   errorRate: number;
+  errorCount?: number;
   requestRate: number;
   avgLatency: number;
   totalRequests: number;
