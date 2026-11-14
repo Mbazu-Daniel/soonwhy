@@ -9,6 +9,7 @@ import {
   UnauthorizedException,
   BadRequestException,
   ForbiddenException,
+  Logger,
 } from "@nestjs/common";
 import { Request, Response } from "express";
 import { gunzipSync } from "zlib";
@@ -73,6 +74,8 @@ const SIGNAL_META: Record<Signal, SignalMeta> = {
 
 @Controller()
 export class IngestController {
+  private readonly logger = new Logger(IngestController.name);
+
   constructor(
     private readonly apiKeysService: ApiKeysService,
     private readonly rateLimiter: RateLimiter,
@@ -216,8 +219,14 @@ export class IngestController {
         result.rejected + Math.max(0, result.items.length - 10000);
       try {
         await this.publish(auth, signal, accepted);
-      } catch {
+      } catch (error) {
         this.metrics.recordError();
+        this.logger.error(
+          `Failed to publish ${signal} batch (${accepted.length} items) to NATS: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          error instanceof Error ? error.stack : undefined,
+        );
         res.setHeader("Retry-After", "1");
         return this.sendError(res, 503, "Ingest queue is unavailable");
       }
@@ -236,6 +245,14 @@ export class IngestController {
     } catch (error) {
       if (error instanceof UnauthorizedException) throw error;
       this.metrics.recordError();
+      if (!(error instanceof BadRequestException)) {
+        this.logger.error(
+          `Failed to process OTLP ${signal} request: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          error instanceof Error ? error.stack : undefined,
+        );
+      }
       return this.sendError(res, 400, `Invalid OTLP ${signal} request`);
     } finally {
       if (acquired && organizationId) {
@@ -260,7 +277,6 @@ export class IngestController {
     );
     const encoder = new TextEncoder();
 
-    // Chunk the items (the byte budget applies per chunk)
     const chunks = chunkItemsBySize(items, batchSize, maxBytes, (item) =>
       encoder.encode(JSON.stringify(item)),
     );
@@ -271,7 +287,6 @@ export class IngestController {
         organizationId: auth.organizationId,
         projectId: auth.projectId,
         captureSettings: auth.captureSettings,
-        // Exclude ingest-time fields from the event ID
         itemCount: chunk.length,
       });
 
@@ -284,7 +299,6 @@ export class IngestController {
         items: chunk,
       };
 
-      // Publish with JetStream ack and wait for confirmation
       const ack = await this.nats.publishWithAck(
         `ingest.${auth.projectId}.${signal}`,
         encoder.encode(JSON.stringify(batch)),

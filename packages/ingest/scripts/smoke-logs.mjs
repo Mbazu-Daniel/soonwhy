@@ -1,14 +1,4 @@
 #!/usr/bin/env node
-/**
- * Smoke: POST OTLP JSON log → wait → optional GET /api/v1/logs (query API)
- *
- * Env:
- *   INGEST_URL (default http://localhost:3002)
- *   API_URL (default http://localhost:3001)
- *   SOONWHY_API_KEY
- *   ORG_ID
- *   PROJECT_ID
- */
 const ingestUrl = process.env.INGEST_URL || 'http://localhost:3002';
 const apiUrl = process.env.API_URL || 'http://localhost:3001';
 const apiKey = process.env.SOONWHY_API_KEY;
