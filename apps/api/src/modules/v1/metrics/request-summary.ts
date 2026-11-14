@@ -59,3 +59,20 @@ export function summaryInterval(rangeMs: number): "5m" | "1h" | "1d" {
   if (rangeMs <= 48 * 3_600_000) return "1h";
   return "1d";
 }
+
+export function spanStatusCounts(
+  total: number,
+  failed: number,
+  aggregation: SummaryAggregation,
+): StatusCounts {
+  const classes = statusCountsOf(aggregation);
+  const clientErrors = Math.min(classes._4xx, failed, total);
+  const serverErrors = Math.max(0, Math.min(failed, total) - clientErrors);
+  const redirects = Math.min(classes._3xx, Math.max(0, total - clientErrors - serverErrors));
+  return {
+    _2xx: Math.max(0, total - redirects - clientErrors - serverErrors),
+    _3xx: redirects,
+    _4xx: clientErrors,
+    _5xx: serverErrors,
+  };
+}

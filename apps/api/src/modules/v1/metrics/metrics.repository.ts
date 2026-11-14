@@ -17,15 +17,16 @@ import type {
   MetricPercentiles,
 } from "./percentiles.types";
 
+import { FAILED_REQUEST_FILTER, REQUEST_SPAN_FILTER } from "../../../common/telemetry/span-filters";
 import {
+  HTTP_STATUS_CLASS_RANGES,
   MAX_SERVICES,
-  STATUS_RANGES,
 } from "./request-summary.constants";
 import {
   errorCountOf,
   errorRateOf,
   percentileOf,
-  statusCountsOf,
+  spanStatusCounts,
 } from "./request-summary";
 import type {
   RawRequestSummary,
@@ -77,6 +78,25 @@ interface MetricsAggregation {
 export class MetricsRepository {
   constructor(private readonly quickwit: QuickwitService) {}
 
+  private requestQuery(params: { orgId: string; projectId: string; service?: string }, extra: string[] = []): string {
+    const filters = [REQUEST_SPAN_FILTER, ...(params.service ? [quickwitTerm("service", params.service)] : []), ...extra];
+    return quickwitTenantQuery(params.orgId, params.projectId, filters.join(" AND "));
+  }
+
+  private requestSearch(
+    params: { orgId: string; projectId: string; from: string; to: string; service?: string },
+    aggregations: Record<string, unknown>,
+    extra: string[] = [],
+  ) {
+    return this.quickwit.search(QUICKWIT_INDEXES.traces, {
+      query: this.requestQuery(params, extra),
+      startTimestamp: quickwitTimestamp(params.from),
+      endTimestamp: quickwitTimestamp(params.to),
+      maxHits: 0,
+      aggregations,
+    });
+  }
+
   async queryMetrics(params: {
     orgId: string;
     projectId: string;
@@ -91,70 +111,43 @@ export class MetricsRepository {
       "1h": "1h",
       "1d": "1d",
     };
-    const fixedInterval = intervalMap[params.interval] || "5m";
-    const filters = params.service
-      ? [quickwitTerm("service", params.service)]
-      : [];
-    const result = await this.quickwit.search(QUICKWIT_INDEXES.requests, {
-      query: quickwitTenantQuery(
-        params.orgId,
-        params.projectId,
-        filters.length ? filters.join(" AND ") : "*",
-      ),
-      startTimestamp: quickwitTimestamp(params.from),
-      endTimestamp: quickwitTimestamp(params.to),
-      maxHits: 0,
-      aggregations: {
+    const timeline = {
+      date_histogram: {
+        field: "timestamp",
+        fixed_interval: intervalMap[params.interval] || "5m",
+        min_doc_count: 0,
+      },
+    };
+    const [all, failed] = await Promise.all([
+      this.requestSearch(params, {
         over_time: {
-          date_histogram: {
-            field: "timestamp",
-            fixed_interval: fixedInterval,
-            min_doc_count: 0,
-          },
+          ...timeline,
           aggs: {
-            latency: {
-              percentiles: {
-                field: "duration",
-                percents: [50, 95, 99],
-              },
-            },
-            status: {
-              range: {
-                field: "statusCode",
-                ranges: [
-                  { from: 200, to: 300, key: "2xx" },
-                  { from: 300, to: 400, key: "3xx" },
-                  { from: 400, to: 500, key: "4xx" },
-                  { from: 500, key: "5xx" },
-                ],
-              },
-            },
+            latency: { percentiles: { field: "duration", percents: [50, 95, 99] } },
+            status: { range: { field: "httpStatusCode", ranges: HTTP_STATUS_CLASS_RANGES } },
           },
         },
-      },
-    });
-
-    const aggregation = result.aggregations?.over_time as
-      | MetricsAggregation
-      | undefined;
+      }),
+      this.requestSearch(params, { over_time: timeline }, [FAILED_REQUEST_FILTER]),
+    ]);
+    const failedByBucket = new Map(
+      ((failed.aggregations?.over_time as MetricsAggregation | undefined)?.buckets ?? []).map((bucket) => [
+        bucket.key_as_string ?? "",
+        bucket.doc_count,
+      ]),
+    );
+    const aggregation = all.aggregations?.over_time as MetricsAggregation | undefined;
     return (aggregation?.buckets ?? []).map((bucket) => {
-      const status = new Map(
-        (bucket.status?.buckets ?? []).map((entry) => [
-          entry.key,
-          entry.doc_count,
-        ]),
-      );
+      const key = bucket.key_as_string ?? "";
+      const status = spanStatusCounts(bucket.doc_count, failedByBucket.get(key) ?? 0, bucket);
       const percentiles = bucket.latency?.values ?? {};
       return {
-        bucket: bucket.key_as_string ?? "",
+        bucket: key,
         count: bucket.doc_count,
         p50: percentiles["50.0"] ?? 0,
         p95: percentiles["95.0"] ?? 0,
         p99: percentiles["99.0"] ?? 0,
-        _2xx: status.get("2xx") ?? 0,
-        _3xx: status.get("3xx") ?? 0,
-        _4xx: status.get("4xx") ?? 0,
-        _5xx: status.get("5xx") ?? 0,
+        ...status,
       };
     });
   }
@@ -166,30 +159,22 @@ export class MetricsRepository {
     to: string;
     service?: string;
   }): Promise<RawRequestSummary> {
-    const filters = params.service ? [quickwitTerm("service", params.service)] : [];
-    const result = await this.quickwit.search(QUICKWIT_INDEXES.requests, {
-      query: quickwitTenantQuery(
-        params.orgId,
-        params.projectId,
-        filters.length ? filters.join(" AND ") : "*",
-      ),
-      startTimestamp: quickwitTimestamp(params.from),
-      endTimestamp: quickwitTimestamp(params.to),
-      maxHits: 0,
-      aggregations: {
+    const [all, failed] = await Promise.all([
+      this.requestSearch(params, {
         latency: { percentiles: { field: "duration", percents: [50, 95, 99] } },
         average: { avg: { field: "duration" } },
-        status: { range: { field: "statusCode", ranges: STATUS_RANGES } },
-      },
-    });
-    const aggregation = (result.aggregations ?? {}) as SummaryAggregation;
+        status: { range: { field: "httpStatusCode", ranges: HTTP_STATUS_CLASS_RANGES } },
+      }),
+      this.requestSearch(params, {}, [FAILED_REQUEST_FILTER]),
+    ]);
+    const aggregation = (all.aggregations ?? {}) as SummaryAggregation;
     return {
-      total: result.num_hits,
+      total: all.num_hits,
       average: aggregation.average?.value ?? 0,
       p50: percentileOf(aggregation, 50),
       p95: percentileOf(aggregation, 95),
       p99: percentileOf(aggregation, 99),
-      status: statusCountsOf(aggregation),
+      status: spanStatusCounts(all.num_hits, failed.num_hits, aggregation),
     };
   }
 
@@ -199,24 +184,30 @@ export class MetricsRepository {
     from: string;
     to: string;
   }): Promise<ServiceRequestSummary[]> {
-    const result = await this.quickwit.search(QUICKWIT_INDEXES.requests, {
-      query: quickwitTenantQuery(params.orgId, params.projectId),
-      startTimestamp: quickwitTimestamp(params.from),
-      endTimestamp: quickwitTimestamp(params.to),
-      maxHits: 0,
-      aggregations: {
+    const services = { terms: { field: "service", size: MAX_SERVICES } };
+    const [all, failed] = await Promise.all([
+      this.requestSearch(params, {
         services: {
-          terms: { field: "service", size: MAX_SERVICES },
+          ...services,
           aggs: {
             latency: { percentiles: { field: "duration", percents: [95] } },
-            status: { range: { field: "statusCode", ranges: STATUS_RANGES } },
+            status: { range: { field: "httpStatusCode", ranges: HTTP_STATUS_CLASS_RANGES } },
           },
         },
-      },
-    });
-    const aggregation = result.aggregations?.services as ServiceAggregation | undefined;
+      }),
+      this.requestSearch(params, { services }, [FAILED_REQUEST_FILTER]),
+    ]);
+    const failedByService = new Map(
+      ((failed.aggregations?.services as ServiceAggregation | undefined)?.buckets ?? []).map((bucket) => [
+        bucket.key,
+        bucket.doc_count,
+      ]),
+    );
+    const aggregation = all.aggregations?.services as ServiceAggregation | undefined;
     return (aggregation?.buckets ?? []).map((bucket) => {
-      const errors = errorCountOf(statusCountsOf(bucket));
+      const errors = errorCountOf(
+        spanStatusCounts(bucket.doc_count, failedByService.get(bucket.key) ?? 0, bucket),
+      );
       return {
         service: bucket.key,
         requestCount: bucket.doc_count,
