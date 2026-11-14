@@ -22,3 +22,12 @@ export type GetMetricPercentilesInput = z.infer<
   typeof getMetricPercentilesSchema
 >;
 
+
+export const getSummarySchema = z.object({
+  projectId: z.string().min(1),
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+  service: z.string().optional(),
+});
+
+export type GetSummaryInput = z.infer<typeof getSummarySchema>;

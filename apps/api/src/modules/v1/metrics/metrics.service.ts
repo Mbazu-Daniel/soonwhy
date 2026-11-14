@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { MetricsRepository } from "./metrics.repository";
-import { GetMetricPercentilesInput, GetMetricsInput } from "./dto";
+import { GetMetricPercentilesInput, GetMetricsInput, GetSummaryInput } from "./dto";
+import { summarize } from "./request-summary";
 
 @Injectable()
 export class MetricsService {
@@ -26,6 +27,17 @@ export class MetricsService {
         statusCodes: { _2xx: b._2xx, _3xx: b._3xx, _4xx: b._4xx, _5xx: b._5xx },
       })),
     };
+  }
+
+  async getSummary(orgId: string, input: GetSummaryInput) {
+    const raw = await this.metricsRepository.querySummary({
+      orgId,
+      projectId: input.projectId,
+      from: input.from ?? new Date(Date.now() - 86_400_000).toISOString(),
+      to: input.to ?? new Date().toISOString(),
+      service: input.service || undefined,
+    });
+    return summarize(raw);
   }
 
   async getMetricPercentiles(orgId: string, input: GetMetricPercentilesInput) {

@@ -6,7 +6,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { MetricsService } from "./metrics.service";
-import { getMetricPercentilesSchema, getMetricsSchema } from "./dto";
+import { getMetricPercentilesSchema, getMetricsSchema, getSummarySchema } from "./dto";
 import {
   CurrentOrg,
   OrgContext,
@@ -35,6 +35,16 @@ export class MetricsController {
     const parsed = getMetricsSchema.safeParse(query);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     return this.metricsService.getMetrics(orgId, parsed.data);
+  }
+
+  @Get("summary")
+  async getSummary(
+    @CurrentOrg() org: OrgContext,
+    @Query() query: Record<string, unknown>,
+  ) {
+    const parsed = getSummarySchema.safeParse(query);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.metricsService.getSummary(org.orgId, parsed.data);
   }
 
   @Get("percentiles")

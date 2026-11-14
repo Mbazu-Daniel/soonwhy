@@ -3,22 +3,26 @@ import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
 import { quickwitSource, quickwitTenantQuery } from "../../../common/quickwit/query";
 import { CacheService } from "../../../common/cache/cache.service";
 import { CACHE_TTL_SECONDS } from "../../../common/cache/cache.constants";
+import { MetricsRepository } from "../metrics/metrics.repository";
+import { healthScore, summarize, summaryInterval } from "../metrics/request-summary";
+import type { StatusCounts } from "../metrics/request-summary.types";
 
 @Injectable()
 export class DashboardService {
   constructor(
     private readonly quickwit: QuickwitService,
     private readonly cache: CacheService,
+    private readonly metrics: MetricsRepository,
   ) {}
 
   private range(from?: string, to?: string) {
     const end = to ? new Date(to).getTime() : Date.now();
     const start = from ? new Date(from).getTime() : end - 86_400_000;
     return {
-      startTimestamp: Math.floor(start / 1000),
-      endTimestamp: Math.floor(end / 1000),
       start,
       end,
+      from: new Date(start).toISOString(),
+      to: new Date(end).toISOString(),
     };
   }
 
@@ -35,186 +39,45 @@ export class DashboardService {
     const range = this.range(from, to);
     const cacheKey = `overview:${orgId}:${projectId}:${range.start}:${range.end}`;
     return this.cached(cacheKey, async () => {
-      const [health, metrics, timeSeries] = await Promise.all([
-        this.getHealthScoreRaw(orgId, projectId, range),
-        this.getMetricsRaw(orgId, projectId, range),
-        this.getTimeSeriesRaw(orgId, projectId, range),
+      const [raw, buckets] = await Promise.all([
+        this.metrics.querySummary({ orgId, projectId, from: range.from, to: range.to }),
+        this.metrics.queryMetrics({
+          orgId,
+          projectId,
+          from: range.from,
+          to: range.to,
+          interval: summaryInterval(range.end - range.start),
+          service: "",
+        }),
       ]);
+      const summary = summarize(raw);
+      const seconds = Math.max(1, (range.end - range.start) / 1000);
+      const peak = Math.max(...buckets.map((bucket) => bucket.count), 1);
       return {
-        ...health,
-        ...metrics,
-        timeSeries,
-        from: new Date(range.start).toISOString(),
-        to: new Date(range.end).toISOString(),
+        score: healthScore(summary),
+        ...summary,
+        requestRate: Math.round((summary.totalRequests / seconds) * 10000) / 10000,
+        statusCodes: this.statusList(summary.statusCodes, summary.totalRequests),
+        timeSeries: buckets.map((bucket) => ({
+          timestamp: new Date(bucket.bucket).getTime(),
+          count: bucket.count,
+          normalizedHeight: (bucket.count / peak) * 100,
+        })),
+        from: range.from,
+        to: range.to,
       };
     });
   }
 
-  private async fetchLogs(
-    orgId: string,
-    projectId: string,
-    range: {
-      startTimestamp: number;
-      endTimestamp: number;
-    },
-    maxHits = 10_000,
-  ) {
-    const result = await this.quickwit.search<Record<string, unknown>>(
-      QUICKWIT_INDEXES.logs,
-      {
-        query: quickwitTenantQuery(orgId, projectId),
-        startTimestamp: range.startTimestamp,
-        endTimestamp: range.endTimestamp,
-        maxHits,
-        sortBy: ["timestamp:desc"],
-      },
-    );
-    return result.hits
-      .map((h) => quickwitSource<Record<string, unknown>>(h) ?? {})
-      .filter(Boolean);
-  }
-
-  private static num(v: unknown): number | null {
-    if (v == null) return null;
-    const n = Number(v);
-    return Number.isFinite(n) ? n : null;
-  }
-
-  private static attrOf(
-    log: Record<string, unknown>,
-    key: string,
-  ): unknown {
-    if (key in log) return log[key];
-    const attrs = log.attributes;
-    if (attrs && typeof attrs === 'object') {
-      return (attrs as Record<string, unknown>)[key];
-    }
-    return undefined;
-  }
-
-  private static percentile(sorted: number[], p: number): number {
-    if (!sorted.length) return 0;
-    const rank = (p / 100) * (sorted.length - 1);
-    const lower = Math.floor(rank);
-    const upper = Math.ceil(rank);
-    if (lower === upper) return sorted[lower]!;
-    const frac = rank - lower;
-    return sorted[lower]! * (1 - frac) + sorted[upper]!;
-  }
-
-  private async getHealthScoreRaw(
-    orgId: string,
-    projectId: string,
-    range: {
-      startTimestamp: number;
-      endTimestamp: number;
-      start: number;
-      end: number;
-    },
-  ) {
-    const logs = await this.fetchLogs(orgId, projectId, range);
-    const total = logs.length;
-    const durations: number[] = [];
-    let errors = 0;
-    for (const log of logs) {
-      const d = DashboardService.num(DashboardService.attrOf(log, "http.duration_ms"));
-      if (d != null) durations.push(d);
-      const s = DashboardService.num(DashboardService.attrOf(log, "http.status_code"));
-      if (s != null && s >= 400) errors += 1;
-    }
-    durations.sort((a, b) => a - b);
-    const p95 = DashboardService.percentile(durations, 95);
-    const errorRate = total ? (errors / total) * 100 : 0;
-    const durationSeconds = Math.max(1, (range.end - range.start) / 1000);
-    return {
-      score: total
-        ? Math.max(
-            0,
-            Math.min(100, Math.round(100 - errorRate * 10 - p95 / 100)),
-          )
-        : 0,
-      errorRate: Math.round(errorRate * 100) / 100,
-      requestRate: Math.round((total / durationSeconds) * 10) / 10,
-      avgLatency: Math.round(p95),
-    };
-  }
-
-  private async getMetricsRaw(
-    orgId: string,
-    projectId: string,
-    range: { startTimestamp: number; endTimestamp: number },
-  ) {
-    const logs = await this.fetchLogs(orgId, projectId, range);
-    const total = logs.length;
-    const durations: number[] = [];
-    const statusBuckets: Record<string, number> = {};
-    let errors = 0;
-    for (const log of logs) {
-      const d = DashboardService.num(DashboardService.attrOf(log, "http.duration_ms"));
-      if (d != null) durations.push(d);
-      const s = DashboardService.num(DashboardService.attrOf(log, "http.status_code"));
-      if (s != null) {
-        const key = Math.floor(s / 100) + "xx";
-        statusBuckets[key] = (statusBuckets[key] ?? 0) + 1;
-        if (s >= 400) errors += 1;
-      }
-    }
-    durations.sort((a, b) => a - b);
-    const p50 = DashboardService.percentile(durations, 50);
-    const p95 = DashboardService.percentile(durations, 95);
-    const p99 = DashboardService.percentile(durations, 99);
-    const errorRate = total ? (errors / total) * 100 : 0;
-    return {
-      totalRequests: total,
-      errorRate: Math.round(errorRate * 100) / 100,
-      latencyP50: Math.round(p50),
-      latencyP95: Math.round(p95),
-      latencyP99: Math.round(p99),
-      statusCodes: Object.entries(statusBuckets).map(([label, count]) => ({
-        code: Number(label.slice(0, 3)),
+  private statusList(status: StatusCounts, total: number) {
+    return (["2xx", "3xx", "4xx", "5xx"] as const)
+      .map((label) => ({
+        code: Number(label[0]) * 100,
         label,
-        count,
-        percentage: total ? Math.round((count / total) * 10000) / 100 : 0,
-      })),
-    };
-  }
-
-  private async getTimeSeriesRaw(
-    orgId: string,
-    projectId: string,
-    range: { startTimestamp: number; endTimestamp: number; start: number; end: number },
-  ) {
-    const logs = await this.fetchLogs(orgId, projectId, range);
-    const bucketCount = 24;
-    const bucketSize = (range.end - range.start) / bucketCount;
-    const buckets = new Array(bucketCount).fill(0).map(() => ({
-      count: 0,
-      errors: 0,
-      timestamps: [] as number[],
-    }));
-
-    for (const log of logs) {
-      const timestamp = log.timestamp ? new Date(String(log.timestamp)).getTime() : range.start;
-      const bucketIndex = Math.min(
-        bucketCount - 1,
-        Math.floor((timestamp - range.start) / bucketSize),
-      );
-      if (bucketIndex >= 0 && bucketIndex < bucketCount) {
-        const bucket = buckets[bucketIndex];
-        if (bucket) {
-          bucket.count += 1;
-          const s = DashboardService.num(DashboardService.attrOf(log, "http.status_code"));
-          if (s != null && s >= 400) bucket.errors += 1;
-        }
-      }
-    }
-
-    const maxCount = Math.max(...buckets.map((b) => b.count), 1);
-    return buckets.map((bucket, index) => ({
-      timestamp: range.start + index * bucketSize,
-      count: bucket.count,
-      normalizedHeight: maxCount > 0 ? (bucket.count / maxCount) * 100 : 0,
-    }));
+        count: status[`_${label}`],
+        percentage: total ? Math.round((status[`_${label}`] / total) * 10000) / 100 : 0,
+      }))
+      .filter((entry) => entry.count > 0);
   }
 
   async getTelemetryStatus(orgId: string, projectId: string) {
@@ -260,36 +123,13 @@ export class DashboardService {
     const range = this.range(from, to);
     const cacheKey = `services:${orgId}:${projectId}:${range.start}:${range.end}`;
     return this.cached(cacheKey, async () => {
-      const logs = await this.fetchLogs(orgId, projectId, range);
-      const byService = new Map<string, {
-        count: number;
-        errors: number;
-        durations: number[];
-      }>();
-      for (const log of logs) {
-        const service = String(log.service ?? "unknown");
-        const entry = byService.get(service) ?? { count: 0, errors: 0, durations: [] };
-        entry.count += 1;
-        const s = DashboardService.num(DashboardService.attrOf(log, "http.status_code"));
-        if (s != null && s >= 400) entry.errors += 1;
-        const d = DashboardService.num(DashboardService.attrOf(log, "http.duration_ms"));
-        if (d != null) entry.durations.push(d);
-        byService.set(service, entry);
-      }
-      const buckets = Array.from(byService.entries()).
-        sort(([, a], [, b]) => b.count - a.count)
-        .slice(0, 100);
-      return buckets.map(([service, entry]) => {
-        entry.durations.sort((a, b) => a - b);
-        const p95 = DashboardService.percentile(entry.durations, 95);
-        return {
-          service,
-          requestCount: entry.count,
-          errorCount: entry.errors,
-          errorRate: entry.count ? Math.round((entry.errors / entry.count) * 10000) / 100 : 0,
-          p95Latency: Math.round(p95),
-        };
+      const services = await this.metrics.queryServiceSummaries({
+        orgId,
+        projectId,
+        from: range.from,
+        to: range.to,
       });
+      return services.sort((a, b) => b.requestCount - a.requestCount);
     });
   }
 }
