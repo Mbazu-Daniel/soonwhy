@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import { api } from '~/lib/api';
 import { clearSession, getSessionToken, signOut } from '~/lib/auth-client';
 import { useProject } from '~/lib/project-context';
-import { Badge } from '~/components/ui/badge';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent } from '~/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
@@ -75,7 +74,7 @@ export function ProfileSection() {
 
   const saveName = useMutation({
     mutationFn: (input: { name: string }) =>
-      api.put(`/organization/${encodeURIComponent(orgId ?? '')}/member-profile`, input),
+      api.patch(`/organization/${encodeURIComponent(orgId ?? '')}/member-profile`, input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['organization-members', orgId] });
       toast.success('Display name updated');
@@ -148,11 +147,6 @@ export function ProfileSection() {
               <p className="truncate text-sm font-medium">{memberLabel === '?' ? 'Unnamed member' : memberLabel}</p>
               <p className="truncate text-xs text-[#989898]">{email || '—'}</p>
             </div>
-            {session.data?.user && (
-              <Badge variant="outline" className={session.data.user.emailVerified ? 'border-[#3A3A3C] text-[#ACFC15]' : 'border-[#242426] text-[#989898]'}>
-                {session.data.user.emailVerified ? 'Verified' : 'Unverified'}
-              </Badge>
-            )}
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
