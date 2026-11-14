@@ -73,6 +73,7 @@ import { RecommendationEngineModule } from "./modules/v1/intelligence/recommenda
 import { VerificationEngineModule } from "./modules/v1/intelligence/verification-engine/verification-engine.module";
 import { SoonwhyMcpModule } from "./modules/v1/mcp";
 import { RcaModule } from "./modules/v1/detections/rca.module";
+import { InvestigationChatModule } from "./modules/v1/ai/investigation-chat";
 import { TelemetryModule } from "./common/telemetry";
 
 import { selfObservabilityEnabled } from "./common/telemetry/self-observability";
@@ -97,6 +98,7 @@ const organizationScopedModules = [
   InvestigationModule,
   BillingModule,
   AiModule,
+  InvestigationChatModule,
   IssueLifecycleModule,
   NotificationsModule,
   SyntheticProbesModule,
