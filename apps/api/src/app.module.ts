@@ -12,6 +12,7 @@ import { THROTTLER_OPTIONS } from "./common/throttling/throttling.constants";
 import { CacheModule } from "./common/cache/cache.module";
 import { DrizzleIdempotencyModule } from "./common/idempotency/drizzle-idempotency.module";
 import { MaintenanceModule } from "./common/maintenance/maintenance.module";
+import { PublicIdBackfillService } from "./common/db/backfill-public-ids";
 import { AuthModule } from "./modules/v1/auth";
 import { OrganizationsModule } from "./modules/v1/organizations";
 import { ApiKeysModule } from "./modules/v1/api-keys";
@@ -166,6 +167,7 @@ const organizationScopedModules = [
   ],
   controllers: [RootController],
   providers: [
+    PublicIdBackfillService,
     {
       provide: APP_GUARD,
       useClass: ApiThrottlerGuard,

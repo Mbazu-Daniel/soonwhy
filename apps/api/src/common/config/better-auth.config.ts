@@ -51,7 +51,12 @@ async function sendInvitationEmail(input: {
     console.warn("RESEND_API_KEY is not configured; skipping invitation email");
     return;
   }
-  const acceptUrl = `${frontendUrl}/accept-invitation/${input.id}`;
+  const [invitation] = await db
+    .select({ publicId: schema.invitations.publicId })
+    .from(schema.invitations)
+    .where(eq(schema.invitations.id, input.id))
+    .limit(1);
+  const acceptUrl = `${frontendUrl}/accept-invitation/${invitation?.publicId ?? input.id}`;
   const inviterName = input.inviter.user.name || input.inviter.user.email;
   await resend.emails.send({
     from: resendFrom,

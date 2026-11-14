@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "../../../common/db";
+import { findInvitationByPublicId } from "../../../common/db/find-invitation-by-public-id";
 import { invitations, members, organizations } from "../../../common/db/schema";
 
 @Injectable()
@@ -58,10 +59,25 @@ export class OrganizationsRepository {
     });
   }
 
+  async getInvitationByPublicId(publicId: string) {
+    return findInvitationByPublicId(publicId);
+  }
+
   async getInvitationById(invitationId: string) {
     return db.query.invitations.findFirst({
       where: eq(invitations.id, invitationId),
     });
+  }
+
+  async getInvitationPublicIdsByIds(ids: string[]) {
+    if (ids.length === 0) return new Map<string, string>();
+    const rows = await db
+      .select({ id: invitations.id, publicId: invitations.publicId })
+      .from(invitations)
+      .where(inArray(invitations.id, ids));
+    return new Map(
+      rows.flatMap((row) => (row.publicId ? [[row.id, row.publicId] as const] : [])),
+    );
   }
 
   async getMemberById(organizationId: string, memberId: string) {

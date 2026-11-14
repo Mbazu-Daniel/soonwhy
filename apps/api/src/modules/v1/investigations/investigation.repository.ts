@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../../../common/db";
+import { generatePublicId, isPublicIdCollision } from "../../../common/db/public-id";
 import {
   findings,
   investigationCases,
@@ -24,14 +25,14 @@ export class InvestigationRepository {
       .orderBy(desc(investigationCases.createdAt));
   }
 
-  async getById(id: string, orgId: string) {
+  async getById(publicId: string, orgId: string) {
     const [row] = await db
       .select({ investigation: investigationCases })
       .from(investigationCases)
       .innerJoin(projects, eq(investigationCases.projectId, projects.id))
       .where(
         and(
-          eq(investigationCases.id, id),
+          eq(investigationCases.publicId, publicId),
           eq(investigationCases.orgId, orgId),
           eq(projects.organizationId, orgId),
         ),
@@ -59,12 +60,23 @@ export class InvestigationRepository {
   }
 
   async create(data: typeof investigationCases.$inferInsert) {
-    const [investigation] = await db
-      .insert(investigationCases)
-      .values({ ...data, status: data.status ?? "open" })
-      .returning();
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        const [investigation] = await db
+          .insert(investigationCases)
+          .values({
+            ...data,
+            publicId: generatePublicId(),
+            status: data.status ?? "open",
+          })
+          .returning();
 
-    if (!investigation) throw new Error("Failed to create investigation case");
-    return investigation;
+        if (!investigation) throw new Error("Failed to create investigation case");
+        return investigation;
+      } catch (error) {
+        if (!isPublicIdCollision(error) || attempt === 2) throw error;
+      }
+    }
+    throw new Error("Failed to create investigation case");
   }
 }

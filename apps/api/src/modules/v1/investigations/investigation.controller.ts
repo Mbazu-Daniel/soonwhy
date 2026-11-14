@@ -16,22 +16,22 @@ export class InvestigationController {
     return this.service.list(projectId, org.orgId);
   }
 
-  @Get(":id/graph")
+  @Get(":publicId/graph")
   graph(
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
-    @Param("id") id: string,
+    @Param("publicId") publicId: string,
   ) {
-    return this.service.getGraph(id, org.orgId);
+    return this.service.getGraph(publicId, org.orgId);
   }
 
-  @Get(":id")
+  @Get(":publicId")
   getById(
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
-    @Param("id") id: string,
+    @Param("publicId") publicId: string,
   ) {
-    return this.service.getById(id, org.orgId);
+    return this.service.getById(publicId, org.orgId);
   }
 
   @Post()

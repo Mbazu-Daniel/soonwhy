@@ -1,4 +1,5 @@
 import { generateId } from "../generate-id";
+import { generatePublicId } from "../public-id";
 import {
   pgTable,
   text,
@@ -87,6 +88,7 @@ export const invitations = pgTable("invitations", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => generateId()),
+  publicId: text("public_id").$defaultFn(() => generatePublicId()),
   organizationId: text("organization_id")
     .references(() => organizations.id, { onDelete: "cascade" })
     .notNull(),
@@ -99,7 +101,9 @@ export const invitations = pgTable("invitations", {
     .notNull(),
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  uniqueIndex("invitations_public_id_idx").on(table.publicId),
+]);
 
 export const auditLogs = pgTable("audit_logs", {
   id: text("id")

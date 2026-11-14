@@ -58,16 +58,16 @@ export class ServicesController {
     return this.servicesService.getServicesForProject(projectId, org.orgId);
   }
 
-  @Get(":id/operations")
+  @Get(":publicId/operations")
   async getServiceOperations(
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
-    @Param("id") id: string,
+    @Param("publicId") publicId: string,
     @Query() query: Record<string, unknown>,
   ) {
     const parsed = getOperationsSchema.safeParse(query);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
-    const service = await this.servicesService.getServiceById(id, projectId, org.orgId);
+    const service = await this.servicesService.getServiceById(publicId, projectId, org.orgId);
     return this.operationsService.forService({
       orgId: org.orgId,
       projectId,
@@ -76,31 +76,31 @@ export class ServicesController {
     });
   }
 
-  @Get(":id")
+  @Get(":publicId")
   async getServiceById(
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
-    @Param("id") id: string,
+    @Param("publicId") publicId: string,
   ) {
-    return this.servicesService.getServiceById(id, projectId, org.orgId);
+    return this.servicesService.getServiceById(publicId, projectId, org.orgId);
   }
 
-  @Patch(":id")
+  @Patch(":publicId")
   async updateService(
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
-    @Param("id") id: string,
+    @Param("publicId") publicId: string,
     @Body({ schema: UpdateServiceDto }) body: UpdateServiceInput,
   ) {
-    return this.servicesService.updateService(id, projectId, org.orgId, body);
+    return this.servicesService.updateService(publicId, projectId, org.orgId, body);
   }
 
-  @Delete(":id")
+  @Delete(":publicId")
   async deleteService(
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
-    @Param("id") id: string,
+    @Param("publicId") publicId: string,
   ) {
-    return this.servicesService.deleteService(id, projectId, org.orgId);
+    return this.servicesService.deleteService(publicId, projectId, org.orgId);
   }
 }

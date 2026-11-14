@@ -31,11 +31,17 @@ export class StatusPageSubscriptionsRepository {
       );
   }
 
-  async unsubscribe(subscriptionId: string) {
+  async unsubscribe(orgId: string, projectId: string, subscriptionId: string) {
     await db
       .update(statusPageSubscriptions)
       .set({ enabled: false, unsubscribedAt: new Date() })
-      .where(eq(statusPageSubscriptions.id, subscriptionId));
+      .where(
+        and(
+          eq(statusPageSubscriptions.id, subscriptionId),
+          eq(statusPageSubscriptions.orgId, orgId),
+          eq(statusPageSubscriptions.projectId, projectId),
+        ),
+      );
   }
 
   async getByEmail(orgId: string, projectId: string, email: string) {

@@ -1,4 +1,5 @@
 import { generateId } from "../generate-id";
+import { generatePublicId } from "../public-id";
 import {
   check,
   index,
@@ -26,6 +27,7 @@ export const investigationCases = pgTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => generateId()),
+    publicId: text("public_id").$defaultFn(() => generatePublicId()),
     orgId: text("org_id")
       .references(() => organizations.id, { onDelete: "cascade" })
       .notNull(),
@@ -47,6 +49,9 @@ export const investigationCases = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
+    publicIdUnique: uniqueIndex("investigation_cases_public_id_idx").on(
+      table.publicId,
+    ),
     projectCreatedIdx: index("investigation_cases_project_created_idx").on(
       table.projectId,
       table.createdAt,
