@@ -126,6 +126,7 @@ export class BusinessOperationsRepository {
         projectId,
         ...input,
       })
+      .onConflictDoNothing()
       .returning();
     return operation;
   }

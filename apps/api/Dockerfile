@@ -35,4 +35,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
 COPY --from=builder /out/api ./
 RUN npm install -g pm2@latest
 USER node
-CMD ["sh", "-c", "./node_modules/.bin/drizzle-kit push --force && exec pm2 start -s dist/main.js --name soonwhy-api -i 1 --no-daemon"]
+CMD ["sh", "-c", "node dist/common/db/schema-sync.js && exec pm2 start -s dist/main.js --name soonwhy-api -i 1 --no-daemon"]

@@ -44,6 +44,12 @@ export class BusinessOperationsService {
       );
     }
 
-    return this.repository.create(orgId, projectId, input);
+    const operation = await this.repository.create(orgId, projectId, input);
+    if (!operation) {
+      throw new ConflictException(
+        "Business operation slug already exists in this project",
+      );
+    }
+    return operation;
   }
 }

@@ -1,5 +1,5 @@
 import { generateId } from "../generate-id";
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uniqueIndex, text, timestamp } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
 import { projects } from "./projects";
 import { teams } from "./teams";
@@ -28,4 +28,6 @@ export const services = pgTable("services", {
   teamId: text("team_id").references(() => teams.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  uniqueIndex("services_project_id_slug_idx").on(table.projectId, table.slug),
+]);

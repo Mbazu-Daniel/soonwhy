@@ -26,6 +26,7 @@ export class TeamsRepository {
     const [team] = await db
       .insert(teams)
       .values({ orgId, ...input })
+      .onConflictDoNothing()
       .returning();
     return team;
   }
