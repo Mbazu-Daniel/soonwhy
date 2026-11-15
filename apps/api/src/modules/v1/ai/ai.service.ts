@@ -500,7 +500,7 @@ export class AiService {
   async chat(
     message: string,
     orgId: string,
-    messageId?: string,
+    _messageId?: string,
   ): Promise<ChatResponse> {
     const credentials = await this.repository.get(orgId);
 
@@ -522,7 +522,7 @@ export class AiService {
     const { provider, model, baseUrl } = credentials;
 
     const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const _thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     const prompt = this.buildLLMPrompt(message, orgId);
 
@@ -556,10 +556,10 @@ export class AiService {
   }
 
   private callLLM(
-    provider: string,
-    model: string,
-    baseUrl: string | null,
-    prompt: string,
+    _provider: string,
+    _model: string,
+    _baseUrl: string | null,
+    _prompt: string,
   ): Promise<string> {
     return Promise.resolve(
       "LLM response would be generated here based on the prompt",
@@ -571,7 +571,7 @@ export class AiService {
     originalMessage: string,
   ): Promise<ChatResponse> {
     const now = new Date();
-    const lowerMessage = originalMessage.toLowerCase();
+    const _lowerMessage = originalMessage.toLowerCase();
 
     let suggestions: string[] = [
       "Ask about detection anomalies",

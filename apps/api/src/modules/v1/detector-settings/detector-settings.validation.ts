@@ -187,8 +187,8 @@ export function mergeDetectorOverrides(
       ...(config.thresholds !== undefined || current.thresholds !== undefined
         ? {
             thresholds: {
-              ...(current.thresholds ?? {}),
-              ...(config.thresholds ?? {}),
+              ...current.thresholds,
+              ...config.thresholds,
             },
           }
         : {}),

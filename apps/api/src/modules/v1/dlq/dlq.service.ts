@@ -1,9 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { DlqRepository } from "./dlq.repository";
 import { NatsService } from "@soonwhy/shared";
-import type { NatsMessageHandler } from "@soonwhy/shared";
-
-type JsMsg = Parameters<NatsMessageHandler>[0];
 
 @Injectable()
 export class DlqService {

@@ -89,7 +89,7 @@ export class CanaryService {
         } else if (response.status >= 400) {
           status = "degraded";
         }
-      } catch (error: any) {
+      } catch  {
         responseTimeMs = Date.now() - startTime;
         status = "down";
       }
@@ -210,7 +210,7 @@ export class CanaryService {
     return canary;
   }
 
-  async getCanaries(orgId: string, projectId: string) {
+  async getCanaries(orgId: string, _projectId: string) {
     return db
       .select()
       .from(canaryDeployments)

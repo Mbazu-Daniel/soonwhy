@@ -1,4 +1,4 @@
-import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
+import { QuickwitService } from "@soonwhy/shared";
 import { quickwitSource, quickwitTerm, sanitizeRequestUrl } from "../../../common/quickwit/query";
 import type { DatabaseConnectionPoolSample } from "../intelligence/database-connection-pool.detector";
 import type { DatabaseConnectionWaitSample } from "../intelligence/database-connection-wait.detector";

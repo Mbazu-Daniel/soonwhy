@@ -7,7 +7,7 @@ import {
   services,
   findings,
 } from "../../../common/db/schema";
-import { and, eq, gte, lte } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 function normalizeRepoUrl(url: string): string {
   return url

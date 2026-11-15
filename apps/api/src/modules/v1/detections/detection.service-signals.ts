@@ -1,4 +1,3 @@
-import { QUICKWIT_INDEXES } from '@soonwhy/shared';
 import type { DetectionEvidence } from '../../../common/db/schema/findings';
 import { searchTenant } from '../../../common/telemetry/tenant-search';
 import { quickwitSource, quickwitTerm, sanitizeRequestUrl } from '../../../common/quickwit/query';

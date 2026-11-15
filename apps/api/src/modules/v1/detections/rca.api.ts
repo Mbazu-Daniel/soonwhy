@@ -4,7 +4,6 @@ import { RcaPersistenceService } from "./rca.persistence";
 import { RcaService } from "./rca.service";
 import { decodeRcaBottleneck } from "./rca.evidence";
 import { buildErrorRcaEvidence } from "./rca.error-evidence";
-import type { CorrelatedBottleneck } from "./detection.correlation";
 import {
   DatabaseRcaGovernanceSink,
   getRcaErrorCode,

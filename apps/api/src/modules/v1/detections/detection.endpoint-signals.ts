@@ -1,4 +1,3 @@
-import { QUICKWIT_INDEXES } from '@soonwhy/shared';
 import type { DetectionEvidence } from '../../../common/db/schema/findings';
 import { quickwitSource, quickwitTerm, sanitizeRequestUrl } from '../../../common/quickwit/query';
 import { evaluateEndpointPerformance } from './performance-detection';

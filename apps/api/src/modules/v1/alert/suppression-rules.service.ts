@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { alertSuppressionRules } from "../../../common/db/schema";
 import { db } from "../../../common/db";
-import { eq, and, or } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 interface SuppressionConditions {
   services?: string[];
@@ -174,7 +174,7 @@ export class SuppressionRulesService {
     return true;
   }
 
-  private async checkConditional(conditionalConfig: any, params: SuppressionCheckParams): Promise<boolean> {
+  private async checkConditional(_conditionalConfig: any, _params: SuppressionCheckParams): Promise<boolean> {
     return true;
   }
 }

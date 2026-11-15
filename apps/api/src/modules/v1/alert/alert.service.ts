@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { slos, sloComplianceSnapshots } from "../../../common/db/schema";
 import { db } from "../../../common/db";
-import { eq, and, gt, lt, desc } from "drizzle-orm";
+import { eq, and, gt, desc } from "drizzle-orm";
 import { NotificationService } from "../notifications/notification.service";
 import { IncidentsService } from "../incidents/incidents.service";
 
@@ -111,9 +111,9 @@ export class AlertService {
     burnRate: number,
     threshold: SLOAlertThreshold,
   ) {
-    const severity = this.getSeverity(threshold.errorBudgetPercent);
-    const title = `SLO Alert: ${slo.name} - Error Budget at ${errorBudgetPercent.toFixed(1)}%`;
-    const body = `SLO "${slo.name}" is at risk. Error budget remaining: ${errorBudgetPercent.toFixed(1)}%. Burn rate: ${burnRate.toFixed(2)}/hr. Target: ${slo.targetPercentage}% over ${slo.period}.`;
+    const _severity = this.getSeverity(threshold.errorBudgetPercent);
+    const _title = `SLO Alert: ${slo.name} - Error Budget at ${errorBudgetPercent.toFixed(1)}%`;
+    const _body = `SLO "${slo.name}" is at risk. Error budget remaining: ${errorBudgetPercent.toFixed(1)}%. Burn rate: ${burnRate.toFixed(2)}/hr. Target: ${slo.targetPercentage}% over ${slo.period}.`;
 
     this.logger.warn(`SLO alert triggered for ${slo.name}: ${errorBudgetPercent.toFixed(1)}% budget remaining`);
   }

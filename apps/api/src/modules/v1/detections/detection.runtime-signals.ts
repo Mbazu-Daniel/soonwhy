@@ -1,4 +1,3 @@
-import { QUICKWIT_INDEXES } from '@soonwhy/shared';
 import { quickwitSource, quickwitTerm } from '../../../common/quickwit/query';
 import { detectRuntimeDegradation, RUNTIME_METRIC_NAMES, type RuntimeMetricSample } from '../intelligence/runtime-degradation.detector';
 import { WINDOW_MS, type DetectionStageContext, type DetectionStageDeps } from './detection.stage';

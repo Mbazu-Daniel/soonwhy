@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { summarizeStack } from "./stack-summary";
 import { and, eq, or, sql } from "drizzle-orm";
-import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
+import { QuickwitService } from "@soonwhy/shared";
 import { CacheService } from "../../../common/cache/cache.service";
 import { CACHE_TTL_SECONDS } from "../../../common/cache/cache.constants";
 import { db } from "../../../common/db";

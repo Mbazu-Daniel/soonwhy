@@ -1,8 +1,6 @@
 
 import type {
   RootCauseCandidate,
-  SignalScores,
-  SignalEvidence,
 } from './root-cause.types';
 
 interface Finding {

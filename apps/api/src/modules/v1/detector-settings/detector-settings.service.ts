@@ -90,7 +90,7 @@ export class DetectorSettingsService {
     const featureFlags =
       mode === "replace"
         ? (patch.featureFlags ?? {})
-        : { ...existing.featureFlags, ...(patch.featureFlags ?? {}) };
+        : { ...existing.featureFlags, ...patch.featureFlags };
 
     await db
       .insert(detectorSettings)
