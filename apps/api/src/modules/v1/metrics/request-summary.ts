@@ -13,6 +13,10 @@ export function errorCountOf(status: StatusCounts): number {
   return status._4xx + status._5xx;
 }
 
+function trimFloatNoise(value: number): number {
+  return Number.isFinite(value) ? Number(value.toPrecision(12)) : 0;
+}
+
 export function errorRateOf(errors: number, total: number): number {
   return total ? Math.round((errors / total) * 10000) / 100 : 0;
 }
@@ -39,10 +43,10 @@ export function summarize(raw: RawRequestSummary): RequestSummary {
     totalRequests: raw.total,
     errorCount,
     errorRate: errorRateOf(errorCount, raw.total),
-    avgLatency: Math.round(raw.average),
-    latencyP50: Math.round(raw.p50),
-    latencyP95: Math.round(raw.p95),
-    latencyP99: Math.round(raw.p99),
+    avgLatency: trimFloatNoise(raw.average),
+    latencyP50: trimFloatNoise(raw.p50),
+    latencyP95: trimFloatNoise(raw.p95),
+    latencyP99: trimFloatNoise(raw.p99),
     statusCodes: raw.status,
   };
 }

@@ -35,10 +35,11 @@ export function validateRcaAnalysis(
 }
 
 function collectEvidenceIds(evidence: RcaEvidence): string[] {
-  return [
+  const items = [
     evidence.primaryFinding,
     ...evidence.supportingFindings,
     ...evidence.traces,
     ...evidence.recommendations,
-  ].map((item) => item.id);
+  ];
+  return items.flatMap((item) => [item.id, item.sourceFindingId]);
 }

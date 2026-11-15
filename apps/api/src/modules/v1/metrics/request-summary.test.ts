@@ -23,10 +23,10 @@ describe("request summary", () => {
       totalRequests: 294,
       errorCount: 257,
       errorRate: 87.41,
-      avgLatency: 120,
-      latencyP50: 1,
-      latencyP95: 342,
-      latencyP99: 2145,
+      avgLatency: 120.4,
+      latencyP50: 1.2,
+      latencyP95: 341.6,
+      latencyP99: 2145.1,
     });
   });
 

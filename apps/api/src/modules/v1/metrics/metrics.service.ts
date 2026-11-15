@@ -21,9 +21,9 @@ export class MetricsService {
       buckets: buckets.map((b) => ({
         bucket: b.bucket,
         count: b.count,
-        p50: Math.round(b.p50),
-        p95: Math.round(b.p95),
-        p99: Math.round(b.p99),
+        p50: Number.isFinite(b.p50) ? Number(b.p50.toPrecision(12)) : 0,
+        p95: Number.isFinite(b.p95) ? Number(b.p95.toPrecision(12)) : 0,
+        p99: Number.isFinite(b.p99) ? Number(b.p99.toPrecision(12)) : 0,
         statusCodes: { _2xx: b._2xx, _3xx: b._3xx, _4xx: b._4xx, _5xx: b._5xx },
       })),
     };

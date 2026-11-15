@@ -13,7 +13,7 @@ interface Props {
 }
 
 function formatMs(value: number): string {
-  return value >= 1000 ? `${(value / 1000).toFixed(2)}s` : `${Math.round(value)}ms`;
+  return `${Number.isFinite(value) ? Number(value.toPrecision(12)) : 0}ms`;
 }
 
 function StatsTable({ rows, label, empty }: { rows: Array<OperationStats & { type?: string }>; label: string; empty: string }) {

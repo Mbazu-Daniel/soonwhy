@@ -99,7 +99,5 @@ export function buildServiceGraph(spans: TraceSpan[]): { nodes: ServiceNode[]; e
 }
 
 export function formatMs(value: number): string {
-  if (value >= 1000) return `${(value / 1000).toFixed(2)}s`;
-  if (value >= 10) return `${Math.round(value)}ms`;
-  return `${Number(value.toFixed(2))}ms`;
+  return `${Number.isFinite(value) ? Number(value.toPrecision(12)) : 0}ms`;
 }

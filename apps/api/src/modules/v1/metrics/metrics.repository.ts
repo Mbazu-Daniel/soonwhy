@@ -208,12 +208,13 @@ export class MetricsRepository {
       const errors = errorCountOf(
         spanStatusCounts(bucket.doc_count, failedByService.get(bucket.key) ?? 0, bucket),
       );
+      const p95 = percentileOf(bucket, 95);
       return {
         service: bucket.key,
         requestCount: bucket.doc_count,
         errorCount: errors,
         errorRate: errorRateOf(errors, bucket.doc_count),
-        p95Latency: Math.round(percentileOf(bucket, 95)),
+        p95Latency: Number.isFinite(p95) ? Number(p95.toPrecision(12)) : 0,
       };
     });
   }

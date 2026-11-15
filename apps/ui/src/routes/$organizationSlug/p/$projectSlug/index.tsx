@@ -71,9 +71,6 @@ function AIDashboardSummary({ orgSlug, projectSlug }: { orgSlug: string; project
             ) : (
               <>
                 <p className="mt-1 max-w-3xl text-sm leading-6 text-[#E7EDE1]">{summary.data.summary}</p>
-                <p className="mt-2 text-[10px] uppercase tracking-[0.14em] text-[#7C8B6A]">
-                  {summary.data.source === 'byok' ? `byok${summary.data.model ? ` · ${summary.data.model}` : ''}` : 'Deterministic'} · Refreshes hourly · Updated {new Date(summary.data.generatedAt).toLocaleTimeString()}
-                </p>
               </>
             )}
           </div>

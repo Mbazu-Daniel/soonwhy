@@ -11,7 +11,7 @@ describe("buildOperations", () => {
       { buckets: [{ key: "GET /a", doc_count: 2 }] },
     );
     expect(result.map((item) => item.name)).toEqual(["POST /b", "GET /a"]);
-    expect(result[1]).toEqual({ name: "GET /a", requests: 8, errors: 2, errorRate: 25, avgMs: 33.33, p50Ms: 10, p95Ms: 120.46, p99Ms: 200 });
+    expect(result[1]).toEqual({ name: "GET /a", requests: 8, errors: 2, errorRate: 25, avgMs: 33.333, p50Ms: 10, p95Ms: 120.456, p99Ms: 200 });
     expect(result[0]!.errors).toBe(0);
   });
 

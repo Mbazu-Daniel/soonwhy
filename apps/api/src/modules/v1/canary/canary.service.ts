@@ -116,7 +116,7 @@ export class CanaryService {
         : 0;
 
     const metrics = {
-      avgResponseTime: Math.round(avgResponseTime),
+      avgResponseTime: Number.isFinite(avgResponseTime) ? Number(avgResponseTime.toPrecision(12)) : 0,
       successRate: Math.round(successRate),
       errorCount,
       totalChecks,
