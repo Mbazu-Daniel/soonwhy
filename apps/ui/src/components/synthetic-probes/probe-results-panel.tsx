@@ -39,7 +39,7 @@ export function ProbeResultsPanel({ projectId, probeId }: ProbeResultsPanelProps
 
   const items = results.data ?? [];
   const avgResponseTime = items.filter((r) => r.responseTimeMs).length
-    ? Math.round(items.filter((r) => r.responseTimeMs).reduce((sum, r) => sum + (r.responseTimeMs || 0), 0) / items.filter((r) => r.responseTimeMs).length)
+    ? Number((items.filter((r) => r.responseTimeMs).reduce((sum, r) => sum + (r.responseTimeMs || 0), 0) / items.filter((r) => r.responseTimeMs).length).toPrecision(12))
     : 0;
   const upCount = items.filter((r) => r.status === 'up').length;
   const uptimePercent = items.length ? Math.round((upCount / items.length) * 100) : 0;

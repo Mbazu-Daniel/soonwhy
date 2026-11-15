@@ -35,7 +35,7 @@ export function TraceCharts({ buckets }: { buckets: TraceStatBucket[] }) {
     <div className="grid gap-3 md:grid-cols-3">
       <MiniChart title="Requests" values={buckets.map((b) => b.requests)} labels={labels} color="#415312" format={(v) => String(Math.round(v))} />
       <MiniChart title="Traces with errors" values={buckets.map((b) => b.errors)} labels={labels} color="#DC2626" format={(v) => String(Math.round(v))} />
-      <MiniChart title="P95 latency" values={buckets.map((b) => b.p95Ms)} labels={labels} color="#D8C68A" format={(v) => (v >= 1000 ? `${(v / 1000).toFixed(2)}s` : `${Number(v.toPrecision(2))}ms`)} />
+      <MiniChart title="P95 latency" values={buckets.map((b) => b.p95Ms)} labels={labels} color="#D8C68A" format={(v) => `${Number.isFinite(v) ? Number(v.toPrecision(12)) : 0}ms`} />
     </div>
   );
 }

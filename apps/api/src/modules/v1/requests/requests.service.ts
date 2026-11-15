@@ -27,9 +27,9 @@ export class RequestsService {
         url: this.normalizeUrl(s.url),
         method: s.method,
         count: s.count,
-        p50: Math.round(s.p50),
-        p95: Math.round(s.p95),
-        p99: Math.round(s.p99),
+        p50: Number.isFinite(s.p50) ? Number(s.p50.toPrecision(12)) : 0,
+        p95: Number.isFinite(s.p95) ? Number(s.p95.toPrecision(12)) : 0,
+        p99: Number.isFinite(s.p99) ? Number(s.p99.toPrecision(12)) : 0,
         errorRate: Math.round(s.errorRate * 100) / 100,
       })),
     };

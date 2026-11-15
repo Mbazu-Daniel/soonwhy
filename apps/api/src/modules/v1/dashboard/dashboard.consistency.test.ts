@@ -84,7 +84,7 @@ describe("overview and metrics agree", () => {
     });
     expect(overview.totalRequests).toBe(294);
     expect(overview.errorRate).toBe(87.41);
-    expect(overview.avgLatency).toBe(121);
+    expect(overview.avgLatency).toBe(120.6);
   });
 
   it("builds the time series from the same requests", async () => {
@@ -98,7 +98,7 @@ describe("overview and metrics agree", () => {
     const { dashboard } = build();
     const services = await dashboard.getServices("org", "project", from, to);
     expect(services).toEqual([
-      { service: "api", requestCount: 294, errorCount: 257, errorRate: 87.41, p95Latency: 342 },
+      { service: "api", requestCount: 294, errorCount: 257, errorRate: 87.41, p95Latency: 342.2 },
     ]);
   });
 

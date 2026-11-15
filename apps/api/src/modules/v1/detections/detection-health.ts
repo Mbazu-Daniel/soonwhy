@@ -98,8 +98,8 @@ export function summarizeDetectionRuns(
       avgDurationMs:
         durations.length === 0
           ? null
-          : Math.round(
-              durations.reduce((sum, ms) => sum + ms, 0) / durations.length,
+          : Number(
+              (durations.reduce((sum, ms) => sum + ms, 0) / durations.length).toPrecision(12),
             ),
       maxDurationMs: maxDuration,
     },

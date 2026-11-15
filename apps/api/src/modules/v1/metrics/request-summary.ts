@@ -13,9 +13,8 @@ export function errorCountOf(status: StatusCounts): number {
   return status._4xx + status._5xx;
 }
 
-function significantFigures(value: number): number {
-  if (!Number.isFinite(value)) return 0;
-  return Number(value.toPrecision(2));
+function trimFloatNoise(value: number): number {
+  return Number.isFinite(value) ? Number(value.toPrecision(12)) : 0;
 }
 
 export function errorRateOf(errors: number, total: number): number {
@@ -44,10 +43,10 @@ export function summarize(raw: RawRequestSummary): RequestSummary {
     totalRequests: raw.total,
     errorCount,
     errorRate: errorRateOf(errorCount, raw.total),
-    avgLatency: significantFigures(raw.average),
-    latencyP50: significantFigures(raw.p50),
-    latencyP95: significantFigures(raw.p95),
-    latencyP99: significantFigures(raw.p99),
+    avgLatency: trimFloatNoise(raw.average),
+    latencyP50: trimFloatNoise(raw.p50),
+    latencyP95: trimFloatNoise(raw.p95),
+    latencyP99: trimFloatNoise(raw.p99),
     statusCodes: raw.status,
   };
 }

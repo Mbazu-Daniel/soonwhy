@@ -4,9 +4,13 @@ function round(value: number | null | undefined): number {
   return Number.isFinite(value) ? Math.round((value as number) * 100) / 100 : 0;
 }
 
+function raw(value: number | null | undefined): number {
+  return Number.isFinite(value) ? Number((value as number).toPrecision(12)) : 0;
+}
+
 function percentile(bucket: TermBucket, percent: number): number {
   const values = bucket.latency?.values ?? {};
-  return round(values[`${percent}.0`] ?? values[String(percent)]);
+  return raw(values[`${percent}.0`] ?? values[String(percent)]);
 }
 
 function errorCounts(errors: TermBuckets | undefined): Map<string, number> {
@@ -21,7 +25,7 @@ function statsOf(bucket: TermBucket, errors: Map<string, number>): OperationStat
     requests: bucket.doc_count,
     errors: failed,
     errorRate: bucket.doc_count ? round((failed / bucket.doc_count) * 100) : 0,
-    avgMs: round(bucket.avg?.value),
+    avgMs: raw(bucket.avg?.value),
     p50Ms: percentile(bucket, 50),
     p95Ms: percentile(bucket, 95),
     p99Ms: percentile(bucket, 99),
