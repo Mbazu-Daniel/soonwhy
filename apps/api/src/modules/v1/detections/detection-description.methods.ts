@@ -6,6 +6,11 @@ type QueryCandidate = {
   endpoint?: string;
 };
 
+function trimNoise(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Number(parsed.toPrecision(12)) : 0;
+}
+
 function queryLabel(candidate: QueryCandidate): string {
   return String(
     candidate.querySummary ??
@@ -27,8 +32,8 @@ export function describeDatabaseResultSet(candidate: any): string {
     ? ' Database time contributes ' + Number(candidate.signal.p95TraceContributionPercent).toFixed(0) + '% of trace duration at p95.'
     : '';
   return queryLabel(candidate) + endpoint + ' returns ' +
-    Math.round(Number(candidate.signal?.p95ReturnedRows ?? 0)) + ' rows at p95 and ' +
-    Math.round(Number(candidate.signal?.p99ReturnedRows ?? 0)) + ' at p99 across ' +
+    trimNoise(Number(candidate.signal?.p95ReturnedRows ?? 0)) + ' rows at p95 and ' +
+    trimNoise(Number(candidate.signal?.p99ReturnedRows ?? 0)) + ' at p99 across ' +
     Number(candidate.signal?.sampleCount ?? 0) + ' executions.' + regression + contribution;
 }
 
@@ -74,7 +79,7 @@ export function describeNPlusOne(candidate: any): string {
   return queryLabel(candidate) +
     ' was executed ' + Number(candidate.signal?.occurrences ?? 0) +
     ' times in one trace under the same parent span, consuming about ' +
-    Math.round(Number(candidate.signal?.totalDurationMs ?? 0)) +
+    trimNoise(Number(candidate.signal?.totalDurationMs ?? 0)) +
     'ms of database time.';
 }
 
@@ -84,9 +89,9 @@ export function describePerformanceSignal(signal: {
 }): string {
   if (!signal) return 'Service performance degraded over the last 15 minutes.';
   return signal.reasons.join('. ') + '. P50: ' +
-    Math.round(signal.latency.p50) + 'ms, P95: ' +
-    Math.round(signal.latency.p95) + 'ms, P99: ' +
-    Math.round(signal.latency.p99) + 'ms.';
+    trimNoise(signal.latency.p50) + 'ms, P95: ' +
+    trimNoise(signal.latency.p95) + 'ms, P99: ' +
+    trimNoise(signal.latency.p99) + 'ms.';
 }
 
 export function describeThroughputSignal(signal: {
@@ -94,8 +99,8 @@ export function describeThroughputSignal(signal: {
   observedValue: number;
   changePercent: number;
 }): string {
-  return 'Request throughput fell from an expected ' + Math.round(signal.baselineValue) +
-    ' requests to ' + Math.round(signal.observedValue) + ' requests over the last 15 minutes (' + signal.changePercent.toFixed(0) + '%).';
+  return 'Request throughput fell from an expected ' + trimNoise(signal.baselineValue) +
+    ' requests to ' + trimNoise(signal.observedValue) + ' requests over the last 15 minutes (' + signal.changePercent.toFixed(0) + '%).';
 }
 
 export function describeDatabaseQuery(candidate: any): string {
@@ -106,8 +111,8 @@ export function describeDatabaseQuery(candidate: any): string {
   const regression = candidate.signal?.changePercent !== undefined
     ? ' This is a ' + Number(candidate.signal.changePercent).toFixed(0) + '% increase from the previous comparable window.'
     : '';
-  return queryLabel(candidate) + ' ran at p95 ' + Math.round(p95) + 'ms across ' + samples +
-    ' executions (threshold ' + Math.round(threshold) + 'ms).' + regression;
+  return queryLabel(candidate) + ' ran at p95 ' + trimNoise(p95) + 'ms across ' + samples +
+    ' executions (threshold ' + trimNoise(threshold) + 'ms).' + regression;
 }
 
 export function describeDatabaseLatencyContribution(candidate: any): string {
@@ -117,7 +122,7 @@ export function describeDatabaseLatencyContribution(candidate: any): string {
   const p95Duration = Number(candidate.signal?.p95DurationMs ?? 0);
   return queryLabel(candidate) + ' accounts for ' + p95.toFixed(0) +
     '% of p95 trace duration (p50 ' + p50.toFixed(0) + '%) across ' + sampleCount +
-    ' traces, consuming ' + Math.round(p95Duration) + 'ms of database time at p95.';
+    ' traces, consuming ' + trimNoise(p95Duration) + 'ms of database time at p95.';
 }
 
 export function describeDatabaseConnectionWait(candidate: any): string {
@@ -126,12 +131,12 @@ export function describeDatabaseConnectionWait(candidate: any): string {
   const regression = candidate.signal?.p95ChangePercent !== undefined
     ? ' This is a ' + Number(candidate.signal.p95ChangePercent).toFixed(0) +
       '% increase from the baseline p95 of ' +
-      Math.round(Number(candidate.signal?.baselineP95WaitMs ?? 0)) + 'ms.'
+      trimNoise(Number(candidate.signal?.baselineP95WaitMs ?? 0)) + 'ms.'
     : '';
   return 'Connections waited' + pool + ' in ' + candidate.serviceName + ': p95 ' +
-    Math.round(Number(candidate.signal?.p95WaitMs ?? 0)) + 'ms (p50 ' +
-    Math.round(Number(candidate.signal?.p50WaitMs ?? 0)) + 'ms, p99 ' +
-    Math.round(Number(candidate.signal?.p99WaitMs ?? 0)) + 'ms) across ' +
+    trimNoise(Number(candidate.signal?.p95WaitMs ?? 0)) + 'ms (p50 ' +
+    trimNoise(Number(candidate.signal?.p50WaitMs ?? 0)) + 'ms, p99 ' +
+    trimNoise(Number(candidate.signal?.p99WaitMs ?? 0)) + 'ms) across ' +
     Number(candidate.signal?.sampleCount ?? 0) + ' samples' + severity + '.' + regression;
 }
 

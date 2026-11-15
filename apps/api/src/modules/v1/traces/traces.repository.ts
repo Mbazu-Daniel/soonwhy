@@ -138,12 +138,13 @@ export class TracesRepository {
     const failedByTime = new Map(
       ((failed.aggregations?.timeline as TimelineBuckets | undefined)?.buckets ?? []).map((bucket) => [bucket.key, bucket.doc_count]),
     );
+    const raw = (value: number | null | undefined): number => (Number.isFinite(value) ? Number((value as number).toPrecision(12)) : 0);
     const buckets = ((requests.aggregations?.timeline as TimelineBuckets | undefined)?.buckets ?? []).map((bucket) => ({
       timestamp: new Date(bucket.key).toISOString(),
       requests: bucket.doc_count,
       errors: failedByTime.get(bucket.key) ?? 0,
-      avgMs: Math.round((bucket.avg?.value ?? 0) * 100) / 100,
-      p95Ms: Math.round((bucket.p95?.values?.["95.0"] ?? 0) * 100) / 100,
+      avgMs: raw(bucket.avg?.value),
+      p95Ms: raw(bucket.p95?.values?.["95.0"]),
     }));
     return { interval, buckets };
   }
