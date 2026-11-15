@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
 import {
-  ApiKeysService,
+  ApiKeyAuthenticator,
   DB,
   createDb,
   NatsService,
@@ -21,7 +21,7 @@ import { IngestReceiptRepository } from "./pipeline/receipt.repository";
   controllers: [IngestController, HealthController, MetricsController, RootController],
   providers: [
     { provide: DB, useFactory: createDb },
-    ApiKeysService,
+    ApiKeyAuthenticator,
     RateLimiter,
     NatsService,
     IngestStats,

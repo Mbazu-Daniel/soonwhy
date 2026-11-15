@@ -4,7 +4,7 @@ import { NestFactory } from "@nestjs/core";
 import { McpModule } from "@nestjs/mcp";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { ApiKeysService } from "../api-keys/api-keys.service";
+import { ApiKeyAuthenticator } from "@soonwhy/shared";
 import { DetectionService } from "../detections/detection.service";
 import { ErrorsService } from "../errors/errors.service";
 import { LogsService } from "../logs/logs.service";
@@ -23,10 +23,12 @@ import { MCP_READ_SCOPE } from "./mcp.constants";
 const STACK = "Error: boom\n    at Handler.run (/app/src/handler.ts:10:5)\n    at /app/node_modules/express/lib/layer.js:1:1";
 
 const apiKeys = {
-  validateKey: vi.fn(async (token: string) => {
-    if (token === "good") return { orgId: "org_1", projectId: "proj_1", scopes: [MCP_READ_SCOPE] };
-    if (token === "noscope") return { orgId: "org_1", projectId: "proj_1", scopes: [] };
-    return null;
+  authenticate: vi.fn(async (authorization: string | undefined, options: { scope?: string } = {}) => {
+    const token = /^Bearer\s+(\S+)$/i.exec(authorization ?? "")?.[1];
+    const scopes = token === "good" ? [MCP_READ_SCOPE] : token === "noscope" ? [] : undefined;
+    if (!scopes) return { ok: false, reason: "invalid", message: "Invalid or expired API key" };
+    if (options.scope && !scopes.includes(options.scope)) return { ok: false, reason: "scope", message: "scope" };
+    return { ok: true, key: { organizationId: "org_1", projectId: "proj_1", scopes } };
   }),
 };
 const errors = {
@@ -38,7 +40,7 @@ const traces = { listTraces: vi.fn(), getTrace: vi.fn() };
 const detections = { list: vi.fn() };
 const rcaApi = { getLatest: vi.fn() };
 
-@Module({ providers: [{ provide: ApiKeysService, useValue: apiKeys }], exports: [ApiKeysService] })
+@Module({ providers: [{ provide: ApiKeyAuthenticator, useValue: apiKeys }], exports: [ApiKeyAuthenticator] })
 class FakeApiKeysModule {}
 
 @Module({
@@ -64,7 +66,7 @@ class FakeApiKeysModule {}
     { provide: LogsService, useValue: logs },
     { provide: TracesService, useValue: traces },
     { provide: DetectionService, useValue: detections },
-    { provide: ApiKeysService, useValue: apiKeys },
+    { provide: ApiKeyAuthenticator, useValue: apiKeys },
   ],
 })
 class TestMcpModule {}

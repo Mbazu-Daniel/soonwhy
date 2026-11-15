@@ -1,23 +1,37 @@
-import { Injectable, Inject, Logger } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import { createHash } from "crypto";
 import { eq } from "drizzle-orm";
 import { apiKeys, projects, projectSettings, serviceAccounts } from "../db/schema";
 import type { CaptureSettings } from "../capture-settings";
 import type { Db } from "../db";
 import { DB } from "../db";
-import type { ValidatedApiKey } from "./api-keys.types";
+import type { ApiKeyAuthentication, ValidatedApiKey } from "./api-keys.types";
 
 @Injectable()
-export class ApiKeysService {
+export class ApiKeyAuthenticator {
   constructor(@Inject(DB) private readonly db: Db) {}
 
-  private readonly logger = new Logger(ApiKeysService.name);
+  private readonly logger = new Logger(ApiKeyAuthenticator.name);
 
   private hashKey(key: string): string {
     return createHash("sha256").update(key).digest("hex");
   }
 
-  async validateKey(rawKey: string): Promise<ValidatedApiKey | undefined> {
+  async authenticate(
+    authorization: string | undefined,
+    options: { scope?: string } = {},
+  ): Promise<ApiKeyAuthentication> {
+    const rawKey = apiKeyFromAuthorization(authorization);
+    if (!rawKey) return { ok: false, reason: "missing", message: "Missing or invalid API key" };
+    const key = await this.validateKey(rawKey);
+    if (!key) return { ok: false, reason: "invalid", message: "Invalid or expired API key" };
+    if (options.scope && !key.scopes.includes(options.scope)) {
+      return { ok: false, reason: "scope", message: `The API key needs the ${options.scope} scope` };
+    }
+    return { ok: true, key };
+  }
+
+  private async validateKey(rawKey: string): Promise<ValidatedApiKey | undefined> {
     const keyHash = this.hashKey(rawKey);
     const rows = await this.db
       .select({

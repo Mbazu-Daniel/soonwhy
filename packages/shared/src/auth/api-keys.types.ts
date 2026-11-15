@@ -6,3 +6,7 @@ export interface ValidatedApiKey {
   scopes: string[];
   captureSettings: CaptureSettings;
 }
+
+export type ApiKeyAuthentication =
+  | { ok: true; key: ValidatedApiKey }
+  | { ok: false; reason: "missing" | "invalid" | "scope"; message: string };

@@ -14,8 +14,7 @@ import {
 import { Request, Response } from "express";
 import { gunzipSync } from "zlib";
 import {
-  ApiKeysService,
-  apiKeyFromAuthorization,
+  ApiKeyAuthenticator,
   NatsService,
   RateLimiter,
   type ValidatedApiKey,
@@ -77,7 +76,7 @@ export class IngestController {
   private readonly logger = new Logger(IngestController.name);
 
   constructor(
-    private readonly apiKeysService: ApiKeysService,
+    private readonly apiKeys: ApiKeyAuthenticator,
     private readonly rateLimiter: RateLimiter,
     private readonly nats: NatsService,
     private readonly metrics: IngestStats,
@@ -85,15 +84,9 @@ export class IngestController {
   ) {}
 
   private async authenticate(authorization: string | undefined): Promise<ValidatedApiKey> {
-    const apiKey = apiKeyFromAuthorization(authorization);
-    if (!apiKey) {
-      throw new UnauthorizedException("Missing or invalid API key");
-    }
-    const auth = await this.apiKeysService.validateKey(apiKey);
-    if (!auth) {
-      throw new UnauthorizedException("Invalid API key");
-    }
-    return auth;
+    const result = await this.apiKeys.authenticate(authorization);
+    if (!result.ok) throw new UnauthorizedException(result.message);
+    return result.key;
   }
 
   private sendError(res: Response, status: number, message: string): void {
