@@ -78,7 +78,7 @@ export class OnCallService {
   async getCurrentOnCall(
     orgId: string,
     projectId: string,
-    incidentId?: string,
+    _incidentId?: string,
   ): Promise<OwnershipRecord | undefined> {
     const [ownership] = await db
       .select()

@@ -35,7 +35,6 @@ export class RecommendationEngineService {
   }
 
   getTopRecommendations(recommendations: Recommendation[], limit: number = 5): Recommendation[] {
-    const priorityOrder: RecommendationPriority[] = ["critical", "high", "medium", "low"];
     const priorityScore: Record<RecommendationPriority, number> = {
       critical: 4,
       high: 3,

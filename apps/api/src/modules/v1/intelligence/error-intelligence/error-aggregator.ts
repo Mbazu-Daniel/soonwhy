@@ -81,7 +81,7 @@ export function correlateError(
   const correlatedTraces = new Set(occurrences.map((o) => o.traceId).filter((v): v is string => Boolean(v)));
   const correlatedDeployments = new Set(occurrences.map((o) => o.deploymentId).filter((v): v is string => Boolean(v)));
   const correlatedEndpoints = new Set(occurrences.map((o) => o.endpoint).filter((v): v is string => Boolean(v)));
-  const correlatedServices = new Set(occurrences.map((o) => o.serviceName).filter((v): v is string => Boolean(v)));
+  const _correlatedServices = new Set(occurrences.map((o) => o.serviceName).filter((v): v is string => Boolean(v)));
   const correlatedHosts = new Set(occurrences.map((o) => o.hostId).filter((v): v is string => Boolean(v)));
 
   const correlationStrength = Math.min(

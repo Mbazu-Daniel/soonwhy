@@ -1,5 +1,5 @@
 import type { AIOperation, AIAggregation } from "./ai-intelligence.types";
-import { createTelemetryIdentity, fingerprintAIOperation } from "@soonwhy/shared";
+import { createTelemetryIdentity } from "@soonwhy/shared";
 
 export function aggregateAIOperations(operations: AIOperation[]): AIAggregation {
   if (operations.length === 0) {

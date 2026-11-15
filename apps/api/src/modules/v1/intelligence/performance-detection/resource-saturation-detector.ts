@@ -1,6 +1,5 @@
 import {
   createTelemetryIdentity,
-  fingerprintHost,
 } from "@soonwhy/shared";
 import type {
   ResourceFinding,

@@ -1,4 +1,3 @@
-import type { TelemetryIdentity } from "../telemetry-identity.types";
 
 export interface QueryIdentity {
   fingerprint: string;

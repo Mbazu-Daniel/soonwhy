@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { db } from "../../../common/db";
 import { slos, sloComplianceSnapshots } from "../../../common/db/schema";
-import { eq, and, desc, lt, gte } from "drizzle-orm";
+import { eq, and, desc, gte } from "drizzle-orm";
 
 @Injectable()
 export class SlosRepository {

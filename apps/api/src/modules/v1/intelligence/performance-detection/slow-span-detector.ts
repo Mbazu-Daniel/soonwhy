@@ -1,6 +1,5 @@
 import {
   createTelemetryIdentity,
-  fingerprintSpan,
 } from "@soonwhy/shared";
 import type {
   SpanFinding,
@@ -33,7 +32,7 @@ export function detectSlowSpans(
     timestamp: string;
   }>,
   slowThresholdMs: number = 500,
-  config: PerformanceDetectionConfig = DEFAULT_CONFIG,
+  _config: PerformanceDetectionConfig = DEFAULT_CONFIG,
 ): SpanFinding[] {
   const findings: SpanFinding[] = [];
 

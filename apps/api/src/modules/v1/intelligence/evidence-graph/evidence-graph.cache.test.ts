@@ -1,6 +1,5 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
 import { EvidenceGraphCache } from "./evidence-graph.cache";
-import { Redis } from "ioredis";
 
 describe("EvidenceGraphCache", () => {
   let cache: EvidenceGraphCache;

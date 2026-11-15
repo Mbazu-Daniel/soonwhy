@@ -7,7 +7,6 @@ import { EvidenceGraphCache } from "./evidence-graph.cache";
 import { EvidenceGraphCleanupService } from "./evidence-graph-cleanup.service";
 import { EvidenceGraphHealthService } from "./evidence-graph-health.service";
 import { TelemetryIngestionService } from "../telemetry-ingestion.service";
-import { QuickwitService } from "@soonwhy/shared";
 import { DetectorConfigService } from "../detector-config.service";
 import { DetectorConfigController } from "../detector-config.controller";
 

@@ -1,7 +1,6 @@
 import type {
   QueryExecution,
   QueryAggregation,
-  QueryIdentity,
   NPlusOnePattern,
   LargeScanPattern,
 } from "./query-intelligence.types";
@@ -71,7 +70,7 @@ export function detectNPlusOnePattern(
 ): NPlusOnePattern[] {
   const patterns: NPlusOnePattern[] = [];
 
-  for (const [traceId, traceExecutions] of executionsByTrace) {
+  for (const [_traceId, traceExecutions] of executionsByTrace) {
     if (traceExecutions.length < threshold + 1) continue;
 
     const byFingerprint = new Map<string, QueryExecution[]>();
@@ -83,7 +82,7 @@ export function detectNPlusOnePattern(
       byFingerprint.get(fp)!.push(exec);
     }
 
-    for (const [fingerprint, execs] of byFingerprint) {
+    for (const [_fingerprint, execs] of byFingerprint) {
       if (execs.length < threshold) continue;
 
       const parentQuery = execs[0]?.queryIdentity;

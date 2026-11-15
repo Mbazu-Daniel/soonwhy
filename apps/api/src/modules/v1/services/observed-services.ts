@@ -1,4 +1,4 @@
-import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
+import { QuickwitService } from "@soonwhy/shared";
 import { quickwitTerm } from "../../../common/quickwit/query";
 import { searchTenant } from "../../../common/telemetry/tenant-search";
 import { MAX_OBSERVED_SERVICES, SYNC_LOOKBACK_MS } from "./service-sync.constants";

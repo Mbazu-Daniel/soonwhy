@@ -5,7 +5,7 @@ export const TimeWindowParser = {
     const now = new Date();
     const parts = window.split("/");
     const durationStr = parts[0]!.trim();
-    const offsetStr = parts.length > 1 ? parts[1]!.trim() : "now";
+    const _offsetStr = parts.length > 1 ? parts[1]!.trim() : "now";
 
     const durationMap: Record<string, number> = {
       s: 1000,
