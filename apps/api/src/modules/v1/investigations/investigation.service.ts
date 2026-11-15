@@ -4,6 +4,10 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import type { DetectionEvidence } from "../../../common/db/schema/findings";
+import type {
+  InvestigationEvidenceRef,
+  investigationCases,
+} from "../../../common/db/schema/investigation-cases";
 import { InvestigationRepository } from "./investigation.repository";
 import type {
   InvestigationGraph,
@@ -17,24 +21,26 @@ type InvestigationSnapshot = {
   evidence?: DetectionEvidence[];
 };
 
+type InvestigationPayloadRow = typeof investigationCases.$inferSelect;
+
 @Injectable()
 export class InvestigationService {
   constructor(private readonly repository: InvestigationRepository) {}
 
   async list(projectId: string, orgId: string) {
-    return (await this.repository.list(projectId, orgId)).map(
-      ({ investigation }) => investigation,
-    );
+    return (await this.repository.list(projectId, orgId))
+      .filter(({ investigation }) => investigation.publicId)
+      .map(({ investigation }) => toInvestigationPayload(investigation));
   }
 
-  async getById(id: string, orgId: string) {
-    const investigation = await this.repository.getById(id, orgId);
+  async getById(publicId: string, orgId: string) {
+    const investigation = await this.repository.getById(publicId, orgId);
     if (!investigation) throw new NotFoundException("Investigation not found");
-    return investigation;
+    return toInvestigationPayload(investigation);
   }
 
-  async getGraph(id: string, orgId: string): Promise<InvestigationGraph> {
-    const investigation = await this.getById(id, orgId);
+  async getGraph(publicId: string, orgId: string): Promise<InvestigationGraph> {
+    const investigation = await this.getById(publicId, orgId);
     const snapshot = investigation.evidenceSnapshot as InvestigationSnapshot;
 
     const finding: InvestigationGraphFindingData = {
@@ -98,7 +104,7 @@ export class InvestigationService {
     }));
 
     try {
-      return await this.repository.create({
+      const created = await this.repository.create({
         orgId,
         projectId: finding.projectId,
         findingId: finding.id,
@@ -124,6 +130,7 @@ export class InvestigationService {
           evidence,
         },
       });
+      return { ...created, id: created.publicId ?? created.id };
     } catch (error) {
       if (isUniqueViolation(error)) {
         throw new ConflictException(
@@ -133,6 +140,78 @@ export class InvestigationService {
       throw error;
     }
   }
+}
+
+function toInvestigationPayload(row: InvestigationPayloadRow) {
+  const createdAt =
+    row.createdAt instanceof Date ? row.createdAt : new Date();
+  const updatedAt =
+    row.updatedAt instanceof Date ? row.updatedAt : createdAt;
+  const snapshot = (row.evidenceSnapshot ?? {}) as InvestigationSnapshot;
+  const serviceName = row.serviceName;
+  const timestamp = toIso(
+    snapshot.finding?.detectedAt ?? snapshot.finding?.windowEnd,
+    createdAt,
+  );
+  const snapshotEvidence = snapshot.evidence ?? [];
+  const fallbackRefs = (row.evidence ?? []) as InvestigationEvidenceRef[];
+  const evidenceItems = snapshotEvidence.length ? snapshotEvidence : fallbackRefs;
+
+  const events = [
+    {
+      id: `detection:${snapshot.finding?.id ?? row.findingId}`,
+      kind: "detection",
+      title: snapshot.finding?.title ?? row.title,
+      description: snapshot.finding?.description ?? row.summary,
+      timestamp,
+      service: serviceName,
+      ...(snapshot.finding?.severity
+        ? { severity: snapshot.finding.severity }
+        : {}),
+      sourceId: snapshot.finding?.id ?? row.findingId,
+    },
+    ...evidenceItems.map((item, index) => ({
+      id: `evidence:${index}:${item.kind}`,
+      kind: item.kind,
+      title: item.label,
+      description: String(item.value),
+      timestamp,
+      service: serviceName,
+      ...(sourceIdOf(item) ? { sourceId: sourceIdOf(item) } : {}),
+    })),
+  ];
+
+  return {
+    ...row,
+    id: row.publicId ?? row.id,
+    startedAt: createdAt,
+    updatedAt,
+    service: serviceName,
+    events,
+    evidence: evidenceItems.map((item) => ({
+      label: item.label,
+      value: String(item.value),
+      ...(sourceIdOf(item) ? { sourceId: sourceIdOf(item) } : {}),
+    })),
+    changes: [] as Array<{
+      id: string;
+      message: string;
+      author?: string;
+      timestamp: string;
+      service?: string;
+    }>,
+  };
+}
+
+function sourceIdOf(item: DetectionEvidence | InvestigationEvidenceRef) {
+  const context = "context" in item ? item.context : undefined;
+  return typeof context?.sourceId === "string" ? context.sourceId : undefined;
+}
+
+function toIso(value: string | undefined, fallback: Date): string {
+  if (!value) return fallback.toISOString();
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? fallback.toISOString() : parsed.toISOString();
 }
 
 function isUniqueViolation(error: unknown): boolean {

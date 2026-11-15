@@ -47,4 +47,24 @@ describe("mergeErrorSources", () => {
     });
     expect(result[0]!.message).toBe("db timed out");
   });
+
+  it("drops a failed request that an error log with the same status already covers, even with no trace ids", () => {
+    const result = mergeErrorSources({
+      logs: [{ id: "l1", timestamp: "2026-11-14T10:00:00.500Z", service: "api", level: "error", message: "boom", attributes: { "http.status_code": 500 } }] as never,
+      spans: [],
+      requests: [{ id: "r1", method: "GET", route: "/x", statusCode: 500, service: "api", timestamp: "2026-11-14T10:00:01.000Z" }],
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0]!.message).toBe("boom");
+  });
+
+  it("keeps a failed request when the log is another status, service or far in time", () => {
+    const log = { id: "l1", timestamp: "2026-11-14T10:00:00.000Z", service: "api", level: "error", message: "boom", attributes: { "http.status_code": 500 } };
+    const request = { method: "GET", route: "/x", statusCode: 500, service: "api", timestamp: "2026-11-14T10:00:01.000Z" };
+    const kept = (overrides: Record<string, unknown>) =>
+      mergeErrorSources({ logs: [log] as never, spans: [], requests: [{ ...request, ...overrides }] }).length;
+    expect(kept({ statusCode: 502 })).toBe(2);
+    expect(kept({ service: "worker" })).toBe(2);
+    expect(kept({ timestamp: "2026-11-14T10:00:30.000Z" })).toBe(2);
+  });
 });

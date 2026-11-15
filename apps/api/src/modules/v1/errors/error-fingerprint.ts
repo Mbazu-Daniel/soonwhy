@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { FINGERPRINT_LENGTH, MAX_MESSAGE_LENGTH } from "./error.constants";
 import type { ErrorLogSource } from "./error.types";
+import { stackFingerprintBasis } from "./stack-fingerprint";
 
 const PII_TOKEN_PATTERN = /pii:v1:[A-Za-z0-9_-]+/g;
 const UUID_PATTERN = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
@@ -55,7 +56,7 @@ export function errorFingerprint(source: ErrorLogSource): string {
   const basis = [
     source.service ?? "",
     errorTypeOf(source),
-    normalizeErrorMessage(source.message ?? ""),
+    stackFingerprintBasis(source.stackTrace) ?? normalizeErrorMessage(source.message ?? ""),
   ].join("|");
   return createHash("sha1").update(basis).digest("hex").slice(0, FINGERPRINT_LENGTH);
 }

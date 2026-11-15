@@ -187,27 +187,35 @@ export class OrganizationsService {
       headers: authorization ? { authorization } : undefined,
       query: { organizationId },
     });
-    const invitations = Array.isArray(result) ? result : [];
-    return invitations.filter(
+    const rows = Array.isArray(result) ? result : [];
+    const pending = rows.filter(
       (invitation: { status?: string }) =>
         (invitation.status ?? "pending") === "pending",
     );
+    const publicIds =
+      await this.organizationsRepository.getInvitationPublicIdsByIds(
+        pending.map((invitation: { id: string }) => invitation.id),
+      );
+    return pending.flatMap((invitation: { id: string }) => {
+      const publicId = publicIds.get(invitation.id);
+      if (!publicId) return [];
+      return [{ ...invitation, id: publicId }];
+    });
   }
 
   async cancelInvitation(
     organizationId: string,
-    invitationId: string,
+    publicId: string,
     authorization?: string,
   ) {
-    const invitation = await this.organizationsRepository.getInvitationById(
-      invitationId,
-    );
+    const invitation =
+      await this.organizationsRepository.getInvitationByPublicId(publicId);
     if (!invitation || invitation.organizationId !== organizationId) {
       throw new NotFoundException("Invitation not found");
     }
     const result = await authApi.cancelInvitation({
       headers: authorization ? { authorization } : undefined,
-      body: { invitationId },
+      body: { invitationId: invitation.id },
     });
     return result;
   }

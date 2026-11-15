@@ -1,6 +1,7 @@
-import { Controller, Get, Param, Query } from "@nestjs/common";
+import { Controller, Get, Param } from "@nestjs/common";
 import { SyntheticProbesService } from "../synthetic-probes/synthetic-probes.service";
 import { SyntheticProbesRepository } from "../synthetic-probes/synthetic-probes.repository";
+import { resolveStatusTarget } from "./resolve-status-target";
 
 @Controller("public/status")
 export class StatusPageController {
@@ -9,11 +10,12 @@ export class StatusPageController {
     private readonly probesRepository: SyntheticProbesRepository,
   ) {}
 
-  @Get(":orgId/:projectId")
+  @Get(":orgSlug/:projectSlug")
   async getStatus(
-    @Param("orgId") orgId: string,
-    @Param("projectId") projectId: string,
+    @Param("orgSlug") orgSlug: string,
+    @Param("projectSlug") projectSlug: string,
   ) {
+    const { orgId, projectId } = await resolveStatusTarget(orgSlug, projectSlug);
     const probes = (await this.probesRepository.getProbes(orgId, projectId)).filter(
       (probe) => probe.enabled,
     );
@@ -65,7 +67,6 @@ export class StatusPageController {
         }
 
         return {
-          id: probe.id,
           name: probe.name,
           url: probe.url,
           status: fresh.lastStatus,

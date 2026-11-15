@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
-import { CheckCircle, XCircle, AlertCircle, Clock, Calendar, Bell, Mail } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, Clock, Calendar, Bell } from 'lucide-react';
 import { Card, CardContent } from '~/components/ui/card';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
@@ -10,12 +10,11 @@ import { QueryErrorState } from '~/components/query-error-state';
 import { api } from '~/lib/api';
 import { toast } from 'sonner';
 
-export const Route = createFileRoute('/public/status/$orgId/$projectId')({
+export const Route = createFileRoute('/public/status/$orgSlug/$projectSlug')({
   component: PublicStatusPage,
 });
 
 interface ServiceStatus {
-  id: number;
   name: string;
   url: string;
   status: string;
@@ -37,20 +36,19 @@ interface StatusPageData {
 }
 
 function PublicStatusPage() {
-  const { orgId, projectId } = Route.useParams();
-  const queryClient = useQueryClient();
+  const { orgSlug, projectSlug } = Route.useParams();
   const [email, setEmail] = useState('');
   const [showSubscribe, setShowSubscribe] = useState(false);
 
   const status = useQuery({
-    queryKey: ['public-status', orgId, projectId],
-    queryFn: () => api.get<StatusPageData>(`/public/status/${orgId}/${projectId}`),
+    queryKey: ['public-status', orgSlug, projectSlug],
+    queryFn: () => api.get<StatusPageData>(`/public/status/${orgSlug}/${projectSlug}`),
     refetchInterval: 60000,
   });
 
   const subscribe = useMutation({
     mutationFn: (data: { email: string }) =>
-      api.post(`/public/status/${orgId}/${projectId}/subscriptions`, data),
+      api.post(`/public/status/${orgSlug}/${projectSlug}/subscriptions`, data),
     onSuccess: () => {
       toast.success('Subscribed to status updates');
       setEmail('');
@@ -118,7 +116,7 @@ function PublicStatusPage() {
             <div className="space-y-4">
               <h2 className="text-lg font-semibold">Services</h2>
               {data?.services.map((service) => (
-                <Card key={service.id} className="shadow-none">
+                <Card key={service.name} className="shadow-none">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">

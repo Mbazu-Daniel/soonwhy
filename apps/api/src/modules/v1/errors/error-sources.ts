@@ -1,5 +1,6 @@
 import { hasException, isErrorSpan, spanToErrorSource } from "./span-errors";
 import { requestToErrorSource } from "./request-errors";
+import { isCoveredByLog } from "./request-coverage";
 import type { ErrorLogSource, RequestErrorSource, SpanErrorSource } from "./error.types";
 
 function newestFirst(a: ErrorLogSource, b: ErrorLogSource): number {
@@ -30,7 +31,7 @@ export function mergeErrorSources(input: {
     secondary.set(identityOf(request.traceId, request.spanId ?? request.id), requestToErrorSource(request));
   }
   const extra = [...secondary.values()].filter(
-    (item) => !(item.traceId && primaryTraces.has(item.traceId)),
+    (item) => !(item.traceId && primaryTraces.has(item.traceId)) && !isCoveredByLog(item, primary),
   );
   return [...primary, ...extra].sort(newestFirst);
 }

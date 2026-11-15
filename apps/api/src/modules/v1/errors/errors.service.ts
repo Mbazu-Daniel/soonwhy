@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { summarizeStack } from "./stack-summary";
-import { and, eq } from "drizzle-orm";
+import { and, eq, or, sql } from "drizzle-orm";
 import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
 import { CacheService } from "../../../common/cache/cache.service";
 import { CACHE_TTL_SECONDS } from "../../../common/cache/cache.constants";
@@ -111,6 +111,14 @@ export class ErrorsService {
     };
   }
 
+  private sameGroup(group: ErrorGroup) {
+    const marker = JSON.stringify([{ context: { fingerprint: group.fingerprint } }]);
+    return or(
+      sql`${findings.evidence} @> ${marker}::jsonb`,
+      eq(findings.title, this.titleOf(group)),
+    );
+  }
+
   private titleOf(group: ErrorGroup): string {
     return `${group.errorType} in ${group.service}: ${normalizeErrorMessage(group.errorMessage)}`;
   }
@@ -129,7 +137,7 @@ export class ErrorsService {
           eq(findings.projectId, projectId),
           eq(findings.type, ERROR_FINDING_TYPE),
           eq(findings.serviceName, group.service),
-          eq(findings.title, this.titleOf(group)),
+          this.sameGroup(group),
         ),
       )
       .limit(1);
@@ -164,7 +172,7 @@ export class ErrorsService {
           eq(findings.projectId, projectId),
           eq(findings.type, ERROR_FINDING_TYPE),
           eq(findings.serviceName, group.service),
-          eq(findings.title, title),
+          this.sameGroup(group),
         ),
       )
       .limit(1);

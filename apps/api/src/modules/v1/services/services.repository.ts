@@ -1,11 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { and, eq } from "drizzle-orm";
 import { db } from "../../../common/db";
+import { generatePublicId, isPublicIdCollision } from "../../../common/db/public-id";
 import { projects, services, teams, users } from "../../../common/db/schema";
 
 @Injectable()
 export class ServicesRepository {
-  async getServiceById(id: string, projectId: string, orgId: string) {
+  async getServiceById(publicId: string, projectId: string, orgId: string) {
     const [result] = await db
       .select({
         service: services,
@@ -18,7 +19,7 @@ export class ServicesRepository {
       .leftJoin(teams, eq(services.teamId, teams.id))
       .where(
         and(
-          eq(services.id, id),
+          eq(services.publicId, publicId),
           eq(services.projectId, projectId),
           eq(services.orgId, orgId),
           eq(projects.organizationId, orgId),
@@ -46,11 +47,14 @@ export class ServicesRepository {
       .leftJoin(users, eq(services.ownerId, users.id))
       .leftJoin(teams, eq(services.teamId, teams.id))
       .where(and(eq(services.projectId, projectId), eq(services.orgId, orgId)));
-    return rows.map(({ service, owner, team }) => ({
-      ...service,
-      owner,
-      team,
-    }));
+    return rows
+      .map(({ service, owner, team }) => ({
+        ...service,
+        id: service.publicId ?? service.id,
+        owner,
+        team,
+      }))
+      .filter((service) => service.publicId);
   }
 
   async getServiceByProjectAndSlug(
@@ -87,8 +91,19 @@ export class ServicesRepository {
     ownerId?: string;
     teamId?: string;
   }) {
-    const [svc] = await db.insert(services).values(data).onConflictDoNothing().returning();
-    return svc;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        const [svc] = await db
+          .insert(services)
+          .values({ ...data, publicId: generatePublicId() })
+          .onConflictDoNothing({ target: [services.projectId, services.slug] })
+          .returning();
+        return svc;
+      } catch (error) {
+        if (!isPublicIdCollision(error) || attempt === 2) throw error;
+      }
+    }
+    return undefined;
   }
 
   async updateService(id: string, data: Record<string, string | null | undefined>) {

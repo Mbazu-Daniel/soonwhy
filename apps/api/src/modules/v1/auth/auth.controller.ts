@@ -8,6 +8,7 @@ import {
   Headers,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Query,
   Res,
   Req,
@@ -27,6 +28,7 @@ import {
   type SignUpInput,
 } from "../../../shared";
 import { recordAuditEvent } from "../../../common/audit-logs";
+import { findInvitationByPublicId } from "../../../common/db/find-invitation-by-public-id";
 import { AUTH_THROTTLE } from "../../../common/throttling/throttling.constants";
 
 const SOCIAL_PROVIDERS = ["github", "google"] as const;
@@ -193,9 +195,11 @@ export class AuthController {
     @Param("id") id: string,
     @Headers() headers: Record<string, string>,
   ) {
+    const resolved = await findInvitationByPublicId(id);
+    if (!resolved) throw new NotFoundException("Invitation not found");
     return auth.api.getInvitation({
       headers: authHeaders(headers),
-      query: { id },
+      query: { id: resolved.id },
     });
   }
 
@@ -207,9 +211,12 @@ export class AuthController {
     @Headers() headers: Record<string, string>,
     @Req() req: Request,
   ) {
+    const resolved = await findInvitationByPublicId(body.invitationId);
+    if (!resolved) throw new NotFoundException("Invitation not found");
+
     const result = await auth.api.acceptInvitation({
       headers: authHeaders(headers),
-      body: { invitationId: body.invitationId },
+      body: { invitationId: resolved.id },
     });
 
     await recordAuditEvent({

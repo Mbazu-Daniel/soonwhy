@@ -77,14 +77,14 @@ export class ServicesService {
     );
   }
 
-  async getServiceById(id: string, projectId: string, orgId: string) {
+  async getServiceById(publicId: string, projectId: string, orgId: string) {
     const svc = await this.servicesRepository.getServiceById(
-      id,
+      publicId,
       projectId,
       orgId,
     );
     if (!svc) throw new NotFoundException("Service not found");
-    return svc;
+    return toPublicService(svc);
   }
 
   async getServicesForProject(projectId: string, orgId: string) {
@@ -116,28 +116,48 @@ export class ServicesService {
         "Service slug already exists in this project",
       );
     }
-    return created;
+    return { ...created, id: created.publicId ?? created.id };
   }
 
   async updateService(
-    id: string,
+    publicId: string,
     projectId: string,
     orgId: string,
     input: UpdateServiceInput,
   ) {
-    await this.getServiceById(id, projectId, orgId);
+    const existing = await this.servicesRepository.getServiceById(
+      publicId,
+      projectId,
+      orgId,
+    );
+    if (!existing) throw new NotFoundException("Service not found");
     const changes = Object.fromEntries(
       Object.entries(input).filter(([, value]) => value !== undefined),
     ) as Record<string, string | null>;
-    if (!Object.keys(changes).length) return this.getServiceById(id, projectId, orgId);
-    await this.servicesRepository.updateService(id, changes);
-    return this.getServiceById(id, projectId, orgId);
+    if (!Object.keys(changes).length) return toPublicService(existing);
+    await this.servicesRepository.updateService(existing.id, changes);
+    const updated = await this.servicesRepository.getServiceById(
+      publicId,
+      projectId,
+      orgId,
+    );
+    if (!updated) throw new NotFoundException("Service not found");
+    return toPublicService(updated);
   }
 
-  async deleteService(id: string, projectId: string, orgId: string) {
-    await this.getServiceById(id, projectId, orgId);
-    return this.servicesRepository.deleteService(id);
+  async deleteService(publicId: string, projectId: string, orgId: string) {
+    const existing = await this.servicesRepository.getServiceById(
+      publicId,
+      projectId,
+      orgId,
+    );
+    if (!existing) throw new NotFoundException("Service not found");
+    return this.servicesRepository.deleteService(existing.id);
   }
+}
+
+function toPublicService<T extends { id: string; publicId?: string | null }>(svc: T) {
+  return { ...svc, id: svc.publicId ?? svc.id };
 }
 
 export function buildServiceMap(spans: TraceSpanSource[]) {
