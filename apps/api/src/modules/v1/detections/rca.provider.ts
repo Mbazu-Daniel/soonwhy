@@ -8,6 +8,7 @@ import { Agent } from "@mastra/core/agent";
 import { noopLogger } from "@mastra/core/logger";
 import { buildRcaPrompt, RCA_PROMPT_VERSION } from "./rca.prompt";
 import { generateStructured } from "../ai/structured-output";
+import { providerMessageOf } from "./provider-error-message";
 import { RcaAnalysisSchema } from "./rca.validation";
 import type { RcaEvidence, RcaProviderResult } from "./rca.types";
 
@@ -160,9 +161,12 @@ export class MastraRcaProvider {
 
       const status = statusCodeOf(error);
       if (status !== undefined) {
+        const reason = providerMessageOf(error);
         throw new RcaProviderRequestError(
           status,
-          `RCA provider request failed (${status})`,
+          reason
+            ? `RCA provider request failed (${status}): ${reason}`
+            : `RCA provider request failed (${status})`,
         );
       }
 
