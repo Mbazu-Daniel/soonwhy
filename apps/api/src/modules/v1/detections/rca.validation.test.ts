@@ -66,22 +66,26 @@ describe("validateRcaAnalysis", () => {
     ).toThrow();
   });
 
-  it("rejects evidence references that were not supplied", () => {
-    expect(() =>
-      validateRcaAnalysis(
-        {
-          summary: "Checkout latency increased.",
-          rootCause: "Unknown.",
-          contributingFactors: [],
-          investigationSteps: [],
-          suggestedChanges: [],
-          evidenceRefs: ["invented:0"],
-          confidence: "low",
-          limitations: ["Insufficient evidence."],
-        },
-        evidence,
-      ),
-    ).toThrow("unknown evidence ID");
+  it("drops evidence references that were not supplied and says so", () => {
+    const result = validateRcaAnalysis(
+      {
+        summary: "Checkout latency increased.",
+        rootCause: "Unknown.",
+        contributingFactors: [],
+        investigationSteps: [],
+        suggestedChanges: [],
+        evidenceRefs: ["invented:0", "finding_latency:0"],
+        confidence: "low",
+        limitations: ["Insufficient evidence."],
+      },
+      evidence,
+    );
+
+    expect(result.evidenceRefs).toEqual(["finding_latency:0"]);
+    expect(result.limitations).toEqual([
+      "Insufficient evidence.",
+      "One evidence reference from the model did not match the supplied evidence and was removed.",
+    ]);
   });
 
   it("accepts the bare id of a supplied finding", () => {
@@ -102,22 +106,22 @@ describe("validateRcaAnalysis", () => {
     expect(result.evidenceRefs).toEqual(["finding_latency", "finding_dependency:0"]);
   });
 
-  it("still rejects a bare id that belongs to no supplied finding", () => {
-    expect(() =>
-      validateRcaAnalysis(
-        {
-          summary: "Checkout latency increased.",
-          rootCause: "Unknown.",
-          contributingFactors: [],
-          investigationSteps: [],
-          suggestedChanges: [],
-          evidenceRefs: ["finding_other"],
-          confidence: "low",
-          limitations: ["Insufficient evidence."],
-        },
-        evidence,
-      ),
-    ).toThrow("unknown evidence ID");
+  it("drops a bare id that belongs to no supplied finding", () => {
+    const result = validateRcaAnalysis(
+      {
+        summary: "Checkout latency increased.",
+        rootCause: "Unknown.",
+        contributingFactors: [],
+        investigationSteps: [],
+        suggestedChanges: [],
+        evidenceRefs: ["finding_other"],
+        confidence: "low",
+        limitations: ["Insufficient evidence."],
+      },
+      evidence,
+    );
+
+    expect(result.evidenceRefs).toEqual([]);
   });
 
   it("accepts a trace id that appears in the supplied evidence", () => {
@@ -151,8 +155,29 @@ describe("validateRcaAnalysis", () => {
     expect(
       validateRcaAnalysis({ ...analysis, evidenceRefs: ["feedfacefeedfacefeedfacefeedface"] }, withTrace).evidenceRefs,
     ).toEqual(["feedfacefeedfacefeedfacefeedface"]);
-    expect(() =>
-      validateRcaAnalysis({ ...analysis, evidenceRefs: ["0123456789abcdef0123456789abcdef"] }, withTrace),
-    ).toThrow("unknown evidence ID");
+    expect(
+      validateRcaAnalysis({ ...analysis, evidenceRefs: ["0123456789abcdef0123456789abcdef"] }, withTrace).evidenceRefs,
+    ).toEqual([]);
+  });
+
+  it("keeps the note within the limitation cap", () => {
+    const full = Array.from({ length: 10 }, (_, index) => `Limit ${index}`);
+
+    const result = validateRcaAnalysis(
+      {
+        summary: "Checkout latency increased.",
+        rootCause: "The dependency slowed down.",
+        contributingFactors: [],
+        investigationSteps: [],
+        suggestedChanges: [],
+        evidenceRefs: ["a", "b"],
+        confidence: "low",
+        limitations: full,
+      },
+      evidence,
+    );
+
+    expect(result.limitations).toHaveLength(10);
+    expect(result.limitations[9]).toContain("2 evidence references");
   });
 });

@@ -24,14 +24,30 @@ export function validateRcaAnalysis(
   const parsed = RcaAnalysisSchema.parse(analysis);
   const allowedRefs = new Set(collectEvidenceIds(evidence));
 
-  for (const reference of parsed.evidenceRefs) {
-    if (!allowedRefs.has(reference)) {
-      throw new Error(`RCA referenced unknown evidence ID: ${reference}`);
-    }
-  }
+  const matched = parsed.evidenceRefs.filter((reference) => allowedRefs.has(reference));
+  const dropped = parsed.evidenceRefs.length - matched.length;
+  const result: RcaAnalysis =
+    dropped === 0
+      ? parsed
+      : {
+          ...parsed,
+          evidenceRefs: matched,
+          limitations: [
+            ...parsed.limitations.slice(0, MAX_LIMITATIONS - 1),
+            unmatchedReferencesNote(dropped),
+          ],
+        };
 
-  validateRcaQuality(parsed, evidence);
-  return parsed;
+  validateRcaQuality(result, evidence);
+  return result;
+}
+
+const MAX_LIMITATIONS = 10;
+
+function unmatchedReferencesNote(count: number): string {
+  return count === 1
+    ? "One evidence reference from the model did not match the supplied evidence and was removed."
+    : `${count} evidence references from the model did not match the supplied evidence and were removed.`;
 }
 
 function collectEvidenceIds(evidence: RcaEvidence): string[] {
