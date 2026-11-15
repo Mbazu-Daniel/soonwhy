@@ -73,6 +73,7 @@ export {
 export { statusPageSubscriptions, statusPageAnalytics } from "./status-page-subscriptions";
 export { canaryDeployments } from "./canary-deployments";
 export { deadLetterQueue } from "./dead-letter-queue";
+export { searchAudit } from "./search-audit";
 export { ingestEventReceipts } from "./ingest-event-receipts";
 export { incidents } from "./incidents";
 export { maintenanceWindows } from "./maintenance-windows";

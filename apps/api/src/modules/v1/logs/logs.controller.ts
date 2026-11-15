@@ -6,6 +6,7 @@ import {
   Query,
   Res,
   UseGuards,
+  UseInterceptors,
 } from "@nestjs/common";
 import type { Response } from "express";
 import { LogsService } from "./logs.service";
@@ -14,9 +15,11 @@ import {
   CurrentOrg,
   OrgContext,
 } from "../../../common/decorators/current-org.decorator";
+import { AuditSearch, SearchAuditInterceptor } from "../search-audit";
 import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
 
 @UseGuards(TenantGuard)
+@UseInterceptors(SearchAuditInterceptor)
 @Controller("projects/:projectId/logs")
 export class LogsController {
   constructor(private readonly logsService: LogsService) {}
@@ -43,6 +46,7 @@ export class LogsController {
     return this.logsService.getContext(org.orgId, parsed.data);
   }
 
+  @AuditSearch("logs.export")
   @Get("export")
   async exportLogs(
     @CurrentOrg() org: OrgContext,
@@ -81,6 +85,7 @@ export class LogsController {
     return this.logsService.getFieldValues(org.orgId, parsed.data);
   }
 
+  @AuditSearch("logs.search")
   @Get()
   async getLogs(
     @CurrentOrg() org: OrgContext,
