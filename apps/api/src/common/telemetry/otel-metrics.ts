@@ -1,10 +1,8 @@
 import {
   MeterProvider,
   PeriodicExportingMetricReader,
-  type MetricReader,
 } from "@opentelemetry/sdk-metrics";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
-import { PrometheusExporter } from "@opentelemetry/exporter-prometheus";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
 import { metrics, type Meter } from "@opentelemetry/api";
@@ -27,7 +25,6 @@ let aiInvocations: ReturnType<Meter["createCounter"]> | null = null;
 let aiTokens: ReturnType<Meter["createCounter"]> | null = null;
 let aiEstimatedCostUsd: ReturnType<Meter["createCounter"]> | null = null;
 let aiRequestDuration: ReturnType<Meter["createHistogram"]> | null = null;
-let prometheusExporter: PrometheusExporter | null = null;
 
 function ensureInstruments() {
   if (meter) return;
@@ -155,47 +152,28 @@ export function recordAiInvocationMetrics(input: AiInvocationMetrics) {
   } catch {
   }
 }
-export function getPrometheusExporter() {
-  return prometheusExporter;
-}
-
 export function initOtelMetrics(): MeterProvider | null {
   if (!selfObservabilityEnabled()) {
     new Logger("OtelMetrics").log(
-      "Self-observability disabled (SELF_OBSERVABILITY_ENABLED != true); self-metrics export and /metrics off",
+      "Self-observability disabled (SELF_OBSERVABILITY_ENABLED != true); self-metrics export off",
     );
     ensureInstruments();
     return null;
   }
   const url = resolveOtlpEndpoint("metrics");
-  const prometheusEnabled =
-    (process.env.PROMETHEUS_METRICS_ENABLED ?? "true") !== "false";
 
-  if (!url && !prometheusEnabled) {
+  if (!url) {
     ensureInstruments();
     return null;
   }
 
-  const readers: MetricReader[] = [];
-  let otlpReader: PeriodicExportingMetricReader | null = null;
-
-  if (url) {
-    const metricExporter = new OTLPMetricExporter({
+  const otlpReader = new PeriodicExportingMetricReader({
+    exporter: new OTLPMetricExporter({
       url,
       headers: resolveOtlpHeaders("metrics"),
-    });
-
-    otlpReader = new PeriodicExportingMetricReader({
-      exporter: metricExporter,
-      exportIntervalMillis: 10_000,
-    });
-    readers.push(otlpReader);
-  }
-
-  if (prometheusEnabled) {
-    prometheusExporter = new PrometheusExporter({ preventServerStart: true });
-    readers.push(prometheusExporter);
-  }
+    }),
+    exportIntervalMillis: 10_000,
+  });
 
   const provider = new MeterProvider({
     resource: resourceFromAttributes({
@@ -205,15 +183,14 @@ export function initOtelMetrics(): MeterProvider | null {
       [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]:
         process.env.NODE_ENV ?? "development",
     }),
-    readers,
+    readers: [otlpReader],
   });
 
   metrics.setGlobalMeterProvider(provider);
   ensureInstruments();
 
   process.once("SIGTERM", async () => {
-    await otlpReader?.shutdown();
-    await prometheusExporter?.shutdown();
+    await otlpReader.shutdown();
   });
 
   return provider;
