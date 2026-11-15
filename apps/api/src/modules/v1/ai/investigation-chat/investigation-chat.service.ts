@@ -55,7 +55,7 @@ export class InvestigationChatService {
   async start(scope: ThreadScope, request: ChatRequest, signal: AbortSignal): Promise<ChatSession> {
     const project = await this.projects.getProjectById(scope.projectId, scope.orgId);
     if (!project) throw new NotFoundException("Project not found");
-    const model = await this.resolver.resolve(scope.orgId);
+    const model = await this.resolver.resolve(scope.orgId, request.credentialId);
     const { threadId, history } = await this.openThread(scope, request);
     await this.threads.addMessage({ threadId, role: "user", content: request.message });
     const tools = buildInvestigationTools(

@@ -40,7 +40,17 @@ describe("RcaController", () => {
       "project_1",
       "finding_1",
       true,
+      undefined,
     );
+  });
+
+  it("passes the chosen provider to generation", async () => {
+    const rcaApi = { getLatest: vi.fn(), getHistory: vi.fn(), generate: vi.fn().mockResolvedValue({ id: "rca_3" }) };
+    const controller = new RcaController(rcaApi);
+
+    await controller.generate(org, "project_1", "finding_1", { regenerate: false, credentialId: "cred_9" });
+
+    expect(rcaApi.generate).toHaveBeenCalledWith("org_1", "project_1", "finding_1", false, "cred_9");
   });
 
   it("rejects unknown request fields", () => {

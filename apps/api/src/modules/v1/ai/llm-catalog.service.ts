@@ -6,6 +6,7 @@ import {
 } from "@mastra/core/llm";
 import { z } from "zod";
 import { aiEndpointUnknown } from "./ai.errors";
+import { CUSTOM_PROVIDER_ID, CUSTOM_PROVIDER_LABEL } from "./custom-provider.constants";
 
 const MODELS_DEV_URL = "https://models.dev/api.json";
 const DEFAULT_TTL_MS = 12 * 60 * 60 * 1000;
@@ -106,17 +107,28 @@ export class LlmCatalog {
   private pending: Promise<MetadataIndex | null> | null = null;
 
   isKnownProvider(providerId: string): boolean {
-    return getProviderConfig(providerId) !== undefined;
+    return providerId === CUSTOM_PROVIDER_ID || getProviderConfig(providerId) !== undefined;
   }
 
   providers(): CatalogProvider[] {
-    return Object.keys(PROVIDER_REGISTRY)
+    const registered = Object.keys(PROVIDER_REGISTRY)
       .map((id) => this.provider(id))
       .filter((provider): provider is CatalogProvider => provider !== null)
       .sort((a, b) => a.label.localeCompare(b.label));
+    return [...registered, this.provider(CUSTOM_PROVIDER_ID)!];
   }
 
   provider(providerId: string): CatalogProvider | null {
+    if (providerId === CUSTOM_PROVIDER_ID) {
+      return {
+        id: CUSTOM_PROVIDER_ID,
+        label: CUSTOM_PROVIDER_LABEL,
+        baseUrl: null,
+        docUrl: null,
+        modelCount: 0,
+        rcaSafeModelCount: null,
+      };
+    }
     const config = getProviderConfig(providerId);
     if (!config) return null;
 
@@ -141,6 +153,7 @@ export class LlmCatalog {
 
   endpointFor(providerId: string, baseUrl: string | null): string | null {
     if (baseUrl) return baseUrl;
+    if (providerId === CUSTOM_PROVIDER_ID) throw aiEndpointUnknown(providerId);
     const documented = this.baseUrlFor(providerId);
     if (documented) return documented;
     if (this.isKnownProvider(providerId)) return null;

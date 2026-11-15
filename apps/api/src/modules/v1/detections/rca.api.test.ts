@@ -214,6 +214,7 @@ describe("RcaApiService", () => {
       "org_1",
       "project_1",
       expect.objectContaining({ serviceName: "checkout-api" }),
+      undefined,
     );
     expect(persistence.persist).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -482,6 +483,7 @@ describe("RcaApiService", () => {
     expect(h.orchestrator.analyzeEvidence).toHaveBeenCalledWith(
       "org_1",
       expect.objectContaining({ primaryFinding: expect.objectContaining({ type: "error_group" }) }),
+      undefined,
     );
     expect(h.persistence.persist).toHaveBeenCalled();
   });

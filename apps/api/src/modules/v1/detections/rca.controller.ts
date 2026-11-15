@@ -18,6 +18,7 @@ import { z } from "zod";
 export const RcaRequestSchema = z
   .object({
     regenerate: z.boolean().optional().default(false),
+    credentialId: z.string().min(1).max(100).optional(),
   })
   .strict()
   .default({});
@@ -64,6 +65,7 @@ export class RcaController {
       projectId,
       findingId,
       input.regenerate,
+      input.credentialId,
     );
   }
 }

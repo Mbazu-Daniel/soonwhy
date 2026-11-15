@@ -1,0 +1,47 @@
+import { describe, expect, it } from 'vitest';
+import { evidenceObject, matchesFilters, ruleLabel, splitEvidence } from './findings';
+import type { DetectionFinding } from './findings.types';
+
+const finding: DetectionFinding = {
+  id: 'f1',
+  projectId: 'p1',
+  serviceName: 'checkout',
+  type: 'error_group',
+  severity: 'critical',
+  title: 'TypeError in handler',
+  description: 'd',
+  observedValue: 12,
+  threshold: 1,
+  unit: ' errors',
+  windowStart: '2026-11-01T00:00:00Z',
+  windowEnd: '2026-11-01T01:00:00Z',
+  evidence: [
+    { kind: 'metric', label: 'count', value: 12 },
+    { kind: 'recommendation', label: 'fix', value: 'guard the null' },
+  ],
+};
+
+describe('findings helpers', () => {
+  it('formats the rule label', () => {
+    expect(ruleLabel('database_n_plus_one')).toBe('DATABASE-N-PLUS-ONE');
+  });
+
+  it('keeps recommendations out of the evidence facts', () => {
+    const { facts, recommendations } = splitEvidence(finding);
+    expect(facts).toHaveLength(1);
+    expect(recommendations[0]?.value).toBe('guard the null');
+  });
+
+  it('builds a flat evidence object without recommendations', () => {
+    expect(evidenceObject(finding)).toEqual({ service: 'checkout', observed: '12 errors', threshold: '1 errors', count: 12 });
+  });
+
+  it('filters by severity, rule and text', () => {
+    const base = { query: '', severity: '', type: '' };
+    expect(matchesFilters(finding, base)).toBe(true);
+    expect(matchesFilters(finding, { ...base, severity: 'warning' })).toBe(false);
+    expect(matchesFilters(finding, { ...base, type: 'latency' })).toBe(false);
+    expect(matchesFilters(finding, { ...base, query: 'CHECKOUT' })).toBe(true);
+    expect(matchesFilters(finding, { ...base, query: 'nope' })).toBe(false);
+  });
+});

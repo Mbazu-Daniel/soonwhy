@@ -8,6 +8,7 @@ import {
   type LlmTuning,
 } from "./llm-provider.config";
 import {
+  aiCredentialNotFound,
   aiCredentialUnreadable,
   aiNotConfigured,
   CredentialDecryptError,
@@ -16,7 +17,7 @@ import { MastraRcaProvider } from "../detections/rca.provider";
 import type { RcaCredentialInfo } from "../detections/rca.types";
 import type { LlmCredentialSource } from "../../../common/db/schema";
 
-type CredentialRow = Awaited<ReturnType<AiRepository["get"]>>;
+type CredentialRow = Awaited<ReturnType<AiRepository["find"]>>;
 type ByokCredential = NonNullable<CredentialRow>;
 
 export interface ResolvedLlmModel {
@@ -47,6 +48,7 @@ interface CacheEntry {
 
 const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000;
 const MAX_CACHED_ORGS = 256;
+const KEY_SEPARATOR = "\u0000";
 
 @Injectable()
 export class LlmProviderResolver {
@@ -60,7 +62,7 @@ export class LlmProviderResolver {
   constructor(
     @Inject(AiRepository) private readonly repository: Pick<
       AiRepository,
-      "get"
+      "get" | "find"
     >,
     @Inject(CredentialCipher) private readonly cipher: CredentialCipher,
     @Inject(LlmCatalog) private readonly catalog: LlmCatalog,
@@ -68,8 +70,8 @@ export class LlmProviderResolver {
     this.tuning = readLlmTuning();
   }
 
-  async resolveForRca(orgId: string): Promise<ResolvedLlmHandle> {
-    const model = await this.resolve(orgId);
+  async resolveForRca(orgId: string, credentialId?: string): Promise<ResolvedLlmHandle> {
+    const model = await this.resolve(orgId, credentialId);
     const pricing = this.catalog.pricing(model.providerId, model.model);
     return {
       provider: new MastraRcaProvider(
@@ -94,30 +96,36 @@ export class LlmProviderResolver {
   }
 
   invalidate(orgId: string): void {
-    this.cache.delete(orgId);
+    for (const key of this.cache.keys()) {
+      if (key.startsWith(`${orgId}${KEY_SEPARATOR}`)) this.cache.delete(key);
+    }
   }
 
-  async resolve(orgId: string): Promise<ResolvedLlmModel> {
-    const cached = this.cache.get(orgId);
+  async resolve(orgId: string, credentialId?: string): Promise<ResolvedLlmModel> {
+    const key = `${orgId}${KEY_SEPARATOR}${credentialId ?? ""}`;
+    const cached = this.cache.get(key);
     if (cached && (cached.expiresAt === 0 || cached.expiresAt > Date.now())) {
       return cached.request;
     }
 
-    const entry: CacheEntry = { expiresAt: 0, request: this.load(orgId) };
+    const entry: CacheEntry = { expiresAt: 0, request: this.load(orgId, credentialId) };
     entry.request = entry.request.then((model) => {
       entry.expiresAt = Date.now() + this.ttlMs;
       return model;
     });
     entry.request.catch(() => {
-      if (this.cache.get(orgId) === entry) this.cache.delete(orgId);
+      if (this.cache.get(key) === entry) this.cache.delete(key);
     });
-    this.remember(orgId, entry);
+    this.remember(key, entry);
 
     return entry.request;
   }
 
-  private async load(orgId: string): Promise<ResolvedLlmModel> {
-    const row = await this.repository.get(orgId);
+  private async load(orgId: string, credentialId?: string): Promise<ResolvedLlmModel> {
+    const row = credentialId
+      ? await this.repository.find(orgId, credentialId)
+      : await this.repository.get(orgId);
+    if (credentialId && !row) throw aiCredentialNotFound();
     const model = isUsableByok(row) ? this.fromByok(row) : null;
     if (!model) throw aiNotConfigured();
     return model;
@@ -151,12 +159,12 @@ export class LlmProviderResolver {
     return this.catalog.endpointFor(providerId, baseUrl);
   }
 
-  private remember(orgId: string, entry: CacheEntry): void {
-    if (this.cache.size >= MAX_CACHED_ORGS && !this.cache.has(orgId)) {
+  private remember(key: string, entry: CacheEntry): void {
+    if (this.cache.size >= MAX_CACHED_ORGS && !this.cache.has(key)) {
       const oldest = this.cache.keys().next().value;
       if (oldest !== undefined) this.cache.delete(oldest);
     }
-    this.cache.set(orgId, entry);
+    this.cache.set(key, entry);
   }
 }
 

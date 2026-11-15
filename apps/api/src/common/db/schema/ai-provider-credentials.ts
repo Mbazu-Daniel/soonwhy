@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { generateId } from "../generate-id";
 import {
   boolean,
@@ -19,12 +20,14 @@ export const aiProviderCredentials = pgTable(
     orgId: text("org_id")
       .references(() => organizations.id, { onDelete: "cascade" })
       .notNull(),
+    name: text("name").notNull(),
     provider: text("provider").notNull(),
     model: text("model").notNull(),
     baseUrl: text("base_url"),
     encryptedApiKey: text("encrypted_api_key").notNull(),
     keyHint: text("key_hint").notNull(),
     enabled: boolean("enabled").default(true).notNull(),
+    isDefault: boolean("is_default").default(false).notNull(),
     verifiedAt: timestamp("verified_at"),
     lastErrorCode: text("last_error_code"),
     createdAt: timestamp("created_at").defaultNow(),
@@ -32,8 +35,11 @@ export const aiProviderCredentials = pgTable(
     deletedAt: timestamp("deleted_at"),
   },
   (table) => ({
-    orgUnique: uniqueIndex("ai_provider_credentials_org_unique").on(
-      table.orgId,
-    ),
+    orgNameUnique: uniqueIndex("ai_provider_credentials_org_name_unique")
+      .on(table.orgId, sql`lower(${table.name})`)
+      .where(sql`${table.deletedAt} is null`),
+    orgDefaultUnique: uniqueIndex("ai_provider_credentials_org_default_unique")
+      .on(table.orgId)
+      .where(sql`${table.isDefault} and ${table.deletedAt} is null`),
   }),
 );

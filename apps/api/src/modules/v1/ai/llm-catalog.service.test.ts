@@ -44,7 +44,7 @@ describe("LlmCatalog", () => {
   });
 
   it("lists only providers Mastra can resolve, labelled and sorted", () => {
-    const providers = catalog.providers();
+    const providers = catalog.providers().filter((provider) => provider.id !== "custom");
     const ids = providers.map((provider) => provider.id);
     const labels = providers.map((provider) => provider.label);
 
@@ -219,5 +219,26 @@ describe("LlmCatalog", () => {
       .then(() => {
         expect(fetchMock).not.toHaveBeenCalled();
       });
+  });
+});
+
+describe("LlmCatalog custom endpoint", () => {
+  const catalog = new LlmCatalog();
+
+  it("lists a custom OpenAI-compatible entry last, with no fixed base URL", () => {
+    const providers = catalog.providers();
+
+    expect(providers[providers.length - 1]).toMatchObject({ id: "custom", baseUrl: null, modelCount: 0 });
+    expect(catalog.isKnownProvider("custom")).toBe(true);
+  });
+
+  it("needs a base URL before it will name an endpoint", () => {
+    expect(() => catalog.endpointFor("custom", null)).toThrow();
+    expect(catalog.endpointFor("custom", "https://llm.example.com/v1")).toBe("https://llm.example.com/v1");
+  });
+
+  it("has no catalogue models and no documented hosts", async () => {
+    await expect(catalog.models("custom")).resolves.toEqual([]);
+    expect(catalog.allowedHostnamesFor("custom")).toEqual([]);
   });
 });

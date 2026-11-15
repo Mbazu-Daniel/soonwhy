@@ -17,8 +17,15 @@ import {
 import {
   aiBaseUrlInvalid,
   aiCredentialInvalid,
+  aiCredentialNameTaken,
+  aiCredentialNotFound,
+  aiModelsUnavailable,
   aiProviderUnsupported,
 } from "./ai.errors";
+import { CUSTOM_PROVIDER_ID } from "./custom-provider.constants";
+import { listLiveModels } from "./live-models";
+import { LiveModelsError } from "./live-models.types";
+import type { CredentialPatch } from "./ai.repository";
 import {
   handleChatMessage,
   ChatResponse,
@@ -40,6 +47,34 @@ export interface AiCredentialDraft {
   model: string;
   apiKey?: string;
   baseUrl?: string | null;
+}
+
+export interface AiCredentialInput extends AiCredentialDraft {
+  name?: string;
+  isDefault?: boolean;
+}
+
+export interface AiCredentialPatchInput {
+  name?: string;
+  model?: string;
+  apiKey?: string;
+  baseUrl?: string | null;
+  isDefault?: boolean;
+}
+
+export interface LiveModelsInput {
+  credentialId?: string;
+  provider?: string;
+  apiKey?: string;
+  baseUrl?: string | null;
+}
+
+type CredentialRow = NonNullable<Awaited<ReturnType<AiRepository["find"]>>>;
+
+function isUniqueViolation(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  const { code, cause } = error as { code?: unknown; cause?: unknown };
+  return code === "23505" || isUniqueViolation(cause);
 }
 
 export type AiConnectionCode =
@@ -66,7 +101,14 @@ export class AiService {
   constructor(
     @Inject(AiRepository) private readonly repository: Pick<
       AiRepository,
-      "get" | "upsert" | "remove" | "recordVerification" | "getInvocationTotals"
+      | "get"
+      | "list"
+      | "find"
+      | "create"
+      | "update"
+      | "remove"
+      | "recordVerification"
+      | "getInvocationTotals"
     >,
     @Inject(CredentialCipher) private readonly cipher: CredentialCipher,
     @Inject(LlmProviderResolver) private readonly resolver: Pick<
@@ -97,15 +139,7 @@ export class AiService {
     return {
       configured: true,
       canManage,
-      provider: row.provider,
-      model: row.model,
-      baseUrl: row.baseUrl,
-      keyHint: row.keyHint,
-      enabled: row.enabled,
-      verifiedAt: row.verifiedAt,
-      lastErrorCode: row.lastErrorCode,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
+      ...this.view(row),
       activeSource: active.source,
     };
   }
@@ -124,81 +158,133 @@ export class AiService {
     return this.catalog.models(providerId.trim().toLowerCase());
   }
 
-  async save(orgId: string, input: AiCredentialDraft) {
-    if (!this.cipher.available)
-      throw aiCredentialInvalid(
-        "This server cannot store credentials: no encryption key is configured.",
-      );
-
-    const requestedKey = input.apiKey?.trim() ?? "";
-    const model = input.model.trim();
-    if (!model) throw aiCredentialInvalid("A model is required.");
-
-    const providerId = input.provider.trim().toLowerCase();
-    if (!this.catalog.isKnownProvider(providerId)) {
-      throw aiProviderUnsupported(providerId);
-    }
-
-    const baseUrlInput =
-      input.baseUrl === undefined
-        ? undefined
-        : input.baseUrl?.trim() || null;
-    if (baseUrlInput) this.assertBaseUrlAllowed(providerId, baseUrlInput);
-    const existing =
-      requestedKey === "" || baseUrlInput === undefined
-        ? await this.repository.get(orgId)
-        : null;
-    if (!requestedKey && !existing) {
-      throw aiCredentialInvalid("An API key is required.");
-    }
-    const baseUrl =
-      baseUrlInput === undefined ? (existing?.baseUrl ?? null) : baseUrlInput;
-
-    let encryptedApiKey: string;
-    let keyHint: string;
-    if (requestedKey) {
-      encryptedApiKey = this.cipher.encrypt(requestedKey);
-      keyHint = maskKey(requestedKey);
-    } else {
-      encryptedApiKey = existing!.encryptedApiKey;
-      keyHint = existing!.keyHint;
-    }
-
-    const row = await this.repository.upsert({
-      orgId,
-      provider: providerId,
-      model,
-      baseUrl,
-      encryptedApiKey,
-      keyHint,
-    });
-    this.resolver.invalidate(orgId);
-
+  async list(orgId: string, canManage: boolean) {
+    const [rows, active] = await Promise.all([
+      this.repository.list(orgId),
+      this.resolver.describe(orgId),
+    ]);
     return {
-      configured: true,
-      provider: row?.provider,
-      model: row?.model,
-      baseUrl: row?.baseUrl,
-      keyHint: row?.keyHint,
-      updatedAt: row?.updatedAt,
-      warnings: this.modelWarnings(
-        providerId,
-        await this.catalog.models(providerId),
-        model,
-      ),
+      credentials: rows.map((row) => this.view(row)),
+      canManage,
+      activeSource: active.source,
     };
   }
 
-  async remove(orgId: string) {
-    await this.repository.remove(orgId);
+  async create(orgId: string, input: AiCredentialInput) {
+    this.assertCanStore();
+    const draft = await this.validated(input);
+    const requestedKey = input.apiKey?.trim() ?? "";
+    if (!requestedKey) throw aiCredentialInvalid("An API key is required.");
+    const name = input.name?.trim() || this.labelOf(draft.providerId);
+    try {
+      const row = await this.repository.create(
+        {
+          orgId,
+          name,
+          provider: draft.providerId,
+          model: draft.model,
+          baseUrl: draft.baseUrl,
+          encryptedApiKey: this.cipher.encrypt(requestedKey),
+          keyHint: maskKey(requestedKey),
+        },
+        input.isDefault === true,
+      );
+      this.resolver.invalidate(orgId);
+      return { ...this.view(row), warnings: await this.warningsFor(row) };
+    } catch (error) {
+      throw this.translated(error, name);
+    }
+  }
+
+  async update(orgId: string, id: string, input: AiCredentialPatchInput) {
+    const row = await this.repository.find(orgId, id);
+    if (!row) throw aiCredentialNotFound();
+    const patch: CredentialPatch = {};
+    if (input.name !== undefined) {
+      const name = input.name.trim();
+      if (!name) throw aiCredentialInvalid("A name is required.");
+      patch.name = name;
+    }
+    if (input.model !== undefined) {
+      const model = input.model.trim();
+      if (!model) throw aiCredentialInvalid("A model is required.");
+      patch.model = model;
+    }
+    if (input.baseUrl !== undefined) {
+      const baseUrl = input.baseUrl?.trim() || null;
+      if (baseUrl) this.assertBaseUrlAllowed(row.provider, baseUrl);
+      if (!baseUrl && row.provider === CUSTOM_PROVIDER_ID) {
+        throw aiCredentialInvalid("A custom endpoint needs a base URL.");
+      }
+      patch.baseUrl = baseUrl;
+    }
+    const requestedKey = input.apiKey?.trim() ?? "";
+    if (requestedKey) {
+      this.assertCanStore();
+      patch.encryptedApiKey = this.cipher.encrypt(requestedKey);
+      patch.keyHint = maskKey(requestedKey);
+    }
+    try {
+      const updated = await this.repository.update(orgId, id, patch, input.isDefault === true);
+      if (!updated) throw aiCredentialNotFound();
+      this.resolver.invalidate(orgId);
+      return { ...this.view(updated), warnings: await this.warningsFor(updated) };
+    } catch (error) {
+      throw this.translated(error, patch.name ?? row.name);
+    }
+  }
+
+  async removeCredential(orgId: string, id: string) {
+    const removed = await this.repository.remove(orgId, id);
+    if (!removed) throw aiCredentialNotFound();
     this.resolver.invalidate(orgId);
+    return { removed: true };
+  }
+
+  async save(orgId: string, input: AiCredentialDraft) {
+    const current = await this.repository.get(orgId);
+    const result = current
+      ? await this.update(orgId, current.id, {
+          model: input.model,
+          apiKey: input.apiKey,
+          baseUrl: input.baseUrl,
+        })
+      : await this.create(orgId, { ...input, isDefault: true });
+    return { configured: true, ...result };
+  }
+
+  async remove(orgId: string) {
+    const current = await this.repository.get(orgId);
+    if (current) await this.removeCredential(orgId, current.id);
     return { configured: false };
   }
 
-  async testConnection(orgId: string, draft?: Partial<AiCredentialDraft>) {
+  async liveModels(orgId: string, input: LiveModelsInput) {
+    const target = input.credentialId && !input.apiKey?.trim()
+      ? await this.resolver.resolve(orgId, input.credentialId)
+      : await this.draftTarget(orgId, input);
+    const endpoint = this.catalog.endpointFor(target.providerId, target.baseUrl);
+    if (endpoint === null) {
+      const known = await this.catalog.models(target.providerId);
+      return { source: "catalog" as const, models: known.map((item) => item.id) };
+    }
+    try {
+      const models = await listLiveModels({
+        endpoint,
+        apiKey: target.apiKey,
+        timeoutMs: this.settings.verificationTimeoutMs,
+      });
+      return { source: "live" as const, models };
+    } catch (error) {
+      if (error instanceof LiveModelsError) throw aiModelsUnavailable(error.failure, endpoint);
+      throw error;
+    }
+  }
+
+  async testConnection(orgId: string, draft?: Partial<AiCredentialDraft>, credentialId?: string) {
     const target = draft
       ? await this.resolveDraft(draft)
-      : await this.resolver.resolve(orgId);
+      : await this.resolver.resolve(orgId, credentialId);
 
     const endpoint = this.catalog.endpointFor(
       target.providerId,
@@ -225,13 +311,75 @@ export class AiService {
     }
 
     const ok = code === "verified" || code === "rate_limited";
-    if (!draft) {
-      await this.repository.recordVerification(orgId, {
+    if (!draft && target.credentialId) {
+      await this.repository.recordVerification(orgId, target.credentialId, {
         verified: code === "verified",
         errorCode: code === "verified" ? null : code,
       });
     }
     return result(code, ok, true, describeCheck(code, target));
+  }
+
+  private view(row: CredentialRow) {
+    return {
+      id: row.id,
+      name: row.name,
+      provider: row.provider,
+      model: row.model,
+      baseUrl: row.baseUrl,
+      keyHint: row.keyHint,
+      enabled: row.enabled,
+      isDefault: row.isDefault,
+      verifiedAt: row.verifiedAt,
+      lastErrorCode: row.lastErrorCode,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
+  }
+
+  private assertCanStore(): void {
+    if (!this.cipher.available)
+      throw aiCredentialInvalid(
+        "This server cannot store credentials: no encryption key is configured.",
+      );
+  }
+
+  private labelOf(providerId: string): string {
+    return this.catalog.providers().find((item) => item.id === providerId)?.label ?? providerId;
+  }
+
+  private async validated(input: AiCredentialDraft) {
+    const model = input.model.trim();
+    if (!model) throw aiCredentialInvalid("A model is required.");
+    const providerId = input.provider.trim().toLowerCase();
+    if (!this.catalog.isKnownProvider(providerId)) throw aiProviderUnsupported(providerId);
+    const baseUrl = input.baseUrl?.trim() || null;
+    if (baseUrl) this.assertBaseUrlAllowed(providerId, baseUrl);
+    if (!baseUrl && providerId === CUSTOM_PROVIDER_ID) {
+      throw aiCredentialInvalid("A custom endpoint needs a base URL.");
+    }
+    return { providerId, model, baseUrl };
+  }
+
+  private async draftTarget(orgId: string, input: LiveModelsInput): Promise<ResolvedLlmModel> {
+    const apiKey = input.apiKey?.trim() ?? "";
+    if (!input.provider || !apiKey) {
+      throw aiCredentialInvalid("Listing models needs a provider and a key, or a saved provider.");
+    }
+    const providerId = input.provider.trim().toLowerCase();
+    if (!this.catalog.isKnownProvider(providerId)) throw aiProviderUnsupported(providerId);
+    const baseUrl = input.baseUrl?.trim() || null;
+    if (baseUrl) this.assertBaseUrlAllowed(providerId, baseUrl);
+    return { source: "byok", providerId, model: "", baseUrl, apiKey, credentialId: null };
+  }
+
+  private async warningsFor(row: CredentialRow): Promise<string[]> {
+    if (row.provider === CUSTOM_PROVIDER_ID) return [];
+    return this.modelWarnings(row.provider, await this.catalog.models(row.provider), row.model);
+  }
+
+  private translated(error: unknown, name: string): unknown {
+    return isUniqueViolation(error) ? aiCredentialNameTaken(name) : error;
   }
 
   async usage(orgId: string) {
@@ -286,6 +434,8 @@ export class AiService {
         "The base URL points at an address this server will not send keys to.",
       );
     }
+
+    if (providerId === CUSTOM_PROVIDER_ID) return;
 
     const allowed = new Set([
       ...this.catalog.allowedHostnamesFor(providerId),

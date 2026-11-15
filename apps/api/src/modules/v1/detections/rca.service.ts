@@ -13,7 +13,7 @@ export interface RcaModelHandle {
 }
 
 export interface RcaModelResolver {
-  resolveForRca(orgId: string): Promise<RcaModelHandle>;
+  resolveForRca(orgId: string, credentialId?: string): Promise<RcaModelHandle>;
   describe(orgId: string): Promise<LlmCredentialSummary>;
 }
 
@@ -31,8 +31,9 @@ export class RcaService {
   async analyzeEvidence(
     orgId: string,
     evidence: RcaEvidence,
+    credentialId?: string,
   ): Promise<RcaAnalysisOutcome> {
-    const { provider, credential } = await this.resolver.resolveForRca(orgId);
+    const { provider, credential } = await this.resolver.resolveForRca(orgId, credentialId);
     const result = await provider.analyze(evidence);
     return {
       analysis: validateRcaAnalysis(result.analysis, evidence),
@@ -47,9 +48,10 @@ export class RcaService {
     orgId: string,
     projectId: string,
     bottleneck: CorrelatedBottleneck,
+    credentialId?: string,
   ): Promise<RcaAnalysisOutcome> {
     const { provider, credential } =
-      await this.resolver.resolveForRca(orgId);
+      await this.resolver.resolveForRca(orgId, credentialId);
 
     const rankingResult = this.ranker.rank({
       findings: [

@@ -1,53 +1,123 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BrainCircuit, RefreshCw, AlertTriangle, Clock, ChevronRight, ShieldCheck, FileSearch, Lightbulb } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { createFileRoute } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
+import { AlertTriangle, Clock, FileSearch, Search } from 'lucide-react';
 import { ConnectServiceButton } from '~/components/connect-service-button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
-import { Button } from '~/components/ui/button';
+import { EmptyProject } from '~/components/empty-state';
+import { FindingDrawer } from '~/components/findings/finding-drawer';
+import { QueryErrorState } from '~/components/query-error-state';
 import { Badge } from '~/components/ui/badge';
+import { Card, CardContent } from '~/components/ui/card';
+import { Input } from '~/components/ui/input';
 import { Skeleton } from '~/components/ui/skeleton';
 import { api } from '~/lib/api';
-import { RcaGenerationError } from '~/components/ai/rca-generation-error';
-import { RcaContent, type RcaAnalysis } from '~/components/ai/rca-content';
-import { isRcaSupported } from '~/lib/rca-support';
-import { QueryErrorState } from '~/components/query-error-state';
+import { matchesFilters, ruleLabel } from '~/lib/findings';
+import type { DetectionFinding, FindingSeverity } from '~/lib/findings.types';
 import { useProject } from '~/lib/project-context';
-import { useState } from 'react';
-import { EmptyProject } from '~/components/empty-state';
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/intelligence/findings')({ component: DetectionOverview });
-type FindingType = 'latency' | 'error_rate' | 'throughput' | 'dependency_latency' | 'trace_span' | 'bottleneck' | 'error_group' | 'database_query' | 'database_n_plus_one' | 'database_query_volume' | 'database_error' | 'database_latency_contribution' | 'database_connection_pool' | 'database_timeout' | 'database_result_set' | 'database_connection_wait' | 'database_batch' | 'database_dependency_degradation' | 'external_dependency_degradation' | 'redis_degradation' | 'queue_degradation' | 'performance';
-type Severity = 'warning' | 'critical';
-interface DetectionFinding { id: string; projectId: string; serviceName: string; type: FindingType; severity: Severity; title: string; description: string; observedValue: number; threshold: number; unit: string; windowStart: string; windowEnd: string; evidence: Array<{ kind: string; label: string; value: number | string; context?: Record<string, unknown> }>; }
+
+const FIELD = 'rounded-md border border-border bg-background px-3 py-2 text-sm';
 
 function DetectionOverview() {
   const { organizationSlug } = Route.useParams();
-  const { projectSlug, orgSlug } = useProject();
   const { projectId } = useProject();
-  const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const { data: findings, isLoading, isError, refetch } = useQuery({ queryKey: ['detections', projectId], queryFn: () => api.get<DetectionFinding[]>(`/projects/${projectId}/detections`), enabled: !!projectId });
-  const selected = findings?.find((item) => item.id === selectedId) ?? findings?.[0];
-  const evidence = selected?.evidence.filter((item) => item.kind !== 'recommendation') ?? [];
-  const recommendations = selected?.evidence.filter((item) => item.kind === 'recommendation') ?? [];
-  const startInvestigation = useMutation({ mutationFn: (findingId: string) => api.post<{ id: string }>(`/projects/${projectId}/investigations`, { findingId }) });
-  const isBottleneck = isRcaSupported(selected?.type);
-  const { data: rca, isLoading: rcaLoading } = useQuery({ queryKey: ['rca', projectId, selected?.id], queryFn: () => api.get<RcaAnalysis>(`/projects/${projectId}/findings/${selected?.id}/rca`), enabled: !!projectId && !!selected?.id && isBottleneck, retry: false });
-  const { data: history } = useQuery({ queryKey: ['rca-history', projectId, selected?.id], queryFn: () => api.get<RcaAnalysis[]>(`/projects/${projectId}/findings/${selected?.id}/rca/history`), enabled: !!projectId && !!selected?.id && isBottleneck });
-  const generate = useMutation({ mutationFn: (regenerate: boolean) => api.post<RcaAnalysis>(`/projects/${projectId}/findings/${selected?.id}/rca`, { regenerate }), onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['rca', projectId, selected?.id] }); void queryClient.invalidateQueries({ queryKey: ['rca-history', projectId, selected?.id] }); } });
+  const [filters, setFilters] = useState({ query: '', severity: '', type: '' });
+  const { data: findings, isLoading, isError, refetch } = useQuery({
+    queryKey: ['detections', projectId],
+    queryFn: () => api.get<DetectionFinding[]>(`/projects/${projectId}/detections`),
+    enabled: !!projectId,
+  });
+
+  const types = useMemo(() => [...new Set((findings ?? []).map((item) => item.type))].sort(), [findings]);
+  const visible = useMemo(() => (findings ?? []).filter((item) => matchesFilters(item, filters)), [findings, filters]);
+  const selected = findings?.find((item) => item.id === selectedId) ?? null;
+  const set = (key: keyof typeof filters, value: string) => setFilters((prev) => ({ ...prev, [key]: value }));
+
   if (!projectId) return <EmptyProject />;
   if (isError) return <QueryErrorState onRetry={() => void refetch()} />;
-  return <div className="space-y-5">
-    <h1 className="sr-only">Findings</h1>
-    {isLoading ? <div className="grid items-start gap-4 lg:grid-cols-[380px_minmax(0,1fr)]"><Skeleton className="h-[600px]" /><Skeleton className="h-[600px]" /></div> : !findings?.length ? <Card><CardContent className="p-12 text-center"><FileSearch className="mx-auto h-8 w-8 text-[#16931F]" /><p className="mt-3 font-medium">No findings</p><ConnectServiceButton className="mt-4" /></CardContent></Card> : <div className="grid gap-4 items-start lg:grid-cols-[380px_minmax(0,1fr)]">
-      <Card className="overflow-hidden border-border bg-card shadow-none lg:sticky lg:top-2 lg:self-start"><CardHeader className="border-b bg-muted py-3"><div className="flex items-center justify-between gap-2"><CardTitle className="text-base">Findings</CardTitle><Badge variant="outline" className="text-xs">{findings.length}</Badge></div></CardHeader><CardContent className="p-0"><div className="max-h-[calc(100vh-7rem)] overflow-y-auto divide-y divide-[#DBE5D7]">{findings.map((finding) => <button key={finding.id} type="button" onClick={() => setSelectedId(finding.id)} className={`w-full p-4 text-left transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:outline-none ${selected?.id === finding.id ? 'bg-secondary shadow-[inset_3px_0_0_#8BD125]' : ''}`} aria-pressed={selected?.id === finding.id}><div className="flex items-start gap-3"><SeverityIcon severity={finding.severity} /><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{finding.title}</p><div className="mt-1 flex flex-wrap gap-x-2 text-xs text-muted-foreground"><span>{finding.serviceName}</span><span>·</span><span>{finding.type}</span></div><p className="mt-1 font-mono text-[11px] text-muted-foreground">{new Date(finding.windowEnd).toLocaleString()}</p></div><ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" /></div></button>)}</div></CardContent></Card>
-      {selected && <Card className="border-border bg-card shadow-none"><CardHeader className="border-b"><div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between"><div><div className="flex flex-wrap items-center gap-2"><CardTitle className="text-lg">{selected.title}</CardTitle><Badge variant="outline" className={selected.severity === 'critical' ? 'border-[#F8C7C2] bg-[#FDE8E6] text-[#8A1C13]' : 'border-[#FDE68A] bg-[#FEF3C7] text-[#713F12]'}>{selected.severity}</Badge></div><CardDescription className="mt-2">{selected.serviceName} · {selected.observedValue}{selected.unit} · threshold {selected.threshold}{selected.unit}</CardDescription></div><div className="flex flex-wrap gap-2">{selected && <Button size="sm" variant="outline" onClick={() => startInvestigation.mutate(selected.id)} disabled={startInvestigation.isPending}>{startInvestigation.isPending ? 'Opening…' : 'Open investigation'}</Button>}{startInvestigation.data?.id && <Link to="/$organizationSlug/p/$projectSlug/investigations/$investigationId" params={{ organizationSlug: orgSlug!, projectSlug: projectSlug!, investigationId: startInvestigation.data.id }}><Button size="sm">View</Button></Link>}{isBottleneck && <Button size="sm" variant="outline" onClick={() => generate.mutate(true)} disabled={generate.isPending} className="border-border"><RefreshCw className={generate.isPending ? 'mr-2 h-3.5 w-3.5 animate-spin' : 'mr-2 h-3.5 w-3.5'} />Regenerate</Button>}</div></div></CardHeader>
-        <CardContent className="space-y-6 p-5 md:p-6"><section><div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-[#16931F]" /><h2 className="text-sm font-semibold">Evidence</h2></div><p className="mt-2 text-sm leading-6 text-muted-foreground">{selected.description}</p><div className="mt-4 grid gap-3 sm:grid-cols-2">{evidence.map((item, index) => <div key={`${item.label}-${index}`} className="rounded-lg border border-border bg-muted p-4"><p className="text-[11px] uppercase tracking-wide text-muted-foreground">{item.label}</p><p className="mt-1 break-words font-mono text-sm font-medium">{String(item.value)}</p></div>)}</div></section>
-        {recommendations.length > 0 && <section className="border-t border-border pt-6"><div className="flex items-center gap-2"><Lightbulb className="h-4 w-4 text-[#16931F]" /><h2 className="text-sm font-semibold">Recommended actions</h2></div><ul className="mt-3 space-y-2">{recommendations.map((item, index) => <li key={`rec-${index}`} className="flex items-start gap-2 rounded-lg border border-[#E4EDE0] bg-[#F7FAF4] p-3 text-sm leading-6"><span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-[#8BD125]" />{String(item.value)}</li>)}</ul></section>}
-        {isBottleneck && <section className="border-t border-border pt-6"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex items-center gap-2"><BrainCircuit className="h-4 w-4 text-[#16931F]" /><h2 className="text-sm font-semibold">Analysis</h2></div></div>{!rca && !rcaLoading && <Button onClick={() => generate.mutate(false)} disabled={generate.isPending} className="bg-[#8BD125] text-[#182012] hover:bg-[#8BD125]/90"><BrainCircuit className="mr-2 h-4 w-4" />Generate</Button>}</div>{rcaLoading ? <div className="mt-5 space-y-3"><Skeleton className="h-24" /><Skeleton className="h-32" /></div> : rca ? <RcaContent rca={rca} history={history ?? []} /> : <div className="mt-5 rounded-lg border border-dashed border-border bg-muted p-6 text-sm text-muted-foreground">No analysis yet.</div>}{generate.data?.quotaWarning && <p className="mt-3 text-xs text-[#713F12]">This run went over the AI usage allowance for this organisation.</p>}{generate.isError && <RcaGenerationError error={generate.error} orgSlug={organizationSlug} />}</section>}</CardContent>
-      </Card>}
-    </div>}
-  </div>;
-}
-function SeverityIcon({ severity }: { severity: Severity }) { return severity === 'critical' ? <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#8A1C13]" aria-label="Critical" /> : <Clock className="mt-0.5 h-4 w-4 shrink-0 text-[#713F12]" aria-label="Warning" />; }
 
+  return (
+    <div className="space-y-5">
+      <h1 className="text-xl font-semibold tracking-tight">Findings</h1>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[14rem] flex-1">
+          <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input value={filters.query} onChange={(event) => set('query', event.target.value)} placeholder="Search findings…" aria-label="Search findings" className="pl-9" />
+        </div>
+        <select aria-label="Severity" value={filters.severity} onChange={(event) => set('severity', event.target.value)} className={FIELD}>
+          <option value="">All severities</option>
+          <option value="critical">Critical</option>
+          <option value="warning">Warning</option>
+        </select>
+        <select aria-label="Rule" value={filters.type} onChange={(event) => set('type', event.target.value)} className={FIELD}>
+          <option value="">All rules</option>
+          {types.map((type) => (
+            <option key={type} value={type}>
+              {ruleLabel(type)}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {isLoading ? (
+        <Skeleton className="h-[480px]" />
+      ) : !findings?.length ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <FileSearch className="mx-auto h-8 w-8 text-[#16931F]" />
+            <p className="mt-3 font-medium">No findings</p>
+            <ConnectServiceButton className="mt-4" />
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="overflow-hidden border-border shadow-none">
+          <div className="flex items-center gap-2 border-b bg-muted px-4 py-3 text-sm font-semibold">
+            Findings
+            <Badge variant="outline" className="text-xs">
+              {visible.length}
+            </Badge>
+          </div>
+          {visible.length === 0 ? (
+            <p className="p-8 text-center text-sm text-muted-foreground">No findings match these filters.</p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {visible.map((finding) => (
+                <li key={finding.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(finding.id)}
+                    className="flex w-full items-center gap-3 p-4 text-left hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
+                  >
+                    <SeverityIcon severity={finding.severity} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{finding.title}</p>
+                      <p className="mt-1 truncate text-xs text-muted-foreground">
+                        {finding.serviceName} · {ruleLabel(finding.type)} · {new Date(finding.windowEnd).toLocaleString()}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className={finding.severity === 'critical' ? 'border-[#F8C7C2] bg-[#FDE8E6] text-[#8A1C13]' : 'border-[#FDE68A] bg-[#FEF3C7] text-[#713F12]'}>
+                      {finding.severity}
+                    </Badge>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      )}
+
+      <FindingDrawer finding={selected} projectId={projectId} organizationSlug={organizationSlug} onClose={() => setSelectedId(null)} />
+    </div>
+  );
+}
+
+function SeverityIcon({ severity }: { severity: FindingSeverity }) {
+  return severity === 'critical' ? (
+    <AlertTriangle className="h-4 w-4 shrink-0 text-[#8A1C13]" aria-label="Critical" />
+  ) : (
+    <Clock className="h-4 w-4 shrink-0 text-[#713F12]" aria-label="Warning" />
+  );
+}

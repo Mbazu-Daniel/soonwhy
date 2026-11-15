@@ -1,7 +1,9 @@
 import {
   BadRequestException,
+  ConflictException,
   HttpException,
   HttpStatus,
+  NotFoundException,
   ServiceUnavailableException,
 } from "@nestjs/common";
 
@@ -13,7 +15,8 @@ type AiErrorCode =
   | "AI_PROVIDER_UNSUPPORTED"
   | "AI_PROVIDER_BASE_URL_INVALID"
   | "AI_PROVIDER_ENDPOINT_UNKNOWN"
-  | "AI_QUOTA_EXCEEDED";
+  | "AI_QUOTA_EXCEEDED"
+  | "AI_MODELS_UNAVAILABLE";
 
 interface AiErrorBody {
   code: AiErrorCode;
@@ -111,4 +114,29 @@ export function aiQuotaExceeded(metric: string): HttpException {
     },
     HttpStatus.TOO_MANY_REQUESTS,
   );
+}
+
+export function aiCredentialNotFound(): NotFoundException {
+  return new NotFoundException("That AI provider does not exist in this organization.");
+}
+
+export function aiCredentialNameTaken(name: string): ConflictException {
+  return new ConflictException(`This organization already has an AI provider named "${name}".`);
+}
+
+export function aiModelsUnavailable(
+  failure: "key_rejected" | "unreachable" | "bad_response",
+  endpoint: string,
+): BadRequestException {
+  const detail = {
+    key_rejected: "That API key was rejected by the provider.",
+    unreachable: `Could not reach ${endpoint}.`,
+    bad_response: `${endpoint} did not return a list of models.`,
+  }[failure];
+  return new BadRequestException({
+    code: "AI_MODELS_UNAVAILABLE",
+    title: "Could not list models",
+    detail,
+    hint: "Check the key and base URL, or type the model name yourself.",
+  });
 }
