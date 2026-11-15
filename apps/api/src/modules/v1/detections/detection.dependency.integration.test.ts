@@ -74,14 +74,14 @@ describe("DetectionService unified dependency intelligence", () => {
         key: "postgres",
         doc_count: 20,
         latency: { values: { "95.0": 800 } },
-        errors: { doc_count: 6 },
+        errors: { buckets: [{ doc_count: 6 }] },
         dependencyType: { buckets: [{ key: "database", doc_count: 20 }] },
       },
       {
         key: "postgres",
         doc_count: 20,
         latency: { values: { "95.0": 200 } },
-        errors: { doc_count: 0 },
+        errors: { buckets: [{ doc_count: 0 }] },
         dependencyType: { buckets: [{ key: "database", doc_count: 20 }] },
       },
     ];
@@ -171,7 +171,7 @@ describe("DetectionService unified dependency intelligence", () => {
                             latency: {
                               values: { "95.0": current ? 800 : 200 },
                             },
-                            errors: { doc_count: current ? 6 : 0 },
+                            errors: { buckets: [{ doc_count: current ? 6 : 0 }] },
                             dependencyType: {
                               buckets: [{ key: dependencyType, doc_count: 20 }],
                             },

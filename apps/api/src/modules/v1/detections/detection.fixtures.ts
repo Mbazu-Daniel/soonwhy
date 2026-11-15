@@ -4,13 +4,13 @@ export const checkoutRegressionFixture = {
       key: "checkout-api",
       doc_count: 60,
       latency: { values: { "95.0": 1_600 } },
-      errors: { doc_count: 10 },
+      errors: { buckets: [{ doc_count: 10 }] },
     },
     baseline: {
       key: "checkout-api",
       doc_count: 120,
       latency: { values: { "95.0": 700 } },
-      errors: { doc_count: 2 },
+      errors: { buckets: [{ doc_count: 2 }] },
     },
   },
   dependency: {

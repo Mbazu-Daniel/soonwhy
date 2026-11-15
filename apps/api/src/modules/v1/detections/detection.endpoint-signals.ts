@@ -3,7 +3,7 @@ import type { DetectionEvidence } from '../../../common/db/schema/findings';
 import { quickwitSource, quickwitTerm, sanitizeRequestUrl } from '../../../common/quickwit/query';
 import { evaluateEndpointPerformance } from './performance-detection';
 import { WINDOW_MS, detectorThresholds, type DetectionStageContext, type DetectionStageDeps } from './detection.stage';
-import type { DetectionFinding, EndpointAggregations, RequestSource } from './detection.types';
+import { SERVER_ERROR_RANGE, errorCount, type DetectionFinding, type EndpointAggregations, type RequestSource } from './detection.types';
 import { searchTenant } from '../../../common/telemetry/tenant-search';
 
 type EndpointBucket = { key: string; latency: number; errorRate: number; doc_count: number };
@@ -201,11 +201,7 @@ async function cachedEndpointBuckets(
                       percents: [95],
                     },
                   },
-                  errors: {
-                    filter: {
-                      query: 'statusCode:[500 TO 599]',
-                    },
-                  },
+                  errors: SERVER_ERROR_RANGE,
                 },
               },
             },
@@ -220,7 +216,7 @@ async function cachedEndpointBuckets(
     (serviceBucket.endpoints?.buckets ?? []).flatMap((endpointBucket) =>
       endpointBucket.methods?.buckets?.flatMap((methodBucket) => {
         const latency = methodBucket.latency?.values?.['95.0'] ?? 0;
-        const errors = methodBucket.errors?.doc_count ?? 0;
+        const errors = errorCount(methodBucket);
         if (!methodBucket.key || latency <= 0) return [];
 
         return [{
