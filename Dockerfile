@@ -23,12 +23,6 @@ RUN pnpm --filter @soonwhy/backend deploy /out/api \
  && pnpm --filter @soonwhy/ingest deploy --prod /out/ingest \
  && pnpm --filter @soonwhy/frontend deploy /out/ui
 
-FROM node:26-bookworm-slim AS api
-WORKDIR /app
-COPY --from=build /out/api ./
-EXPOSE 3001
-CMD ["sh", "-c", "node dist/common/db/migrate.js && node dist/main.js"]
-
 FROM node:26-bookworm-slim AS ingest
 WORKDIR /app
 COPY --from=build /out/ingest ./
