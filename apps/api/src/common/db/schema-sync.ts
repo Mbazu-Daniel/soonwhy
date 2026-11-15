@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import postgres from "postgres";
 import { buildLargeIndexesConcurrently } from "./concurrent-indexes";
+import { backfillAiProviderLibrary } from "./backfill-ai-providers";
 import { dedupeSlugs } from "./dedupe-slugs";
 
 const LOCK_KEY = 7_262_001;
@@ -33,6 +34,7 @@ async function syncSchema(): Promise<number> {
     await client`select pg_advisory_lock(${LOCK_KEY})`;
     const renamed = await dedupeSlugs(client);
     if (renamed > 0) console.warn(`Renamed ${renamed} duplicate slugs so the unique slug indexes can be created.`);
+    if (await backfillAiProviderLibrary(client)) console.warn("Named the existing AI provider credentials and made them the default.");
     const built = await buildLargeIndexesConcurrently(client);
     if (built.length > 0) console.log(`Built ${built.length} indexes without blocking writes: ${built.join(", ")}`);
     const code = await runPush(allowDataLoss);
