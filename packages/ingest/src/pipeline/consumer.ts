@@ -22,7 +22,7 @@ import type {
 } from "../interfaces";
 import { DlqRepository } from "./dlq.repository";
 import { IngestReceiptRepository, ReceiptBusyError } from "./receipt.repository";
-import { CLAIM_LEASE_MS, MAX_DELIVERY_ATTEMPTS } from "./constants";
+import { CLAIM_LEASE_MS, DLQ_SUBJECT_PREFIX, MAX_DELIVERY_ATTEMPTS } from "./constants";
 import type { IngestPayload, IngestSignal } from "./types";
 
 type JsMsg = Parameters<NatsMessageHandler>[0];
@@ -71,6 +71,10 @@ export class IngestConsumer implements OnModuleInit {
   }
 
   private async handleMessage(signal: IngestSignal, msg: JsMsg) {
+    if (msg.subject?.startsWith(DLQ_SUBJECT_PREFIX)) {
+      msg.ack();
+      return;
+    }
     const deliveryCount = msg.info.deliveryCount || 1;
 
     if (deliveryCount > MAX_DELIVERY_ATTEMPTS) {
@@ -173,7 +177,7 @@ export class IngestConsumer implements OnModuleInit {
         payload: rawData,
       };
       await this.nats.publish(
-        `ingest.dlq.${signal}`,
+        `${DLQ_SUBJECT_PREFIX}${signal}`,
         new TextEncoder().encode(JSON.stringify(envelope)),
       );
       this.logger.warn(
@@ -294,8 +298,9 @@ export class IngestConsumer implements OnModuleInit {
     organizationId: string,
     projectId: string,
     indexId: string,
-    rows: MappedRow[],
+    batchRows: MappedRow[],
   ) {
+    const rows = [...new Map(batchRows.map((row) => [row.eventId, row])).values()];
     const eventIds = rows.map((r) => r.eventId);
     let claim: Awaited<ReturnType<typeof this.receipts.claimBatch>>;
     try {
