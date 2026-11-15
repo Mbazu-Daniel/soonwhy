@@ -5,13 +5,14 @@ import { DetectorSettingsService } from '../detector-settings/detector-settings.
 import { DetectionTelemetryService } from './detection-telemetry.service';
 import { db } from '../../../common/db';
 import { findings } from '../../../common/db/schema/findings';
-import { quickwitSource, quickwitTenantQuery, quickwitTerm } from '../../../common/quickwit/query';
+import { quickwitSource, quickwitTerm } from '../../../common/quickwit/query';
 import { completeDetectionRun, enqueueDetectionRun, failDetectionRun, startDetectionRun, claimQueuedDetectionRun } from './detection.run';
 import { recordDetectionRun } from '../../../common/telemetry/otel-metrics';
 import type { DetectionFinding, RequestSource, TraceSource } from './detection.types';
 import { ProjectsRepository } from '../projects/projects.repository';
 import { DetectionPipeline } from './detection.pipeline';
 import { WINDOW_MS } from './detection.stage';
+import { searchTenant } from '../../../common/telemetry/tenant-search';
 
 @Injectable()
 export class DetectionService {
@@ -185,8 +186,8 @@ export class DetectionService {
     startTimestamp: number,
     endTimestamp: number,
   ) {
-    const result = await this.quickwit.search<Record<string, unknown>>(QUICKWIT_INDEXES.detections, {
-      query: quickwitTenantQuery(orgId, projectId, quickwitTerm('kind', 'finding')),
+    const result = await searchTenant<Record<string, unknown>>(this.quickwit, "detections", { orgId, projectId }, {
+      filter: quickwitTerm('kind', 'finding'),
       startTimestamp,
       endTimestamp,
       maxHits: 500,
@@ -224,8 +225,8 @@ export class DetectionService {
     startTimestamp: number,
     endTimestamp: number,
   ) {
-    const result = await this.quickwit.search<Record<string, unknown>>(QUICKWIT_INDEXES.detections, {
-      query: quickwitTenantQuery(orgId, projectId, 'kind:(run_started OR run_completed OR run_failed)'),
+    const result = await searchTenant<Record<string, unknown>>(this.quickwit, "detections", { orgId, projectId }, {
+      filter: 'kind:(run_started OR run_completed OR run_failed)',
       startTimestamp,
       endTimestamp,
       maxHits: 500,

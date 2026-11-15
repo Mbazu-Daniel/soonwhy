@@ -9,7 +9,6 @@ import { findings, type DetectionEvidence } from "../../../common/db/schema/find
 import { services } from "../../../common/db/schema/services";
 import {
   quickwitSource,
-  quickwitTenantQuery,
   quickwitTerm,
 } from "../../../common/quickwit/query";
 import { ERROR_SPAN_FILTER, REQUEST_SPAN_FILTER } from "../../../common/telemetry/span-filters";
@@ -41,6 +40,7 @@ import type {
   RequestErrorSource,
   SpanErrorSource,
 } from "./error.types";
+import { searchTenant } from "../../../common/telemetry/tenant-search";
 
 export interface ErrorQuery {
   from?: string;
@@ -227,20 +227,20 @@ export class ErrorsService {
     const optional = (promise: Promise<{ hits: unknown[] }>) =>
       promise.catch(() => ({ hits: [] as unknown[] }));
     const [logs, spans, requests] = await Promise.all([
-      this.quickwit.search(QUICKWIT_INDEXES.logs, {
+      searchTenant(this.quickwit, "logs", { orgId, projectId }, {
         ...search,
-        query: quickwitTenantQuery(orgId, projectId, `(${levels})${serviceFilter}`),
+        filter: `(${levels})${serviceFilter}`,
       }),
       optional(
-        this.quickwit.search(QUICKWIT_INDEXES.traces, {
+        searchTenant(this.quickwit, "traces", { orgId, projectId }, {
           ...search,
-          query: quickwitTenantQuery(orgId, projectId, `(${ERROR_SPAN_FILTER} OR (httpStatusCode:>=${HTTP_ERROR_FLOOR} AND ${REQUEST_SPAN_FILTER}))${serviceFilter}`),
+          filter: `(${ERROR_SPAN_FILTER} OR (httpStatusCode:>=${HTTP_ERROR_FLOOR} AND ${REQUEST_SPAN_FILTER}))${serviceFilter}`,
         }),
       ),
       optional(
-        this.quickwit.search(QUICKWIT_INDEXES.requests, {
+        searchTenant(this.quickwit, "requests", { orgId, projectId }, {
           ...search,
-          query: quickwitTenantQuery(orgId, projectId, `statusCode:>=${HTTP_ERROR_FLOOR}${serviceFilter}`),
+          filter: `statusCode:>=${HTTP_ERROR_FLOOR}${serviceFilter}`,
         }),
       ),
     ]);

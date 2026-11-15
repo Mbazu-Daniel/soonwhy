@@ -1,9 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
 import {
-  quickwitTenantQuery,
   quickwitTimestamp,
 } from "../../../common/quickwit/query";
+import { searchTenant } from "../../../common/telemetry/tenant-search";
 
 export interface RequestStat {
   url: string;
@@ -38,8 +38,7 @@ export class RequestsRepository {
     from: string;
     to: string;
   }): Promise<RequestStat[]> {
-    const result = await this.quickwit.search(QUICKWIT_INDEXES.requests, {
-      query: quickwitTenantQuery(params.orgId, params.projectId),
+    const result = await searchTenant(this.quickwit, "requests", { orgId: params.orgId, projectId: params.projectId }, {
       startTimestamp: quickwitTimestamp(params.from),
       endTimestamp: quickwitTimestamp(params.to),
       maxHits: 0,

@@ -3,7 +3,6 @@ import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
 import {
   quickwitSource,
   quickwitTerm,
-  quickwitTenantQuery,
   quickwitTimestamp,
 } from "../../../common/quickwit/query";
 import {
@@ -34,6 +33,7 @@ import type {
   ServiceRequestSummary,
   SummaryAggregation,
 } from "./request-summary.types";
+import { searchTenant } from "../../../common/telemetry/tenant-search";
 
 export interface MetricsBucket {
   bucket: string;
@@ -78,9 +78,9 @@ interface MetricsAggregation {
 export class MetricsRepository {
   constructor(private readonly quickwit: QuickwitService) {}
 
-  private requestQuery(params: { orgId: string; projectId: string; service?: string }, extra: string[] = []): string {
+  private requestFilter(params: { service?: string }, extra: string[] = []): string {
     const filters = [REQUEST_SPAN_FILTER, ...(params.service ? [quickwitTerm("service", params.service)] : []), ...extra];
-    return quickwitTenantQuery(params.orgId, params.projectId, filters.join(" AND "));
+    return filters.join(" AND ");
   }
 
   private requestSearch(
@@ -88,8 +88,8 @@ export class MetricsRepository {
     aggregations: Record<string, unknown>,
     extra: string[] = [],
   ) {
-    return this.quickwit.search(QUICKWIT_INDEXES.traces, {
-      query: this.requestQuery(params, extra),
+    return searchTenant(this.quickwit, "traces", params, {
+      filter: this.requestFilter(params, extra),
       startTimestamp: quickwitTimestamp(params.from),
       endTimestamp: quickwitTimestamp(params.to),
       maxHits: 0,
@@ -226,14 +226,8 @@ export class MetricsRepository {
       `(${quickwitTerm("metricType", "histogram")} OR ${quickwitTerm("metricType", "summary")})`,
       ...(params.service ? [quickwitTerm("service", params.service)] : []),
     ];
-    const result = await this.quickwit.search<HistogramSource>(
-      QUICKWIT_INDEXES.metrics,
-      {
-        query: quickwitTenantQuery(
-          params.orgId,
-          params.projectId,
-          filters.join(" AND "),
-        ),
+    const result = await searchTenant<HistogramSource>(this.quickwit, "metrics", params, {
+        filter: filters.join(" AND "),
         startTimestamp: quickwitTimestamp(params.from),
         endTimestamp: quickwitTimestamp(params.to),
         maxHits: 10_000,
@@ -282,12 +276,8 @@ export class MetricsRepository {
     };
     const fixedInterval = intervalMap[params.interval] || "1m";
 
-    const result = await this.quickwit.search(QUICKWIT_INDEXES.metrics, {
-      query: quickwitTenantQuery(
-        params.orgId,
-        params.projectId,
-        `(system.cpu.utilization OR system.memory.utilization OR system.filesystem.utilization)`,
-      ),
+    const result = await searchTenant(this.quickwit, "metrics", params, {
+      filter: `(system.cpu.utilization OR system.memory.utilization OR system.filesystem.utilization)`,
       startTimestamp: quickwitTimestamp(params.from),
       endTimestamp: quickwitTimestamp(params.to),
       maxHits: 0,

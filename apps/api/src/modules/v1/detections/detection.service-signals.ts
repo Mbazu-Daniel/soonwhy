@@ -1,6 +1,7 @@
 import { QUICKWIT_INDEXES } from '@soonwhy/shared';
 import type { DetectionEvidence } from '../../../common/db/schema/findings';
-import { quickwitSource, quickwitTenantQuery, quickwitTerm, sanitizeRequestUrl } from '../../../common/quickwit/query';
+import { searchTenant } from '../../../common/telemetry/tenant-search';
+import { quickwitSource, quickwitTerm, sanitizeRequestUrl } from '../../../common/quickwit/query';
 import { evaluateThroughput } from './detection.engine';
 import { evaluateServicePerformance } from '../intelligence/service-performance.engine';
 import { searchServiceBuckets } from './detection-search.methods';
@@ -225,14 +226,11 @@ async function requestEvidence(
   endTimestamp: number,
   type: FindingType,
 ): Promise<DetectionEvidence[]> {
-  const tenant = quickwitTenantQuery(orgId, projectId);
   const service = quickwitTerm('service', serviceName);
-  const query = type === 'latency'
-    ? tenant + ' AND ' + service
-    : tenant + ' AND ' + service + ' AND statusCode:[500 TO 599]';
+  const filter = type === 'latency' ? service : service + ' AND statusCode:[500 TO 599]';
 
-  const result = await deps.quickwit.search<RequestSource>(QUICKWIT_INDEXES.requests, {
-    query,
+  const result = await searchTenant<RequestSource>(deps.quickwit, 'requests', { orgId, projectId }, {
+    filter,
     startTimestamp,
     endTimestamp,
     maxHits: 5,

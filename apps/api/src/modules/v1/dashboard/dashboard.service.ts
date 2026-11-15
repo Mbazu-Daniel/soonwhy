@@ -1,11 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
-import { quickwitSource, quickwitTenantQuery } from "../../../common/quickwit/query";
+import { quickwitSource } from "../../../common/quickwit/query";
 import { CacheService } from "../../../common/cache/cache.service";
 import { CACHE_TTL_SECONDS } from "../../../common/cache/cache.constants";
 import { MetricsRepository } from "../metrics/metrics.repository";
 import { healthScore, summarize, summaryInterval } from "../metrics/request-summary";
 import type { StatusCounts } from "../metrics/request-summary.types";
+import { searchTenant } from "../../../common/telemetry/tenant-search";
 
 @Injectable()
 export class DashboardService {
@@ -82,13 +83,11 @@ export class DashboardService {
 
   async getTelemetryStatus(orgId: string, projectId: string) {
     return this.cached(`telemetry-status:${orgId}:${projectId}`, async () => {
-      const result = await this.quickwit.search<{
+      const result = await searchTenant<{
         timestamp?: string;
         service?: string;
         traceId?: string;
-      }>(QUICKWIT_INDEXES.logs, {
-        query: quickwitTenantQuery(orgId, projectId),
-        startTimestamp: Math.floor((Date.now() - 86_400_000) / 1000),
+      }>(this.quickwit, "logs", { orgId, projectId }, {        startTimestamp: Math.floor((Date.now() - 86_400_000) / 1000),
         endTimestamp: Math.floor(Date.now() / 1000),
         maxHits: 1,
         sortBy: ["timestamp:desc"],

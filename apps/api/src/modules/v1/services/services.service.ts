@@ -4,12 +4,13 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
-import { quickwitSource, quickwitTenantQuery } from "../../../common/quickwit/query";
+import { quickwitSource } from "../../../common/quickwit/query";
 import { ServicesRepository } from "./services.repository";
 import { CreateServiceInput, UpdateServiceInput } from "./dto";
 import { observedServiceNames } from "./observed-services";
 import { serviceSlug, uniqueSlug } from "./service-slug";
 import { MAX_OBSERVED_SERVICES, MAX_SYNC_ROUNDS, SYNC_INTERVAL_MS } from "./service-sync.constants";
+import { searchTenant } from "../../../common/telemetry/tenant-search";
 
 interface TraceSpanSource {
   service?: string;
@@ -60,10 +61,7 @@ export class ServicesService {
   }
 
   async getServiceMap(projectId: string, orgId: string) {
-    const result = await this.quickwit.search<TraceSpanSource>(
-      QUICKWIT_INDEXES.traces,
-      {
-        query: quickwitTenantQuery(orgId, projectId),
+    const result = await searchTenant<TraceSpanSource>(this.quickwit, "traces", { orgId, projectId }, {
         startTimestamp: Math.floor((Date.now() - 86_400_000) / 1000),
         endTimestamp: Math.floor(Date.now() / 1000),
         maxHits: 5000,

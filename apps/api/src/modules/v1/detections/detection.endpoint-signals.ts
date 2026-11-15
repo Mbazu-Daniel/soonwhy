@@ -1,9 +1,10 @@
 import { QUICKWIT_INDEXES } from '@soonwhy/shared';
 import type { DetectionEvidence } from '../../../common/db/schema/findings';
-import { quickwitSource, quickwitTenantQuery, quickwitTerm, sanitizeRequestUrl } from '../../../common/quickwit/query';
+import { quickwitSource, quickwitTerm, sanitizeRequestUrl } from '../../../common/quickwit/query';
 import { evaluateEndpointPerformance } from './performance-detection';
 import { WINDOW_MS, detectorThresholds, type DetectionStageContext, type DetectionStageDeps } from './detection.stage';
 import type { DetectionFinding, EndpointAggregations, RequestSource } from './detection.types';
+import { searchTenant } from '../../../common/telemetry/tenant-search';
 
 type EndpointBucket = { key: string; latency: number; errorRate: number; doc_count: number };
 
@@ -168,8 +169,7 @@ async function cachedEndpointBuckets(
   endTimestamp: number,
 ): Promise<EndpointBucket[]> {
   return deps.cachedQuery('endpoint-buckets', orgId, projectId, startTimestamp, endTimestamp, async () => {
-  const result = await deps.quickwit.search<never>(QUICKWIT_INDEXES.requests, {
-    query: quickwitTenantQuery(orgId, projectId),
+  const result = await searchTenant<never>(deps.quickwit, "requests", { orgId, projectId }, {
     startTimestamp,
     endTimestamp,
     maxHits: 0,
@@ -245,18 +245,14 @@ async function endpointPerformanceEvidence(
   startTimestamp: number,
   endTimestamp: number,
 ): Promise<DetectionEvidence[]> {
-  const query = quickwitTenantQuery(
-    orgId,
-    projectId,
-    [
-      quickwitTerm('service', serviceName),
-      quickwitTerm('method', method),
-      quickwitTerm('url', url),
-    ].join(' AND '),
-  );
+  const filter = [
+    quickwitTerm('service', serviceName),
+    quickwitTerm('method', method),
+    quickwitTerm('url', url),
+  ].join(' AND ');
 
-  const result = await deps.quickwit.search<RequestSource>(QUICKWIT_INDEXES.requests, {
-    query,
+  const result = await searchTenant<RequestSource>(deps.quickwit, 'requests', { orgId, projectId }, {
+    filter,
     startTimestamp,
     endTimestamp,
     maxHits: 5,
