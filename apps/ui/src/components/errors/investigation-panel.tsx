@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
+import { ProviderSwitch } from '~/components/ai/provider-switch';
 import { api, apiProblem } from '~/lib/api';
 import { AI_NOT_CONFIGURED, EMPTY_CHAT_STATE, applyEvent, readChatStream, toolLabel, turnsAfter } from '~/lib/investigation-chat';
 import type { ChatState, ChatStep, ChatTurn, ThreadDetail, ThreadSummary } from '~/lib/investigation-chat.types';
@@ -44,6 +45,7 @@ function Turn({ turn }: { turn: ChatTurn }) {
 
 export function InvestigationPanel({ projectId, organizationSlug, suggestion }: InvestigationPanelProps) {
   const queryClient = useQueryClient();
+  const [credentialId, setCredentialId] = useState('');
   const [question, setQuestion] = useState(suggestion);
   const [threadId, setThreadId] = useState<string | null>(null);
   const [turns, setTurns] = useState<ChatTurn[]>([]);
@@ -101,7 +103,7 @@ export function InvestigationPanel({ projectId, organizationSlug, suggestion }: 
     let state = EMPTY_CHAT_STATE;
     setLive(state);
     try {
-      const response = await api.stream(`/projects/${projectId}/ai/investigate`, { message, ...(threadId ? { threadId } : {}) }, controller.current.signal);
+      const response = await api.stream(`/projects/${projectId}/ai/investigate`, { message, ...(threadId ? { threadId } : {}), ...(credentialId ? { credentialId } : {}) }, controller.current.signal);
       for await (const chunk of readChatStream(response)) {
         state = applyEvent(state, chunk);
         setLive(state);
@@ -169,6 +171,7 @@ export function InvestigationPanel({ projectId, organizationSlug, suggestion }: 
         )}
 
         <form onSubmit={(event) => void ask(event)} className="flex gap-2">
+          <ProviderSwitch value={credentialId} onChange={setCredentialId} className="max-w-[11rem]" />
           <Input value={question} onChange={(event) => setQuestion(event.target.value)} maxLength={2000} aria-label="Question" placeholder={turns.length > 0 ? 'Ask a follow-up…' : undefined} />
           {running ? (
             <Button type="button" variant="outline" onClick={() => controller.current?.abort()}><Square className="mr-1 h-3.5 w-3.5" />Stop</Button>
