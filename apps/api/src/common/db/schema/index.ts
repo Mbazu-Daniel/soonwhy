@@ -9,6 +9,7 @@ export { environments } from "./environments";
 export { deployments } from "./deployments";
 export { businessOperations } from "./business-operations";
 export { apiKeys } from "./api-keys";
+export { serviceAccounts } from "./service-accounts";
 export { findings, type DetectionEvidence } from "./findings";
 export { rcaAnalyses } from "./rca-analyses";
 export { rcaInvocations } from "./rca-invocations";

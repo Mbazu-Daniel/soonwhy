@@ -1,7 +1,7 @@
 import { Injectable, Inject, Logger } from "@nestjs/common";
 import { createHash } from "crypto";
 import { eq } from "drizzle-orm";
-import { apiKeys, projects, projectSettings } from "../db/schema";
+import { apiKeys, projects, projectSettings, serviceAccounts } from "../db/schema";
 import type { CaptureSettings } from "../capture-settings";
 import type { Db } from "../db";
 import { DB } from "../db";
@@ -25,6 +25,8 @@ export class ApiKeysService {
         projectId: apiKeys.projectId,
         scopes: apiKeys.scopes,
         expiresAt: apiKeys.expiresAt,
+        serviceAccountId: apiKeys.serviceAccountId,
+        serviceAccountDisabledAt: serviceAccounts.disabledAt,
         organizationId: projects.organizationId,
         maxAttributeCount: projectSettings.maxAttributeCount,
         maxAttributeValueLength: projectSettings.maxAttributeValueLength,
@@ -32,11 +34,13 @@ export class ApiKeysService {
       .from(apiKeys)
       .innerJoin(projects, eq(apiKeys.projectId, projects.id))
       .leftJoin(projectSettings, eq(projectSettings.projectId, projects.id))
+      .leftJoin(serviceAccounts, eq(serviceAccounts.id, apiKeys.serviceAccountId))
       .where(eq(apiKeys.keyHash, keyHash));
 
     const key = rows[0];
     if (!key) return undefined;
     if (key.expiresAt && key.expiresAt < new Date()) return undefined;
+    if (key.serviceAccountId && key.serviceAccountDisabledAt) return undefined;
 
     try {
       await this.db
