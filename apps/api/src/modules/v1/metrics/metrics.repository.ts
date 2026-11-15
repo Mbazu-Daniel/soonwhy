@@ -34,6 +34,23 @@ import type {
   SummaryAggregation,
 } from "./request-summary.types";
 import { searchTenant } from "../../../common/telemetry/tenant-search";
+import {
+  mergeHostMetrics,
+  trafficSearch,
+  utilizationSearch,
+} from "./host-metrics";
+import type {
+  HostLevelBucket,
+  HostMetricsBucket,
+  HostTrafficBucket,
+} from "./host-metrics.types";
+
+export type { HostMetricsBucket } from "./host-metrics.types";
+
+function bucketsOf<T>(result: { aggregations?: Record<string, unknown> }): T[] {
+  const aggregation = result.aggregations?.over_time as { buckets?: T[] } | undefined;
+  return aggregation?.buckets ?? [];
+}
 
 export interface MetricsBucket {
   bucket: string;
@@ -47,15 +64,6 @@ export interface MetricsBucket {
   _5xx: number;
 }
 
-export interface HostMetricsBucket {
-  bucket: string;
-  cpu_percent: number;
-  memory_percent: number;
-  disk_percent: number;
-  network_in_bytes: number;
-  network_out_bytes: number;
-}
-
 interface DateBucket {
   key_as_string?: string;
   doc_count: number;
@@ -63,11 +71,6 @@ interface DateBucket {
   status?: {
     buckets?: Array<{ key: string; doc_count: number }>;
   };
-  cpu_avg?: { value?: number };
-  memory_avg?: { value?: number };
-  disk_avg?: { value?: number };
-  network_in?: { value?: number };
-  network_out?: { value?: number };
 }
 
 interface MetricsAggregation {
@@ -268,55 +271,15 @@ export class MetricsRepository {
     to: string;
     interval: string;
   }): Promise<HostMetricsBucket[]> {
-    const intervalMap: Record<string, string> = {
-      "1m": "1m",
-      "5m": "5m",
-      "1h": "1h",
-      "1d": "1d",
-    };
-    const fixedInterval = intervalMap[params.interval] || "1m";
-
-    const result = await searchTenant(this.quickwit, "metrics", params, {
-      filter: `(system.cpu.utilization OR system.memory.utilization OR system.filesystem.utilization)`,
-      startTimestamp: quickwitTimestamp(params.from),
-      endTimestamp: quickwitTimestamp(params.to),
-      maxHits: 0,
-      aggregations: {
-        over_time: {
-          date_histogram: {
-            field: "timestamp",
-            fixed_interval: fixedInterval,
-            min_doc_count: 0,
-          },
-          aggs: {
-            cpu_avg: {
-              avg: { field: "system.cpu.utilization" },
-            },
-            memory_avg: {
-              avg: { field: "system.memory.utilization" },
-            },
-            disk_avg: {
-              avg: { field: "system.filesystem.utilization" },
-            },
-            network_in: {
-              sum: { field: "system.network.in" },
-            },
-            network_out: {
-              sum: { field: "system.network.out" },
-            },
-          },
-        },
-      },
+    const [levels, received, transmitted] = await Promise.all([
+      searchTenant(this.quickwit, "metrics", params, utilizationSearch(params)),
+      searchTenant(this.quickwit, "metrics", params, trafficSearch(params, "receive")),
+      searchTenant(this.quickwit, "metrics", params, trafficSearch(params, "transmit")),
+    ]);
+    return mergeHostMetrics({
+      levels: bucketsOf<HostLevelBucket>(levels),
+      received: bucketsOf<HostTrafficBucket>(received),
+      transmitted: bucketsOf<HostTrafficBucket>(transmitted),
     });
-
-    const aggregation = result.aggregations?.over_time as MetricsAggregation | undefined;
-    return (aggregation?.buckets ?? []).map((bucket) => ({
-      bucket: bucket.key_as_string ?? "",
-      cpu_percent: (bucket.cpu_avg?.value as number) ?? 0,
-      memory_percent: (bucket.memory_avg?.value as number) ?? 0,
-      disk_percent: (bucket.disk_avg?.value as number) ?? 0,
-      network_in_bytes: (bucket.network_in?.value as number) ?? 0,
-      network_out_bytes: (bucket.network_out?.value as number) ?? 0,
-    }));
   }
 }
