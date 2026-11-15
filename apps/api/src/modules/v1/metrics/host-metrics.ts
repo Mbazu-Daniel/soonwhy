@@ -58,7 +58,7 @@ export function utilizationSearch(range: HostRange): TenantSearchInput {
     filter: [
       metricState(CPU_UTILIZATION, "idle"),
       metricState(MEMORY_UTILIZATION, "used"),
-      metricState(DISK_UTILIZATION, "used"),
+      quickwitTerm("name", DISK_UTILIZATION),
     ].join(" OR "),
     ...window(range),
     aggregations: overTime(range, {
