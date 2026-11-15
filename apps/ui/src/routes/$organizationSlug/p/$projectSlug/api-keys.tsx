@@ -13,6 +13,7 @@ import { QueryErrorState } from '~/components/query-error-state';
 import { api } from '~/lib/api';
 import { useProject } from '~/lib/project-context';
 import { MCP_READ_SCOPE } from '~/lib/api-key-scopes';
+import { McpConnectGuide } from '~/components/mcp-connect-guide';
 import type { ApiKey } from '~/lib/types';
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/api-keys')({ component: ApiKeysPage });
@@ -80,6 +81,8 @@ function ApiKeysPage() {
           Create key
         </Button>
       </header>
+
+      {newKey?.key && newKey.scopes?.includes(MCP_READ_SCOPE) && <McpConnectGuide apiKey={newKey.key} defaultOpen />}
 
       {newKey?.key && (
         <div className="flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4">
@@ -185,6 +188,8 @@ function ApiKeysPage() {
           </Table>
         </Card>
       )}
+
+      {!(newKey?.key && newKey.scopes?.includes(MCP_READ_SCOPE)) && <McpConnectGuide />}
 
       {creating && (
         <CreateKeyDialog
