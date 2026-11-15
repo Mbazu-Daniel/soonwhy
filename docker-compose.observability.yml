@@ -82,9 +82,10 @@ services:
       start_period: 20s
 
  
-  # Self-telemetry dogfood export is disabled (pointing it at a non-existent
-  # endpoint). Re-enable with SELF_OBSERVABILITY_ENABLED=true on the api and
-  # fix this collector's exporter endpoint first.
+  # Self-telemetry dogfood export is disabled. To re-enable it, set
+  # SELF_OBSERVABILITY_ENABLED=true on the api, uncomment this collector and
+  # set SOONWHY_API_KEY to a project API key. The collector sends to ingest on
+  # port 3002 (override with SOONWHY_INGEST_URL).
   # otel-collector:
   #   image: otel/opentelemetry-collector-contrib:0.164.0
   #   command: ["--config=/etc/otel-collector-config.yaml"]
