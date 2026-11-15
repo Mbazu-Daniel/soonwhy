@@ -49,18 +49,28 @@ export interface DetectionFinding {
   evidence: DetectionEvidence[];
 }
 
+export interface ErrorRange {
+  buckets?: Array<{ doc_count?: number }>;
+}
+
+export const SERVER_ERROR_RANGE = { range: { field: "statusCode", ranges: [{ from: 500, to: 600 }] } } as const;
+
+export function errorCount(bucket: { errors?: ErrorRange }): number {
+  return bucket.errors?.buckets?.[0]?.doc_count ?? 0;
+}
+
 export interface ServiceBucket {
   key: string;
   doc_count: number;
   latency?: { values?: Record<string, number> };
-  errors?: { doc_count?: number };
+  errors?: ErrorRange;
 }
 
 export interface EndpointBucket {
   key: string;
   doc_count: number;
   latency?: { values?: Record<string, number> };
-  errors?: { doc_count?: number };
+  errors?: ErrorRange;
   methods?: { buckets?: EndpointMethodBucket[] };
 }
 
@@ -68,7 +78,7 @@ export interface EndpointMethodBucket {
   key: string;
   doc_count: number;
   latency?: { values?: Record<string, number> };
-  errors?: { doc_count?: number };
+  errors?: ErrorRange;
 }
 
 export interface EndpointServiceBucket {
@@ -84,7 +94,7 @@ export interface DependencyBucket {
   key: string;
   doc_count: number;
   latency?: { values?: Record<string, number> };
-  errors?: { doc_count?: number };
+  errors?: ErrorRange;
   dependencyType?: { buckets?: Array<{ key: string; doc_count: number }> };
 }
 

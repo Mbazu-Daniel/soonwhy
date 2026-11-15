@@ -3,7 +3,7 @@ import { quickwitSource, quickwitTerm, sanitizeRequestUrl } from "../../../commo
 import type { DatabaseConnectionPoolSample } from "../intelligence/database-connection-pool.detector";
 import type { DatabaseConnectionWaitSample } from "../intelligence/database-connection-wait.detector";
 import type { DatabaseQueryTrace } from "../intelligence/database-query.detector";
-import type { Aggregations, MetricSource, RequestSource, ServiceBucket, TraceSource } from "./detection.types";
+import { SERVER_ERROR_RANGE, errorCount, type Aggregations, MetricSource, RequestSource, ServiceBucket, TraceSource } from "./detection.types";
 import { searchTenant } from "../../../common/telemetry/tenant-search";
 
 export async function searchServiceBuckets(
@@ -28,9 +28,7 @@ export async function searchServiceBuckets(
           latency: {
             percentiles: { field: "duration", percents: [50, 95, 99] },
           },
-          errors: {
-            filter: { query: "statusCode:[500 TO 599]" },
-          },
+          errors: SERVER_ERROR_RANGE,
         },
       },
     },
@@ -80,9 +78,7 @@ export async function searchDependencyBuckets(
               latency: {
                 percentiles: { field: "duration", percents: [95] },
               },
-              errors: {
-                filter: { query: "statusCode:[500 TO 599]" },
-              },
+              errors: SERVER_ERROR_RANGE,
               dependencyType: {
                 terms: {
                   field: "dependencyType",
@@ -110,7 +106,7 @@ export async function searchDependencyBuckets(
 
       const latency = dependencyBucket.latency?.values?.["95.0"] ?? 0;
       const samples = dependencyBucket.doc_count;
-      const errorCount = dependencyBucket.errors?.doc_count ?? 0;
+      const errors = errorCount(dependencyBucket);
       if (!Number.isFinite(latency) || latency <= 0 || samples <= 0) return [];
 
       return [{
@@ -120,8 +116,8 @@ export async function searchDependencyBuckets(
         dependencyName,
         latency,
         samples,
-        errorCount,
-        errorRate: errorCount / samples,
+        errorCount: errors,
+        errorRate: errors / samples,
       }];
     }),
   );

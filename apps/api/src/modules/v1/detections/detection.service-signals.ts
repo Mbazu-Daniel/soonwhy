@@ -7,7 +7,7 @@ import { evaluateServicePerformance } from '../intelligence/service-performance.
 import { searchServiceBuckets } from './detection-search.methods';
 import { describePerformanceSignal, describeThroughputSignal } from './detection-description.methods';
 import { WINDOW_MS, detectorThresholds, type DetectionStageContext, type DetectionStageDeps } from './detection.stage';
-import type { DetectionFinding, FindingType, RequestSource, ServiceBucket } from './detection.types';
+import { errorCount, type DetectionFinding, type FindingType, type RequestSource, type ServiceBucket } from './detection.types';
 
 export async function detectServiceSignals(
   deps: DetectionStageDeps,
@@ -196,7 +196,7 @@ function getLatency(bucket: ServiceBucket): number {
 }
 
 function getErrorRate(bucket: ServiceBucket): number {
-  const errors = bucket.errors?.doc_count ?? 0;
+  const errors = errorCount(bucket);
   return bucket.doc_count ? (errors / bucket.doc_count) * 100 : 0;
 }
 
