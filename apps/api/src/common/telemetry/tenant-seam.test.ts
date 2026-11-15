@@ -6,7 +6,6 @@ const SRC = join(__dirname, "..", "..");
 
 const PLATFORM_LEVEL = [
   "modules/v1/pipeline-lag/pipeline-lag.service.ts",
-  "modules/v1/self-monitoring/pipeline-health.cron.ts",
   "modules/v1/retention/retention-policies.service.ts",
   "modules/v1/index-health/index-health.service.ts",
 ];
