@@ -18,8 +18,9 @@ function stubDb(
   const where = vi.fn(whereImpl);
   const set = vi.fn(() => ({ where }));
   const update = vi.fn(() => ({ set }));
+  const selects = vi.fn();
   const db = {
-    select: () => ({
+    select: () => (selects(), {
       from: () => ({
         innerJoin: () => ({
           leftJoin: () => ({
@@ -32,7 +33,7 @@ function stubDb(
     }),
     update,
   };
-  return { db: db as never, update, set, where };
+  return { db: db as never, update, set, where, selects };
 }
 
 const BEARER = "Bearer soonwhy_test";
@@ -86,5 +87,56 @@ describe("ApiKeyAuthenticator.authenticate", () => {
     const authenticator = new ApiKeyAuthenticator(db);
     expect(await authenticator.authenticate(BEARER, { scope: "ingest" })).toMatchObject({ ok: true });
     expect(await authenticator.authenticate(BEARER, { scope: "mcp:read" })).toMatchObject({ ok: false, reason: "scope" });
+  });
+
+  describe("caching", () => {
+    it("looks a key up once per 30 seconds and writes last_used_at once per minute", async () => {
+      vi.useFakeTimers();
+      try {
+        const { db, selects, update } = stubDb(validRow);
+        const authenticator = new ApiKeyAuthenticator(db);
+        for (let i = 0; i < 50; i++) await authenticator.authenticate(BEARER);
+        expect(selects).toHaveBeenCalledTimes(1);
+        expect(update).toHaveBeenCalledTimes(1);
+        vi.advanceTimersByTime(31_000);
+        await authenticator.authenticate(BEARER);
+        expect(selects).toHaveBeenCalledTimes(2);
+        expect(update).toHaveBeenCalledTimes(1);
+        vi.advanceTimersByTime(60_000);
+        await authenticator.authenticate(BEARER);
+        expect(update).toHaveBeenCalledTimes(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("still refuses a cached key once it has expired", async () => {
+      vi.useFakeTimers();
+      try {
+        const { db } = stubDb({ ...validRow, expiresAt: new Date(Date.now() + 10_000) });
+        const authenticator = new ApiKeyAuthenticator(db);
+        expect(await authenticator.authenticate(BEARER)).toMatchObject({ ok: true });
+        vi.advanceTimersByTime(11_000);
+        expect(await authenticator.authenticate(BEARER)).toMatchObject({ ok: false, reason: "invalid" });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("remembers an unknown key only briefly", async () => {
+      vi.useFakeTimers();
+      try {
+        const { db, selects } = stubDb(undefined);
+        const authenticator = new ApiKeyAuthenticator(db);
+        await authenticator.authenticate(BEARER);
+        await authenticator.authenticate(BEARER);
+        expect(selects).toHaveBeenCalledTimes(1);
+        vi.advanceTimersByTime(6_000);
+        await authenticator.authenticate(BEARER);
+        expect(selects).toHaveBeenCalledTimes(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 });
