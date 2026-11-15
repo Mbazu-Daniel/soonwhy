@@ -5,7 +5,8 @@
 # service in the Dokploy Domains tab):
 #   api-soonwhy.oktopals.com    → service api     on 3001
 #   ingest-soonwhy.oktopals.com → service ingest  on 3002
-# collector reads host CPU, memory and disk and sends them to ingest. Set
+# collector reads host CPU, memory, disk and network and sends them to ingest
+# over the host network (so it sees the real interfaces). Set
 # SOONWHY_API_KEY to a project API key; the project that owns the key shows the
 # data on its Infrastructure page.
 # nats and quickwit stay internal on the project network — no host ports, no domains.
@@ -115,12 +116,13 @@ services:
   collector:
     image: otel/opentelemetry-collector-contrib:0.164.0
     command: ["--config=/etc/otelcol/config.yaml"]
+    network_mode: host
     configs:
       - source: host_metrics_collector
         target: /etc/otelcol/config.yaml
     environment:
       SOONWHY_API_KEY: ${SOONWHY_API_KEY:-}
-      SOONWHY_INGEST_URL: ${SOONWHY_INGEST_URL:-http://ingest:3002}
+      SOONWHY_INGEST_URL: ${SOONWHY_INGEST_URL:-https://ingest-soonwhy.oktopals.com}
     volumes:
       - /:/hostfs:ro
     depends_on:
@@ -149,6 +151,10 @@ configs:
               metrics:
                 system.memory.utilization:
                   enabled: true
+            network:
+              include:
+                match_type: regexp
+                interfaces: ["^(eth|en|wl)[a-zA-Z0-9]*$$"]
             filesystem:
               metrics:
                 system.filesystem.utilization:
@@ -164,6 +170,10 @@ configs:
         memory_limiter:
           check_interval: 1s
           limit_mib: 256
+        cumulativetodelta:
+          include:
+            match_type: strict
+            metrics: [system.network.io]
         resource:
           attributes:
             - key: service.name
@@ -182,5 +192,5 @@ configs:
         pipelines:
           metrics:
             receivers: [hostmetrics]
-            processors: [memory_limiter, resource, batch]
+            processors: [memory_limiter, cumulativetodelta, resource, batch]
             exporters: [otlphttp]
