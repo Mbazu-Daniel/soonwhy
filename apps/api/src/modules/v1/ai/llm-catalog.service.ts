@@ -7,6 +7,7 @@ import {
 import { z } from "zod";
 import { aiEndpointUnknown } from "./ai.errors";
 import { CUSTOM_PROVIDER_ID, CUSTOM_PROVIDER_LABEL } from "./custom-provider.constants";
+import modelsSnapshot from "./models-snapshot.json";
 
 const MODELS_DEV_URL = "https://models.dev/api.json";
 const DEFAULT_TTL_MS = 12 * 60 * 60 * 1000;
@@ -103,8 +104,9 @@ export class LlmCatalog {
   private readonly ttlMs =
     Number(process.env.SOONWHY_AI_CATALOG_TTL_MS) || DEFAULT_TTL_MS;
   private metadata: MetadataIndex | null = null;
+  private fromSnapshot = false;
   private fetchedAt = 0;
-  private pending: Promise<MetadataIndex | null> | null = null;
+  private pending: Promise<MetadataIndex> | null = null;
 
   isKnownProvider(providerId: string): boolean {
     return providerId === CUSTOM_PROVIDER_ID || getProviderConfig(providerId) !== undefined;
@@ -132,19 +134,19 @@ export class LlmCatalog {
     const config = getProviderConfig(providerId);
     if (!config) return null;
 
-    const enriched = this.metadata?.get(providerId);
+    const enriched = this.ensureMetadata().get(providerId);
     return {
       id: providerId,
       label: config.name || providerId,
       baseUrl: this.baseUrlFor(providerId),
       docUrl: config.docUrl ?? null,
       modelCount: config.models.length,
-      rcaSafeModelCount: enriched
-        ? config.models.filter((modelId) =>
-            this.supportsStructuredOutput(providerId, modelId),
-          ).length
-        : null,
+      rcaSafeModelCount: enriched ? this.rcaSafeCount(enriched, config.models) : null,
     };
+  }
+
+  private rcaSafeCount(enriched: ProviderMetadata, modelIds: string[]): number {
+    return modelIds.filter((modelId) => enriched.models.get(modelId)?.structuredOutput === true).length;
   }
 
   baseUrlFor(providerId: string): string | null {
@@ -163,7 +165,7 @@ export class LlmCatalog {
   allowedHostnamesFor(providerId: string): string[] {
     const endpoints = [
       this.baseUrlFor(providerId),
-      this.metadata?.get(providerId)?.apiUrl ?? null,
+      this.ensureMetadata().get(providerId)?.apiUrl ?? null,
     ];
     const hostnames = new Set(
       endpoints
@@ -176,13 +178,13 @@ export class LlmCatalog {
   supportsStructuredOutput(providerId: string, modelId: string): boolean {
     return (
       modelSupportsStructuredOutput(`${providerId}/${modelId}`) === true ||
-      this.metadata?.get(providerId)?.models.get(modelId)?.structuredOutput ===
+      this.ensureMetadata().get(providerId)?.models.get(modelId)?.structuredOutput ===
         true
     );
   }
 
   pricing(providerId: string, modelId: string): ModelPricing | null {
-    const entry = this.metadata?.get(providerId)?.models.get(modelId);
+    const entry = this.ensureMetadata().get(providerId)?.models.get(modelId);
     if (!entry) return null;
     const { inputCostUsdPerMillion: input, outputCostUsdPerMillion: output } =
       entry;
@@ -195,7 +197,7 @@ export class LlmCatalog {
     if (!config) return [];
 
     await this.loadMetadata();
-    const index = this.metadata?.get(providerId)?.models;
+    const index = this.ensureMetadata().get(providerId)?.models;
     const deprecated = new Set(config.deprecatedModels ?? []);
 
     return config.models.map((modelId) => {
@@ -217,38 +219,38 @@ export class LlmCatalog {
     });
   }
 
-  private loadMetadata(): Promise<MetadataIndex | null> {
-    const now = Date.now();
-    const age = now - this.fetchedAt;
-
-    if (this.metadata && age <= this.ttlMs)
-      return Promise.resolve(this.metadata);
-    if (
-      this.metadata === null &&
-      this.fetchedAt > 0 &&
-      age <= RETRY_BACKOFF_MS
-    ) {
-      return Promise.resolve(null);
+  private ensureMetadata(): MetadataIndex {
+    if (!this.metadata) {
+      this.metadata = indexFromDocument(modelsSnapshot);
+      this.fromSnapshot = true;
     }
+    return this.metadata;
+  }
+
+  private loadMetadata(): Promise<MetadataIndex> {
+    const current = this.ensureMetadata();
+    const age = Date.now() - this.fetchedAt;
+    const maxAge = this.fromSnapshot ? RETRY_BACKOFF_MS : this.ttlMs;
+
+    if (this.fetchedAt > 0 && age <= maxAge) return Promise.resolve(current);
     if (this.pending) return this.pending;
 
     this.pending = this.fetchMetadata()
       .then((index) => {
         this.metadata = index;
-        this.fetchedAt = Date.now();
+        this.fromSnapshot = false;
         return index;
       })
       .catch((error: unknown) => {
-        this.metadata = null;
-        this.fetchedAt = Date.now();
         LlmCatalog.logger.warn(
-          `models.dev catalog unavailable, using bundled provider registry: ${
-            error instanceof Error ? error.message : "unknown error"
-          }`,
+          `models.dev catalog unavailable, using ${
+            this.fromSnapshot ? "the bundled snapshot" : "the last fetched copy"
+          }: ${error instanceof Error ? error.message : "unknown error"}`,
         );
-        return null;
+        return this.metadata ?? current;
       })
       .finally(() => {
+        this.fetchedAt = Date.now();
         this.pending = null;
       });
 
@@ -263,36 +265,40 @@ export class LlmCatalog {
       throw new Error(`models.dev responded with ${response.status}`);
     }
 
-    const document = ModelsDevDocumentSchema.parse(await response.json());
-    const index: MetadataIndex = new Map();
+    return indexFromDocument(await response.json());
+  }
+}
 
-    for (const [providerId, providerValue] of Object.entries(document)) {
-      const provider = ModelsDevProviderSchema.safeParse(providerValue);
-      if (!provider.success) continue;
+function indexFromDocument(raw: unknown): MetadataIndex {
+  const document = ModelsDevDocumentSchema.parse(raw);
+  const index: MetadataIndex = new Map();
 
-      const models = new Map<string, ModelMetadata>();
-      for (const [modelId, modelValue] of Object.entries(
-        provider.data.models ?? {},
-      )) {
-        const model = ModelsDevModelSchema.safeParse(modelValue);
-        if (!model.success) continue;
-        models.set(modelId, {
-          label: model.data.name ?? modelId,
-          description: model.data.description ?? null,
-          contextTokens: model.data.limit?.context ?? null,
-          outputTokens: model.data.limit?.output ?? null,
-          inputCostUsdPerMillion: model.data.cost?.input ?? null,
-          outputCostUsdPerMillion: model.data.cost?.output ?? null,
-          structuredOutput: model.data.structured_output ?? false,
-          deprecated: model.data.status === "deprecated",
-        });
-      }
-      index.set(providerId, {
-        apiUrl: provider.data.api ?? null,
-        models,
+  for (const [providerId, providerValue] of Object.entries(document)) {
+    const provider = ModelsDevProviderSchema.safeParse(providerValue);
+    if (!provider.success) continue;
+
+    const models = new Map<string, ModelMetadata>();
+    for (const [modelId, modelValue] of Object.entries(
+      provider.data.models ?? {},
+    )) {
+      const model = ModelsDevModelSchema.safeParse(modelValue);
+      if (!model.success) continue;
+      models.set(modelId, {
+        label: model.data.name ?? modelId,
+        description: model.data.description ?? null,
+        contextTokens: model.data.limit?.context ?? null,
+        outputTokens: model.data.limit?.output ?? null,
+        inputCostUsdPerMillion: model.data.cost?.input ?? null,
+        outputCostUsdPerMillion: model.data.cost?.output ?? null,
+        structuredOutput: model.data.structured_output ?? false,
+        deprecated: model.data.status === "deprecated",
       });
     }
-
-    return index;
+    index.set(providerId, {
+      apiUrl: provider.data.api ?? null,
+      models,
+    });
   }
+
+  return index;
 }
