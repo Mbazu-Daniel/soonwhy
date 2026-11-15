@@ -82,9 +82,18 @@ describe("LlmCatalog", () => {
     );
   });
 
-  it("has no pricing before the enrichment fetch has run", () => {
-    expect(catalog.pricing("groq", "openai/gpt-oss-120b")).toBeNull();
-    expect(catalog.provider("groq")?.rcaSafeModelCount).toBeNull();
+  it("answers from the bundled snapshot before the enrichment fetch has run", () => {
+    expect(catalog.pricing("openai", "gpt-4o")).not.toBeNull();
+    expect(catalog.provider("openai")?.rcaSafeModelCount).toBeGreaterThan(0);
+  });
+
+  it("keeps the snapshot's models and pricing when the fetch fails", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("offline"));
+
+    const models = await catalog.models("openai");
+
+    expect(models.find((model) => model.id === "gpt-4o")?.inputCostUsdPerMillion).not.toBeNull();
+    expect(catalog.pricing("openai", "gpt-4o")).not.toBeNull();
   });
 
   it("enriches registry models with models.dev metadata", async () => {
