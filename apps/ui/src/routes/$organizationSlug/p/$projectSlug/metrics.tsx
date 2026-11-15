@@ -72,11 +72,12 @@ function MetricsPage() {
   });
 
   const { data: hostData, isLoading: hostLoading, isError: hostError, refetch: refetchHost } = useQuery({
-    queryKey: ['host-metrics', range],
+    queryKey: ['host-metrics', projectId, range],
     queryFn: () =>
       api.get<HostMetricsResponse>(
-        `/metrics/host?from=${from}&to=${to}&interval=1m`,
+        `/metrics/host?projectId=${encodeURIComponent(projectId!)}&from=${from}&to=${to}&interval=1m`,
       ),
+    enabled: !!projectId,
     refetchInterval: 15_000,
   });
 
