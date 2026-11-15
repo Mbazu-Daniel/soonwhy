@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "../../../common/db";
 import type { QuickwitService } from "@soonwhy/shared";
-import { createDetectionService } from "./detection.test-doubles";
+import { createDetectionRuns } from "./detection.test-doubles";
 
 vi.mock("../../../common/db", () => ({
   db: {
@@ -132,7 +132,7 @@ describe("DetectionService database lock contention", () => {
       },
     );
 
-    const service = createDetectionService({ search } as unknown as QuickwitService, { apply: vi.fn().mockResolvedValue({ action: "created" }) } as never);
+    const service = createDetectionRuns({ search } as unknown as QuickwitService, { apply: vi.fn().mockResolvedValue({ action: "created" }) } as never);
 
     const result = await service.run("org-1", "project-1");
     const finding = result.find(

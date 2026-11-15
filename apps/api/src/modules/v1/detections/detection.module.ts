@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { NatsService } from '@soonwhy/shared';
 import { DetectionService } from './detection.service';
+import { DetectionRuns } from './detection-runs.service';
 import { DetectionPipeline } from './detection.pipeline';
 import { DetectionTelemetryService } from './detection-telemetry.service';
 import { DetectionController } from './detection.controller';
@@ -25,6 +26,7 @@ import { TelemetryModule } from '../../../common/telemetry/telemetry.module';
   controllers: [DetectionController, DetectionHealthController],
   providers: [
     DetectionService,
+    DetectionRuns,
     DetectionPipeline,
     DetectionJobRunner,
     DetectionTelemetryService,

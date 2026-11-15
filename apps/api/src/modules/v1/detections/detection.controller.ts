@@ -5,6 +5,7 @@ import {
   OrgContext,
 } from "../../../common/decorators/current-org.decorator";
 import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
+import { DetectionRuns } from "./detection-runs.service";
 import { DetectionService } from "./detection.service";
 import { listDetectionRuns } from "./detection.run";
 import { ErrorsService } from "../errors";
@@ -16,6 +17,7 @@ import { ErrorsService } from "../errors";
 export class DetectionController {
   constructor(
     private readonly detectionService: DetectionService,
+    private readonly detectionRuns: DetectionRuns,
     private readonly errorsService: ErrorsService,
   ) {}
 
@@ -24,7 +26,7 @@ export class DetectionController {
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
   ) {
-    return this.detectionService.run(org.orgId, projectId);
+    return this.detectionRuns.run(org.orgId, projectId);
   }
 
   @Post("run/async")
@@ -32,7 +34,7 @@ export class DetectionController {
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
   ) {
-    return this.detectionService.enqueue(org.orgId, projectId);
+    return this.detectionRuns.enqueue(org.orgId, projectId);
   }
 
   @Get("telemetry")

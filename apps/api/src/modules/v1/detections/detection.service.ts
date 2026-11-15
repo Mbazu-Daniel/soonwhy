@@ -2,140 +2,20 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { and, desc, eq } from 'drizzle-orm';
 import { QUICKWIT_INDEXES, QuickwitService } from '@soonwhy/shared';
 import { DetectorSettingsService } from '../detector-settings/detector-settings.service';
-import { DetectionTelemetryService } from './detection-telemetry.service';
 import { db } from '../../../common/db';
 import { findings } from '../../../common/db/schema/findings';
 import { quickwitSource, quickwitTerm } from '../../../common/quickwit/query';
-import { completeDetectionRun, enqueueDetectionRun, failDetectionRun, startDetectionRun, claimQueuedDetectionRun } from './detection.run';
-import { recordDetectionRun } from '../../../common/telemetry/otel-metrics';
 import type { DetectionFinding, RequestSource, TraceSource } from './detection.types';
 import { ProjectsRepository } from '../projects/projects.repository';
-import { DetectionPipeline } from './detection.pipeline';
-import { WINDOW_MS } from './detection.stage';
 import { searchTenant } from '../../../common/telemetry/tenant-search';
 
 @Injectable()
 export class DetectionService {
   constructor(
-    private readonly pipeline: DetectionPipeline,
     private readonly quickwit: QuickwitService,
     private readonly projectsRepository: ProjectsRepository,
     private readonly detectorSettings: DetectorSettingsService,
-    private readonly detectionTelemetry: DetectionTelemetryService,
   ) {}
-
-  async run(orgId: string, projectId: string): Promise<DetectionFinding[]> {
-    const settings = await this.detectorSettings.get(orgId);
-    if (!this.detectorSettings.featureEnabled(settings, 'detections.enabled')) {
-      throw new ForbiddenException('Detections are disabled for this organisation');
-    }
-
-    await this.assertProjectAccess(orgId, projectId);
-    const end = new Date();
-    const start = new Date(end.getTime() - WINDOW_MS);
-    const run = await startDetectionRun(orgId, projectId, start, end);
-
-    return this.processDetectionRun({
-      id: run.id,
-      orgId,
-      projectId,
-      windowStart: start,
-      windowEnd: end,
-    }, settings);
-  }
-
-  async enqueue(
-    orgId: string,
-    projectId: string,
-  ): Promise<{ id: string; status: 'queued'; windowStart: Date; windowEnd: Date }> {
-    const settings = await this.detectorSettings.get(orgId);
-    if (!this.detectorSettings.featureEnabled(settings, 'detections.enabled')) {
-      throw new ForbiddenException('Detections are disabled for this organisation');
-    }
-    if (!this.detectorSettings.featureEnabled(settings, 'detections.async')) {
-      throw new ForbiddenException('Async detection runs are disabled for this organisation');
-    }
-
-    await this.assertProjectAccess(orgId, projectId);
-    const end = new Date();
-    const start = new Date(end.getTime() - WINDOW_MS);
-    const run = await enqueueDetectionRun(orgId, projectId, start, end);
-
-    return {
-      id: run.id,
-      status: 'queued',
-      windowStart: start,
-      windowEnd: end,
-    };
-  }
-
-  async claimAndRunOne(): Promise<string | undefined> {
-    const claimed = await claimQueuedDetectionRun();
-    if (!claimed) return undefined;
-
-    let settings: Awaited<ReturnType<DetectorSettingsService['get']>>;
-    try {
-      settings = await this.detectorSettings.get(claimed.orgId);
-      await this.assertProjectAccess(claimed.orgId, claimed.projectId);
-    } catch (error) {
-      await failDetectionRun(claimed.id, error instanceof Error ? error.message : String(error));
-      throw error;
-    }
-    await this.processDetectionRun(claimed, settings);
-    return claimed.id;
-  }
-
-  private async processDetectionRun(
-    run: { id: string; orgId: string; projectId: string; windowStart: Date; windowEnd: Date },
-    settings: Awaited<ReturnType<DetectorSettingsService['get']>>,
-  ): Promise<DetectionFinding[]> {
-    const startedAt = Date.now();
-    await this.detectionTelemetry.runStarted({
-      orgId: run.orgId,
-      projectId: run.projectId,
-      runId: run.id,
-      windowStart: run.windowStart,
-      windowEnd: run.windowEnd,
-    });
-
-    try {
-      const findings = await this.pipeline.execute(
-        run.orgId,
-        run.projectId,
-        run.windowStart,
-        run.windowEnd,
-        settings,
-      );
-      await completeDetectionRun(run.id, findings.length);
-      recordDetectionRun('success', Date.now() - startedAt);
-      await this.detectionTelemetry.runCompleted({
-        orgId: run.orgId,
-        projectId: run.projectId,
-        runId: run.id,
-        findingsCount: findings.length,
-        durationMs: Date.now() - startedAt,
-        windowStart: run.windowStart,
-        windowEnd: run.windowEnd,
-      });
-      return findings;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Detection failed';
-      await failDetectionRun(run.id, message);
-      recordDetectionRun('failure', Date.now() - startedAt);
-      await this.detectionTelemetry.runFailed({
-        orgId: run.orgId,
-        projectId: run.projectId,
-        runId: run.id,
-        error,
-        durationMs: Date.now() - startedAt,
-        windowStart: run.windowStart,
-        windowEnd: run.windowEnd,
-      });
-      throw error;
-    } finally {
-      await this.detectionTelemetry.flush();
-    }
-  }
 
   async telemetry(orgId: string, projectId: string) {
     const settings = await this.detectorSettings.get(orgId);

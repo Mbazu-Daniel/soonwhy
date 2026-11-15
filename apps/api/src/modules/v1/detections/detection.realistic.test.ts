@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "../../../common/db";
 import type { DetectionEvidence } from "../../../common/db/schema/findings";
 import type { QuickwitService } from "@soonwhy/shared";
-import { createDetectionService } from "./detection.test-doubles";
+import { createDetectionRuns } from "./detection.test-doubles";
 import { checkoutRegressionFixture } from "./detection.fixtures";
 
 vi.mock("../../../common/db", () => ({
@@ -192,7 +192,7 @@ describe("DetectionService realistic telemetry scenarios", () => {
     const issueLifecycleService = {
       apply: vi.fn().mockResolvedValue({ action: "created" }),
     };
-    const service = createDetectionService(quickwit, issueLifecycleService as never);
+    const service = createDetectionRuns(quickwit, issueLifecycleService as never);
     const result = await service.run("org-1", "project-1");
 
     expect(result.some((finding) => finding.type === "bottleneck")).toBe(true);
@@ -217,7 +217,7 @@ describe("DetectionService realistic telemetry scenarios", () => {
   });
 
   it("refuses to run detection for a project outside the organisation", async () => {
-    const service = createDetectionService(
+    const service = createDetectionRuns(
       quickwit,
       { apply: vi.fn().mockResolvedValue({ action: "created" }) },
       { projectFound: false },
