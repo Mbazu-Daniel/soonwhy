@@ -9,11 +9,12 @@ describe('mcp client snippets', () => {
 
   it('puts the url and key into every client', () => {
     const snippets = mcpClientSnippets('https://api.example.com/api/v1/mcp', 'swk_123');
-    expect(snippets.map((snippet) => snippet.id)).toEqual(['claude-code', 'cursor', 'codex']);
+    expect(snippets.map((snippet) => snippet.id)).toEqual(['claude-code', 'cursor', 'codex', 'other']);
     for (const snippet of snippets) expect(snippet.text).toContain('https://api.example.com/api/v1/mcp');
     expect(snippets[0]!.text).toContain('Authorization: Bearer swk_123');
     expect(JSON.parse(snippets[1]!.text).mcpServers.soonwhy.headers.Authorization).toBe('Bearer swk_123');
     expect(snippets[2]!.text).toContain('export SOONWHY_MCP_KEY=swk_123');
+    expect(snippets[3]!.copyItems!.map((item) => item.value)).toContain('Authorization: Bearer swk_123');
   });
 
   it('shows a placeholder when there is no key yet', () => {

@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, Copy, KeyRound, Loader2, Plus, Search, X } from 'lucide-react';
+import { Bot, Check, Copy, KeyRound, Loader2, Plus, Search, X } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent } from '~/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '~/components/ui/dialog';
@@ -23,6 +23,7 @@ function ApiKeysPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [creating, setCreating] = useState(false);
+  const [connectOpen, setConnectOpen] = useState(false);
   const [newKey, setNewKey] = useState<ApiKey | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -76,13 +77,17 @@ function ApiKeysPage() {
           </p>
          
         </div>
-        <Button className="shrink-0" onClick={() => setCreating(true)}>
-          <Plus />
-          Create key
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button variant="outline" onClick={() => setConnectOpen(true)}>
+            <Bot />
+            Connect AI assistant
+          </Button>
+          <Button onClick={() => setCreating(true)}>
+            <Plus />
+            Create key
+          </Button>
+        </div>
       </header>
-
-      {newKey?.key && newKey.scopes?.includes(MCP_READ_SCOPE) && <McpConnectGuide apiKey={newKey.key} defaultOpen />}
 
       {newKey?.key && (
         <div className="flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4">
@@ -189,7 +194,15 @@ function ApiKeysPage() {
         </Card>
       )}
 
-      {!(newKey?.key && newKey.scopes?.includes(MCP_READ_SCOPE)) && <McpConnectGuide />}
+      <Dialog open={connectOpen} onOpenChange={setConnectOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Connect an AI assistant</DialogTitle>
+            <DialogDescription>Add Soonwhy as an MCP server.</DialogDescription>
+          </DialogHeader>
+          <McpConnectGuide apiKey={newKey?.key && newKey.scopes?.includes(MCP_READ_SCOPE) ? newKey.key : undefined} />
+        </DialogContent>
+      </Dialog>
 
       {creating && (
         <CreateKeyDialog
@@ -198,6 +211,7 @@ function ApiKeysPage() {
           onCreated={(key) => {
             setNewKey(key);
             setCopied(false);
+            if (key.scopes?.includes(MCP_READ_SCOPE)) setConnectOpen(true);
           }}
         />
       )}
