@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { RcaAnalysis, RcaEvidence } from "./rca.types";
+import type { RcaAnalysis, RcaEvidence, RcaEvidenceItem } from "./rca.types";
 import { validateRcaQuality } from "./rca.quality";
 
 const RcaString = z.string().trim().min(1).max(4_000);
@@ -41,5 +41,16 @@ function collectEvidenceIds(evidence: RcaEvidence): string[] {
     ...evidence.traces,
     ...evidence.recommendations,
   ];
-  return items.flatMap((item) => [item.id, item.sourceFindingId]);
+  return [
+    ...items.flatMap((item) => [item.id, item.sourceFindingId]),
+    ...evidence.traces.flatMap(traceIdentifiers),
+  ];
+}
+
+function traceIdentifiers(item: RcaEvidenceItem): string[] {
+  const fromContext = item.context?.traceId;
+  return [
+    ...(typeof item.value === "string" ? [item.value] : []),
+    ...(typeof fromContext === "string" ? [fromContext] : []),
+  ];
 }

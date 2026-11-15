@@ -119,4 +119,40 @@ describe("validateRcaAnalysis", () => {
       ),
     ).toThrow("unknown evidence ID");
   });
+
+  it("accepts a trace id that appears in the supplied evidence", () => {
+    const withTrace: RcaEvidence = {
+      ...evidence,
+      traces: [
+        {
+          id: "finding_latency:2",
+          sourceFindingId: "finding_latency",
+          type: "latency",
+          severity: "critical",
+          label: "latest-trace",
+          value: "6cf333b1bd098c4490c988821766d079",
+          context: { traceId: "feedfacefeedfacefeedfacefeedface" },
+        },
+      ],
+    };
+    const analysis = {
+      summary: "Checkout latency increased.",
+      rootCause: "The dependency slowed down.",
+      contributingFactors: [],
+      investigationSteps: [],
+      suggestedChanges: [],
+      confidence: "low",
+      limitations: ["Insufficient evidence."],
+    };
+
+    expect(
+      validateRcaAnalysis({ ...analysis, evidenceRefs: ["6cf333b1bd098c4490c988821766d079"] }, withTrace).evidenceRefs,
+    ).toEqual(["6cf333b1bd098c4490c988821766d079"]);
+    expect(
+      validateRcaAnalysis({ ...analysis, evidenceRefs: ["feedfacefeedfacefeedfacefeedface"] }, withTrace).evidenceRefs,
+    ).toEqual(["feedfacefeedfacefeedfacefeedface"]);
+    expect(() =>
+      validateRcaAnalysis({ ...analysis, evidenceRefs: ["0123456789abcdef0123456789abcdef"] }, withTrace),
+    ).toThrow("unknown evidence ID");
+  });
 });
