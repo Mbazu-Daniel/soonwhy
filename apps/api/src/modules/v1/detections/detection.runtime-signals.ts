@@ -1,8 +1,9 @@
 import { QUICKWIT_INDEXES } from '@soonwhy/shared';
-import { quickwitSource, quickwitTenantQuery, quickwitTerm } from '../../../common/quickwit/query';
+import { quickwitSource, quickwitTerm } from '../../../common/quickwit/query';
 import { detectRuntimeDegradation, RUNTIME_METRIC_NAMES, type RuntimeMetricSample } from '../intelligence/runtime-degradation.detector';
 import { WINDOW_MS, type DetectionStageContext, type DetectionStageDeps } from './detection.stage';
 import type { DetectionFinding, TraceSource } from './detection.types';
+import { searchTenant } from '../../../common/telemetry/tenant-search';
 
 export async function detectRuntimeSignals(
   deps: DetectionStageDeps,
@@ -101,8 +102,8 @@ async function cachedRuntimeMetrics(
   const names = RUNTIME_METRIC_NAMES
     .map((name) => quickwitTerm('name', name))
     .join(' OR ');
-  const result = await deps.quickwit.search<never>(QUICKWIT_INDEXES.metrics, {
-    query: quickwitTenantQuery(orgId, projectId, names),
+  const result = await searchTenant<never>(deps.quickwit, "metrics", { orgId, projectId }, {
+    filter: names,
     startTimestamp,
     endTimestamp,
     maxHits: 5000,

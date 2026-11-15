@@ -1,6 +1,7 @@
 import { QUICKWIT_INDEXES } from '@soonwhy/shared';
 import type { DetectionEvidence } from '../../../common/db/schema/findings';
-import { quickwitSource, quickwitTenantQuery, quickwitTerm } from '../../../common/quickwit/query';
+import { searchTenant } from '../../../common/telemetry/tenant-search';
+import { quickwitSource, quickwitTerm } from '../../../common/quickwit/query';
 import { evaluateDependency } from '../intelligence/dependency-intelligence';
 import { searchDependencyBuckets } from './detection-search.methods';
 import { WINDOW_MS, detectorThresholds, type DetectionStageContext, type DetectionStageDeps } from './detection.stage';
@@ -159,19 +160,15 @@ async function dependencyEvidence(
   startTimestamp: number,
   endTimestamp: number,
 ): Promise<DetectionEvidence[]> {
-  const query = quickwitTenantQuery(
-    orgId,
-    projectId,
-    [
-      quickwitTerm('service', serviceName),
-      quickwitTerm('spanKind', '3'),
-      quickwitTerm('dependencyType', dependencyType),
-      quickwitTerm('dependencyName', dependencyName),
-    ].join(' AND '),
-  );
+  const filter = [
+    quickwitTerm('service', serviceName),
+    quickwitTerm('spanKind', '3'),
+    quickwitTerm('dependencyType', dependencyType),
+    quickwitTerm('dependencyName', dependencyName),
+  ].join(' AND ');
 
-  const result = await deps.quickwit.search<TraceSource>(QUICKWIT_INDEXES.traces, {
-    query,
+  const result = await searchTenant<TraceSource>(deps.quickwit, 'traces', { orgId, projectId }, {
+    filter,
     startTimestamp,
     endTimestamp,
     maxHits: 5,

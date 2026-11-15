@@ -1,9 +1,10 @@
 import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
-import { quickwitSource, quickwitTenantQuery, quickwitTerm, sanitizeRequestUrl } from "../../../common/quickwit/query";
+import { quickwitSource, quickwitTerm, sanitizeRequestUrl } from "../../../common/quickwit/query";
 import type { DatabaseConnectionPoolSample } from "../intelligence/database-connection-pool.detector";
 import type { DatabaseConnectionWaitSample } from "../intelligence/database-connection-wait.detector";
 import type { DatabaseQueryTrace } from "../intelligence/database-query.detector";
 import type { Aggregations, MetricSource, RequestSource, ServiceBucket, TraceSource } from "./detection.types";
+import { searchTenant } from "../../../common/telemetry/tenant-search";
 
 export async function searchServiceBuckets(
   quickwit: QuickwitService,
@@ -12,8 +13,7 @@ export async function searchServiceBuckets(
   startTimestamp: number,
   endTimestamp: number,
 ): Promise<ServiceBucket[]> {
-  const result = await quickwit.search<never>(QUICKWIT_INDEXES.requests, {
-    query: quickwitTenantQuery(orgId, projectId),
+  const result = await searchTenant<never>(quickwit, "requests", { orgId, projectId }, {
     startTimestamp,
     endTimestamp,
     maxHits: 0,
@@ -57,8 +57,8 @@ export async function searchDependencyBuckets(
     errorRate: number;
   }>
 > {
-  const result = await quickwit.search<never>(QUICKWIT_INDEXES.traces, {
-    query: quickwitTenantQuery(orgId, projectId, quickwitTerm("spanKind", "3")),
+  const result = await searchTenant<never>(quickwit, "traces", { orgId, projectId }, {
+    filter: quickwitTerm("spanKind", "3"),
     startTimestamp,
     endTimestamp,
     maxHits: 0,
@@ -141,8 +141,8 @@ export async function searchDatabaseConnectionPoolMetrics(
     "db.client.connection.timeouts",
   ].map((name) => quickwitTerm("name", name)).join(" OR ");
 
-  const result = await quickwit.search<MetricSource>(QUICKWIT_INDEXES.metrics, {
-    query: quickwitTenantQuery(orgId, projectId, names),
+  const result = await searchTenant<MetricSource>(quickwit, "metrics", { orgId, projectId }, {
+    filter: names,
     startTimestamp,
     endTimestamp,
     maxHits: 5000,
@@ -186,8 +186,8 @@ export async function searchDatabaseConnectionWaitMetrics(
   endTimestamp: number,
 ): Promise<DatabaseConnectionWaitSample[]> {
   const query = quickwitTerm("name", "db.client.connection.wait_time");
-  const result = await quickwit.search<MetricSource>(QUICKWIT_INDEXES.metrics, {
-    query: quickwitTenantQuery(orgId, projectId, query),
+  const result = await searchTenant<MetricSource>(quickwit, "metrics", { orgId, projectId }, {
+    filter: query,
     startTimestamp,
     endTimestamp,
     maxHits: 5000,
@@ -217,8 +217,7 @@ export async function searchRequestEndpoints(
   startTimestamp: number,
   endTimestamp: number,
 ): Promise<Map<string, string>> {
-  const result = await quickwit.search<RequestSource>(QUICKWIT_INDEXES.requests, {
-    query: quickwitTenantQuery(orgId, projectId),
+  const result = await searchTenant<RequestSource>(quickwit, "requests", { orgId, projectId }, {
     startTimestamp,
     endTimestamp,
     maxHits: 5000,
@@ -248,8 +247,8 @@ export async function searchDatabaseQuerySpans(
   startTimestamp: number,
   endTimestamp: number,
 ): Promise<DatabaseQueryTrace[]> {
-  const result = await quickwit.search<TraceSource>(QUICKWIT_INDEXES.traces, {
-    query: quickwitTenantQuery(orgId, projectId, quickwitTerm("dependencyType", "database")),
+  const result = await searchTenant<TraceSource>(quickwit, "traces", { orgId, projectId }, {
+    filter: quickwitTerm("dependencyType", "database"),
     startTimestamp,
     endTimestamp,
     maxHits: 5000,

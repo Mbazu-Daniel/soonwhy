@@ -1,5 +1,6 @@
 import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
-import { quickwitTenantQuery, quickwitTerm } from "../../../common/quickwit/query";
+import { quickwitTerm } from "../../../common/quickwit/query";
+import { searchTenant } from "../../../common/telemetry/tenant-search";
 import { MAX_OBSERVED_SERVICES, SYNC_LOOKBACK_MS } from "./service-sync.constants";
 
 interface ServiceTerms {
@@ -13,14 +14,14 @@ export async function observedServiceNames(
   exclude: string[] = [],
 ): Promise<string[]> {
   const now = Date.now();
-  const indexes = [QUICKWIT_INDEXES.requests, QUICKWIT_INDEXES.logs, QUICKWIT_INDEXES.traces];
+  const indexes = ["requests", "logs", "traces"] as const;
   const extra = exclude.length
     ? `NOT (${exclude.map((name) => quickwitTerm("service", name)).join(" OR ")})`
     : "*";
   const settled = await Promise.allSettled(
     indexes.map((index) =>
-      quickwit.search(index, {
-        query: quickwitTenantQuery(orgId, projectId, extra),
+      searchTenant(quickwit, index, { orgId, projectId }, {
+        filter: extra,
         startTimestamp: Math.floor((now - SYNC_LOOKBACK_MS) / 1000),
         endTimestamp: Math.floor(now / 1000) + 60,
         maxHits: 0,

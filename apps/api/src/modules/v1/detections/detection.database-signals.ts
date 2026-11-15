@@ -1,5 +1,5 @@
 import { QUICKWIT_INDEXES } from '@soonwhy/shared';
-import { quickwitSource, quickwitTenantQuery } from '../../../common/quickwit/query';
+import { quickwitSource } from '../../../common/quickwit/query';
 import { detectDatabaseQueries, type DatabaseQueryTrace } from '../intelligence/database-query.detector';
 import { detectDatabaseQueryVolume, type DatabaseQueryVolumeTrace } from '../intelligence/database-query-volume.detector';
 import { detectDatabaseErrors, type DatabaseErrorTrace } from '../intelligence/database-error.detector';
@@ -27,6 +27,7 @@ import {
 import { traceSpanEvidence, traceSpanPayload } from './detection.finding';
 import { WINDOW_MS, type DetectionStageContext, type DetectionStageDeps } from './detection.stage';
 import type { DetectionFinding, TraceSource } from './detection.types';
+import { searchTenant } from '../../../common/telemetry/tenant-search';
 
 export type DatabaseSignalDeps = DetectionStageDeps;
 
@@ -740,8 +741,7 @@ async function cachedTraceDurations(
   endTimestamp: number,
 ): Promise<Map<string, number>> {
   const entries = await deps.cachedQuery('trace-durations', orgId, projectId, startTimestamp, endTimestamp, async () => {
-    const result = await deps.quickwit.search<TraceSource>(QUICKWIT_INDEXES.traces, {
-      query: quickwitTenantQuery(orgId, projectId),
+    const result = await searchTenant<TraceSource>(deps.quickwit, "traces", { orgId, projectId }, {
       startTimestamp,
       endTimestamp,
       maxHits: 5000,

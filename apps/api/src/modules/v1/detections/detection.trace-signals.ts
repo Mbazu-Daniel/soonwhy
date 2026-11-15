@@ -2,11 +2,12 @@ import { eq } from 'drizzle-orm';
 import { QUICKWIT_INDEXES } from '@soonwhy/shared';
 import { db } from '../../../common/db';
 import { deployments, services } from '../../../common/db/schema';
-import { quickwitSource, quickwitTenantQuery } from '../../../common/quickwit/query';
+import { quickwitSource } from '../../../common/quickwit/query';
 import { evaluateTraceSpan } from './detection.engine';
 import { correlateFindings, type DeploymentInfo } from './detection.correlation';
 import type { DetectionStageContext, DetectionStageDeps } from './detection.stage';
 import type { DetectionFinding, TraceSource } from './detection.types';
+import { searchTenant } from '../../../common/telemetry/tenant-search';
 
 export async function detectTraceSignals(
   deps: DetectionStageDeps,
@@ -179,8 +180,7 @@ async function cachedTraceSpanCandidates(
   traceDuration: number;
 }>> {
   return deps.cachedQuery('trace-span-candidates', orgId, projectId, startTimestamp, endTimestamp, async () => {
-  const result = await deps.quickwit.search<TraceSource>(QUICKWIT_INDEXES.traces, {
-    query: quickwitTenantQuery(orgId, projectId),
+  const result = await searchTenant<TraceSource>(deps.quickwit, "traces", { orgId, projectId }, {
     startTimestamp,
     endTimestamp,
     maxHits: 5000,
