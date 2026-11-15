@@ -5,6 +5,9 @@
 # service in the Dokploy Domains tab):
 #   api-soonwhy.oktopals.com    → service api     on 3001
 #   ingest-soonwhy.oktopals.com → service ingest  on 3002
+# collector reads host CPU, memory and disk and sends them to ingest. Set
+# SOONWHY_API_KEY to a project API key; the project that owns the key shows the
+# data on its Infrastructure page.
 # nats and quickwit stay internal on the project network — no host ports, no domains.
 # Postgres and Redis are NOT in this stack; point DATABASE_URL and REDIS_URL at
 # your own instances in the env form (.env next to this file on the server).
@@ -109,8 +112,75 @@ services:
       retries: 10
       start_period: 20s
 
+  collector:
+    image: otel/opentelemetry-collector-contrib:0.164.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    configs:
+      - source: host_metrics_collector
+        target: /etc/otelcol/config.yaml
+    environment:
+      SOONWHY_API_KEY: ${SOONWHY_API_KEY:-}
+      SOONWHY_INGEST_URL: ${SOONWHY_INGEST_URL:-http://ingest:3002}
+    volumes:
+      - /:/hostfs:ro
+    depends_on:
+      ingest: { condition: service_healthy }
+    restart: unless-stopped
+
 volumes:
   nats-data:
     name: soonwhy-ingests-wtchlp_nats-data
   quickwit-data:
     name: soonwhy-ingests-wtchlp_quickwit-data
+
+configs:
+  host_metrics_collector:
+    content: |
+      receivers:
+        hostmetrics:
+          root_path: /hostfs
+          collection_interval: 30s
+          scrapers:
+            cpu:
+              metrics:
+                system.cpu.utilization:
+                  enabled: true
+            memory:
+              metrics:
+                system.memory.utilization:
+                  enabled: true
+            filesystem:
+              metrics:
+                system.filesystem.utilization:
+                  enabled: true
+              exclude_fs_types:
+                match_type: strict
+                fs_types: [autofs, binfmt_misc, bpf, cgroup2, configfs, debugfs, devpts, devtmpfs, fusectl, hugetlbfs, mqueue, nsfs, overlay, proc, procfs, pstore, rpc_pipefs, securityfs, selinuxfs, squashfs, sysfs, tmpfs, tracefs]
+              exclude_mount_points:
+                match_type: regexp
+                mount_points: ["/dev/.*", "/proc/.*", "/sys/.*", "/run/.*", "/var/lib/docker/.*"]
+
+      processors:
+        memory_limiter:
+          check_interval: 1s
+          limit_mib: 256
+        resource:
+          attributes:
+            - key: service.name
+              value: soonwhy-host
+              action: upsert
+        batch:
+          timeout: 5s
+
+      exporters:
+        otlphttp:
+          endpoint: $${env:SOONWHY_INGEST_URL}
+          headers:
+            authorization: Bearer $${env:SOONWHY_API_KEY}
+
+      service:
+        pipelines:
+          metrics:
+            receivers: [hostmetrics]
+            processors: [memory_limiter, resource, batch]
+            exporters: [otlphttp]
