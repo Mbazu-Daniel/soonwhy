@@ -7,6 +7,7 @@ import {
 import { Agent } from "@mastra/core/agent";
 import { noopLogger } from "@mastra/core/logger";
 import { buildRcaPrompt, RCA_PROMPT_VERSION } from "./rca.prompt";
+import { generateStructured } from "../ai/structured-output";
 import { RcaAnalysisSchema } from "./rca.validation";
 import type { RcaEvidence, RcaProviderResult } from "./rca.types";
 
@@ -138,11 +139,13 @@ export class MastraRcaProvider {
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
 
     try {
-      const result = await this.agent.generate(prompt, {
-        abortSignal: controller.signal,
-        structuredOutput: { schema: RcaAnalysisSchema },
-        modelSettings: { temperature: 0, maxRetries: 0 },
-      });
+      const result = await generateStructured((jsonPromptInjection) =>
+        this.agent.generate(prompt, {
+          abortSignal: controller.signal,
+          structuredOutput: { schema: RcaAnalysisSchema, jsonPromptInjection },
+          modelSettings: { temperature: 0, maxRetries: 0 },
+        }),
+      );
 
       if (!result.object)
         throw new Error("RCA provider returned an empty response");

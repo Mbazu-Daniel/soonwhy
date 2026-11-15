@@ -10,6 +10,7 @@ import { randomUUID } from "node:crypto";
 import { withRetry, isRetryableError } from "../../../../common/utils/retry";
 import { CircuitBreaker } from "../../../../common/utils/circuit-breaker";
 import { DeadLetterInvestigationRepository } from "./dead-letter.repository";
+import { generateStructured } from "../../ai/structured-output";
 import { AIInvestigationRepository } from "./ai-investigation.repository";
 
 const INVESTIGATION_AGENT_INSTRUCTIONS = [
@@ -234,14 +235,17 @@ export class AIInvestigationService {
       const result = await this.circuitBreaker.execute(() =>
         withRetry(
           async () => {
-            return await agent.generate(prompt, {
-              structuredOutput: {
-                schema: this.getInvestigationSchema(),
-              },
-              modelSettings: {
-                temperature: request.modelConfig?.temperature ?? 0.3,
-              },
-            });
+            return await generateStructured((jsonPromptInjection) =>
+              agent.generate(prompt, {
+                structuredOutput: {
+                  schema: this.getInvestigationSchema(),
+                  jsonPromptInjection,
+                },
+                modelSettings: {
+                  temperature: request.modelConfig?.temperature ?? 0.3,
+                },
+              }),
+            );
           },
           {
             maxAttempts: 3,
