@@ -108,7 +108,7 @@ describe("RcaService", () => {
     });
   });
 
-  it("rejects a provider response that references unavailable evidence", async () => {
+  it("drops references to unavailable evidence instead of failing", async () => {
     const provider = {
       analyze: vi.fn().mockResolvedValue({
         analysis: {
@@ -152,8 +152,9 @@ describe("RcaService", () => {
 
     const service = new RcaService(resolverFor(provider));
 
-    await expect(
-      service.analyze("org_1", "project_123", bottleneck),
-    ).rejects.toThrow("unknown evidence ID");
+    const outcome = await service.analyze("org_1", "project_123", bottleneck);
+
+    expect(outcome.analysis.evidenceRefs).toEqual([]);
+    expect(outcome.analysis.limitations.at(-1)).toContain("did not match the supplied evidence");
   });
 });
