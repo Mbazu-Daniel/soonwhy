@@ -24,8 +24,6 @@ services:
       - "/data"
       - "-m"
       - "8222"
-    env_file:
-      - .env
     volumes:
       - nats-data:/data
     restart: unless-stopped
@@ -39,8 +37,6 @@ services:
   quickwit:
     image: quickwit/quickwit:0.9.0
     command: ["run"]
-    env_file:
-      - .env
     environment:
       QW_LISTEN_ADDRESS: 0.0.0.0
       QW_REST_LISTEN_PORT: 7280
@@ -78,7 +74,11 @@ services:
     env_file:
       - .env
     environment:
+      NODE_ENV: production
       INGEST_PORT: 3002
+      NATS_URL: nats://nats:4222
+      NATS_STREAM_NAME: TELEMETRY
+      QUICKWIT_URL: http://quickwit:7280
     depends_on:
       nats: { condition: service_healthy }
       quickwit: { condition: service_healthy }
@@ -98,8 +98,12 @@ services:
     env_file:
       - .env
     environment:
+      NODE_ENV: production
       PORT: 3001
       INGEST_URL: http://ingest:3002
+      NATS_URL: nats://nats:4222
+      NATS_STREAM_NAME: TELEMETRY
+      QUICKWIT_URL: http://quickwit:7280
       # Self-observability is off by default in code (api ignores
       # OTEL_EXPORTER_OTLP_* unless SELF_OBSERVABILITY_ENABLED=true).
     depends_on:
