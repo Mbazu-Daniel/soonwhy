@@ -7,6 +7,11 @@ function harness(userRole: string) {
   const org: OrgContext = { orgId: "org_1", userRole };
   const service = {
     get: vi.fn().mockResolvedValue({ configured: false }),
+    list: vi.fn().mockResolvedValue({ credentials: [] }),
+    create: vi.fn().mockResolvedValue({ id: "cred_1" }),
+    update: vi.fn().mockResolvedValue({ id: "cred_1" }),
+    removeCredential: vi.fn().mockResolvedValue({ removed: true }),
+    liveModels: vi.fn().mockResolvedValue({ source: "live", models: [] }),
     save: vi.fn().mockResolvedValue({ configured: true }),
     remove: vi.fn().mockResolvedValue({ configured: false }),
     testConnection: vi.fn().mockResolvedValue({ ok: true }),
@@ -101,5 +106,36 @@ describe("AiController", () => {
       models: [],
     });
     expect(h.service.models).toHaveBeenCalledWith("Groq");
+  });
+
+  describe("provider library", () => {
+    it("lets any member list providers but only managers change them", async () => {
+      const member = harness("member");
+
+      await member.controller.credentials(member.org);
+      expect(member.service.list).toHaveBeenCalledWith("org_1", false);
+      expect(() => member.controller.createCredential(member.org, CREDENTIAL)).toThrow(ForbiddenException);
+      expect(() => member.controller.updateCredential(member.org, "cred_1", { model: "m" })).toThrow(ForbiddenException);
+      expect(() => member.controller.deleteCredential(member.org, "cred_1")).toThrow(ForbiddenException);
+      expect(() => member.controller.testCredential(member.org, "cred_1")).toThrow(ForbiddenException);
+      expect(() => member.controller.liveModels(member.org, { provider: "groq", apiKey: "k" })).toThrow(ForbiddenException);
+      expect(member.service.create).not.toHaveBeenCalled();
+    });
+
+    it("scopes every change to the caller's organisation", async () => {
+      const owner = harness("owner");
+
+      await owner.controller.createCredential(owner.org, { ...CREDENTIAL, name: "Fast lane", isDefault: true });
+      await owner.controller.updateCredential(owner.org, "cred_1", { model: "other", isDefault: true });
+      await owner.controller.deleteCredential(owner.org, "cred_1");
+      await owner.controller.testCredential(owner.org, "cred_1");
+      await owner.controller.liveModels(owner.org, { credentialId: "cred_1" });
+
+      expect(owner.service.create).toHaveBeenCalledWith("org_1", expect.objectContaining({ name: "Fast lane", isDefault: true }));
+      expect(owner.service.update).toHaveBeenCalledWith("org_1", "cred_1", { model: "other", isDefault: true });
+      expect(owner.service.removeCredential).toHaveBeenCalledWith("org_1", "cred_1");
+      expect(owner.service.testConnection).toHaveBeenCalledWith("org_1", undefined, "cred_1");
+      expect(owner.service.liveModels).toHaveBeenCalledWith("org_1", { credentialId: "cred_1" });
+    });
   });
 });

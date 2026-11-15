@@ -34,23 +34,70 @@ interface HarnessInput {
   stored?: Record<string, unknown> | null;
 }
 
-function build(input: HarnessInput = {}) {  const repository = {
-    get: vi.fn().mockResolvedValue(input.stored ?? null),
-    upsert: vi
-      .fn()
-      .mockImplementation(async (data: Record<string, unknown>) => ({
+function build(input: HarnessInput = {}) {
+  const stamp = new Date("2026-10-01T00:00:00.000Z");
+  const row = input.stored
+    ? {
         id: "aicredential_1",
+        orgId: "org_1",
+        name: "Groq",
+        isDefault: true,
+        enabled: true,
+        baseUrl: null,
+        verifiedAt: null,
+        lastErrorCode: null,
+        createdAt: stamp,
+        updatedAt: stamp,
+        deletedAt: null,
+        ...input.stored,
+      }
+    : null;
+  const repository = {
+    get: vi.fn().mockResolvedValue(row),
+    list: vi.fn().mockResolvedValue(row ? [row] : []),
+    find: vi
+      .fn()
+      .mockImplementation(async (_org: string, id: string) => (row && row.id === id ? row : null)),
+    create: vi
+      .fn()
+      .mockImplementation(async (data: Record<string, unknown>, makeDefault: boolean) => ({
+        id: "aicredential_2",
         ...data,
-        createdAt: new Date("2026-10-01T00:00:00.000Z"),
-        updatedAt: new Date("2026-10-02T00:00:00.000Z"),
+        isDefault: makeDefault || !row,
+        enabled: true,
+        verifiedAt: null,
+        lastErrorCode: null,
+        createdAt: stamp,
+        updatedAt: stamp,
+        deletedAt: null,
       })),
+    update: vi
+      .fn()
+      .mockImplementation(
+        async (_org: string, id: string, patch: Record<string, unknown>, makeDefault: boolean) =>
+          row && row.id === id ? { ...row, ...patch, isDefault: makeDefault || row.isDefault } : null,
+      ),
     remove: vi.fn().mockResolvedValue({ id: "aicredential_1" }),
     recordVerification: vi.fn().mockResolvedValue(undefined),
     getInvocationTotals: vi.fn().mockResolvedValue([]),
-  } satisfies Pick<
+  } as unknown as Pick<
     AiRepository,
-    "get" | "upsert" | "remove" | "recordVerification" | "getInvocationTotals"
-  >;
+    | "get"
+    | "list"
+    | "find"
+    | "create"
+    | "update"
+    | "remove"
+    | "recordVerification"
+    | "getInvocationTotals"
+  > & {
+    create: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+    remove: ReturnType<typeof vi.fn>;
+    find: ReturnType<typeof vi.fn>;
+    recordVerification: ReturnType<typeof vi.fn>;
+    getInvocationTotals: ReturnType<typeof vi.fn>;
+  };
 
   const resolver = {
     resolve: vi.fn().mockResolvedValue({
@@ -132,7 +179,7 @@ describe("AiService", () => {
       baseUrl: null,
     });
 
-    const stored = h.repository.upsert.mock.calls[0]?.[0];
+    const stored = h.repository.create.mock.calls[0]?.[0];
     expect(stored?.provider).toBe("groq");
     expect(stored?.encryptedApiKey).not.toContain(SECRET);
     expect(stored?.keyHint).toBe("••••" + SECRET.slice(-4));
@@ -157,13 +204,10 @@ describe("AiService", () => {
       apiKey: "",
     });
 
-    expect(h.repository.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        encryptedApiKey: "stored-ciphertext",
-        keyHint: "••••1234",
-      }),
-    );
-    expect(result).toMatchObject({ configured: true });
+    const patch = h.repository.update.mock.calls[0]?.[2];
+    expect(patch).not.toHaveProperty("encryptedApiKey");
+    expect(patch).not.toHaveProperty("keyHint");
+    expect(result).toMatchObject({ configured: true, keyHint: "••••1234" });
   });
 
   it("keeps the stored base URL when it is not sent again", async () => {
@@ -183,11 +227,7 @@ describe("AiService", () => {
       apiKey: "",
     });
 
-    expect(h.repository.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        baseUrl: "https://llm.internal.example/v1",
-      }),
-    );
+    expect(h.repository.update.mock.calls[0]?.[2]).not.toHaveProperty("baseUrl");
   });
 
   it("requires a key when none is stored", async () => {
@@ -200,7 +240,7 @@ describe("AiService", () => {
         apiKey: "",
       }),
     ).rejects.toThrow(BadRequestException);
-    expect(h.repository.upsert).not.toHaveBeenCalled();
+    expect(h.repository.create).not.toHaveBeenCalled();
   });
 
   it("round-trips the stored key through the cipher", async () => {
@@ -215,7 +255,7 @@ describe("AiService", () => {
       apiKey: SECRET,
     });
 
-    const stored = h.repository.upsert.mock.calls[0]?.[0];
+    const stored = h.repository.create.mock.calls[0]?.[0];
     expect(cipher.decrypt(String(stored?.encryptedApiKey))).toBe(SECRET);
   });
 
@@ -229,7 +269,7 @@ describe("AiService", () => {
         apiKey: SECRET,
       }),
     ).rejects.toThrow(BadRequestException);
-    expect(h.repository.upsert).not.toHaveBeenCalled();
+    expect(h.repository.create).not.toHaveBeenCalled();
   });
 
   it("rejects a base URL that belongs to a different provider", async () => {
@@ -247,7 +287,7 @@ describe("AiService", () => {
         code: "AI_PROVIDER_BASE_URL_INVALID",
       }),
     });
-    expect(h.repository.upsert).not.toHaveBeenCalled();
+    expect(h.repository.create).not.toHaveBeenCalled();
   });
 
   it("refuses to send a key to a metadata address", async () => {
@@ -298,12 +338,12 @@ describe("AiService", () => {
   });
 
   it("removes the credential without destroying it", async () => {
-    const h = build();
+    const h = build({ stored: { provider: "groq", model: "m", encryptedApiKey: "c", keyHint: "k" } });
 
     await expect(h.service.remove("org_1")).resolves.toEqual({
       configured: false,
     });
-    expect(h.repository.remove).toHaveBeenCalledWith("org_1");
+    expect(h.repository.remove).toHaveBeenCalledWith("org_1", "aicredential_1");
     expect(h.resolver.invalidate).toHaveBeenCalledWith("org_1");
   });
 
@@ -346,7 +386,7 @@ describe("AiService", () => {
       code: "invalid_key",
     });
     expect(JSON.stringify(result)).not.toContain(SECRET);
-    expect(h.repository.recordVerification).toHaveBeenCalledWith("org_1", {
+    expect(h.repository.recordVerification).toHaveBeenCalledWith("org_1", "aicredential_1", {
       verified: false,
       errorCode: "invalid_key",
     });
@@ -363,7 +403,7 @@ describe("AiService", () => {
 
     expect(result.ok).toBe(true);
     expect(result.code).toBe("rate_limited");
-    expect(h.repository.recordVerification).toHaveBeenCalledWith("org_1", {
+    expect(h.repository.recordVerification).toHaveBeenCalledWith("org_1", "aicredential_1", {
       verified: false,
       errorCode: "rate_limited",
     });
@@ -479,5 +519,174 @@ describe("AiService", () => {
         costUsd: 0,
       },
     ]);
+  });
+
+  describe("provider library", () => {
+    const stored = { provider: "groq", model: "openai/gpt-oss-120b", encryptedApiKey: "cipher", keyHint: "••••1234" };
+
+    it("names a new provider after its catalog entry when no name is given", async () => {
+      const h = build();
+
+      const created = await h.service.create("org_1", { provider: "groq", model: "m", apiKey: SECRET });
+
+      expect(h.repository.create.mock.calls[0]?.[0]).toMatchObject({ name: "groq", orgId: "org_1" });
+      expect(created.name).toBe("groq");
+      expect(JSON.stringify(created)).not.toContain(SECRET);
+    });
+
+    it("passes the default flag through so the repository can move it", async () => {
+      const h = build({ stored });
+
+      await h.service.create("org_1", { name: "Fast lane", provider: "groq", model: "m", apiKey: SECRET, isDefault: true });
+
+      expect(h.repository.create.mock.calls[0]?.[1]).toBe(true);
+      expect(h.resolver.invalidate).toHaveBeenCalledWith("org_1");
+    });
+
+    it("answers a duplicate name with a conflict", async () => {
+      const h = build({ stored });
+      h.repository.create.mockRejectedValueOnce(Object.assign(new Error("dup"), { code: "23505" }));
+
+      await expect(
+        h.service.create("org_1", { name: "Groq", provider: "groq", model: "m", apiKey: SECRET }),
+      ).rejects.toMatchObject({ status: 409 });
+    });
+
+    it("recognises a duplicate name wrapped inside a driver error", async () => {
+      const h = build({ stored });
+      h.repository.update.mockRejectedValueOnce(
+        Object.assign(new Error("query failed"), { cause: { code: "23505" } }),
+      );
+
+      await expect(h.service.update("org_1", "aicredential_1", { name: "Taken" })).rejects.toMatchObject({
+        status: 409,
+      });
+    });
+
+    it("switches the model without touching the key", async () => {
+      const h = build({ stored });
+
+      const updated = await h.service.update("org_1", "aicredential_1", { model: "openai/gpt-oss-20b" });
+
+      expect(h.repository.update.mock.calls[0]?.[2]).toEqual({ model: "openai/gpt-oss-20b" });
+      expect(updated.model).toBe("openai/gpt-oss-20b");
+      expect(updated.keyHint).toBe("••••1234");
+    });
+
+    it("makes a provider the default on request", async () => {
+      const h = build({ stored });
+
+      await h.service.update("org_1", "aicredential_1", { isDefault: true });
+
+      expect(h.repository.update.mock.calls[0]?.[3]).toBe(true);
+    });
+
+    it("answers 404 for a provider that is not in the organisation", async () => {
+      const h = build({ stored });
+
+      await expect(h.service.update("org_1", "elsewhere", { model: "m" })).rejects.toMatchObject({ status: 404 });
+      h.repository.remove.mockResolvedValueOnce(null);
+      await expect(h.service.removeCredential("org_1", "elsewhere")).rejects.toMatchObject({ status: 404 });
+    });
+
+    it("lists providers without any key material", async () => {
+      const h = build({ stored });
+
+      const listed = await h.service.list("org_1", true);
+
+      expect(listed.credentials).toHaveLength(1);
+      expect(listed.credentials[0]).toMatchObject({ id: "aicredential_1", isDefault: true, keyHint: "••••1234" });
+      expect(JSON.stringify(listed)).not.toContain("cipher");
+    });
+
+    it("needs a base URL for a custom endpoint", async () => {
+      const h = build({ knownProvider: (id) => id === "custom" });
+
+      await expect(
+        h.service.create("org_1", { provider: "custom", model: "local-model", apiKey: "k" }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it("accepts any public https host for a custom endpoint, even with an allowlist", async () => {
+      vi.stubEnv("SOONWHY_AI_ALLOWED_BASE_HOSTS", "only.this.host");
+      const h = build({ knownProvider: (id) => id === "custom", allowedHosts: [] });
+
+      const created = await h.service.create("org_1", {
+        provider: "custom",
+        model: "local-model",
+        apiKey: "k",
+        baseUrl: "https://llm.example.com/v1",
+      });
+
+      expect(created.baseUrl).toBe("https://llm.example.com/v1");
+    });
+
+    it("still refuses a custom endpoint on a metadata address", async () => {
+      const h = build({ knownProvider: (id) => id === "custom" });
+
+      await expect(
+        h.service.create("org_1", { provider: "custom", model: "m", apiKey: "k", baseUrl: "https://169.254.169.254/v1" }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it("lists the models a key can actually use, sorted", async () => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValue(new Response(JSON.stringify({ data: [{ id: "b-model" }, { id: "a-model" }, { id: "a-model" }] }), { status: 200 }));
+      vi.stubGlobal("fetch", fetchMock);
+      const h = build();
+
+      const listed = await h.service.liveModels("org_1", { provider: "groq", apiKey: "typed-key" });
+
+      expect(listed).toEqual({ source: "live", models: ["a-model", "b-model"] });
+      expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.groq.com/openai/v1/models");
+      expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ headers: { authorization: "Bearer typed-key" } });
+    });
+
+    it("uses the stored key when listing models for a saved provider", async () => {
+      const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: [{ id: "m1" }] }), { status: 200 }));
+      vi.stubGlobal("fetch", fetchMock);
+      const h = build({ stored });
+
+      await h.service.liveModels("org_1", { credentialId: "aicredential_1" });
+
+      expect(h.resolver.resolve).toHaveBeenCalledWith("org_1", "aicredential_1");
+      expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ headers: { authorization: `Bearer ${SECRET}` } });
+    });
+
+    it("says the key was rejected, without echoing the provider response", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("secret provider text", { status: 401 })));
+      const h = build();
+
+      const failure = await h.service.liveModels("org_1", { provider: "groq", apiKey: "bad" }).catch((e) => e);
+
+      expect(failure).toBeInstanceOf(BadRequestException);
+      expect(JSON.stringify(failure.getResponse())).toContain("rejected");
+      expect(JSON.stringify(failure.getResponse())).not.toContain("secret provider text");
+    });
+
+    it("says the endpoint cannot be reached", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("ECONNREFUSED")));
+      const h = build();
+
+      const failure = await h.service.liveModels("org_1", { provider: "groq", apiKey: "k" }).catch((e) => e);
+
+      expect(JSON.stringify(failure.getResponse())).toContain("Could not reach");
+    });
+
+    it("falls back to the catalog when a provider has no queryable endpoint", async () => {
+      const h = build({ endpoint: null });
+
+      const listed = await h.service.liveModels("org_1", { provider: "groq", apiKey: "k" });
+
+      expect(listed.source).toBe("catalog");
+      expect(listed.models).toEqual(["openai/gpt-oss-120b"]);
+    });
+
+    it("needs a provider and a key, or a saved provider, to list models", async () => {
+      const h = build();
+
+      await expect(h.service.liveModels("org_1", { provider: "groq" })).rejects.toThrow(BadRequestException);
+    });
   });
 });

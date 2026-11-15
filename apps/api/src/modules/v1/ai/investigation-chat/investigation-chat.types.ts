@@ -23,4 +23,5 @@ export interface ChatUsage {
 export interface ChatRequest {
   message: string;
   threadId?: string;
+  credentialId?: string;
 }

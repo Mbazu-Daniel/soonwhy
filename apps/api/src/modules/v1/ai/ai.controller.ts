@@ -6,6 +6,7 @@ import {
   Get,
   Inject,
   Param,
+  Patch,
   Post,
   Put,
   UseGuards,
@@ -26,6 +27,36 @@ const AiCredentialSchema = z
     provider: z.string().min(1).max(50),
     model: z.string().min(1).max(100),
     apiKey: z.string().max(5000).optional(),
+    baseUrl: z.string().url().optional().nullable(),
+  })
+  .strict();
+
+const CredentialCreateSchema = z
+  .object({
+    name: z.string().trim().min(1).max(60).optional(),
+    provider: z.string().min(1).max(50),
+    model: z.string().min(1).max(200),
+    apiKey: z.string().min(1).max(5000),
+    baseUrl: z.string().url().optional().nullable(),
+    isDefault: z.boolean().optional(),
+  })
+  .strict();
+
+const CredentialPatchSchema = z
+  .object({
+    name: z.string().trim().min(1).max(60).optional(),
+    model: z.string().min(1).max(200).optional(),
+    apiKey: z.string().min(1).max(5000).optional(),
+    baseUrl: z.string().url().optional().nullable(),
+    isDefault: z.boolean().optional(),
+  })
+  .strict();
+
+const LiveModelsSchema = z
+  .object({
+    credentialId: z.string().min(1).max(100).optional(),
+    provider: z.string().min(1).max(50).optional(),
+    apiKey: z.string().min(1).max(5000).optional(),
     baseUrl: z.string().url().optional().nullable(),
   })
   .strict();
@@ -66,6 +97,11 @@ export class AiController {
     @Inject(AiService) private readonly service: Pick<
       AiService,
       | "get"
+      | "list"
+      | "create"
+      | "update"
+      | "removeCredential"
+      | "liveModels"
       | "save"
       | "remove"
       | "testConnection"
@@ -109,6 +145,54 @@ export class AiController {
       org.orgId,
       draft.provider && draft.model && draft.apiKey ? draft : undefined,
     );
+  }
+
+  @Get("credentials") credentials(@CurrentOrg() org: OrgContext) {
+    return this.service.list(org.orgId, canManageAi(org.userRole));
+  }
+
+  @Post("credentials") createCredential(
+    @CurrentOrg() org: OrgContext,
+    @Body({ schema: CredentialCreateSchema })
+    body: z.output<typeof CredentialCreateSchema>,
+  ) {
+    this.assertManager(org);
+    return this.service.create(org.orgId, body);
+  }
+
+  @Patch("credentials/:credentialId") updateCredential(
+    @CurrentOrg() org: OrgContext,
+    @Param("credentialId") credentialId: string,
+    @Body({ schema: CredentialPatchSchema })
+    body: z.output<typeof CredentialPatchSchema>,
+  ) {
+    this.assertManager(org);
+    return this.service.update(org.orgId, credentialId, body);
+  }
+
+  @Delete("credentials/:credentialId") deleteCredential(
+    @CurrentOrg() org: OrgContext,
+    @Param("credentialId") credentialId: string,
+  ) {
+    this.assertManager(org);
+    return this.service.removeCredential(org.orgId, credentialId);
+  }
+
+  @Post("credentials/:credentialId/test") testCredential(
+    @CurrentOrg() org: OrgContext,
+    @Param("credentialId") credentialId: string,
+  ) {
+    this.assertManager(org);
+    return this.service.testConnection(org.orgId, undefined, credentialId);
+  }
+
+  @Post("models") liveModels(
+    @CurrentOrg() org: OrgContext,
+    @Body({ schema: LiveModelsSchema })
+    body: z.output<typeof LiveModelsSchema>,
+  ) {
+    this.assertManager(org);
+    return this.service.liveModels(org.orgId, body);
   }
 
   @Get("providers") providers(@CurrentOrg() org: OrgContext) {

@@ -21,6 +21,8 @@ function credentialRow(overrides: Partial<CredentialRow> = {}): CredentialRow {
   return {
     id: "aicredential_1",
     orgId: "org_1",
+    name: "Groq",
+    isDefault: true,
     provider: "groq",
     model: "openai/gpt-oss-120b",
     baseUrl: null,
@@ -38,20 +40,23 @@ function credentialRow(overrides: Partial<CredentialRow> = {}): CredentialRow {
 
 function buildRepository(row?: CredentialRow | null) {
   const get = vi.fn().mockResolvedValue(row ?? null);
-  return { repository: { get } satisfies Pick<AiRepository, "get">, get };
+  const find = vi
+    .fn()
+    .mockImplementation(async (_org: string, id: string) => (row && row.id === id ? row : null));
+  return { repository: { get, find } satisfies Pick<AiRepository, "get" | "find">, get, find };
 }
 
 function buildResolver(
   row: CredentialRow | null | undefined,
   cipher = cipherWith(HEX_KEY),
 ) {
-  const { repository, get } = buildRepository(row);
+  const { repository, get, find } = buildRepository(row);
   const resolver = new LlmProviderResolver(
     repository,
     cipher,
     new LlmCatalog(),
   );
-  return { resolver, get };
+  return { resolver, get, find };
 }
 
 describe("LlmProviderResolver", () => {
@@ -291,5 +296,46 @@ describe("LlmProviderResolver", () => {
     await expect(resolver.resolveForRca("org_1")).rejects.toMatchObject({
       status: 503,
     });
+  });
+
+  it("resolves a specific credential by id instead of the default", async () => {
+    const { resolver, get, find } = buildResolver(credentialRow());
+
+    const model = await resolver.resolve("org_1", "aicredential_1");
+
+    expect(model.credentialId).toBe("aicredential_1");
+    expect(find).toHaveBeenCalledWith("org_1", "aicredential_1");
+    expect(get).not.toHaveBeenCalled();
+  });
+
+  it("rejects an id that does not belong to the organisation", async () => {
+    const { resolver } = buildResolver(credentialRow());
+
+    await expect(resolver.resolve("org_1", "someone_elses")).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("keeps the default and an explicit choice in separate cache entries", async () => {
+    const { resolver, get, find } = buildResolver(credentialRow());
+
+    await resolver.resolve("org_1");
+    await resolver.resolve("org_1", "aicredential_1");
+    await resolver.resolve("org_1");
+    await resolver.resolve("org_1", "aicredential_1");
+
+    expect(get).toHaveBeenCalledTimes(1);
+    expect(find).toHaveBeenCalledTimes(1);
+  });
+
+  it("drops every cached entry for an organisation when it changes", async () => {
+    const { resolver, get, find } = buildResolver(credentialRow());
+    await resolver.resolve("org_1");
+    await resolver.resolve("org_1", "aicredential_1");
+
+    resolver.invalidate("org_1");
+    await resolver.resolve("org_1");
+    await resolver.resolve("org_1", "aicredential_1");
+
+    expect(get).toHaveBeenCalledTimes(2);
+    expect(find).toHaveBeenCalledTimes(2);
   });
 });

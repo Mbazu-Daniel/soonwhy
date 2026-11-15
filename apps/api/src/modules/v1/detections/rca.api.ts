@@ -64,6 +64,7 @@ export class RcaApiService {
     projectId: string,
     findingId: string,
     regenerate: boolean,
+    credentialId?: string,
   ) {
     const finding = await this.assertFinding(orgId, projectId, findingId);
     if (!regenerate) {
@@ -102,8 +103,8 @@ export class RcaApiService {
       const credential = await this.rcaService.describe(orgId);
       await this.reserveQuota(orgId, credential);
       const result = bottleneck
-        ? await this.rcaService.analyze(orgId, projectId, bottleneck)
-        : await this.rcaService.analyzeEvidence(orgId, errorEvidence!);
+        ? await this.rcaService.analyze(orgId, projectId, bottleneck, credentialId)
+        : await this.rcaService.analyzeEvidence(orgId, errorEvidence!, credentialId);
       const evidence = result.evidence;
       const persisted = await this.persistence.persist({
         orgId,
