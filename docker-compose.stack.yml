@@ -1,4 +1,6 @@
 # Soonwhy production stack: API + ingest + telemetry (NATS, Quickwit), one service.
+# api and ingest run the same image (ghcr.io/mbazu-daniel/soonwhy, built from
+# Dockerfile.stack); working_dir and command pick which service starts.
 # api and ingest are the only services that get public domains (mapped per
 # service in the Dokploy Domains tab):
 #   api-soonwhy.oktopals.com    → service api     on 3001
@@ -65,12 +67,14 @@ services:
       start_period: 20s
 
   ingest:
-    image: ghcr.io/mbazu-daniel/soonwhy-ingest:${IMAGE_TAG:-dev}
+    image: ghcr.io/mbazu-daniel/soonwhy:${IMAGE_TAG:-dev}
     pull_policy: always
+    working_dir: /app/ingest
+    command: ["node", "dist/main.js"]
     env_file:
       - .env
     environment:
-      PORT: 3002
+      INGEST_PORT: 3002
     depends_on:
       nats: { condition: service_healthy }
       quickwit: { condition: service_healthy }
@@ -84,8 +88,9 @@ services:
       start_period: 20s
 
   api:
-    image: ghcr.io/mbazu-daniel/soonwhy-api:${IMAGE_TAG:-dev}
+    image: ghcr.io/mbazu-daniel/soonwhy:${IMAGE_TAG:-dev}
     pull_policy: always
+    working_dir: /app/api
     env_file:
       - .env
     environment:

@@ -27,7 +27,7 @@ FROM node:26-bookworm-slim AS api
 WORKDIR /app
 COPY --from=build /out/api ./
 EXPOSE 3001
-CMD ["sh", "-c", "./node_modules/.bin/drizzle-kit push --force && node dist/main.js"]
+CMD ["sh", "-c", "node dist/common/db/migrate.js && node dist/main.js"]
 
 FROM node:26-bookworm-slim AS ingest
 WORKDIR /app

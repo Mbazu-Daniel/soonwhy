@@ -1,0 +1,32 @@
+# Soonwhy production image: the API and the ingest service in one image.
+# docker-compose.stack.yml runs it twice and picks the service with working_dir
+# and command. Build from the repository root:
+#   docker build -f Dockerfile.stack -t soonwhy .
+FROM node:26-bookworm-slim AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN npm install -g pnpm@12.9.1
+WORKDIR /app
+
+FROM base AS builder
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY packages ./packages
+COPY apps/api ./apps/api
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+RUN pnpm --filter @soonwhy/shared build \
+ && pnpm --filter @soonwhy/ingest build \
+ && pnpm --filter @soonwhy/backend build
+RUN pnpm --filter @soonwhy/backend deploy --prod /out/api \
+ && pnpm --filter @soonwhy/ingest deploy --prod /out/ingest
+
+FROM node:26-bookworm-slim AS runner
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/* \
+ && npm install -g pm2@latest
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=builder /out/api ./api
+COPY --from=builder /out/ingest ./ingest
+USER node
+WORKDIR /app/api
+EXPOSE 3001 3002
+CMD ["sh", "-c", "node dist/common/db/migrate.js && exec pm2 start -s dist/main.js --name soonwhy-api -i 1 --no-daemon --kill-timeout 25000"]
