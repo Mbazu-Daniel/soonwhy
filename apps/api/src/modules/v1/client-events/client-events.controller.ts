@@ -5,10 +5,10 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  UnauthorizedException,
 } from "@nestjs/common";
+import { ApiKeyAuthenticator } from "@soonwhy/shared";
 import { Throttle } from "@nestjs/throttler";
-import { ApiKeysService } from "../api-keys/api-keys.service";
+import { requireApiKey } from "../../../common/auth/require-api-key";
 import { ClientEventsService } from "./client-events.service";
 import { ClientEventsBatchDto, type ClientEventsBatchInput } from "./dto";
 import { INGEST_THROTTLE } from "../../../common/throttling/throttling.constants";
@@ -17,7 +17,7 @@ import { INGEST_THROTTLE } from "../../../common/throttling/throttling.constants
 export class ClientEventsController {
   constructor(
     private readonly clientEvents: ClientEventsService,
-    private readonly apiKeys: ApiKeysService,
+    private readonly apiKeys: ApiKeyAuthenticator,
   ) {}
 
   @Post()
@@ -27,15 +27,8 @@ export class ClientEventsController {
     @Body({ schema: ClientEventsBatchDto }) body: ClientEventsBatchInput,
     @Headers("authorization") auth?: string,
   ) {
-    if (!auth?.startsWith("Bearer ")) {
-      throw new UnauthorizedException("API key required");
-    }
+    const key = await requireApiKey(this.apiKeys, auth);
 
-    const key = await this.apiKeys.validateKey(auth.slice(7));
-    if (!key) {
-      throw new UnauthorizedException("Invalid API key");
-    }
-
-    await this.clientEvents.ingestEvents(key.orgId, key.projectId, body.events);
+    await this.clientEvents.ingestEvents(key.organizationId, key.projectId, body.events);
   }
 }

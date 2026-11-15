@@ -31,22 +31,4 @@ export class ApiKeysService {
     if (!key) throw new NotFoundException("API key not found");
     return this.apiKeysRepository.deleteApiKey(id);
   }
-
-  async validateKey(
-    rawKey: string,
-  ): Promise<{ projectId: string; orgId: string; scopes: string[] } | null> {
-    const keyHash = this.apiKeysRepository.hash(rawKey);
-    const result =
-      await this.apiKeysRepository.getApiKeyWithProjectByHash(keyHash);
-    if (!result) return null;
-    const key = result.apiKey;
-    if (key.expiresAt && key.expiresAt < new Date()) return null;
-    if (key.serviceAccountId && result.serviceAccountDisabledAt) return null;
-    await this.apiKeysRepository.updateLastUsedAt(key.id);
-    return {
-      projectId: key.projectId,
-      orgId: result.organizationId,
-      scopes: key.scopes || [],
-    };
-  }
 }
