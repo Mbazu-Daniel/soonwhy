@@ -16,7 +16,7 @@ export {
   encryptPiiInText,
 } from "./privacy/pii";
 export { apiKeys, deadLetterQueue, ingestEventReceipts, projects, projectSettings } from "./db/schema";
-export { createDb, type Db, DB, schema } from "./db";
+export { createDb, dbPoolOptions, type Db, DB, schema } from "./db";
 export { ApiKeyAuthenticator, apiKeyFromAuthorization } from "./auth/api-keys";
 export type { ApiKeyAuthentication, ValidatedApiKey } from "./auth/api-keys.types";
 export {
