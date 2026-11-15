@@ -24,6 +24,8 @@ export {
   type QuickwitHit,
   type QuickwitSearchInput,
   type QuickwitSearchResponse,
+  type QuickwitIndexDescription,
+  type QuickwitSplit,
 } from "./quickwit";
 export { QUICKWIT_INDEXES, QUICKWIT_INDEX_CONFIG } from "./quickwit/config";
 export {

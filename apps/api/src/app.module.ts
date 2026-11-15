@@ -45,6 +45,7 @@ import { StatusPageModule } from "./modules/v1/status-page/status-page.module";
 import { CanaryModule } from "./modules/v1/canary/canary.module";
 import { DlqModule } from "./modules/v1/dlq/dlq.module";
 import { IngestHealthModule } from "./modules/v1/ingest-health/ingest-health.module";
+import { IndexHealthModule } from "./modules/v1/index-health";
 import { PipelineLagModule } from "./modules/v1/pipeline-lag/pipeline-lag.module";
 import { IncidentsModule } from "./modules/v1/incidents/incidents.module";
 import { MaintenanceWindowsModule } from "./modules/v1/maintenance-windows/maintenance-windows.module";
@@ -157,6 +158,7 @@ const organizationScopedModules = [
     ClientEventsModule,
     StatusPageModule,
     DlqModule,
+    IndexHealthModule,
     ...(selfObservabilityEnabled()
       ? [IngestHealthModule, PipelineLagModule, SelfMonitoringModule]
       : []),
