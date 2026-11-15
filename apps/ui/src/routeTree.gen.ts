@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrganizationSlugRouteImport } from './routes/$organizationSlug'
+import { Route as ChangelogRouteImport } from './routes/changelog'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as OrganizationsRouteImport } from './routes/organizations'
@@ -67,6 +68,11 @@ const IndexRoute = IndexRouteImport.update({
 const OrganizationSlugRoute = OrganizationSlugRouteImport.update({
   id: '/$organizationSlug',
   path: '/$organizationSlug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChangelogRoute = ChangelogRouteImport.update({
+  id: '/changelog',
+  path: '/changelog',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -339,6 +345,7 @@ const OrganizationSlugPProjectSlugTraceTraceIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$organizationSlug': typeof OrganizationSlugRouteWithChildren
+  '/changelog': typeof ChangelogRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/organizations': typeof OrganizationsRoute
@@ -389,6 +396,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/changelog': typeof ChangelogRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/organizations': typeof OrganizationsRoute
@@ -438,6 +446,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$organizationSlug': typeof OrganizationSlugRouteWithChildren
+  '/changelog': typeof ChangelogRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/organizations': typeof OrganizationsRoute
@@ -491,6 +500,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$organizationSlug'
+    | '/changelog'
     | '/login'
     | '/onboarding'
     | '/organizations'
@@ -541,6 +551,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/changelog'
     | '/login'
     | '/onboarding'
     | '/organizations'
@@ -589,6 +600,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/$organizationSlug'
+    | '/changelog'
     | '/login'
     | '/onboarding'
     | '/organizations'
@@ -641,6 +653,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OrganizationSlugRoute: typeof OrganizationSlugRouteWithChildren
+  ChangelogRoute: typeof ChangelogRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
   OrganizationsRoute: typeof OrganizationsRoute
@@ -667,6 +680,13 @@ declare module '@tanstack/react-router' {
       path: '/$organizationSlug'
       fullPath: '/$organizationSlug'
       preLoaderRoute: typeof OrganizationSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/changelog': {
+      id: '/changelog'
+      path: '/changelog'
+      fullPath: '/changelog'
+      preLoaderRoute: typeof ChangelogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -1146,6 +1166,7 @@ const OrganizationSlugRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OrganizationSlugRoute: OrganizationSlugRouteWithChildren,
+  ChangelogRoute: ChangelogRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
   OrganizationsRoute: OrganizationsRoute,
