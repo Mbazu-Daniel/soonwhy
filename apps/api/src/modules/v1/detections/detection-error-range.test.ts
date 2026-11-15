@@ -11,7 +11,7 @@ describe("server error aggregation", () => {
   it("asks Quickwit for a range aggregation, not a filter aggregation", async () => {
     const search = vi.fn().mockResolvedValue({ aggregations: {} });
     await searchServiceBuckets({ search } as never, "o1", "p1", 0, 1);
-    const aggs = search.mock.calls[0][1].aggregations.services.aggs;
+    const aggs = search.mock.calls[0]?.[1]?.aggregations.services.aggs;
     expect(aggs.errors).toEqual(SERVER_ERROR_RANGE);
     expect(JSON.stringify(aggs.errors)).not.toContain("filter");
   });
