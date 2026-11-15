@@ -8,6 +8,7 @@ import {
   findings,
 } from "../../../common/db/schema";
 import { eq } from "drizzle-orm";
+import { WebhookDeliveries } from "./webhook-deliveries";
 
 function normalizeRepoUrl(url: string): string {
   return url
@@ -21,7 +22,7 @@ function normalizeRepoUrl(url: string): string {
 export class GithubService {
   private readonly logger = new Logger(GithubService.name);
 
-  private readonly seenDeliveryIds = new Set<string>();
+  constructor(private readonly deliveries: WebhookDeliveries) {}
 
   verifyWebhookSecret(): string {
     const secret = process.env.GITHUB_WEBHOOK_SECRET;
@@ -54,11 +55,8 @@ export class GithubService {
     eventName: string | undefined,
     deliveryId?: string,
   ) {
-    if (deliveryId) {
-      if (this.seenDeliveryIds.has(deliveryId)) {
-        return { handled: false, reason: "duplicate delivery" };
-      }
-      this.seenDeliveryIds.add(deliveryId);
+    if (deliveryId && !(await this.deliveries.claim(deliveryId))) {
+      return { handled: false, reason: "duplicate delivery" };
     }
 
     if (eventName && eventName !== "push") {
