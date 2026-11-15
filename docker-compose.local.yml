@@ -46,7 +46,7 @@ services:
     command:
       - sh
       - -c
-      - pnpm --filter @soonwhy/shared build && pnpm --filter @soonwhy/backend exec drizzle-kit push --force && pnpm --filter @soonwhy/backend dev
+      - pnpm --filter @soonwhy/shared build && pnpm --filter @soonwhy/backend db:migrate && pnpm --filter @soonwhy/backend dev
 
     depends_on:
       postgres:

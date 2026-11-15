@@ -39,7 +39,7 @@ try {
   await client.end();
 }
 
-execFileSync(join(apiRoot, "node_modules", ".bin", "drizzle-kit"), ["push", "--force"], {
+execFileSync(join(apiRoot, "node_modules", ".bin", "tsx"), ["src/common/db/migrate.ts"], {
   cwd: apiRoot,
   stdio: "inherit",
   env: { ...process.env, DATABASE_URL: target.toString() },
