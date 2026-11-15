@@ -24,9 +24,9 @@ describe("request summary", () => {
       errorCount: 257,
       errorRate: 87.41,
       avgLatency: 120,
-      latencyP50: 1,
-      latencyP95: 342,
-      latencyP99: 2145,
+      latencyP50: 1.2,
+      latencyP95: 340,
+      latencyP99: 2100,
     });
   });
 
