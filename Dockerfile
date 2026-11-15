@@ -1,4 +1,4 @@
-FROM node:22-bookworm-slim AS base
+FROM node:26-bookworm-slim AS base
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -23,19 +23,19 @@ RUN pnpm --filter @soonwhy/backend deploy /out/api \
  && pnpm --filter @soonwhy/ingest deploy --prod /out/ingest \
  && pnpm --filter @soonwhy/frontend deploy /out/ui
 
-FROM node:22-bookworm-slim AS api
+FROM node:26-bookworm-slim AS api
 WORKDIR /app
 COPY --from=build /out/api ./
 EXPOSE 3001
 CMD ["sh", "-c", "./node_modules/.bin/drizzle-kit push --force && node dist/main.js"]
 
-FROM node:22-bookworm-slim AS ingest
+FROM node:26-bookworm-slim AS ingest
 WORKDIR /app
 COPY --from=build /out/ingest ./
 EXPOSE 3002
 CMD ["node", "dist/main.js"]
 
-FROM node:22-bookworm-slim AS ui
+FROM node:26-bookworm-slim AS ui
 WORKDIR /app
 COPY --from=build /out/ui ./
 ENV HOST=0.0.0.0
