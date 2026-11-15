@@ -29,4 +29,4 @@ COPY --from=builder /out/ingest ./ingest
 USER node
 WORKDIR /app/api
 EXPOSE 3001 3002
-CMD ["sh", "-c", "node dist/common/db/migrate.js && exec pm2 start -s dist/main.js --name soonwhy-api -i 1 --no-daemon --kill-timeout 25000"]
+CMD ["sh", "-c", "node dist/common/db/migrate.js && exec node dist/main.js"]
