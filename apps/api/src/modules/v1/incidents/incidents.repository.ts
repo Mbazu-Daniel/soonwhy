@@ -3,6 +3,14 @@ import { db } from "../../../common/db";
 import { incidents } from "../../../common/db/schema";
 import { eq, and, desc, inArray, sql } from "drizzle-orm";
 
+export type IncidentScope = { orgId: string; projectId: string };
+
+function scopeFilters(scope?: IncidentScope) {
+  return scope
+    ? [eq(incidents.orgId, scope.orgId), eq(incidents.projectId, scope.projectId)]
+    : [];
+}
+
 @Injectable()
 export class IncidentsRepository {
   async createIncident(data: {
@@ -51,6 +59,7 @@ export class IncidentsRepository {
     id: number,
     acknowledgedBy: string,
     note?: string,
+    scope?: IncidentScope,
   ) {
     const [incident] = await db
       .update(incidents)
@@ -61,12 +70,12 @@ export class IncidentsRepository {
         acknowledgementNote: note ?? null,
         updatedAt: new Date(),
       })
-      .where(and(eq(incidents.id, id), eq(incidents.status, "firing")))
+      .where(and(eq(incidents.id, id), eq(incidents.status, "firing"), ...scopeFilters(scope)))
       .returning();
     return incident;
   }
 
-  async resolveIncident(id: number, resolvedBy?: string, note?: string) {
+  async resolveIncident(id: number, resolvedBy?: string, note?: string, scope?: IncidentScope) {
     const [incident] = await db
       .update(incidents)
       .set({
@@ -80,6 +89,7 @@ export class IncidentsRepository {
         and(
           eq(incidents.id, id),
           inArray(incidents.status, ["firing", "acknowledged"]),
+          ...scopeFilters(scope),
         ),
       )
       .returning();

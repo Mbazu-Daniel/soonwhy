@@ -5,6 +5,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Post,
   Put,
   Query,
@@ -69,7 +70,9 @@ export class MaintenanceWindowsController {
 
   @Put(":id")
   async updateMaintenanceWindow(
-    @Param("id") id: string,
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+    @Param("id", ParseIntPipe) id: number,
     @Body() body: unknown,
   ) {
     const parsed = updateMaintenanceWindowBodySchema.safeParse(body);
@@ -77,12 +80,16 @@ export class MaintenanceWindowsController {
       throw new BadRequestException(parsed.error.flatten());
     }
 
-    return this.service.updateMaintenanceWindow(Number(id), parsed.data);
+    return this.service.updateMaintenanceWindow({ orgId: org.orgId, projectId }, id, parsed.data);
   }
 
   @Delete(":id")
-  async deleteMaintenanceWindow(@Param("id") id: string) {
-    await this.service.deleteMaintenanceWindow(Number(id));
+  async deleteMaintenanceWindow(
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+    @Param("id", ParseIntPipe) id: number,
+  ) {
+    await this.service.deleteMaintenanceWindow({ orgId: org.orgId, projectId }, id);
     return { message: "Deleted" };
   }
 }

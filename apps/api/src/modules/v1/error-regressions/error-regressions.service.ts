@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { errorRegressions } from "../../../common/db/schema";
 import { db } from "../../../common/db";
 import { eq, and, gt, lt, desc } from "drizzle-orm";
@@ -85,12 +85,7 @@ export class ErrorRegressionsService {
     return created;
   }
 
-  async markAsResolved(
-    orgId: string,
-    projectId: string,
-    fingerprint: string,
-    resolvedBy: string,
-  ) {
+  async markAsResolved(orgId: string, projectId: string, fingerprint: string, resolvedBy: string) {
     const [updated] = await db
       .update(errorRegressions)
       .set({
@@ -101,12 +96,13 @@ export class ErrorRegressionsService {
       })
       .where(
         and(
-          eq(errorRegressions.fingerprint, fingerprint),
           eq(errorRegressions.orgId, orgId),
           eq(errorRegressions.projectId, projectId),
+          eq(errorRegressions.fingerprint, fingerprint),
         ),
       )
       .returning();
+    if (!updated) throw new NotFoundException("Error regression not found");
 
     return updated;
   }
@@ -155,7 +151,7 @@ export class ErrorRegressionsService {
   }
 
   async markRegressionNotified(orgId: string, projectId: string, id: number) {
-    await db
+    const updated = await db
       .update(errorRegressions)
       .set({ regressionNotified: true })
       .where(
@@ -164,6 +160,8 @@ export class ErrorRegressionsService {
           eq(errorRegressions.orgId, orgId),
           eq(errorRegressions.projectId, projectId),
         ),
-      );
+      )
+      .returning({ id: errorRegressions.id });
+    if (updated.length === 0) throw new NotFoundException("Error regression not found");
   }
 }

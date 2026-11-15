@@ -1,5 +1,5 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { SyntheticProbesRepository } from "./synthetic-probes.repository";
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { SyntheticProbesRepository, type ProbeScope } from "./synthetic-probes.repository";
 import { CreateSyntheticProbeInput, UpdateSyntheticProbeInput } from "./dto";
 import { URL } from "url";
 import { isIP } from "node:net";
@@ -79,25 +79,35 @@ export class SyntheticProbesService {
     return probes.map((probe) => this.withFreshStatus(probe));
   }
 
-  async getProbeById(id: number) {
-    const probe = await this.repository.getProbeById(id);
-    return probe ? this.withFreshStatus(probe) : probe;
+  async getProbeById(scope: ProbeScope, id: number) {
+    const probe = await this.repository.getProbeById(scope, id);
+    if (!probe) throw new NotFoundException("Probe not found");
+    return this.withFreshStatus(probe);
   }
 
-  async updateProbe(id: number, input: UpdateSyntheticProbeInput) {
+  async updateProbe(scope: ProbeScope, id: number, input: UpdateSyntheticProbeInput) {
     if (input.url) {
       this.validateProbeUrl(input.url);
       await assertPublicDns(new URL(input.url).hostname);
     }
-    return this.repository.updateProbe(id, input);
+    const probe = await this.repository.updateProbe(scope, id, input);
+    if (!probe) throw new NotFoundException("Probe not found");
+    return probe;
   }
 
-  async deleteProbe(id: number) {
-    return this.repository.deleteProbe(id);
+  async deleteProbe(scope: ProbeScope, id: number) {
+    if (!(await this.repository.deleteProbe(scope, id))) {
+      throw new NotFoundException("Probe not found");
+    }
   }
 
-  async getProbeResults(probeId: number, limit: number = 100) {
+  async getProbeResults(scope: ProbeScope, probeId: number, limit: number = 100) {
+    await this.getProbeById(scope, probeId);
     return this.repository.getProbeResults(probeId, limit);
+  }
+
+  async executeProbeById(scope: ProbeScope, id: number) {
+    return this.executeProbe(await this.getProbeById(scope, id));
   }
 
   async cleanupOldResults(daysOld: number = 30) {

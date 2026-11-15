@@ -3,15 +3,15 @@ import {
   Get,
   Post,
   Param,
+  ParseIntPipe,
   Query,
-  UnauthorizedException,
+  Body,
   UseGuards,
 } from "@nestjs/common";
 import {
   CurrentOrg,
   OrgContext,
 } from "../../../common/decorators/current-org.decorator";
-import { CurrentUser, type AuthUser } from "../../../common/decorators/current-user.decorator";
 import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
 import { ErrorRegressionsService } from "./error-regressions.service";
 
@@ -53,21 +53,20 @@ export class ErrorRegressionsController {
   @Post(":fingerprint/resolve")
   async markAsResolved(
     @CurrentOrg() org: OrgContext,
-    @CurrentUser() user: AuthUser | null,
     @Param("projectId") projectId: string,
     @Param("fingerprint") fingerprint: string,
+    @Body() body: { resolvedBy: string },
   ) {
-    if (!user) throw new UnauthorizedException("Sign in to resolve an error");
-    return this.service.markAsResolved(org.orgId, projectId, fingerprint, user.id);
+    return this.service.markAsResolved(org.orgId, projectId, fingerprint, body.resolvedBy);
   }
 
   @Post(":id/notified")
   async markNotified(
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
-    @Param("id") id: string,
+    @Param("id", ParseIntPipe) id: number,
   ) {
-    await this.service.markRegressionNotified(org.orgId, projectId, Number(id));
+    await this.service.markRegressionNotified(org.orgId, projectId, id);
     return { message: "Marked as notified" };
   }
 }

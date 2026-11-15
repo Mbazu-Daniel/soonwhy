@@ -46,7 +46,7 @@ export class AIInvestigationController {
     @CurrentOrg() org: OrgContext,
     @Param("investigationId") investigationId: string,
   ): { success: boolean } {
-    const success = this.investigationService.clearInvestigation(investigationId);
+    const success = this.investigationService.clearInvestigation(investigationId, org.orgId);
     return { success };
   }
 }

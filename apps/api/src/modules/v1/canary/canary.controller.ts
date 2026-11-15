@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Param,
+  ParseIntPipe,
   UseGuards,
 } from "@nestjs/common";
 import {
@@ -36,13 +37,21 @@ export class CanaryController {
   }
 
   @Post(":canaryId/run")
-  runCanary(@Param("canaryId") canaryId: string) {
-    return this.service.runCanary(Number(canaryId));
+  runCanary(
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+    @Param("canaryId", ParseIntPipe) canaryId: number,
+  ) {
+    return this.service.runCanary({ orgId: org.orgId, projectId }, canaryId);
   }
 
   @Get(":canaryId")
-  getCanary(@Param("canaryId") canaryId: string) {
-    return this.service.getCanary(Number(canaryId));
+  getCanary(
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+    @Param("canaryId", ParseIntPipe) canaryId: number,
+  ) {
+    return this.service.getCanary({ orgId: org.orgId, projectId }, canaryId);
   }
 
   @Get()

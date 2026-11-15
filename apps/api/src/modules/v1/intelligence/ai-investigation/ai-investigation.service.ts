@@ -160,7 +160,13 @@ export class AIInvestigationService {
     return investigationId;
   }
 
+  private ownedBy(investigationId: string, organizationId?: string): boolean {
+    const owner = this.organizationsByInvestigation.get(investigationId);
+    return !organizationId || !owner || owner === organizationId;
+  }
+
   async getInvestigationProgress(investigationId: string, organizationId?: string): Promise<InvestigationProgress | undefined> {
+    if (!this.ownedBy(investigationId, organizationId)) return undefined;
     const inMemory = this.investigations.get(investigationId);
     if (inMemory) return inMemory;
 
@@ -178,6 +184,7 @@ export class AIInvestigationService {
   }
 
   async getInvestigationResult(investigationId: string, organizationId?: string): Promise<InvestigationResult | undefined> {
+    if (!this.ownedBy(investigationId, organizationId)) return undefined;
     const inMemory = this.results.get(investigationId);
     if (inMemory) return inMemory;
 
@@ -477,7 +484,8 @@ export class AIInvestigationService {
     };
   }
 
-  clearInvestigation(investigationId: string): boolean {
+  clearInvestigation(investigationId: string, organizationId: string): boolean {
+    if (this.organizationsByInvestigation.get(investigationId) !== organizationId) return false;
     this.investigations.delete(investigationId);
     this.results.delete(investigationId);
     this.organizationsByInvestigation.delete(investigationId);

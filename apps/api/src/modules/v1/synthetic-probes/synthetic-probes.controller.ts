@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  ParseIntPipe,
   Query,
   UseGuards,
 } from "@nestjs/common";
@@ -47,36 +48,41 @@ export class SyntheticProbesController {
   @Get(":probeId")
   getProbe(
     @CurrentOrg() org: OrgContext,
-    @Param("probeId") probeId: string,
+    @Param("projectId") projectId: string,
+    @Param("probeId", ParseIntPipe) probeId: number,
   ) {
-    return this.service.getProbeById(Number(probeId));
+    return this.service.getProbeById({ orgId: org.orgId, projectId }, probeId);
   }
 
   @Put(":probeId")
   updateProbe(
     @CurrentOrg() org: OrgContext,
-    @Param("probeId") probeId: string,
+    @Param("projectId") projectId: string,
+    @Param("probeId", ParseIntPipe) probeId: number,
     @Body({ schema: UpdateSyntheticProbeDto }) body: UpdateSyntheticProbeInput,
   ) {
-    return this.service.updateProbe(Number(probeId), body);
+    return this.service.updateProbe({ orgId: org.orgId, projectId }, probeId, body);
   }
 
   @Delete(":probeId")
   deleteProbe(
     @CurrentOrg() org: OrgContext,
-    @Param("probeId") probeId: string,
+    @Param("projectId") projectId: string,
+    @Param("probeId", ParseIntPipe) probeId: number,
   ) {
-    return this.service.deleteProbe(Number(probeId));
+    return this.service.deleteProbe({ orgId: org.orgId, projectId }, probeId);
   }
 
   @Get(":probeId/results")
   getProbeResults(
     @CurrentOrg() org: OrgContext,
-    @Param("probeId") probeId: string,
+    @Param("projectId") projectId: string,
+    @Param("probeId", ParseIntPipe) probeId: number,
     @Query("limit") limit?: string,
   ) {
     return this.service.getProbeResults(
-      Number(probeId),
+      { orgId: org.orgId, projectId },
+      probeId,
       limit ? Number(limit) : 100,
     );
   }
@@ -84,10 +90,9 @@ export class SyntheticProbesController {
   @Post(":probeId/execute")
   executeProbe(
     @CurrentOrg() org: OrgContext,
-    @Param("probeId") probeId: string,
+    @Param("projectId") projectId: string,
+    @Param("probeId", ParseIntPipe) probeId: number,
   ) {
-    return this.service.getProbeById(Number(probeId)).then((probe) =>
-      this.service.executeProbe(probe),
-    );
+    return this.service.executeProbeById({ orgId: org.orgId, projectId }, probeId);
   }
 }

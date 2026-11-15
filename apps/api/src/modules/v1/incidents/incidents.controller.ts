@@ -4,6 +4,7 @@ import {
   Post,
   Put,
   Param,
+  ParseIntPipe,
   Query,
   Body,
   UseGuards,
@@ -45,17 +46,21 @@ export class IncidentsController {
 
   @Post(":id/acknowledge")
   async acknowledgeIncident(
-    @Param("id") id: string,
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+    @Param("id", ParseIntPipe) id: number,
     @Body() body: { acknowledgedBy: string; note?: string },
   ) {
-    return this.service.acknowledgeIncident(Number(id), body.acknowledgedBy, body.note);
+    return this.service.acknowledgeIncident({ orgId: org.orgId, projectId }, id, body.acknowledgedBy, body.note);
   }
 
   @Post(":id/resolve")
   async resolveIncident(
-    @Param("id") id: string,
+    @CurrentOrg() org: OrgContext,
+    @Param("projectId") projectId: string,
+    @Param("id", ParseIntPipe) id: number,
     @Body() body: { resolvedBy?: string; note?: string },
   ) {
-    return this.service.resolveIncident(Number(id), body.resolvedBy, body.note);
+    return this.service.resolveIncident({ orgId: org.orgId, projectId }, id, body.resolvedBy, body.note);
   }
 }
