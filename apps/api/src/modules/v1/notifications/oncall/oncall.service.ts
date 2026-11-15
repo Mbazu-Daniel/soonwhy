@@ -44,16 +44,18 @@ export class OnCallService {
       startedAt: new Date(),
     }));
 
-    for (const member of members) {
-      await db.insert(incidentOwnership).values({
-        orgId,
-        projectId,
-        incidentId: `oncall-${scheduleId}`,
-        ownerId: member.userId,
-        ownerName: member.userName,
-        assignedBy: "system",
-        assignedByName: "System",
-      });
+    if (members.length > 0) {
+      await db.insert(incidentOwnership).values(
+        members.map((member) => ({
+          orgId,
+          projectId,
+          incidentId: `oncall-${scheduleId}`,
+          ownerId: member.userId,
+          ownerName: member.userName,
+          assignedBy: "system",
+          assignedByName: "System",
+        })),
+      );
     }
 
     const schedule: OnCallSchedule = {

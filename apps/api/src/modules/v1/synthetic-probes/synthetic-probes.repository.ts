@@ -97,6 +97,35 @@ export class SyntheticProbesRepository {
     return probeResult;
   }
 
+  async getRecentResultsForProbes(probeIds: number[], limit: number = 100) {
+    const byProbe = new Map<number, (typeof syntheticProbeResults.$inferSelect)[]>();
+    if (probeIds.length === 0) return byProbe;
+    const result = await db.execute(sql`
+      select recent.id,
+             recent.probe_id as "probeId",
+             recent.status,
+             recent.status_code as "statusCode",
+             recent.response_time_ms as "responseTimeMs",
+             recent.error_message as "errorMessage",
+             recent.checked_at as "checkedAt"
+      from unnest(${sql.raw(`ARRAY[${probeIds.map((id) => Math.trunc(Number(id))).join(",")}]::int[]`)}) as probe(id)
+      cross join lateral (
+        select * from synthetic_probe_results
+        where probe_id = probe.id
+        order by checked_at desc
+        limit ${limit}
+      ) as recent
+      order by recent.checked_at desc
+    `);
+    const rows = (Array.isArray(result) ? result : (result as { rows?: unknown[] }).rows ?? []) as (typeof syntheticProbeResults.$inferSelect)[];
+    for (const row of rows) {
+      const list = byProbe.get(row.probeId) ?? [];
+      list.push({ ...row, checkedAt: new Date(row.checkedAt as unknown as string) });
+      byProbe.set(row.probeId, list);
+    }
+    return byProbe;
+  }
+
   async getProbeResults(probeId: number, limit: number = 100) {
     return db
       .select()

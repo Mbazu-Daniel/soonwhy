@@ -20,10 +20,15 @@ export class StatusPageController {
       (probe) => probe.enabled,
     );
 
+    const resultsByProbe = await this.probesRepository.getRecentResultsForProbes(
+      probes.map((probe) => probe.id),
+      100,
+    );
+
     const services = await Promise.all(
       probes.map(async (probe) => {
         const fresh = this.probesService.withFreshStatus(probe);
-        const results = await this.probesRepository.getProbeResults(probe.id, 100);
+        const results = resultsByProbe.get(probe.id) ?? [];
         const totalChecks = results.length;
         const failedChecks = results.filter((r) => r.status === "down").length;
         const uptimePercent = totalChecks > 0 ? Math.round(((totalChecks - failedChecks) / totalChecks) * 100) : 100;
