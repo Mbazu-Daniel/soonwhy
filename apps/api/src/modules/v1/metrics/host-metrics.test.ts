@@ -27,13 +27,14 @@ function level(key: string, values: Record<string, number>) {
 }
 
 describe("host metrics searches", () => {
-  it("reads the idle share for cpu and the used share for memory and disk", () => {
+  it("reads the idle share for cpu, the used share for memory, and disk as sent", () => {
     const { filter } = utilizationSearch(range);
     expect(filter).toContain(`"system.cpu.utilization"`);
     expect(filter).toContain(`attributes.state:"idle"`);
     expect(filter).toContain(`"system.memory.utilization"`);
-    expect(filter).toContain(`"system.filesystem.utilization"`);
-    expect(filter?.match(/attributes\.state:"used"/g)).toHaveLength(2);
+    expect(filter?.match(/attributes\.state:"used"/g)).toHaveLength(1);
+    expect(filter).toContain(`name:"system.filesystem.utilization"`);
+    expect(filter).not.toMatch(/filesystem\.utilization"\s+AND\s+attributes\.state/);
   });
 
   it("buckets by the requested interval and falls back to one minute", () => {
