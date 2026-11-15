@@ -20,6 +20,7 @@ import {
   auth,
   githubEnabled,
   googleEnabled,
+  oidcProvider,
 } from "../../../common/config/better-auth.config";
 import {
   signInSchema,
@@ -50,7 +51,26 @@ export class AuthController {
       emailAndPassword: true,
       google: googleEnabled,
       github: githubEnabled,
+      oidc: oidcProvider,
     };
+  }
+
+  @Get("sso")
+  @Throttle(AUTH_THROTTLE)
+  async ssoSignIn(
+    @Query("callbackURL") callbackURL: string | undefined,
+    @Res() response: Response,
+  ) {
+    if (!oidcProvider) {
+      throw new BadRequestException("Single sign-on is not configured");
+    }
+
+    return this.startSignIn(
+      oidcProvider.id,
+      callbackURL,
+      response,
+      "Unable to start single sign-on",
+    );
   }
 
   @Get("social/:provider")
@@ -71,18 +91,35 @@ export class AuthController {
       );
     }
 
-    const result = await auth.api.signInSocial({
+    return this.startSignIn(
+      provider,
+      callbackURL,
+      response,
+      "Unable to start social authentication",
+    );
+  }
+
+  private async startSignIn(
+    provider: string,
+    callbackURL: string | undefined,
+    response: Response,
+    failure: string,
+  ) {
+    const { headers, response: result } = await auth.api.signInSocial({
       body: {
         provider: provider as SocialProvider,
         callbackURL:
           callbackURL || process.env.FRONTEND_URL || "http://localhost:3000",
       },
+      returnHeaders: true,
     });
 
     if (!result?.url) {
-      throw new BadRequestException("Unable to start social authentication");
+      throw new BadRequestException(failure);
     }
 
+    const cookies = headers.getSetCookie();
+    if (cookies.length > 0) response.setHeader("Set-Cookie", cookies);
     return response.redirect(result.url);
   }
 

@@ -24,6 +24,7 @@ import { getPrometheusExporter } from "./common/telemetry/otel-metrics";
 import { PiiMaskingLogger } from "./common/privacy/pii-masking.logger";
 import { maskPii } from "./common/privacy/pii-masker";
 import { apiDocument } from "./common/openapi/document";
+import { authCallbackHandler } from "./common/config/auth-callback";
 
 async function bootstrap() {
   const app = await NestFactory.create<NestNodeApplication>(
@@ -44,6 +45,8 @@ async function bootstrap() {
       },
     }),
   );
+
+  app.use("/api/auth", authCallbackHandler);
 
   app.setGlobalPrefix("api/v1", { exclude: [{ path: "/", method: RequestMethod.GET }] });
 
