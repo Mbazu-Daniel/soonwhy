@@ -1,6 +1,6 @@
 import { Injectable, Logger, BeforeApplicationShutdown } from "@nestjs/common";
 import { Interval } from "@nestjs/schedule";
-import { DetectionService } from "./detection.service";
+import { DetectionRuns } from "./detection-runs.service";
 
 @Injectable()
 export class DetectionJobRunner implements BeforeApplicationShutdown {
@@ -9,14 +9,14 @@ export class DetectionJobRunner implements BeforeApplicationShutdown {
   private stopping = false;
   private current: Promise<unknown> = Promise.resolve();
 
-  constructor(private readonly detectionService: DetectionService) {}
+  constructor(private readonly detectionRuns: DetectionRuns) {}
 
   @Interval(1_000)
   async runQueuedJobs() {
     if (this.running || this.stopping) return;
     this.running = true;
     try {
-      this.current = this.detectionService.claimAndRunOne();
+      this.current = this.detectionRuns.runNext();
       await this.current;
     } catch (error) {
       this.logger.error(

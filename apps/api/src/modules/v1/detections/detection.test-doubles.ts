@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 import type { QuickwitService } from "@soonwhy/shared";
 import { DetectionPipeline } from "./detection.pipeline";
-import { DetectionService } from "./detection.service";
+import { DetectionRuns } from "./detection-runs.service";
 
 function detectorSettingsDouble(enabled = true) {
   return {
@@ -41,11 +41,11 @@ function detectionTelemetryDouble() {
   };
 }
 
-export function createDetectionService(
+export function createDetectionRuns(
   quickwit: QuickwitService,
   issueLifecycleService: unknown,
   options: { projectFound?: boolean } = {},
-): DetectionService {
+): DetectionRuns {
   const detectorSettings = detectorSettingsDouble();
   const detectionTelemetry = detectionTelemetryDouble();
   const pipeline = new DetectionPipeline(
@@ -56,9 +56,8 @@ export function createDetectionService(
     issueLifecycleService as never,
   );
 
-  return new DetectionService(
+  return new DetectionRuns(
     pipeline,
-    quickwit,
     {
       getProjectById: vi.fn().mockResolvedValue(
         options.projectFound === false
