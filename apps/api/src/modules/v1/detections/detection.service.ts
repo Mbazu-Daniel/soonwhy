@@ -1,11 +1,11 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { and, desc, eq } from 'drizzle-orm';
-import { QUICKWIT_INDEXES, QuickwitService } from '@soonwhy/shared';
+import { QuickwitService } from '@soonwhy/shared';
 import { DetectorSettingsService } from '../detector-settings/detector-settings.service';
 import { db } from '../../../common/db';
 import { findings } from '../../../common/db/schema/findings';
 import { quickwitSource, quickwitTerm } from '../../../common/quickwit/query';
-import type { DetectionFinding, RequestSource, TraceSource } from './detection.types';
+import type { RequestSource, TraceSource } from './detection.types';
 import { ProjectsRepository } from '../projects/projects.repository';
 import { searchTenant } from '../../../common/telemetry/tenant-search';
 

@@ -5,17 +5,8 @@ const record = vi.fn();
 
 vi.mock("./client", () => ({
   rawDb: {
-    select: () => ({
-      then: (onFulfilled: (value: string) => unknown, onRejected: unknown) =>
-        Promise.resolve("rows").then(onFulfilled, onRejected as never),
-    }),
-    insert: () => ({
-      then: (onFulfilled: unknown, onRejected: unknown) =>
-        Promise.reject(new Error("boom")).then(
-          onFulfilled as never,
-          onRejected as never,
-        ),
-    }),
+    select: () => Promise.resolve("rows"),
+    insert: () => Promise.reject(new Error("boom")),
     transaction: "not-a-function",
   },
 }));

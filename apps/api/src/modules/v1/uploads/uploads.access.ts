@@ -1,10 +1,7 @@
 import {
-  BadRequestException,
   ForbiddenException,
-  Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { and, eq } from "drizzle-orm";
 
 export interface UploadAccessActor {
   userId: string;
