@@ -3,7 +3,6 @@ import {
   pgTable,
   text,
   timestamp,
-  jsonb,
   index,
   boolean,
 } from "drizzle-orm/pg-core";

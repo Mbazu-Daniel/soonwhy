@@ -8,7 +8,6 @@ import {
   HttpStatus,
   UnauthorizedException,
   BadRequestException,
-  ForbiddenException,
   Logger,
 } from "@nestjs/common";
 import { Request, Response } from "express";
@@ -31,8 +30,7 @@ import type { IngestBatch, IngestItem, IngestSignal } from "../pipeline/types";
 import { parseTracesPayload } from "../parse/traces";
 import { parseLogsPayload } from "../parse/logs";
 import { parseMetricsPayload } from "../parse/metrics";
-import { decodeProtobufPayload, encodePartialSuccess } from "../parse/protobuf";
-import type { IngestPayload } from "../pipeline/types";
+import { decodeProtobufPayload } from "../parse/protobuf";
 
 type Signal = IngestSignal;
 

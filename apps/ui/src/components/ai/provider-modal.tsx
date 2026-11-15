@@ -85,11 +85,12 @@ export function ProviderModal({
 
   const load = useMutation({
     mutationFn: () =>
-      api.post<LiveModels>("/ai/models", {
-        ...(form.apiKey.trim() || !current
+      api.post<LiveModels>(
+        "/ai/models",
+        form.apiKey.trim() || !current
           ? { provider: form.provider, apiKey: form.apiKey.trim(), ...(isCustom ? { baseUrl: form.baseUrl.trim() } : {}) }
-          : { credentialId: current.id }),
-      }),
+          : { credentialId: current.id },
+      ),
     onSuccess: (result) => {
       setModels(result.models);
       if (!form.model && result.models[0]) set("model", result.models[0]);

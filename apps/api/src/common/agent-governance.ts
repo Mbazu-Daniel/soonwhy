@@ -173,7 +173,7 @@ export class AgentGovernance {
         /(password|passwd|secret|token|access_token|refresh_token)\s*[:=]\s*(?:"[^"]*"|'[^']*'|[^\s,;}]+)/gi,
         "$1: [REDACTED]",
       )
-      .replace(/Bearer\s+[A-Za-z0-9._~+\/-]+=*/gi, "Bearer [REDACTED]");
+      .replace(/Bearer\s+[A-Za-z0-9._~+/-]+=*/gi, "Bearer [REDACTED]");
   }
   redactSensitiveValue(value: unknown, enabled: boolean): unknown {
     if (!enabled) return value;

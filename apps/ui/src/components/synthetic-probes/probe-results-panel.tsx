@@ -23,7 +23,7 @@ interface ProbeResultsPanelProps {
 }
 
 export function ProbeResultsPanel({ projectId, probeId }: ProbeResultsPanelProps) {
-  const [limit, setLimit] = useState(100);
+  const [limit, _setLimit] = useState(100);
   const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d' | '30d'>('24h');
 
   const results = useQuery({

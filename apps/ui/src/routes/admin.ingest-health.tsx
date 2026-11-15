@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { RefreshCw, Activity, TrendingUp, AlertTriangle, Clock, Database } from 'lucide-react';
 import { Card, CardContent } from '~/components/ui/card';
 import { Button } from '~/components/ui/button';
-import { Skeleton } from '~/components/ui/skeleton';
 import { api } from '~/lib/api';
 
 export const Route = createFileRoute('/admin/ingest-health')({

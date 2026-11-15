@@ -70,7 +70,7 @@ export function createOpenTelemetryRuntime(
       ...(options.deployment
         ? { "deployment.version": options.deployment }
         : {}),
-      ...(options.resourceAttributes ?? {}),
+      ...options.resourceAttributes,
     }),
   );
 

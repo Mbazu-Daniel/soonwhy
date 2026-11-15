@@ -137,8 +137,8 @@ function toAttributes(
     ...(resource?.deploymentEnvironment
       ? { "deployment.environment.name": resource.deploymentEnvironment }
       : {}),
-    ...(resource?.attributes ?? {}),
-    ...(attributes ?? {}),
+    ...resource?.attributes,
+    ...attributes,
   };
 
   const sanitized = sanitizeAttributes(

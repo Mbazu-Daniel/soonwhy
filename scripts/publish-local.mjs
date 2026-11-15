@@ -12,7 +12,7 @@ if (!packageName) {
   throw new Error('Usage: pnpm publish:local --package <package-name>');
 }
 
-const packageJsonPath = resolve(root, 'packages', packageName.replace(/^@[^/]+\//, '').replace(/^soonwhy-/, packageName.startsWith('@') ? '' : 'soonwhy-'), 'package.json');
+const _packageJsonPath = resolve(root, 'packages', packageName.replace(/^@[^/]+\//, '').replace(/^soonwhy-/, packageName.startsWith('@') ? '' : 'soonwhy-'), 'package.json');
 
 let packageDir = resolve(root, 'packages', packageName);
 try {
