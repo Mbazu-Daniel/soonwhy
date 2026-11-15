@@ -1,4 +1,3 @@
-
 receivers:
   otlp:
     protocols:
@@ -7,49 +6,69 @@ receivers:
       http:
         endpoint: 0.0.0.0:4318
 
-  host_metrics:
+  hostmetrics:
     root_path: /rootfs
     collection_interval: 30s
     scrapers:
       cpu:
+        metrics:
+          system.cpu.utilization:
+            enabled: true
       memory:
-      filesystem:
+        metrics:
+          system.memory.utilization:
+            enabled: true
       network:
-      load:
-      disk:
+        include:
+          match_type: regexp
+          interfaces: ["^(eth|en|wl)[a-zA-Z0-9]*$"]
+      filesystem:
+        metrics:
+          system.filesystem.utilization:
+            enabled: true
+        exclude_fs_types:
+          match_type: strict
+          fs_types: [autofs, binfmt_misc, bpf, cgroup2, configfs, debugfs, devpts, devtmpfs, fusectl, hugetlbfs, mqueue, nsfs, overlay, proc, procfs, pstore, rpc_pipefs, securityfs, selinuxfs, squashfs, sysfs, tmpfs, tracefs]
+        exclude_mount_points:
+          match_type: regexp
+          mount_points: ["/dev/.*", "/proc/.*", "/sys/.*", "/run/.*", "/var/lib/docker/.*"]
 
 processors:
   memory_limiter:
     check_interval: 1s
     limit_mib: 512
-
-  batch:
-    timeout: 1s
-    send_batch_size: 1024
-
+  cumulativetodelta:
+    include:
+      match_type: strict
+      metrics: [system.network.io]
   resource:
     attributes:
       - key: service.name
         value: soonwhy-host
         action: upsert
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
 
 exporters:
-  otlp_http/soonwhy:
-    endpoint: http://host.docker.internal:8081/api/v1/telemetry
+  otlphttp/soonwhy:
+    endpoint: ${env:SOONWHY_INGEST_URL:-http://host.docker.internal:3002}
+    headers:
+      authorization: Bearer ${env:SOONWHY_API_KEY}
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [otlp_http/soonwhy]
+      exporters: [otlphttp/soonwhy]
 
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [otlp_http/soonwhy]
+      exporters: [otlphttp/soonwhy]
 
     metrics:
-      receivers: [otlp, host_metrics]
-      processors: [memory_limiter, resource, batch]
-      exporters: [otlp_http/soonwhy]
+      receivers: [otlp, hostmetrics]
+      processors: [memory_limiter, cumulativetodelta, resource, batch]
+      exporters: [otlphttp/soonwhy]
