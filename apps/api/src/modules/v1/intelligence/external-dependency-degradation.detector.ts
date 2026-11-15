@@ -5,8 +5,6 @@ const MIN_SAMPLES = 5;
 const LATENCY_THRESHOLD_MS = 500;
 const LATENCY_REGRESSION_PERCENT = 50;
 const ERROR_RATE_THRESHOLD = 0.1;
-const CRITICAL_ERROR_RATE = 0.5;
-const CRITICAL_P95_DURATION_MS = 1000;
 
 export interface ExternalDependencyTrace {
   timestamp: string;
