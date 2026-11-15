@@ -5,13 +5,13 @@ import {
   Param,
   ParseIntPipe,
   Query,
-  Body,
   UseGuards,
 } from "@nestjs/common";
 import {
   CurrentOrg,
   OrgContext,
 } from "../../../common/decorators/current-org.decorator";
+import { actorLabel, AuthUser, CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
 import { ErrorRegressionsService } from "./error-regressions.service";
 
@@ -55,9 +55,9 @@ export class ErrorRegressionsController {
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
     @Param("fingerprint") fingerprint: string,
-    @Body() body: { resolvedBy: string },
+    @CurrentUser() user: AuthUser | null,
   ) {
-    return this.service.markAsResolved(org.orgId, projectId, fingerprint, body.resolvedBy);
+    return this.service.markAsResolved(org.orgId, projectId, fingerprint, actorLabel(user));
   }
 
   @Post(":id/notified")

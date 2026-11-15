@@ -21,3 +21,7 @@ export const CurrentUser = createParamDecorator(
     return data ? user[data] : user;
   },
 );
+
+export function actorLabel(user: Pick<AuthUser, "name" | "email"> | null | undefined): string {
+  return user?.name?.trim() || user?.email || "unknown";
+}

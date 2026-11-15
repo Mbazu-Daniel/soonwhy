@@ -13,6 +13,7 @@ import {
   CurrentOrg,
   OrgContext,
 } from "../../../common/decorators/current-org.decorator";
+import { actorLabel, AuthUser, CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
 import { IncidentsService } from "./incidents.service";
 
@@ -49,9 +50,10 @@ export class IncidentsController {
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
     @Param("id", ParseIntPipe) id: number,
-    @Body() body: { acknowledgedBy: string; note?: string },
+    @CurrentUser() user: AuthUser | null,
+    @Body() body: { note?: string },
   ) {
-    return this.service.acknowledgeIncident({ orgId: org.orgId, projectId }, id, body.acknowledgedBy, body.note);
+    return this.service.acknowledgeIncident({ orgId: org.orgId, projectId }, id, actorLabel(user), body?.note);
   }
 
   @Post(":id/resolve")
@@ -59,8 +61,9 @@ export class IncidentsController {
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
     @Param("id", ParseIntPipe) id: number,
-    @Body() body: { resolvedBy?: string; note?: string },
+    @CurrentUser() user: AuthUser | null,
+    @Body() body: { note?: string },
   ) {
-    return this.service.resolveIncident({ orgId: org.orgId, projectId }, id, body.resolvedBy, body.note);
+    return this.service.resolveIncident({ orgId: org.orgId, projectId }, id, actorLabel(user), body?.note);
   }
 }
