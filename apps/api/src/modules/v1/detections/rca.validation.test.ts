@@ -83,4 +83,40 @@ describe("validateRcaAnalysis", () => {
       ),
     ).toThrow("unknown evidence ID");
   });
+
+  it("accepts the bare id of a supplied finding", () => {
+    const result = validateRcaAnalysis(
+      {
+        summary: "Checkout latency increased.",
+        rootCause: "The dependency slowed down.",
+        contributingFactors: [],
+        investigationSteps: [],
+        suggestedChanges: [],
+        evidenceRefs: ["finding_latency", "finding_dependency:0"],
+        confidence: "low",
+        limitations: ["Insufficient evidence."],
+      },
+      evidence,
+    );
+
+    expect(result.evidenceRefs).toEqual(["finding_latency", "finding_dependency:0"]);
+  });
+
+  it("still rejects a bare id that belongs to no supplied finding", () => {
+    expect(() =>
+      validateRcaAnalysis(
+        {
+          summary: "Checkout latency increased.",
+          rootCause: "Unknown.",
+          contributingFactors: [],
+          investigationSteps: [],
+          suggestedChanges: [],
+          evidenceRefs: ["finding_other"],
+          confidence: "low",
+          limitations: ["Insufficient evidence."],
+        },
+        evidence,
+      ),
+    ).toThrow("unknown evidence ID");
+  });
 });
