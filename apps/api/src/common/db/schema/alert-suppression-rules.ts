@@ -4,8 +4,7 @@ import {
   text,
   timestamp,
   jsonb,
-  boolean,
-} from "drizzle-orm/pg-core";
+  boolean, index } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
 import { projects } from "./projects";
 
@@ -37,4 +36,7 @@ export const alertSuppressionRules = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
+  (table) => [
+    index("alert_suppression_rules_org_project_idx").on(table.orgId, table.projectId),
+  ],
 );

@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, integer, boolean, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, timestamp, integer, boolean, jsonb, index } from 'drizzle-orm/pg-core';
 
 export const errorRegressions = pgTable('error_regressions', {
   id: serial('id').primaryKey(),
@@ -25,4 +25,6 @@ export const errorRegressions = pgTable('error_regressions', {
   metadata: jsonb('metadata'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
-});
+}, (table) => [
+  index('error_regressions_org_project_fp_idx').on(table.orgId, table.projectId, table.fingerprint),
+]);

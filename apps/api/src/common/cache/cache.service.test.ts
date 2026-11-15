@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { CacheService } from "./cache.service";
+import { CacheService, jitteredTtl } from "./cache.service";
 
 function redisStub(overrides: Record<string, unknown> = {}) {
   return {
@@ -47,9 +47,12 @@ describe("CacheService", () => {
 
     expect(redis.setex).toHaveBeenCalledWith(
       "soonwhy:overview",
-      30,
+      expect.any(Number),
       JSON.stringify({ score: 9 }),
     );
+    const ttl = redis.setex.mock.calls[0]![1] as number;
+    expect(ttl).toBeGreaterThanOrEqual(27);
+    expect(ttl).toBeLessThanOrEqual(33);
   });
 
   it("does not write values with a non-positive ttl", async () => {
@@ -73,9 +76,12 @@ describe("CacheService", () => {
     expect(value).toEqual({ score: 9 });
     expect(redis.setex).toHaveBeenCalledWith(
       "soonwhy:overview",
-      30,
+      expect.any(Number),
       JSON.stringify({ score: 9 }),
     );
+    const ttl = redis.setex.mock.calls[0]![1] as number;
+    expect(ttl).toBeGreaterThanOrEqual(27);
+    expect(ttl).toBeLessThanOrEqual(33);
   });
 
   it("returns a cached value without invoking the loader", async () => {
@@ -119,5 +125,38 @@ describe("CacheService", () => {
       status: "unavailable",
       error: "down",
     });
+  });
+
+  it("runs the loader once when many callers miss the same key at the same time", async () => {
+    const redis = redisStub({ get: vi.fn().mockResolvedValue(null), setex: vi.fn().mockResolvedValue("OK") });
+    const cache = new CacheService(redis as never);
+    let release: (value: string) => void = () => undefined;
+    const load = vi.fn().mockImplementation(() => new Promise<string>((resolve) => { release = resolve; }));
+
+    const calls = Promise.all([1, 2, 3, 4, 5].map(() => cache.getOrSet("overview", 60, load)));
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    release("value");
+
+    await expect(calls).resolves.toEqual(Array(5).fill("value"));
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(redis.setex).toHaveBeenCalledTimes(1);
+  });
+
+  it("lets the next call load again after a failed load", async () => {
+    const redis = redisStub({ get: vi.fn().mockResolvedValue(null), setex: vi.fn().mockResolvedValue("OK") });
+    const cache = new CacheService(redis as never);
+    const load = vi.fn().mockRejectedValueOnce(new Error("down")).mockResolvedValueOnce("ok");
+
+    await expect(cache.getOrSet("k", 60, load)).rejects.toThrow("down");
+    await expect(cache.getOrSet("k", 60, load)).resolves.toBe("ok");
+  });
+});
+
+describe("jitteredTtl", () => {
+  it("stays within ten percent of the ttl and never below one second", () => {
+    expect(jitteredTtl(100, () => 0)).toBe(90);
+    expect(jitteredTtl(100, () => 0.999)).toBe(110);
+    expect(jitteredTtl(1)).toBe(1);
+    expect(jitteredTtl(5, () => 0)).toBeGreaterThanOrEqual(1);
   });
 });

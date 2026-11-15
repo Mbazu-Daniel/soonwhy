@@ -2,6 +2,12 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 import { Redis } from "ioredis";
 import { CACHE_KEY_PREFIX } from "./cache.constants";
 
+export function jitteredTtl(ttlSeconds: number, random: () => number = Math.random): number {
+  if (ttlSeconds <= 1) return ttlSeconds;
+  const spread = Math.max(1, Math.round(ttlSeconds * 0.1));
+  return Math.max(1, ttlSeconds - spread + Math.floor(random() * (2 * spread + 1)));
+}
+
 export interface CacheHealth {
   status: "ok" | "unavailable";
   latencyMs: number;
@@ -11,6 +17,7 @@ export interface CacheHealth {
 @Injectable()
 export class CacheService {
   private readonly logger = new Logger(CacheService.name);
+  private readonly inFlight = new Map<string, Promise<unknown>>();
 
   constructor(@Inject(Redis) private readonly redis: Redis) {}
 
@@ -71,9 +78,16 @@ export class CacheService {
     const cached = await this.getJson<T>(key);
     if (cached !== null) return cached;
 
-    const value = await load();
-    await this.setJson(key, value, ttlSeconds);
-    return value;
+    const running = this.inFlight.get(key) as Promise<T> | undefined;
+    if (running) return running;
+
+    const task = (async () => {
+      const value = await load();
+      await this.setJson(key, value, jitteredTtl(ttlSeconds));
+      return value;
+    })().finally(() => this.inFlight.delete(key));
+    this.inFlight.set(key, task);
+    return task;
   }
 
   async health(): Promise<CacheHealth> {

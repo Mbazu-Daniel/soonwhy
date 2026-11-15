@@ -22,7 +22,10 @@ export const syntheticProbes = pgTable('synthetic_probes', {
   failedChecks: integer('failed_checks').default(0),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
-});
+}, (table) => [
+  index('synthetic_probes_org_project_idx').on(table.orgId, table.projectId),
+  index('synthetic_probes_enabled_last_check_idx').on(table.enabled, table.lastCheckAt),
+]);
 
 export const syntheticProbeResults = pgTable('synthetic_probe_results', {
   id: serial('id').primaryKey(),

@@ -1,5 +1,5 @@
 import { generateId } from "../generate-id";
-import { jsonb, pgTable, text, timestamp, real } from "drizzle-orm/pg-core";
+import { jsonb, pgTable, text, timestamp, real, index } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
 import { projects } from "./projects";
 import { services } from "./services";
@@ -36,4 +36,6 @@ export const findings = pgTable("findings", {
   windowEnd: timestamp("window_end").notNull(),
   detectedAt: timestamp("detected_at").defaultNow().notNull(),
   evidence: jsonb("evidence").$type<DetectionEvidence[]>().notNull(),
-});
+}, (table) => [
+  index("findings_org_project_idx").on(table.orgId, table.projectId),
+]);

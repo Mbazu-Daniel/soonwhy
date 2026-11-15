@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, boolean, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, timestamp, boolean, jsonb, index } from 'drizzle-orm/pg-core';
 
 export const incidents = pgTable('incidents', {
   id: serial('id').primaryKey(),
@@ -22,4 +22,7 @@ export const incidents = pgTable('incidents', {
   lastEvaluatedAt: timestamp('last_evaluated_at').notNull().defaultNow(),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
-});
+}, (table) => [
+  index('incidents_org_project_status_idx').on(table.orgId, table.projectId, table.status),
+  index('incidents_alert_rule_status_idx').on(table.alertRuleId, table.status),
+]);

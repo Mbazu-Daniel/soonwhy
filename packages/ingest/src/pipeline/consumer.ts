@@ -22,7 +22,7 @@ import type {
 } from "../interfaces";
 import { DlqRepository } from "./dlq.repository";
 import { IngestReceiptRepository, ReceiptBusyError } from "./receipt.repository";
-import { CLAIM_LEASE_MS, DLQ_SUBJECT_PREFIX, MAX_DELIVERY_ATTEMPTS } from "./constants";
+import { CLAIM_LEASE_MS, DLQ_SUBJECT_PREFIX, MAX_DELIVERY_ATTEMPTS, retryDelayMs } from "./constants";
 import type { IngestPayload, IngestSignal } from "./types";
 
 type JsMsg = Parameters<NatsMessageHandler>[0];
@@ -121,7 +121,7 @@ export class IngestConsumer implements OnModuleInit {
         msg.ack();
         this.metrics.recordDlq(1);
       } else {
-        msg.nak(1000 * deliveryCount);
+        msg.nak(retryDelayMs(deliveryCount));
       }
     }
   }

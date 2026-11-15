@@ -1,5 +1,5 @@
 import { generateId } from "../generate-id";
-import { pgTable, integer, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, integer, text, timestamp, index } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
 import { projects } from "./projects";
 
@@ -21,4 +21,6 @@ export const detectionRuns = pgTable("detection_runs", {
   startedAt: timestamp("started_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
   error: text("error"),
-});
+}, (table) => [
+  index("detection_runs_status_started_idx").on(table.status, table.startedAt),
+]);

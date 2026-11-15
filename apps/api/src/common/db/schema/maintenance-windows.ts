@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, boolean, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, timestamp, boolean, jsonb, index } from 'drizzle-orm/pg-core';
 
 export const maintenanceWindows = pgTable('maintenance_windows', {
   id: serial('id').primaryKey(),
@@ -14,4 +14,6 @@ export const maintenanceWindows = pgTable('maintenance_windows', {
   recurringSchedule: jsonb('recurring_schedule'), // Optional recurring schedule (daily, weekly, etc.)
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
-});
+}, (table) => [
+  index('maintenance_windows_org_project_idx').on(table.orgId, table.projectId),
+]);
