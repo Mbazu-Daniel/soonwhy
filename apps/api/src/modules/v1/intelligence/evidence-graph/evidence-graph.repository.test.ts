@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
 import { EvidenceGraphRepository } from "./evidence-graph.repository";
-import type { EvidenceNode, EvidenceEdge } from "./evidence-graph.types";
+import type { EvidenceNode } from "./evidence-graph.types";
 
 describe("EvidenceGraphRepository", () => {
   let repository: EvidenceGraphRepository;

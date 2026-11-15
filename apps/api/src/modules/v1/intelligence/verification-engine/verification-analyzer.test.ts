@@ -4,7 +4,7 @@ import {
   checkRegression,
   verifyRecommendation,
 } from "./verification-analyzer";
-import type { VerificationRequest, MetricSnapshot } from "./verification-engine.types";
+import type { VerificationRequest } from "./verification-engine.types";
 
 describe("VerificationAnalyzer", () => {
   describe("verifyChange", () => {

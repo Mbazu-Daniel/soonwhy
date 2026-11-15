@@ -1,6 +1,5 @@
 import {
   createTelemetryIdentity,
-  fingerprintDependency,
 } from "@soonwhy/shared";
 import type {
   LatencyFinding,
@@ -30,7 +29,7 @@ export function detectLockWaitTime(
   lockType: "database_lock" | "mutex" | "semaphore" | "file_lock",
   resourceName?: string,
   serviceName?: string,
-  config: PerformanceDetectionConfig = DEFAULT_CONFIG,
+  _config: PerformanceDetectionConfig = DEFAULT_CONFIG,
 ): LatencyFinding | undefined {
   if (waitTimeMs < 100) return undefined;
 
@@ -77,7 +76,7 @@ export function detectConnectionPoolSaturation(
   poolType: "database" | "http" | "redis" | "grpc",
   poolName: string,
   serviceName?: string,
-  config: PerformanceDetectionConfig = DEFAULT_CONFIG,
+  _config: PerformanceDetectionConfig = DEFAULT_CONFIG,
 ): ResourceFinding | undefined {
   const utilization = poolMetrics.activeConnections / poolMetrics.maxConnections;
 
@@ -128,7 +127,7 @@ export function detectGcPressure(
     heapLimitMB: number;
   },
   serviceName?: string,
-  config: PerformanceDetectionConfig = DEFAULT_CONFIG,
+  _config: PerformanceDetectionConfig = DEFAULT_CONFIG,
 ): ResourceFinding | undefined {
   const heapUtilization = gcMetrics.heapSizeMB / gcMetrics.heapLimitMB;
 

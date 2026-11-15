@@ -44,7 +44,7 @@ export class InvestigationService {
     const snapshot = investigation.evidenceSnapshot as InvestigationSnapshot;
 
     const finding: InvestigationGraphFindingData = {
-      ...(snapshot.finding ?? {}),
+      ...snapshot.finding,
       id: investigation.findingId,
       serviceName: snapshot.finding?.serviceName ?? investigation.serviceName,
     };

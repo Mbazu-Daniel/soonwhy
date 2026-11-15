@@ -1,5 +1,4 @@
 import { pgTable, serial, text, timestamp, integer, jsonb, boolean, index } from 'drizzle-orm/pg-core';
-import { sql } from 'drizzle-orm';
 
 export const deadLetterQueue = pgTable('dead_letter_queue', {
   id: serial('id').primaryKey(),

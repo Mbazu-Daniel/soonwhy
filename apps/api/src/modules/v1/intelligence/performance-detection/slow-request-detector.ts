@@ -1,6 +1,5 @@
 import {
   createTelemetryIdentity,
-  fingerprintRoute,
 } from "@soonwhy/shared";
 import type {
   LatencyFinding,
@@ -34,7 +33,7 @@ export function detectSlowRequests(
     timestamp: string;
   }>,
   slowThresholdMs: number = 1000,
-  config: PerformanceDetectionConfig = DEFAULT_CONFIG,
+  _config: PerformanceDetectionConfig = DEFAULT_CONFIG,
 ): LatencyFinding[] {
   const findings: LatencyFinding[] = [];
 

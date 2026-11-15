@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
+import { QuickwitService } from "@soonwhy/shared";
 import {
   quickwitTimestamp,
 } from "../../../common/quickwit/query";

@@ -4,7 +4,6 @@ import type {
 } from "./runtime-intelligence.types";
 import {
   createTelemetryIdentity,
-  fingerprintHost,
 } from "@soonwhy/shared";
 
 export function aggregateRuntimeMetrics(
@@ -29,7 +28,7 @@ export function aggregateRuntimeMetrics(
 
   const sumCpu = metrics.reduce((sum, m) => sum + m.cpuUsagePercent, 0);
   const sumHeapUsed = metrics.reduce((sum, m) => sum + m.heapUsedMB, 0);
-  const sumHeapTotal = metrics.reduce((sum, m) => sum + m.heapTotalMB, 0);
+  const _sumHeapTotal = metrics.reduce((sum, m) => sum + m.heapTotalMB, 0);
   const sumHeapLimit = metrics.reduce((sum, m) => sum + m.heapLimitMB, 0);
   const sumEventLoop = metrics.reduce((sum, m) => sum + m.eventLoopLagMs, 0);
   const sumGcPause = metrics.reduce((sum, m) => sum + m.gcPauseTimeMs, 0);

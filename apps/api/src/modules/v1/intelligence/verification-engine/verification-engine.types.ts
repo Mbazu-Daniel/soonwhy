@@ -1,4 +1,3 @@
-import type { TelemetryIdentity } from "@soonwhy/shared";
 
 export interface MetricSnapshot {
   timestamp: string;

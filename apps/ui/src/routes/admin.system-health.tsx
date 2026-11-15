@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { RefreshCw, Server, Database, HardDrive, Activity, AlertTriangle, CheckCircle } from 'lucide-react';
+import { RefreshCw, Server, Database, HardDrive, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Card, CardContent } from '~/components/ui/card';
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';

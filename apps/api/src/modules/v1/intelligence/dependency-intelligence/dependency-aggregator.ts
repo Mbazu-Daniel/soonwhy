@@ -1,5 +1,5 @@
 import type { DependencyCall, DependencyAggregation } from "./dependency-intelligence.types";
-import { createTelemetryIdentity, fingerprintDependency } from "@soonwhy/shared";
+import { createTelemetryIdentity } from "@soonwhy/shared";
 
 export function aggregateDependencyCalls(
   calls: DependencyCall[],

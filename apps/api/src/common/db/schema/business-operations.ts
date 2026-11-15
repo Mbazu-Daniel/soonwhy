@@ -1,5 +1,5 @@
 import { generateId } from "../generate-id";
-import { pgTable, uniqueIndex, text, timestamp, integer, real } from "drizzle-orm/pg-core";
+import { pgTable, uniqueIndex, text, timestamp, real } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
 import { projects } from "./projects";
 import { services } from "./services";

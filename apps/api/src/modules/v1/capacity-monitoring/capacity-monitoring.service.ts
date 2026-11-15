@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { capacityMetrics } from "../../../common/db/schema";
 import { db } from "../../../common/db";
-import { eq, and, gt, lt, desc, avg, or } from "drizzle-orm";
+import { eq, and, gt, desc, or } from "drizzle-orm";
 
 interface CapacityThresholds {
   cpuWarningPercent: number;

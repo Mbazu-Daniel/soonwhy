@@ -6,7 +6,6 @@ import {
 import { OrganizationsService } from "./organizations.service";
 import { OrganizationsRepository } from "./organizations.repository";
 import { ProjectsModule } from "../projects/projects.module";
-import { ProjectsRepository } from "../projects/projects.repository";
 
 @Module({
   imports: [ProjectsModule],

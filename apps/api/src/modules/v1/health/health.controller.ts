@@ -3,7 +3,7 @@ import {
   Get,
   ServiceUnavailableException,
 } from "@nestjs/common";
-import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import { ApiTags } from "@nestjs/swagger";
 import { SkipThrottle } from "@nestjs/throttler";
 import { HealthService } from "./health.service";
 import { SKIP_ALL_THROTTLERS } from "../../../common/throttling/throttling.constants";

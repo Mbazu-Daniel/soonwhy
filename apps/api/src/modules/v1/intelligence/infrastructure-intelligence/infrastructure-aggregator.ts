@@ -1,5 +1,5 @@
 import type { InfrastructureMetrics, InfrastructureAggregation } from "./infrastructure-intelligence.types";
-import { createTelemetryIdentity, fingerprintHost } from "@soonwhy/shared";
+import { createTelemetryIdentity } from "@soonwhy/shared";
 
 export function aggregateInfrastructureMetrics(
   metrics: InfrastructureMetrics[],

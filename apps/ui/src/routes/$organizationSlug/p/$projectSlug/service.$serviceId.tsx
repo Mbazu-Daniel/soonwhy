@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Activity, ArrowLeft, ExternalLink, Users, GitBranch, Database, AlertTriangle, FileText, Clock3 } from 'lucide-react';
+import { Activity, ArrowLeft, ExternalLink, GitBranch, Database, AlertTriangle, FileText, Clock3 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Badge } from '~/components/ui/badge';
 import { Skeleton } from '~/components/ui/skeleton';

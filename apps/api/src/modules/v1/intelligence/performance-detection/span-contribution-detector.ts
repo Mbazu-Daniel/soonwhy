@@ -1,6 +1,5 @@
 import {
   createTelemetryIdentity,
-  fingerprintSpan,
 } from "@soonwhy/shared";
 import type {
   SpanFinding,

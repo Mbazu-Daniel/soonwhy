@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
+import { QuickwitService } from "@soonwhy/shared";
 import { quickwitSource } from "../../../common/quickwit/query";
 import { CacheService } from "../../../common/cache/cache.service";
 import { CACHE_TTL_SECONDS } from "../../../common/cache/cache.constants";

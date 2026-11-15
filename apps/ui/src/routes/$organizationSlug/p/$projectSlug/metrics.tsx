@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { EmptyProject } from '~/components/empty-state';
 import { metricsInterval } from '~/lib/metrics-interval';
 import { useRequestSummary } from '~/lib/use-request-summary';
-import { statusShare, type RequestSummary } from '~/lib/request-summary';
+import { statusShare } from '~/lib/request-summary';
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/metrics')({
   component: MetricsPage,
@@ -89,7 +89,6 @@ function MetricsPage() {
   const statusCodes = summary?.statusCodes ?? { _2xx: 0, _3xx: 0, _4xx: 0, _5xx: 0 };
 
   const hostBuckets = hostData?.buckets ?? [];
-  const latestHost = hostBuckets[hostBuckets.length - 1];
   const avgCpu = hostBuckets.length ? hostBuckets.reduce((sum, b) => sum + b.cpu_percent, 0) / hostBuckets.length : 0;
   const avgMemory = hostBuckets.length ? hostBuckets.reduce((sum, b) => sum + b.memory_percent, 0) / hostBuckets.length : 0;
   const avgDisk = hostBuckets.length ? hostBuckets.reduce((sum, b) => sum + b.disk_percent, 0) / hostBuckets.length : 0;

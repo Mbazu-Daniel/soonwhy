@@ -1,10 +1,8 @@
 import {
   createTelemetryIdentity,
-  fingerprintRoute,
 } from "@soonwhy/shared";
 import type {
   LatencyFinding,
-  PerformanceBaseline,
   PerformanceDetectionConfig,
 } from "./performance-detection.types";
 

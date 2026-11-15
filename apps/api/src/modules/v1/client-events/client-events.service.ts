@@ -2,11 +2,6 @@ import { Injectable, Logger } from "@nestjs/common";
 import { QuickwitService, QUICKWIT_INDEXES } from "@soonwhy/shared";
 import { ClientEventInput } from "./dto";
 
-interface ValidatedKey {
-  projectId: string;
-  scopes: string[];
-}
-
 @Injectable()
 export class ClientEventsService {
   private readonly logger = new Logger(ClientEventsService.name);

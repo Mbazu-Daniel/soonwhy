@@ -1,5 +1,4 @@
 import { eq } from 'drizzle-orm';
-import { QUICKWIT_INDEXES } from '@soonwhy/shared';
 import { db } from '../../../common/db';
 import { deployments, services } from '../../../common/db/schema';
 import { quickwitSource } from '../../../common/quickwit/query';

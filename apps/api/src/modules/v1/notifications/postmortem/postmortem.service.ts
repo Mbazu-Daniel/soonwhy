@@ -35,9 +35,9 @@ export class PostmortemService {
   }
 
   async getPostmortem(
-    orgId: string,
-    projectId: string,
-    incidentId: string,
+    _orgId: string,
+    _projectId: string,
+    _incidentId: string,
   ): Promise<PostmortemRecord | undefined> {
     return undefined;
   }
@@ -56,9 +56,9 @@ export class PostmortemService {
   }
 
   async getActionItems(
-    orgId: string,
-    projectId: string,
-    postmortemId: string,
+    _orgId: string,
+    _projectId: string,
+    _postmortemId: string,
   ): Promise<ActionItemRecord[]> {
     return [];
   }

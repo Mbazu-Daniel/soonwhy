@@ -426,21 +426,6 @@ function Evidence({ label, value }: { label: string; value: string }) {
   );
 }
 
-function InvestigationRow({ number, icon: Icon, title, text }: { number: string; icon: typeof BrainCircuit; title: string; text: string }) {
-  return (
-    <div className="grid gap-5 border-b border-white/10 py-8 sm:grid-cols-[48px_1fr]">
-      <div className="flex items-start justify-between sm:block">
-        <span className="font-mono text-[10px] text-[#8BD125]">{number}</span>
-        <Icon className="h-4 w-4 text-[#8BD125] sm:mt-5" />
-      </div>
-      <div>
-        <h3 className="geom-font text-2xl sm:text-3xl">{title}</h3>
-        <p className="mt-4 max-w-2xl text-sm leading-7 text-white/40">{text}</p>
-      </div>
-    </div>
-  );
-}
-
 function LogPrinciple({ number, title, text }: { number: string; title: string; text: string }) {
   return (
     <div className="grid gap-4 py-7 sm:grid-cols-[48px_1fr]">

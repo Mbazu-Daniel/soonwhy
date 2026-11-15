@@ -1,4 +1,3 @@
-import { percentile } from './percentile';
 export type DatabaseQuerySeverity = "warning" | "critical";
 
 export interface DatabaseQueryDistribution {

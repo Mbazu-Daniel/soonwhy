@@ -8,7 +8,7 @@
     "dev:all": "turbo dev",
     "build": "turbo build",
     "test": "pnpm --filter @soonwhy/shared build && pnpm --filter @soonwhy/node build && vitest",
-    "lint": "oxlint",
+    "lint": "oxlint --deny-warnings",
     "format": "oxfmt",
     "verify:migrations": "node scripts/verify-migrations.mjs",
     "prepare": "husky",

@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { QUICKWIT_INDEXES, QuickwitService } from "@soonwhy/shared";
+import { QuickwitService } from "@soonwhy/shared";
 import { quickwitSource } from "../../../common/quickwit/query";
 import { ServicesRepository } from "./services.repository";
 import { CreateServiceInput, UpdateServiceInput } from "./dto";

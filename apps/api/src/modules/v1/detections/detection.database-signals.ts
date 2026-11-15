@@ -1,4 +1,3 @@
-import { QUICKWIT_INDEXES } from '@soonwhy/shared';
 import { quickwitSource } from '../../../common/quickwit/query';
 import { detectDatabaseQueries, type DatabaseQueryTrace } from '../intelligence/database-query.detector';
 import { detectDatabaseQueryVolume, type DatabaseQueryVolumeTrace } from '../intelligence/database-query-volume.detector';

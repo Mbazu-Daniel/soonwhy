@@ -7,7 +7,6 @@ import type {
   DependencyBottleneck,
   ResourceCorrelation,
 } from "./trace-intelligence.types";
-import { createTelemetryIdentity } from "@soonwhy/shared";
 
 export function analyzeCriticalPath(trace: Trace): CriticalPathAnalysis {
   if (trace.spans.length === 0) {
@@ -31,7 +30,7 @@ export function analyzeCriticalPath(trace: Trace): CriticalPathAnalysis {
     throw new Error("Root span not found");
   }
 
-  const criticalPath = calculateCriticalPath(rootSpan, childrenMap, spanMap);
+  const criticalPath = calculateCriticalPath(rootSpan, childrenMap);
   const dominantSpan = findDominantSpan(trace.spans);
   const slowChildSpans = findSlowChildSpans(trace.spans, childrenMap);
   const repeatedSpans = findRepeatedSpans(trace.spans);
@@ -56,7 +55,6 @@ export function analyzeCriticalPath(trace: Trace): CriticalPathAnalysis {
 function calculateCriticalPath(
   span: Span,
   childrenMap: Map<string, Span[]>,
-  spanMap: Map<string, Span>,
   depth: number = 0,
 ): CriticalPathSpan[] {
   const children = childrenMap.get(span.spanId) || [];
@@ -73,7 +71,7 @@ function calculateCriticalPath(
   }
 
   const childPaths = children.map((child) =>
-    calculateCriticalPath(child, childrenMap, spanMap, depth + 1),
+    calculateCriticalPath(child, childrenMap, depth + 1),
   );
 
   if (childPaths.length === 0) {

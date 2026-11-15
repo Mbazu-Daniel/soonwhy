@@ -22,7 +22,7 @@ export class AlertRuleEngineService {
     evaluationTime?: Date,
   ): Promise<{ result: string; details: Record<string, unknown> }> {
     const now = evaluationTime || new Date();
-    const window = TimeWindowParser.parse(condition.window);
+    const _window = TimeWindowParser.parse(condition.window);
 
     switch (condition.type) {
       case 'threshold': {
@@ -47,7 +47,7 @@ export class AlertRuleEngineService {
   private evaluateThreshold(
     condition: AlertRuleCondition,
     metricData: Record<string, unknown>,
-    now: Date,
+    _now: Date,
   ): Promise<{ result: string; details: Record<string, unknown> }> {
     return new Promise((resolve) => {
       const metric = this.extractMetricValue(metricData, condition.metric);
@@ -84,7 +84,7 @@ export class AlertRuleEngineService {
   private evaluateRate(
     condition: AlertRuleCondition,
     metricData: Record<string, unknown>,
-    now: Date,
+    _now: Date,
   ): Promise<{ result: string; details: Record<string, unknown> }> {
     return new Promise((resolve) => {
       const window = TimeWindowParser.parse(condition.window);
@@ -130,8 +130,8 @@ export class AlertRuleEngineService {
 
   private evaluateExpression(
     condition: AlertRuleCondition,
-    metricData: Record<string, unknown>,
-    now: Date,
+    _metricData: Record<string, unknown>,
+    _now: Date,
   ): Promise<{ result: string; details: Record<string, unknown> }> {
     return new Promise((resolve) => {
       const dependsOn = condition.dependsOn || [];
@@ -183,7 +183,7 @@ export class AlertRuleEngineService {
   async getChannelsForSeverity(
     orgId: string,
     projectId: string,
-    minSeverity: string,
+    _minSeverity: string,
   ): Promise<any[]> {
     const rules = await db
       .select()

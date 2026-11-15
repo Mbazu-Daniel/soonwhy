@@ -1,6 +1,5 @@
 import {
   createTelemetryIdentity,
-  fingerprintRoute,
 } from "@soonwhy/shared";
 import type {
   LatencyFinding,

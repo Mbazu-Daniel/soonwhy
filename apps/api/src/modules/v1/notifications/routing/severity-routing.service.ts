@@ -6,7 +6,7 @@ import type { AlertRuleSeverity } from "../../../../common/db/schema";
 
 type ChannelRecord = typeof notificationChannels.$inferSelect;
 
-const SEVERITY_RANK: Record<AlertRuleSeverity, number> = {
+const _SEVERITY_RANK: Record<AlertRuleSeverity, number> = {
   critical: 4,
   high: 3,
   medium: 2,
@@ -21,9 +21,9 @@ export class SeverityRoutingService {
     orgId: string,
     projectId: string,
     minSeverity: AlertRuleSeverity,
-    alertRuleId?: string,
+    _alertRuleId?: string,
   ): Promise<ChannelRecord[]> {
-    const ruleCondition =
+    const _ruleCondition =
       alertRules.minSeverity !== undefined
         ? eq(alertRules.minSeverity, minSeverity)
         : sql`true`;
@@ -126,7 +126,7 @@ export class SeverityRoutingService {
     projectId: string,
     severity: AlertRuleSeverity,
     alertRuleId: string,
-    payload: any,
+    _payload: any,
   ): Promise<{ channel?: ChannelRecord; success: boolean }> {
     const [rule] = await db
       .select()
