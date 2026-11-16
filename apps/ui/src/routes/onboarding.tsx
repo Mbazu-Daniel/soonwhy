@@ -7,6 +7,7 @@ import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { api } from '~/lib/api';
+import { formatMs } from '~/lib/format-ms';
 import { useProject } from '~/lib/project-context';
 import type { ApiKey } from '~/lib/types';
 
@@ -317,7 +318,7 @@ const sdk = initNode({
                 <div className="grid gap-4 sm:grid-cols-3">
                   <Stat label="Requests" value={verification.data?.totalRequests.toLocaleString() ?? '0'} />
                   <Stat label="Error rate" value={verification.data ? verification.data.errorRate + '%' : '—'} />
-                  <Stat label="P95 latency" value={verification.data ? verification.data.latencyP95 + 'ms' : '—'} />
+                  <Stat label="P95 latency" value={verification.data ? formatMs(verification.data.latencyP95) : '—'} />
                 </div>
               ) : verification.isError ? (
                 <div className="space-y-2">

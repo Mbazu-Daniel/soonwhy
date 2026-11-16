@@ -25,6 +25,7 @@ import { dashboardOverview, type DashboardOverview } from '~/data/dashboard-over
 import { axisLabels } from '~/lib/chart-axis';
 import type { AiSummary } from '~/lib/types';
 import { SUMMARY_REFRESH_MS, useRequestSummary } from '~/lib/use-request-summary';
+import { formatMs, formatMsValue } from '~/lib/format-ms';
 import { useProject } from '~/lib/project-context';
 import { useState } from 'react';
 import { TimeRangeControl, telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
@@ -189,7 +190,7 @@ function DashboardOverviewPage() {
         <Metric label="Connected services" value={serviceCount == null ? '—' : String(serviceCount)} icon={Server} tone="dark" detail="Registered in this project" />
         <Metric label="Total requests" value={formatNumber(live.totalRequests)} icon={Activity} detail="Across monitored services" />
         <Metric label="Error rate" value={live.errorRate.toFixed(2)} suffix="%" icon={AlertTriangle} detail="Responses with a 4xx or 5xx status" />
-        <Metric label="P95 latency" value={String(live.latencyP95)} suffix="ms" icon={Clock3} detail="Response time" />
+        <Metric label="P95 latency" value={formatMsValue(live.latencyP95)} suffix="ms" icon={Clock3} detail="Response time" />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,.8fr)]">
@@ -220,8 +221,8 @@ function DashboardOverviewPage() {
               </div>
               <div className="mt-5 grid grid-cols-3 gap-4 border-t border-[#1B1B1D] pt-5">
                 <Mini label="Requests/min" value={(live.requestRate * 60).toLocaleString(undefined, { maximumFractionDigits: 1 })} />
-                <Mini label="P99 latency" value={`${live.latencyP99}ms`} />
-                <Mini label="Avg latency" value={`${live.avgLatency}ms`} />
+                <Mini label="P99 latency" value={formatMs(live.latencyP99)} />
+                <Mini label="Avg latency" value={formatMs(live.avgLatency)} />
               </div>
             </div>
           </CardContent>
