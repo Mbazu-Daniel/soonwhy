@@ -146,7 +146,7 @@ function LogViewer() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <LogFieldPanel search={search} onFilter={addChip} />
+        <LogFieldPanel search={search} chips={chips} onFilter={addChip} />
         <div className="min-w-0 space-y-3">
           <div className="overflow-hidden rounded-lg border border-[#242426] bg-[#0B0B0C]">
             <table className="w-full text-left text-sm text-[#F6F6F6]">
