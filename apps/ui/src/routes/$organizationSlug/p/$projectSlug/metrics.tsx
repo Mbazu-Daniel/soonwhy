@@ -145,6 +145,8 @@ function MetricsPage() {
                         <Skeleton key={i} className="flex-1" style={{ height: `${30 + i * 4}%` }} />
                       ))}
                     </div>
+                  ) : buckets.length === 0 ? (
+                    <div className="flex h-full items-center justify-center text-sm text-muted-foreground">No requests in this range</div>
                   ) : (
                     <div className="flex h-full items-end gap-2">
                       {(buckets || []).map((bucket) => {
@@ -153,7 +155,7 @@ function MetricsPage() {
                         return (
                           <div
                             key={bucket.bucket}
-                            className="group relative flex flex-1 items-end"
+                            className="group relative flex h-full flex-1 items-end"
                             title={`${new Date(bucket.bucket).toLocaleString()}: ${bucket.count} requests`}
                           >
                             <div className="w-full rounded-t bg-[#16931F]/70 transition-colors group-hover:bg-[#16931F]" style={{ height: `${height}%` }} />
