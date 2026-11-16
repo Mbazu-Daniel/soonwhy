@@ -4,6 +4,7 @@ import {
   bigint,
   boolean,
   check,
+  index,
   jsonb,
   pgTable,
   text,
@@ -53,7 +54,7 @@ export const billingPlanQuotas = pgTable(
       onDelete: "cascade",
     }),
     orgId: text("org_id").references(() => organizations.id, {
-      onDelete: "cascade",
+      onDelete: "restrict",
     }),
     metric: text("metric").$type<UsageMetric>().notNull(),
     limit: bigint("limit", { mode: "number" }),
@@ -86,7 +87,7 @@ export const subscriptions = pgTable(
       .primaryKey()
       .$defaultFn(() => generateId()),
     orgId: text("org_id")
-      .references(() => organizations.id, { onDelete: "cascade" })
+      .references(() => organizations.id, { onDelete: "restrict" })
       .notNull(),
     planId: text("plan_id")
       .references(() => billingPlans.id)
@@ -116,7 +117,7 @@ export const usageEvents = pgTable(
       .primaryKey()
       .$defaultFn(() => generateId()),
     orgId: text("org_id")
-      .references(() => organizations.id, { onDelete: "cascade" })
+      .references(() => organizations.id, { onDelete: "restrict" })
       .notNull(),
     projectId: text("project_id").references(() => projects.id, {
       onDelete: "cascade",
@@ -135,6 +136,11 @@ export const usageEvents = pgTable(
     uniqueIndex("usage_events_org_idempotency_unique_idx")
       .on(table.orgId, table.idempotencyKey)
       .where(sql`${table.idempotencyKey} IS NOT NULL`),
+    index("usage_events_org_metric_occurred_idx").on(
+      table.orgId,
+      table.metric,
+      table.occurredAt,
+    ),
     check("usage_events_quantity_positive", sql`${table.quantity} > 0`),
   ],
 );
@@ -146,7 +152,7 @@ export const usagePeriods = pgTable(
       .primaryKey()
       .$defaultFn(() => generateId()),
     orgId: text("org_id")
-      .references(() => organizations.id, { onDelete: "cascade" })
+      .references(() => organizations.id, { onDelete: "restrict" })
       .notNull(),
     projectId: text("project_id").references(() => projects.id, {
       onDelete: "cascade",
@@ -180,7 +186,7 @@ export const billingEvents = pgTable(
       .primaryKey()
       .$defaultFn(() => generateId()),
     orgId: text("org_id")
-      .references(() => organizations.id, { onDelete: "cascade" })
+      .references(() => organizations.id, { onDelete: "restrict" })
       .notNull(),
     type: text("type").$type<BillingEventType>().notNull(),
     metric: text("metric").$type<UsageMetric>(),

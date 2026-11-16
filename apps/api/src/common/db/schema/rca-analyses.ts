@@ -1,5 +1,5 @@
 import { generateId } from "../generate-id";
-import { jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { jsonb, pgTable, text, timestamp, index } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
 import { projects } from "./projects";
 import { findings } from "./findings";
@@ -38,4 +38,6 @@ export const rcaAnalyses = pgTable("rca_analyses", {
   promptVersion: text("prompt_version").notNull(),
   credentialSource: text("credential_source").$type<LlmCredentialSource>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("rca_analyses_finding_id_idx").on(table.findingId),
+]);

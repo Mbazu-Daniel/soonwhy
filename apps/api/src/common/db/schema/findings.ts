@@ -1,5 +1,6 @@
 import { generateId } from "../generate-id";
 import { jsonb, pgTable, text, timestamp, real, index } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { organizations } from "./organizations";
 import { projects } from "./projects";
 import { services } from "./services";
@@ -38,4 +39,7 @@ export const findings = pgTable("findings", {
   evidence: jsonb("evidence").$type<DetectionEvidence[]>().notNull(),
 }, (table) => [
   index("findings_org_project_idx").on(table.orgId, table.projectId),
+  index("findings_service_id_idx")
+    .on(table.serviceId)
+    .where(sql`${table.serviceId} is not null`),
 ]);
