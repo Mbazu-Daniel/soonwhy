@@ -18,7 +18,6 @@ const hostMetricsSchema = z.object({
   from: z.string().optional(),
   to: z.string().optional(),
   interval: z.string().optional(),
-  projectId: z.string().min(1),
 });
 
 @UseGuards(TenantGuard)

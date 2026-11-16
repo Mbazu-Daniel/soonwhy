@@ -1,5 +1,5 @@
 import { QUICKWIT_INDEXES, type QuickwitSearchInput, type QuickwitService } from "@soonwhy/shared";
-import { quickwitTenantQuery } from "../quickwit/query";
+import { quickwitOrgQuery, quickwitTenantQuery } from "../quickwit/query";
 
 export interface TenantScope {
   orgId: string;
@@ -23,5 +23,19 @@ export function searchTenant<T>(
   return quickwit.search<T>(QUICKWIT_INDEXES[index], {
     ...rest,
     query: quickwitTenantQuery(scope.orgId, scope.projectId, filter || "*"),
+  });
+}
+
+export function searchOrg<T>(
+  quickwit: Pick<QuickwitService, "search">,
+  index: TelemetryIndex,
+  orgId: string,
+  input: TenantSearchInput = {},
+) {
+  if (!orgId) throw new Error("A telemetry search needs an organization");
+  const { filter, ...rest } = input;
+  return quickwit.search<T>(QUICKWIT_INDEXES[index], {
+    ...rest,
+    query: quickwitOrgQuery(orgId, filter || "*"),
   });
 }

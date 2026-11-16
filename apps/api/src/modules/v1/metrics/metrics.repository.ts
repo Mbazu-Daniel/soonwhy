@@ -33,7 +33,7 @@ import type {
   ServiceRequestSummary,
   SummaryAggregation,
 } from "./request-summary.types";
-import { searchTenant } from "../../../common/telemetry/tenant-search";
+import { searchOrg, searchTenant } from "../../../common/telemetry/tenant-search";
 import {
   mergeHostMetrics,
   trafficSearch,
@@ -267,15 +267,14 @@ export class MetricsRepository {
 
   async queryHostMetrics(params: {
     orgId: string;
-    projectId: string;
     from: string;
     to: string;
     interval: string;
   }): Promise<HostMetricsBucket[]> {
     const [levels, received, transmitted] = await Promise.all([
-      searchTenant(this.quickwit, "metrics", params, utilizationSearch(params)),
-      searchTenant(this.quickwit, "metrics", params, trafficSearch(params, "receive")),
-      searchTenant(this.quickwit, "metrics", params, trafficSearch(params, "transmit")),
+      searchOrg(this.quickwit, "metrics", params.orgId, utilizationSearch(params)),
+      searchOrg(this.quickwit, "metrics", params.orgId, trafficSearch(params, "receive")),
+      searchOrg(this.quickwit, "metrics", params.orgId, trafficSearch(params, "transmit")),
     ]);
     return mergeHostMetrics({
       levels: bucketsOf<HostLevelBucket>(levels),
