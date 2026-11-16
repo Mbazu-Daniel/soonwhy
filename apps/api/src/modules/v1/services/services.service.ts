@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import { QuickwitService } from "@soonwhy/shared";
@@ -14,6 +15,8 @@ import { searchTenant } from "../../../common/telemetry/tenant-search";
 import { ACTIVE_WINDOW_MS, STALE_WINDOW_MS, servicesSeenWithin, telemetryStateOf, type TelemetryState } from "./service-activity";
 import { detectServiceLanguage } from "./service-language";
 
+const FAILURE_RETRY_MS = 60_000;
+
 interface TraceSpanSource {
   service?: string;
   spanId?: string;
@@ -22,7 +25,9 @@ interface TraceSpanSource {
 
 @Injectable()
 export class ServicesService {
+  private readonly logger = new Logger(ServicesService.name);
   private readonly lastSync = new Map<string, number>();
+  private readonly lastFailure = new Map<string, number>();
   private readonly inFlight = new Map<string, Promise<void>>();
   private readonly languageChecked = new Map<string, number>();
 
@@ -36,7 +41,10 @@ export class ServicesService {
     const running = this.inFlight.get(key);
     if (running) return running;
     if (Date.now() - (this.lastSync.get(key) ?? 0) < SYNC_INTERVAL_MS) return;
+    const failedAt = this.lastFailure.get(key);
+    if (failedAt && Date.now() - failedAt < FAILURE_RETRY_MS) return;
     const task = (async () => {
+      let succeeded = false;
       try {
         const existing = await this.servicesRepository.getServicesByProjectId(projectId, orgId);
         const names = new Set(existing.map((svc) => svc.name));
@@ -52,10 +60,19 @@ export class ServicesService {
           }
           if (observed.length < MAX_OBSERVED_SERVICES || !fresh.length) break;
         }
-      } catch {
-        return;
+        succeeded = true;
+      } catch (error) {
+        this.lastFailure.set(key, Date.now());
+        this.logger.warn(
+          `Observed-service sync failed for ${orgId}/${projectId}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
       } finally {
-        this.lastSync.set(key, Date.now());
+        if (succeeded) {
+          this.lastSync.set(key, Date.now());
+          this.lastFailure.delete(key);
+        }
         this.inFlight.delete(key);
       }
     })();
