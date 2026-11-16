@@ -1,5 +1,6 @@
 import { Injectable, Logger, Optional } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
+import { CronLeaseService } from "../../../../common/cron/cron-lease.service";
 import { EvidenceGraphRepository } from "./evidence-graph.repository";
 import { EvidenceGraphCache } from "./evidence-graph.cache";
 import { EvidenceGraphService } from "./evidence-graph.service";
@@ -12,10 +13,17 @@ export class EvidenceGraphCleanupService {
     private readonly repository: EvidenceGraphRepository,
     @Optional() private readonly cache?: EvidenceGraphCache,
     @Optional() private readonly graphService?: EvidenceGraphService,
+    @Optional() private readonly lease?: CronLeaseService,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
   async cleanupExpiredData(): Promise<void> {
+    if (this.lease) {
+      await this.lease.runExclusive("evidence-graph-cleanup", 10 * 60 * 1000, () =>
+        this.cleanup(),
+      );
+      return;
+    }
     await this.cleanup();
   }
 

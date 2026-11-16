@@ -9,6 +9,7 @@ import { RootController } from "./common/root/root.controller";
 import { ResilienceConfigModule } from "./common/resilience/resilience.module";
 import { ApiThrottlerGuard } from "./common/throttling/api-throttler.guard";
 import { THROTTLER_ASYNC_OPTIONS } from "./common/throttling/throttling.module-options";
+import { CronLeaseModule } from "./common/cron/cron-lease.module";
 import { CacheModule } from "./common/cache/cache.module";
 import { DrizzleIdempotencyModule } from "./common/idempotency/drizzle-idempotency.module";
 import { MaintenanceModule } from "./common/maintenance/maintenance.module";
@@ -144,6 +145,7 @@ const organizationScopedModules = [
     CommonModule,
     ResilienceConfigModule,
     ThrottlerModule.forRootAsync(THROTTLER_ASYNC_OPTIONS),
+    CronLeaseModule,
     MaintenanceModule,
     TelemetryModule,
     RouterModule.register([

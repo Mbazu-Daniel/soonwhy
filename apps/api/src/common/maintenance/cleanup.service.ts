@@ -1,6 +1,7 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, Optional } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { lt, lte } from "drizzle-orm";
+import { CronLeaseService } from "../cron/cron-lease.service";
 import { db } from "../db";
 import {
   deadLetterQueue,
@@ -16,13 +17,22 @@ import type { CleanupReport, CleanupTableResult } from "./cleanup.types";
 export class CleanupService {
   private readonly logger = new Logger(CleanupService.name);
 
+  constructor(@Optional() private readonly lease?: CronLeaseService) {}
+
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async runScheduledCleanup(): Promise<void> {
-    const report = await this.cleanup();
+    const run = async () => {
+      const report = await this.cleanup();
+      this.logger.log(
+        `Scheduled cleanup removed ${report.deletedTotal} rows across ${report.results.length} tables`,
+      );
+    };
 
-    this.logger.log(
-      `Scheduled cleanup removed ${report.deletedTotal} rows across ${report.results.length} tables`,
-    );
+    if (this.lease) {
+      await this.lease.runExclusive("cleanup-daily", 10 * 60 * 1000, run);
+      return;
+    }
+    await run();
   }
 
   async cleanup(now = new Date()): Promise<CleanupReport> {
