@@ -1,3 +1,5 @@
+import { HostCharts } from '~/components/metrics/host-charts';
+import { averagePercent, formatBytes, hostPoints, networkTotals } from '~/lib/host-metrics-view';
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Activity, AlertTriangle, Clock3, Zap, Cpu, HardDrive, MemoryStick, Network, Gauge } from 'lucide-react';
@@ -90,9 +92,10 @@ function MetricsPage() {
   const statusCodes = summary?.statusCodes ?? { _2xx: 0, _3xx: 0, _4xx: 0, _5xx: 0 };
 
   const hostBuckets = hostData?.buckets ?? [];
-  const avgCpu = hostBuckets.length ? hostBuckets.reduce((sum, b) => sum + b.cpu_percent, 0) / hostBuckets.length : 0;
-  const avgMemory = hostBuckets.length ? hostBuckets.reduce((sum, b) => sum + b.memory_percent, 0) / hostBuckets.length : 0;
-  const avgDisk = hostBuckets.length ? hostBuckets.reduce((sum, b) => sum + b.disk_percent, 0) / hostBuckets.length : 0;
+  const avgCpu = averagePercent(hostBuckets.map((b) => b.cpu_percent));
+  const avgMemory = averagePercent(hostBuckets.map((b) => b.memory_percent));
+  const avgDisk = averagePercent(hostBuckets.map((b) => b.disk_percent));
+  const traffic = networkTotals(hostBuckets);
 
   return (
     <div className="mx-auto w-full space-y-6 pb-10">
@@ -188,14 +191,14 @@ function MetricsPage() {
                 <MetricCard label="CPU" value={avgCpu.toFixed(1)} suffix="%" icon={Cpu} />
                 <MetricCard label="Memory" value={avgMemory.toFixed(1)} suffix="%" icon={MemoryStick} />
                 <MetricCard label="Disk" value={avgDisk.toFixed(1)} suffix="%" icon={HardDrive} />
-                <MetricCard label="Network I/O" value="Ingesting" icon={Network} />
+                <MetricCard label="Network I/O" value={`${formatBytes(traffic.received)} in · ${formatBytes(traffic.transmitted)} out`} icon={Network} />
               </section>
 
               <Card className="border-border bg-card shadow-none">
                 <CardContent className="p-5">
                   <div className="mb-4">
                     <p className="text-sm font-medium">Host Metrics</p>
-                    <p className="text-xs text-muted-foreground">CPU, memory, and disk utilization over time</p>
+                    <p className="text-xs text-muted-foreground">CPU, memory, disk and network over time. Hover a chart for exact values.</p>
                   </div>
                   {hostLoading ? (
                     <div className="h-64 flex items-center justify-center">
@@ -203,50 +206,10 @@ function MetricsPage() {
                     </div>
                   ) : hostBuckets.length === 0 ? (
                     <div className="h-64 flex items-center justify-center text-muted-foreground">
-                      <p className="max-w-md text-center text-sm">No host metrics yet. They are shared across the organization: run the collector with an API key from any project in it.</p>
+                      <p className="max-w-md text-center text-sm">No host metrics yet. The collector sends them every 30 seconds and they are shared across the organization.</p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-2">CPU %</p>
-                        <div className="h-16 flex items-end gap-1">
-                          {hostBuckets.map((bucket, i) => (
-                            <div
-                              key={i}
-                              className="flex-1 bg-blue-500/60 rounded-t"
-                              style={{ height: `${Math.max(4, bucket.cpu_percent)}%` }}
-                              title={`${bucket.cpu_percent.toFixed(1)}%`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-2">Memory %</p>
-                        <div className="h-16 flex items-end gap-1">
-                          {hostBuckets.map((bucket, i) => (
-                            <div
-                              key={i}
-                              className="flex-1 bg-green-500/60 rounded-t"
-                              style={{ height: `${Math.max(4, bucket.memory_percent)}%` }}
-                              title={`${bucket.memory_percent.toFixed(1)}%`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-2">Disk %</p>
-                        <div className="h-16 flex items-end gap-1">
-                          {hostBuckets.map((bucket, i) => (
-                            <div
-                              key={i}
-                              className="flex-1 bg-yellow-500/60 rounded-t"
-                              style={{ height: `${Math.max(4, bucket.disk_percent)}%` }}
-                              title={`${bucket.disk_percent.toFixed(1)}%`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+                    <HostCharts points={hostPoints(hostBuckets)} />
                   )}
                 </CardContent>
               </Card>
