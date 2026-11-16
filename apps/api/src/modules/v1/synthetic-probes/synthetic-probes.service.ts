@@ -9,6 +9,40 @@ import { computeProbeStatus, isProbeStale, type ProbeStatus } from "./probe-stat
 
 const ALLOWED_PORTS = [80, 443, 8080, 3000, 3001, 5000, 8000, 8443];
 
+function probeConcurrency(): number {
+  const parsed = Number(process.env.SYNTHETIC_PROBE_CONCURRENCY);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 10;
+}
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = Array.from({ length: items.length }, () => ({
+    status: "rejected" as const,
+    reason: new Error("worker did not settle"),
+  }));
+  let next = 0;
+  const workers = Array.from(
+    { length: Math.min(Math.max(1, limit), items.length) },
+    async () => {
+      while (next < items.length) {
+        const index = next;
+        next += 1;
+        const item = items[index] as T;
+        try {
+          results[index] = { status: "fulfilled", value: await fn(item) };
+        } catch (reason) {
+          results[index] = { status: "rejected", reason };
+        }
+      }
+    },
+  );
+  await Promise.all(workers);
+  return results;
+}
+
 const DENYLISTED_HEADERS = [
   "authorization",
   "cookie",
@@ -161,14 +195,12 @@ export class SyntheticProbesService {
       errorMessage,
     });
 
-    const recent = await this.repository.getProbeResults(probe.id, 3);
-    const currentResult = recent[0];
+    const results = await this.repository.getProbeResults(probe.id, 100);
+    const currentResult = results[0];
     const lastStatus = computeProbeStatus(
-      recent.map((result) => result.status),
+      results.slice(0, 3).map((result) => result.status),
       probe.lastStatus ?? null,
     );
-
-    const results = await this.repository.getProbeResults(probe.id, 100);
     const totalChecks = results.length;
     const failedChecks = results.filter((r) => r.status !== "up").length;
     const uptimePercent =
@@ -187,16 +219,23 @@ export class SyntheticProbesService {
     return { status, statusCode, responseTimeMs, errorMessage, lastStatus };
   }
 
-  async runDueProbes() {
+  async runDueProbes(concurrency: number = probeConcurrency()) {
     const probes = await this.repository.getDueProbes();
-    const results = await Promise.allSettled(
-      probes.map((probe) => this.executeProbe(probe)),
+    const claimed: typeof probes = [];
+    for (const probe of probes) {
+      if (await this.repository.claimDueProbe(probe.id)) {
+        claimed.push(probe);
+      }
+    }
+    const results = await mapWithConcurrency(claimed, concurrency, (probe) =>
+      this.executeProbe(probe),
     );
     const executed = results.filter((r) => r.status === "fulfilled").length;
     return {
       due: probes.length,
+      claimed: claimed.length,
       executed,
-      failed: probes.length - executed,
+      failed: claimed.length - executed,
     };
   }
 

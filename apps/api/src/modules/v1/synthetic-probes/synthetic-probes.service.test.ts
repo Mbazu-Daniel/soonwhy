@@ -91,6 +91,16 @@ function memoryRepo() {
           (!p.lastCheckAt ||
             new Date(p.lastCheckAt).getTime() + p.intervalSeconds * 1000 < Date.now()),
       )),
+    claimDueProbe: vi.fn(async (id: number) => {
+      const probe = probes.find((p) => p.id === id);
+      if (!probe || !probe.enabled) return false;
+      const due =
+        !probe.lastCheckAt ||
+        new Date(probe.lastCheckAt).getTime() + probe.intervalSeconds * 1000 < Date.now();
+      if (!due) return false;
+      probe.lastCheckAt = new Date();
+      return true;
+    }),
     cleanupOldResults: vi.fn(async () => 0),
   };
 }

@@ -148,6 +148,24 @@ export class SyntheticProbesRepository {
     return deleted.length;
   }
 
+  async claimDueProbe(id: number): Promise<boolean> {
+    const result = await db
+      .update(syntheticProbes)
+      .set({ lastCheckAt: new Date(), updatedAt: new Date() })
+      .where(
+        and(
+          eq(syntheticProbes.id, id),
+          eq(syntheticProbes.enabled, true),
+          or(
+            isNull(syntheticProbes.lastCheckAt),
+            sql`${syntheticProbes.lastCheckAt} + make_interval(secs => ${syntheticProbes.intervalSeconds}) < now()`,
+          ),
+        ),
+      )
+      .returning({ id: syntheticProbes.id });
+    return result.length > 0;
+  }
+
   async getDueProbes() {
     return db
       .select()
