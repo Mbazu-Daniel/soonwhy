@@ -12,6 +12,11 @@ export function quickwitTenantQuery(
   return extra === "*" ? tenant : `${tenant} AND (${extra})`;
 }
 
+export function quickwitOrgQuery(orgId: string, extra = "*"): string {
+  const tenant = quickwitTerm("org_id", orgId);
+  return extra === "*" ? tenant : `${tenant} AND (${extra})`;
+}
+
 export function quickwitTimestamp(value: string): number {
   const timestamp = new Date(value).getTime();
   if (!Number.isFinite(timestamp))
