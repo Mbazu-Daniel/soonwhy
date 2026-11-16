@@ -14,10 +14,12 @@ import { Request, Response } from "express";
 import { gunzipSync } from "zlib";
 import {
   ApiKeyAuthenticator,
+  HostMetricsTarget,
   NatsService,
   RateLimiter,
   type ValidatedApiKey,
 } from "@soonwhy/shared";
+import { internalPortFrom, isInternalRequest } from "./internal-listener";
 import { IngestStats } from "../pipeline/stats";
 import { IngestConcurrency } from "../pipeline/concurrency";
 import { chunkItemsBySize, positiveInt } from "../pipeline/batcher";
@@ -72,9 +74,14 @@ const SIGNAL_META: Record<Signal, SignalMeta> = {
 @Controller()
 export class IngestController {
   private readonly logger = new Logger(IngestController.name);
+  private readonly internalPort = internalPortFrom(
+    process.env.INGEST_INTERNAL_PORT,
+    Number(process.env.INGEST_PORT ?? 3002),
+  );
 
   constructor(
     private readonly apiKeys: ApiKeyAuthenticator,
+    private readonly hostTarget: HostMetricsTarget,
     private readonly rateLimiter: RateLimiter,
     private readonly nats: NatsService,
     private readonly metrics: IngestStats,
@@ -186,7 +193,18 @@ export class IngestController {
     let acquired = false;
     let organizationId: string | undefined;
     try {
-      const auth = await this.authenticate(authorization);
+      const trusted = !authorization && isInternalRequest(req, this.internalPort);
+      if (trusted && signal !== "metric") {
+        return this.sendError(res, 404, "Only metrics are accepted on this port");
+      }
+      const auth = trusted ? await this.hostTarget.resolve() : await this.authenticate(authorization);
+      if (!auth) {
+        return this.sendError(
+          res,
+          503,
+          "Host metrics project is not set. Add host_metrics_project_id to platform_settings.",
+        );
+      }
       organizationId = auth.organizationId;
       if (!(await this.rateLimiter.checkRateLimit(auth.organizationId))) {
         res.setHeader("Retry-After", "1");

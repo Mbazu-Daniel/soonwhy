@@ -6,9 +6,10 @@
 #   api-soonwhy.oktopals.com    → service api     on 3001
 #   ingest-soonwhy.oktopals.com → service ingest  on 3002
 # collector reads host CPU, memory, disk and network and sends them to ingest
-# over the host network (so it sees the real interfaces). Set
-# SOONWHY_API_KEY to an API key from any project in your organization; every
-# project in the organization shows the data on its Infrastructure page.
+# over the host network (so it sees the real interfaces). It needs no API key:
+# it posts to ingest's internal port, published on the host's loopback only, and
+# ingest files the data under the project named by the host_metrics_project_id
+# row in platform_settings. Every project in that organization shows it.
 # nats and quickwit stay internal on the project network — no host ports, no domains.
 # Postgres and Redis are NOT in this stack; point DATABASE_URL and REDIS_URL at
 # your own instances in the env form (.env next to this file on the server).
@@ -76,9 +77,12 @@ services:
     environment:
       NODE_ENV: production
       INGEST_PORT: 3002
+      INGEST_INTERNAL_PORT: 3003
       NATS_URL: nats://nats:4222
       NATS_STREAM_NAME: TELEMETRY
       QUICKWIT_URL: http://quickwit:7280
+    ports:
+      - "127.0.0.1:3003:3003"
     depends_on:
       nats: { condition: service_healthy }
       quickwit: { condition: service_healthy }
@@ -124,9 +128,6 @@ services:
     configs:
       - source: host_metrics_collector
         target: /etc/otelcol/config.yaml
-    environment:
-      SOONWHY_API_KEY: ${SOONWHY_API_KEY:-}
-      SOONWHY_INGEST_URL: ${SOONWHY_INGEST_URL:-https://ingest-soonwhy.oktopals.com}
     volumes:
       - /:/hostfs:ro
     depends_on:
@@ -188,9 +189,7 @@ configs:
 
       exporters:
         otlphttp:
-          endpoint: $${env:SOONWHY_INGEST_URL}
-          headers:
-            authorization: Bearer $${env:SOONWHY_API_KEY}
+          endpoint: http://127.0.0.1:3003
 
       service:
         pipelines:
