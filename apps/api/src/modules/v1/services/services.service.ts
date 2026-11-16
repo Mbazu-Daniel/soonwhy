@@ -9,8 +9,10 @@ import { ServicesRepository } from "./services.repository";
 import { CreateServiceInput, UpdateServiceInput } from "./dto";
 import { observedServiceNames } from "./observed-services";
 import { serviceSlug, uniqueSlug } from "./service-slug";
-import { MAX_OBSERVED_SERVICES, MAX_SYNC_ROUNDS, SYNC_INTERVAL_MS } from "./service-sync.constants";
+import { LANGUAGE_RECHECK_MS, MAX_LANGUAGE_CHECKS, MAX_OBSERVED_SERVICES, MAX_SYNC_ROUNDS, SYNC_INTERVAL_MS } from "./service-sync.constants";
 import { searchTenant } from "../../../common/telemetry/tenant-search";
+import { ACTIVE_WINDOW_MS, STALE_WINDOW_MS, servicesSeenWithin, telemetryStateOf, type TelemetryState } from "./service-activity";
+import { detectServiceLanguage } from "./service-language";
 
 interface TraceSpanSource {
   service?: string;
@@ -22,6 +24,7 @@ interface TraceSpanSource {
 export class ServicesService {
   private readonly lastSync = new Map<string, number>();
   private readonly inFlight = new Map<string, Promise<void>>();
+  private readonly languageChecked = new Map<string, number>();
 
   constructor(
     private readonly servicesRepository: ServicesRepository,
@@ -87,7 +90,52 @@ export class ServicesService {
 
   async getServicesForProject(projectId: string, orgId: string) {
     await this.syncObservedServices(projectId, orgId);
-    return this.servicesRepository.getServicesByProjectId(projectId, orgId);
+    const services = await this.servicesRepository.getServicesByProjectId(projectId, orgId);
+    const withLanguage = await this.fillLanguages(projectId, orgId, services);
+    return this.withTelemetryState(projectId, orgId, withLanguage);
+  }
+
+  private async withTelemetryState<T extends { name: string }>(
+    projectId: string,
+    orgId: string,
+    services: T[],
+  ): Promise<Array<T & { telemetry: TelemetryState | null }>> {
+    if (!services.length) return [];
+    try {
+      const [active, recent] = await Promise.all([
+        servicesSeenWithin(this.quickwit, orgId, projectId, ACTIVE_WINDOW_MS),
+        servicesSeenWithin(this.quickwit, orgId, projectId, STALE_WINDOW_MS),
+      ]);
+      return services.map((svc) => ({ ...svc, telemetry: telemetryStateOf(svc.name, active, recent) }));
+    } catch {
+      return services.map((svc) => ({ ...svc, telemetry: null }));
+    }
+  }
+
+  private async fillLanguages<T extends { id: string; name: string; language: string | null }>(
+    projectId: string,
+    orgId: string,
+    services: T[],
+  ): Promise<T[]> {
+    const now = Date.now();
+    const pending = services
+      .filter((svc) => !svc.language && now - (this.languageChecked.get(svc.id) ?? 0) > LANGUAGE_RECHECK_MS)
+      .slice(0, MAX_LANGUAGE_CHECKS);
+    const found = new Map<string, string>();
+    await Promise.all(
+      pending.map(async (svc) => {
+        this.languageChecked.set(svc.id, now);
+        try {
+          const language = await detectServiceLanguage(this.quickwit, orgId, projectId, svc.name);
+          if (!language) return;
+          await this.servicesRepository.updateService(svc.id, { language });
+          found.set(svc.id, language);
+        } catch {
+          return;
+        }
+      }),
+    );
+    return services.map((svc) => (found.has(svc.id) ? { ...svc, language: found.get(svc.id)! } : svc));
   }
 
   async createService(
