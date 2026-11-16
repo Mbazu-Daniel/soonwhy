@@ -96,6 +96,31 @@ describe("groupErrorLogs", () => {
   });
 });
 
+describe("environments on a group", () => {
+  const sources = [
+    log({ id: "1", timestamp: "2026-11-14T15:08:15Z", environment: "development", message: "POST /sign-in 401", attributes: { "http.status_code": "401" } }),
+    log({ id: "2", timestamp: "2026-11-16T00:15:13Z", environment: "production", message: "POST /sign-in 401", attributes: { "http.status_code": "401" } }),
+    log({ id: "3", timestamp: "2026-11-16T00:20:00Z", message: "POST /sign-in 401", attributes: { "http.status_code": "401" } }),
+  ];
+
+  it("lists every environment seen, sorted, ignoring blanks", () => {
+    const [group] = groupErrorLogs(sources);
+    expect(group?.environments).toEqual(["development", "production"]);
+  });
+
+  it("counts only the chosen environment", () => {
+    const filtered = sources.filter((item) => item.environment === "production");
+    const [group] = groupErrorLogs(filtered);
+    expect(group?.count).toBe(1);
+    expect(group?.environments).toEqual(["production"]);
+  });
+
+  it("keeps occurrences without an environment under all environments", () => {
+    const [group] = groupErrorLogs(sources);
+    expect(group?.count).toBe(3);
+  });
+});
+
 describe("occurrencesOf and buildTimeline", () => {
   const sources = [
     log({ id: "1", timestamp: "2026-11-14T10:00:00.000Z", traceId: "t1" }),

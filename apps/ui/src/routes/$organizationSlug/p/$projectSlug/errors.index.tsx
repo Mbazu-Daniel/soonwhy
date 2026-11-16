@@ -36,11 +36,20 @@ function ProjectErrors() {
     placeholderData: keepPreviousData,
   });
 
+  const { data: inventory } = useQuery({
+    queryKey: ['project-errors-inventory', projectId, range, showProbes],
+    queryFn: () => api.get<ErrorGroup[]>(`/projects/${projectId}/dashboard/errors?${rangeQuery}${showProbes ? '&includeProbes=true' : ''}`),
+    enabled: !!projectId && !!environment,
+    placeholderData: keepPreviousData,
+  });
+
+  const environmentSource = environment ? inventory : errors;
+
   useEffect(() => {
-    const seen = (errors ?? []).flatMap((error) => error.environments ?? []);
+    const seen = (environmentSource ?? []).flatMap((error) => error.environments ?? []);
     if (!seen.length) return;
     setKnownEnvironments((current) => (seen.every((item) => current.includes(item)) ? current : [...new Set([...current, ...seen])].sort()));
-  }, [errors]);
+  }, [environmentSource]);
 
   const createFinding = useMutation({
     mutationFn: (error: ErrorGroup) =>
@@ -104,7 +113,7 @@ function ProjectErrors() {
                     <Link
                       to="/$organizationSlug/p/$projectSlug/errors/$fingerprint"
                       params={{ organizationSlug, projectSlug, fingerprint: error.fingerprint }}
-                      search={{ range }}
+                      search={{ range, environment: environment || undefined }}
                       className="flex min-w-0 flex-1 items-start gap-4"
                     >
                       <div className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#FDE8E6]"><AlertCircle className="h-4 w-4 text-[#8A1C13]" /></div>

@@ -21,7 +21,6 @@ import {
   saveIssueState,
 } from "./error-issue-states.store";
 import { fetchTraceException } from "./trace-exception";
-import { inEnvironment } from "./error-environment";
 import { isScannerProbe } from "./scanner-probe";
 import { mergeErrorSources } from "./error-sources";
 import { buildTimeline, groupErrorLogs, occurrencesOf, traceIdsOf } from "./error-groups";
@@ -69,7 +68,7 @@ export class ErrorsService {
     const limit = query.limit ?? 50;
     const key = `errors:${orgId}:${projectId}:${limit}:${range.start}:${range.end}:${query.service ?? ""}:${query.includeProbes ? "all" : "real"}:${query.environment ?? ""}`;
     const groups = await this.cache.getOrSet(key, CACHE_TTL_SECONDS.dashboardOverview, async () => {
-      const sources = inEnvironment(await this.fetchSources(orgId, projectId, range, query.service), query.environment);
+      const sources = await this.fetchSources(orgId, projectId, range, query.service, query.environment);
       const grouped = groupErrorLogs(sources).map((group) => ({ ...group, scannerProbe: isScannerProbe(group) }));
       return grouped.filter((group) => query.includeProbes || !group.scannerProbe).slice(0, limit);
     });
@@ -104,7 +103,7 @@ export class ErrorsService {
     query: ErrorQuery = {},
   ): Promise<ErrorGroupDetail> {
     const range = this.rangeOf(query.from, query.to);
-    const sources = inEnvironment(await this.fetchSources(orgId, projectId, range, query.service), query.environment);
+    const sources = await this.fetchSources(orgId, projectId, range, query.service, query.environment);
     const group = groupErrorLogs(sources).find((item) => item.fingerprint === fingerprint);
     if (!group) throw new NotFoundException("Error group not found in this time range");
     return {
@@ -227,27 +226,29 @@ export class ErrorsService {
     projectId: string,
     range: ErrorRange,
     service?: string,
+    environment?: string,
   ): Promise<ErrorLogSource[]> {
     const levels = ERROR_LOG_LEVELS.map((level) => quickwitTerm("level", level)).join(" OR ");
     const serviceFilter = service ? ` AND ${quickwitTerm("service", service)}` : "";
+    const environmentFilter = environment ? ` AND ${quickwitTerm("environment", environment)}` : "";
     const search = { startTimestamp: range.startTimestamp, endTimestamp: range.endTimestamp, maxHits: MAX_ERROR_HITS, sortBy: ["timestamp:desc"] };
     const optional = (promise: Promise<{ hits: unknown[] }>) =>
       promise.catch(() => ({ hits: [] as unknown[] }));
     const [logs, spans, requests] = await Promise.all([
       searchTenant(this.quickwit, "logs", { orgId, projectId }, {
         ...search,
-        filter: `(${levels})${serviceFilter}`,
+        filter: `(${levels})${serviceFilter}${environmentFilter}`,
       }),
       optional(
         searchTenant(this.quickwit, "traces", { orgId, projectId }, {
           ...search,
-          filter: `(${ERROR_SPAN_FILTER} OR (httpStatusCode:>=${HTTP_ERROR_FLOOR} AND ${REQUEST_SPAN_FILTER}))${serviceFilter}`,
+          filter: `(${ERROR_SPAN_FILTER} OR (httpStatusCode:>=${HTTP_ERROR_FLOOR} AND ${REQUEST_SPAN_FILTER}))${serviceFilter}${environmentFilter}`,
         }),
       ),
       optional(
         searchTenant(this.quickwit, "requests", { orgId, projectId }, {
           ...search,
-          filter: `statusCode:>=${HTTP_ERROR_FLOOR}${serviceFilter}`,
+          filter: `statusCode:>=${HTTP_ERROR_FLOOR}${serviceFilter}${environmentFilter}`,
         }),
       ),
     ]);
