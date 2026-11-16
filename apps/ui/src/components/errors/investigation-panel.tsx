@@ -139,7 +139,7 @@ export function InvestigationPanel({ projectId, organizationSlug, suggestion }: 
     <Card className="border-border shadow-none">
       <CardContent className="space-y-4 p-5">
         <div className="flex items-center justify-between gap-2">
-          <p className="flex items-center gap-2 text-sm font-medium"><Sparkles className="h-4 w-4" />Investigate with AI</p>
+          <p className="flex items-center gap-2 text-sm font-medium"><Sparkles className="h-4 w-4" />Ask a follow-up question</p>
           {(turns.length > 0 || threadId) && (
             <Button type="button" size="sm" variant="ghost" onClick={reset}><MessageSquarePlus className="mr-1 h-3.5 w-3.5" />New conversation</Button>
           )}
