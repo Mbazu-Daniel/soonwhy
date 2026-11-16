@@ -11,14 +11,13 @@ import { IngestController } from "./http/controller";
 import { IngestConcurrency } from "./pipeline/concurrency";
 import { HealthController } from "./http/health";
 import { RootController } from "./http/root";
-import { MetricsController } from "./http/metrics";
 import { IngestConsumer } from "./pipeline/consumer";
 import { IngestStats } from "./pipeline/stats";
 import { DlqRepository } from "./pipeline/dlq.repository";
 import { IngestReceiptRepository } from "./pipeline/receipt.repository";
 
 @Module({
-  controllers: [IngestController, HealthController, MetricsController, RootController],
+  controllers: [IngestController, HealthController, RootController],
   providers: [
     { provide: DB, useFactory: createDb },
     ApiKeyAuthenticator,

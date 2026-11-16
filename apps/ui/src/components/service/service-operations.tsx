@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Skeleton } from '~/components/ui/skeleton';
 import { api } from '~/lib/api';
 import type { OperationStats, ServiceOperations } from '~/components/service/service-operations.types';
+import { formatMs } from '~/lib/format-ms';
 
 interface Props {
   projectId: string;
@@ -10,10 +11,6 @@ interface Props {
   rangeKey: string;
   from: string;
   to: string;
-}
-
-function formatMs(value: number): string {
-  return `${Number.isFinite(value) ? Number(value.toPrecision(12)) : 0}ms`;
 }
 
 function StatsTable({ rows, label, empty }: { rows: Array<OperationStats & { type?: string }>; label: string; empty: string }) {

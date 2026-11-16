@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BrainCircuit, Loader2 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '~/components/ui/button';
@@ -6,7 +6,8 @@ import { Card, CardContent } from '~/components/ui/card';
 import { RcaContent, type RcaAnalysis } from '~/components/ai/rca-content';
 import { RcaGenerationError } from '~/components/ai/rca-generation-error';
 import { ProviderSwitch } from '~/components/ai/provider-switch';
-import { api } from '~/lib/api';
+import { api, apiProblem } from '~/lib/api';
+import { analysisLookup, shouldAutoAnalyze } from '~/lib/auto-analyze';
 import type { FindingResult } from '~/lib/error-groups';
 
 interface ErrorAnalysisProps {
@@ -40,6 +41,19 @@ export function ErrorAnalysis({ projectId, organizationSlug, fingerprint, rangeQ
   });
 
   const rca = analyze.data?.rca ?? existing.data;
+  const startedFor = useRef<string | null>(null);
+  const lookup = analysisLookup({
+    findingId,
+    isLoading: existing.isLoading,
+    isError: existing.isError,
+    data: existing.data,
+    status: apiProblem(existing.error).status,
+  });
+  useEffect(() => {
+    if (!shouldAutoAnalyze(lookup, startedFor.current, fingerprint) || analyze.isPending) return;
+    startedFor.current = fingerprint;
+    analyze.mutate(false);
+  }, [lookup, fingerprint, analyze]);
   return (
     <Card className="border-border shadow-none">
       <CardContent className="space-y-3 p-5">
@@ -53,8 +67,7 @@ export function ErrorAnalysis({ projectId, organizationSlug, fingerprint, rangeQ
           </Button>
           </div>
         </div>
-        {!rca && !analyze.isPending && <p className="text-sm text-muted-foreground">Uses the stack frames, cause chain and trace to propose a root cause and fix candidates.</p>}
-        {analyze.isPending && <p className="text-xs text-muted-foreground">Analyzing, this can take up to a minute…</p>}
+        {analyze.isPending && <p className="text-xs text-muted-foreground">Analyzing the stack frames, cause chain and trace. This can take up to a minute…</p>}
         {rca && <RcaContent rca={rca} history={[]} />}
         {analyze.data?.rca.quotaWarning && <p className="text-xs text-[#713F12]">This run went over the AI usage allowance for this organisation.</p>}
         {analyze.isError && <RcaGenerationError error={analyze.error} orgSlug={organizationSlug} />}

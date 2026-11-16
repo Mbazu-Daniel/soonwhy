@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { buildServiceGraph, formatMs, serviceColor } from './trace.layout';
+import { buildServiceGraph, serviceColor } from './trace.layout';
+import { formatMs } from '~/lib/format-ms';
 import type { TraceSpan } from './trace.types';
 
 const NODE_W = 150;
