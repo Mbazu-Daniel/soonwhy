@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Clock3, FileSearch, GitBranch, Loader2, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent } from '~/components/ui/card';
 import { Skeleton } from '~/components/ui/skeleton';
 import { Badge } from '~/components/ui/badge';
@@ -23,16 +23,24 @@ function ProjectErrors() {
   const [range, setRange] = useState<TelemetryRange>('24h');
   const [filter, setFilter] = useState<StatusFilter>('open');
   const [showProbes, setShowProbes] = useState(false);
+  const [environment, setEnvironment] = useState('');
+  const [knownEnvironments, setKnownEnvironments] = useState<string[]>([]);
   const [activeFingerprint, setActiveFingerprint] = useState<string | null>(null);
   const rangeQuery = new URLSearchParams(telemetryRangeParams(range)).toString();
   const queryClient = useQueryClient();
 
   const { data: errors, isLoading, isError, refetch } = useQuery({
-    queryKey: ['project-errors', projectId, range, showProbes],
-    queryFn: () => api.get<ErrorGroup[]>(`/projects/${projectId}/dashboard/errors?${rangeQuery}${showProbes ? '&includeProbes=true' : ''}`),
+    queryKey: ['project-errors', projectId, range, showProbes, environment],
+    queryFn: () => api.get<ErrorGroup[]>(`/projects/${projectId}/dashboard/errors?${rangeQuery}${showProbes ? '&includeProbes=true' : ''}${environment ? `&environment=${encodeURIComponent(environment)}` : ''}`),
     enabled: !!projectId,
     placeholderData: keepPreviousData,
   });
+
+  useEffect(() => {
+    const seen = (errors ?? []).flatMap((error) => error.environments ?? []);
+    if (!seen.length) return;
+    setKnownEnvironments((current) => (seen.every((item) => current.includes(item)) ? current : [...new Set([...current, ...seen])].sort()));
+  }, [errors]);
 
   const createFinding = useMutation({
     mutationFn: (error: ErrorGroup) =>
@@ -58,6 +66,12 @@ function ProjectErrors() {
           ))}
         </div>
         <div className="flex items-center gap-4">
+          {knownEnvironments.length > 0 && (
+            <select aria-label="Environment" value={environment} onChange={(event) => setEnvironment(event.target.value)} className="h-8 rounded-md border border-border bg-transparent px-2 text-xs">
+              <option value="">All environments</option>
+              {knownEnvironments.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+          )}
           <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
             <input type="checkbox" checked={showProbes} onChange={(event) => setShowProbes(event.target.checked)} className="h-3.5 w-3.5" />
             Show scanner probes

@@ -11,6 +11,7 @@ import type {
 interface GroupAccumulator {
   group: ErrorGroup;
   traces: Set<string>;
+  environments: Set<string>;
 }
 
 function toOccurrence(source: ErrorLogSource): ErrorOccurrence {
@@ -37,7 +38,9 @@ export function groupErrorLogs(sources: ErrorLogSource[]): ErrorGroup[] {
       if (source.traceId) traces.add(source.traceId);
       groups.set(fingerprint, {
         traces,
+        environments: new Set(source.environment ? [source.environment] : []),
         group: {
+          environments: [],
           fingerprint,
           errorMessage: maskPiiTokens(source.message ?? ""),
           errorType: errorTypeOf(source),
@@ -55,7 +58,8 @@ export function groupErrorLogs(sources: ErrorLogSource[]): ErrorGroup[] {
       });
       continue;
     }
-    const { group, traces } = existing;
+    const { group, traces, environments } = existing;
+    if (source.environment) environments.add(source.environment);
     group.count += 1;
     if (source.traceId) traces.add(source.traceId);
     group.traceCount = traces.size;
@@ -70,7 +74,7 @@ export function groupErrorLogs(sources: ErrorLogSource[]): ErrorGroup[] {
     }
   }
   return [...groups.values()]
-    .map((entry) => entry.group)
+    .map((entry) => ({ ...entry.group, environments: [...entry.environments].sort() }))
     .sort((a, b) => b.lastSeen.localeCompare(a.lastSeen));
 }
 

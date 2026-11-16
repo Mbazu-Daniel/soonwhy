@@ -1,4 +1,5 @@
 export interface ErrorLogSource {
+  environment?: string;
   id?: string;
   timestamp?: string;
   service?: string;
@@ -22,6 +23,7 @@ export interface ErrorOccurrence {
 }
 
 export interface ErrorGroup {
+  environments: string[];
   fingerprint: string;
   errorMessage: string;
   errorType: string;
@@ -67,6 +69,7 @@ export interface ErrorRange {
 }
 
 export interface RequestErrorSource {
+  environment?: string;
   id?: string;
   eventId?: string;
   timestamp?: string;
@@ -81,6 +84,7 @@ export interface RequestErrorSource {
 }
 
 export interface SpanErrorSource {
+  environment?: string;
   id?: string;
   eventId?: string;
   timestamp?: string;

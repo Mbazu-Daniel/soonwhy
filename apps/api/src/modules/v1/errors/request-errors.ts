@@ -8,6 +8,7 @@ export function requestToErrorSource(request: RequestErrorSource): ErrorLogSourc
     id: request.id ?? request.eventId ?? "",
     timestamp: request.timestamp,
     service: request.service,
+    environment: request.environment,
     level: status >= HTTP_SERVER_ERROR_FLOOR ? "error" : "warn",
     message: `${request.method ?? ""} ${target} ${status}`.trim(),
     traceId: request.traceId,

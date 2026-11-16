@@ -21,6 +21,7 @@ import {
   saveIssueState,
 } from "./error-issue-states.store";
 import { fetchTraceException } from "./trace-exception";
+import { inEnvironment } from "./error-environment";
 import { isScannerProbe } from "./scanner-probe";
 import { mergeErrorSources } from "./error-sources";
 import { buildTimeline, groupErrorLogs, occurrencesOf, traceIdsOf } from "./error-groups";
@@ -45,6 +46,7 @@ import type {
 import { searchTenant } from "../../../common/telemetry/tenant-search";
 
 export interface ErrorQuery {
+  environment?: string;
   includeProbes?: boolean;
   from?: string;
   to?: string;
@@ -65,9 +67,9 @@ export class ErrorsService {
   ): Promise<ErrorGroupSummary[]> {
     const range = this.rangeOf(query.from, query.to);
     const limit = query.limit ?? 50;
-    const key = `errors:${orgId}:${projectId}:${limit}:${range.start}:${range.end}:${query.service ?? ""}:${query.includeProbes ? "all" : "real"}`;
+    const key = `errors:${orgId}:${projectId}:${limit}:${range.start}:${range.end}:${query.service ?? ""}:${query.includeProbes ? "all" : "real"}:${query.environment ?? ""}`;
     const groups = await this.cache.getOrSet(key, CACHE_TTL_SECONDS.dashboardOverview, async () => {
-      const sources = await this.fetchSources(orgId, projectId, range, query.service);
+      const sources = inEnvironment(await this.fetchSources(orgId, projectId, range, query.service), query.environment);
       const grouped = groupErrorLogs(sources).map((group) => ({ ...group, scannerProbe: isScannerProbe(group) }));
       return grouped.filter((group) => query.includeProbes || !group.scannerProbe).slice(0, limit);
     });
@@ -102,7 +104,7 @@ export class ErrorsService {
     query: ErrorQuery = {},
   ): Promise<ErrorGroupDetail> {
     const range = this.rangeOf(query.from, query.to);
-    const sources = await this.fetchSources(orgId, projectId, range, query.service);
+    const sources = inEnvironment(await this.fetchSources(orgId, projectId, range, query.service), query.environment);
     const group = groupErrorLogs(sources).find((item) => item.fingerprint === fingerprint);
     if (!group) throw new NotFoundException("Error group not found in this time range");
     return {
