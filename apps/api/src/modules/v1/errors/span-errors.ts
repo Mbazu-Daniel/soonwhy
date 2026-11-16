@@ -40,6 +40,7 @@ export function spanToErrorSource(span: SpanErrorSource): ErrorLogSource {
     id: span.id ?? span.eventId ?? `${span.traceId}:${span.spanId}`,
     timestamp: span.timestamp,
     service: span.service,
+    environment: span.environment,
     level: serverFailure || hasException(span) ? "error" : "warn",
     message: messageOf(span),
     traceId: span.traceId,

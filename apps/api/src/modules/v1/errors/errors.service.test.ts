@@ -95,6 +95,34 @@ describe("ErrorsService", () => {
     expect(search.mock.calls[0]![1].query).toContain('level:"error" OR level:"fatal"');
   });
 
+  it("applies the environment filter inside each telemetry search, before the hit cap", async () => {
+    const { service, search } = build();
+    await service.listGroups("org", "project", { from: "2026-11-14T00:00:00Z", to: "2026-11-15T00:00:00Z", environment: "production" });
+    expect(search.mock.calls).toHaveLength(3);
+    for (const call of search.mock.calls) {
+      expect(call[1].query).toContain('environment:"production"');
+      expect(call[1].maxHits).toBe(1000);
+    }
+  });
+
+  it("omits the environment filter from the searches when none is selected", async () => {
+    const { service, search } = build();
+    await service.listGroups("org", "project", { from: "2026-11-14T00:00:00Z", to: "2026-11-15T00:00:00Z" });
+    for (const call of search.mock.calls) {
+      expect(call[1].query).not.toContain("environment:");
+    }
+  });
+
+  it("applies the environment filter for a single group too", async () => {
+    const { service, search } = build();
+    await service.getGroup("org", "project", fingerprint, { from: "2026-11-14T00:00:00Z", to: "2026-11-15T00:00:00Z", environment: "staging" });
+    const capped = search.mock.calls.filter((call) => call[1].maxHits === 1000);
+    expect(capped).toHaveLength(3);
+    for (const call of capped) {
+      expect(call[1].query).toContain('environment:"staging"');
+    }
+  });
+
   it("returns occurrences and a timeline for one group", async () => {
     const { service } = build();
     const detail = await service.getGroup("org", "project", fingerprint, { from: "2026-11-14T00:00:00Z", to: "2026-11-15T00:00:00Z" });

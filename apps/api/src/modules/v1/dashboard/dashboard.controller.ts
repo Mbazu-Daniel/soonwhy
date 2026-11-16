@@ -56,8 +56,10 @@ export class DashboardController {
     @Query("to") to?: string,
     @Query("service") service?: string,
     @Query("includeProbes") includeProbes?: string,
+    @Query("environment") environment?: string,
   ) {
     return this.errorsService.listGroups(org.orgId, projectId, {
+      environment: environment || undefined,
       includeProbes: includeProbes === "true",
       limit: limit ? parseInt(limit, 10) : 50,
       from,
@@ -73,8 +75,9 @@ export class DashboardController {
     @Param("fingerprint") fingerprint: string,
     @Query("from") from?: string,
     @Query("to") to?: string,
+    @Query("environment") environment?: string,
   ) {
-    return this.errorsService.getGroup(org.orgId, projectId, fingerprint, { from, to });
+    return this.errorsService.getGroup(org.orgId, projectId, fingerprint, { from, to, environment: environment || undefined });
   }
 
   @Post("errors/:fingerprint/finding")

@@ -17,12 +17,13 @@ import { IssueStatusActions } from '~/components/errors/issue-status';
 import { ErrorAnalysis } from '~/components/errors/error-analysis';
 import { shortId, type ErrorGroupDetail, type FindingResult } from '~/lib/error-groups';
 
-interface ErrorSearch { range: TelemetryRange }
+interface ErrorSearch { range: TelemetryRange; environment?: string }
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/errors/$fingerprint')({
   component: ErrorDetail,
   validateSearch: (search: Record<string, unknown>): ErrorSearch => ({
     range: TELEMETRY_RANGES.some((item) => item.value === search.range) ? (search.range as TelemetryRange) : '24h',
+    environment: typeof search.environment === 'string' && search.environment ? search.environment : undefined,
   }),
 });
 
@@ -30,15 +31,16 @@ interface LogEntry { id: string; timestamp: string; level: string; message: stri
 
 function ErrorDetail() {
   const { organizationSlug, projectSlug, fingerprint } = Route.useParams();
-  const { range } = Route.useSearch();
+  const { range, environment } = Route.useSearch();
   const navigate = Route.useNavigate();
   const { projectId } = useProject();
   const queryClient = useQueryClient();
   const rangeQuery = new URLSearchParams(telemetryRangeParams(range)).toString();
+  const environmentQuery = environment ? `&environment=${encodeURIComponent(environment)}` : '';
 
   const { data: group, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['error-group', projectId, fingerprint, range],
-    queryFn: () => api.get<ErrorGroupDetail>(`/projects/${projectId}/dashboard/errors/${fingerprint}?${rangeQuery}`),
+    queryKey: ['error-group', projectId, fingerprint, range, environment],
+    queryFn: () => api.get<ErrorGroupDetail>(`/projects/${projectId}/dashboard/errors/${fingerprint}?${rangeQuery}${environmentQuery}`),
     enabled: !!projectId,
     retry: false,
   });
@@ -75,7 +77,7 @@ function ErrorDetail() {
         <Card><CardContent className="space-y-3 p-10 text-center">
           <p className="font-medium">No occurrences in this time range</p>
           <p className="text-sm text-muted-foreground">Try a wider range.</p>
-          <div className="flex justify-center"><TimeRangeControl value={range} onChange={(value) => void navigate({ search: { range: value } })} /></div>
+          <div className="flex justify-center"><TimeRangeControl value={range} onChange={(value) => void navigate({ search: { range: value, environment } })} /></div>
         </CardContent></Card>
       </div>
     );
@@ -119,7 +121,7 @@ function ErrorDetail() {
               <Button size="sm" variant="outline"><GitBranch className="mr-2 h-3.5 w-3.5" />Open {group.traceIds.length === group.traceCount ? `all ${group.traceCount.toLocaleString()}` : `latest ${group.traceIds.length.toLocaleString()} of ${group.traceCount.toLocaleString()}`} in traces</Button>
             </Link>
           )}
-          <div className="ml-auto"><TimeRangeControl value={range} onChange={(value) => void navigate({ search: { range: value } })} /></div>
+          <div className="ml-auto"><TimeRangeControl value={range} onChange={(value) => void navigate({ search: { range: value, environment } })} /></div>
         </div>
       </header>
 

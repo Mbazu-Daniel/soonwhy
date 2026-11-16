@@ -6,6 +6,7 @@ export interface ErrorIssueState {
 }
 
 export interface ErrorGroup {
+  environments?: string[];
   issue: ErrorIssueState;
   scannerProbe?: boolean;
   fingerprint: string;
