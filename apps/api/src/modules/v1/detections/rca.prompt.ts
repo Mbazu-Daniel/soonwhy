@@ -6,6 +6,7 @@ const ERROR_GROUP_GUIDANCE = [
   "This evidence describes one application error group, not a latency bottleneck.",
   "application-frames are the stack frames from the user's own code, innermost first; library and runtime frames were removed. Name the most likely failing function and file from them, and say so only when a frame supports it.",
   "cause items are the chain of underlying errors, outermost first. The deepest cause is usually closer to the real fault, so weigh it first.",
+  "trace-exception is an exception recorded on a span of the linked trace even though the HTTP error itself carries no stack; treat it as the strongest signal of what rejected or failed the request, quote its type and message, and say if it points to an expected client outcome rather than a fault.",
   "If there are no application frames, no cause items and no trace, the root cause is not established; say what telemetry is missing, such as a captured stack trace.",
   "Suggested changes must be concrete fix candidates for the named code path, and each must say what to verify first.",
 ].join(" ");

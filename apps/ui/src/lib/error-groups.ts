@@ -33,7 +33,16 @@ export interface ErrorOccurrence {
   attributes: Record<string, unknown>;
 }
 
+export interface TraceException {
+  type: string;
+  message: string;
+  stacktrace: string;
+  spanName: string;
+  spanId: string;
+}
+
 export interface ErrorGroupDetail extends ErrorGroup {
+  traceException: TraceException | null;
   findingId: string | null;
   occurrences: ErrorOccurrence[];
   traceIds: string[];
