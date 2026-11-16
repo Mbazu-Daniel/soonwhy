@@ -58,6 +58,13 @@ export const projectSettings = pgTable("project_settings", {
     .notNull(),
 });
 
+/** Mirrors apps/api platform_settings; read by ingest to find the host metrics project. */
+export const platformSettings = pgTable("platform_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 /** Mirrors apps/api dead_letter_queue; written by the ingest consumer. */
 export const deadLetterQueue = pgTable("dead_letter_queue", {
   id: serial("id").primaryKey(),
