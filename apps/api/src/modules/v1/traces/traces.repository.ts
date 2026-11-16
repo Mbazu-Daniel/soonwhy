@@ -3,8 +3,9 @@ import { quickwitSource, quickwitTerm } from "../../../common/quickwit/query";
 import { TelemetryQueryService } from "../../../common/telemetry";
 import { bucketInterval, clampBucketStart } from "../../../common/telemetry/bucket-interval";
 import { ERROR_SPAN_FILTER } from "../../../common/telemetry/span-filters";
-import { MAX_SPAN_LOG_BUCKETS, MAX_STATUS_TRACE_IDS } from "./traces.constants";
+import { MAX_EXTENT_SPANS, MAX_SPAN_LOG_BUCKETS, MAX_STATUS_TRACE_IDS } from "./traces.constants";
 import { traceFilters, traceIdList, type TraceFilter } from "./trace-filters";
+import { traceExtents, type ExtentSpan } from "./trace-extent";
 import { buildTraceList, type EntrySpan, type TraceListRow } from "./trace-list";
 
 export type { TraceListRow } from "./trace-list";
@@ -87,7 +88,7 @@ export class TracesRepository {
     if (!spans.length) return [];
     const ids = [...new Set(spans.map((span) => span.traceId))];
     const inPage = [traceIdList(ids)];
-    const [counts, errors] = await Promise.all([
+    const [counts, errors, members] = await Promise.all([
       this.telemetryQuery.search<never>(
         "traces",
         { ...this.base(scope), filters: inPage },
@@ -98,11 +99,23 @@ export class TracesRepository {
         { ...this.base(scope), filters: [...inPage, ERROR_SPAN_FILTER] },
         { maxHits: 0, aggregations: { ids: { terms: { field: "traceId", size: ids.length } } } },
       ),
+      this.telemetryQuery.search<ExtentSpan>(
+        "traces",
+        { ...this.base(scope), filters: inPage },
+        { maxHits: MAX_EXTENT_SPANS },
+      ),
     ]);
+    const extents = traceExtents(
+      members.hits.flatMap((hit) => {
+        const source = quickwitSource<ExtentSpan>(hit);
+        return source ? [source] : [];
+      }),
+    );
     return buildTraceList(
       spans,
       counts.aggregations?.ids as CountBuckets | undefined,
       errors.aggregations?.ids as CountBuckets | undefined,
+      extents,
     );
   }
 

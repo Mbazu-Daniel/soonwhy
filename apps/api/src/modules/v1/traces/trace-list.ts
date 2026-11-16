@@ -1,3 +1,5 @@
+import type { TraceExtents } from "./trace-extent";
+
 export interface EntrySpan {
   traceId: string;
   name?: string;
@@ -33,6 +35,7 @@ export function buildTraceList(
   spans: EntrySpan[],
   spanCounts: CountBuckets | undefined,
   errorCounts: CountBuckets | undefined,
+  extents: TraceExtents = new Map(),
 ): TraceListRow[] {
   const total = countsOf(spanCounts);
   const failed = countsOf(errorCounts);
@@ -41,7 +44,7 @@ export function buildTraceList(
   for (const span of spans) {
     if (seen.has(span.traceId)) continue;
     seen.add(span.traceId);
-    const durationMs = Number(span.duration) || 0;
+    const durationMs = extents.get(span.traceId) ?? (Number(span.duration) || 0);
     const start = new Date(span.timestamp).toISOString();
     const errorCount = failed.get(span.traceId) ?? 0;
     rows.push({

@@ -105,3 +105,21 @@ describe("trace id filter", () => {
     expect(getTracesSchema.safeParse({ ...base, traceIds: Array.from({ length: 101 }, (_, i) => `t${i}`).join(",") }).success).toBe(false);
   });
 });
+
+describe("traceExtents", () => {
+  it("measures from the earliest start to the latest end", async () => {
+    const { traceExtents } = await import("./trace-extent");
+    const extents = traceExtents([
+      { traceId: "t1", timestamp: "2026-11-14T10:00:00.000Z", duration: 0.3 },
+      { traceId: "t1", timestamp: "2026-11-14T10:00:00.001Z", duration: 4.6 },
+      { traceId: "t2", timestamp: "2026-11-14T10:00:00.000Z", duration: 7 },
+    ]);
+    expect(extents.get("t1")).toBeCloseTo(5.6);
+    expect(extents.get("t2")).toBe(7);
+  });
+
+  it("uses the trace extent as the listed duration", () => {
+    const rows = buildTraceList([{ traceId: "t1", timestamp: "2026-11-14T10:00:00.000Z", duration: 0.3 }], undefined, undefined, new Map([["t1", 5.6]]));
+    expect(rows[0]!.durationMs).toBe(5.6);
+  });
+});
