@@ -42,7 +42,7 @@ export class HealthService {
 
     try {
       const response = await withTimeout(
-        fetch(`${this.quickwitUrl}/health/live`),
+        fetch(`${this.quickwitUrl}/health/livez`),
         HEALTH_CHECK_TIMEOUT_MS,
       );
       if (!response.ok) {

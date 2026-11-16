@@ -34,6 +34,16 @@ describe("HealthService", () => {
     expect(report.dependencies.quickwit.status).toBe("ok");
   });
 
+  it("asks quickwit for its livez endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal("fetch", fetchMock);
+    const service = new HealthService(cache as never);
+
+    await service.checkQuickwit();
+
+    expect(String(fetchMock.mock.calls[0]![0])).toMatch(/\/health\/livez$/);
+  });
+
   it("degrades readiness when the database is unreachable", async () => {
     vi.mocked(db.execute).mockRejectedValue(new Error("connection refused"));
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true }));
