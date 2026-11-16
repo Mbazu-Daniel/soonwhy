@@ -78,3 +78,8 @@ docss*
 # Local service-scoped env files
 .env.api
 .env.ingest
+
+# Finished notes and reports kept locally
+archive/
+# Audit tooling output
+.audit/

@@ -8,3 +8,9 @@ coverage
 .env.*
 !.env.example
 qwdata
+.audit
+.scratch
+.scratchs
+.turbo
+.wrangler
+.fallow
