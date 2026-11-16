@@ -98,6 +98,31 @@ describe("CircuitBreaker", () => {
     expect(onStateChange).toHaveBeenCalledWith("open");
   });
 
+  it("rejects after timeoutMs when the function never resolves", async () => {
+    const breaker = new CircuitBreaker({ timeoutMs: 50 });
+    const fn = vi.fn().mockImplementation(() => new Promise(() => {}));
+
+    await expect(breaker.execute(fn)).rejects.toThrow("Circuit breaker timeout after 50ms");
+  });
+
+  it("admits only one probe while half-open", async () => {
+    const breaker = new CircuitBreaker({ failureThreshold: 1, resetTimeoutMs: 50 });
+    const failing = vi.fn().mockRejectedValue(new Error("down"));
+
+    await expect(breaker.execute(failing)).rejects.toThrow("down");
+    await new Promise((resolve) => setTimeout(resolve, 60));
+
+    let releaseProbe!: (value: string) => void;
+    const probe = vi.fn().mockImplementation(
+      () => new Promise<string>((resolve) => { releaseProbe = resolve; }),
+    );
+
+    const first = breaker.execute(probe);
+    await expect(breaker.execute(probe)).rejects.toThrow("HALF-OPEN");
+    releaseProbe("ok");
+    await expect(first).resolves.toBe("ok");
+  });
+
   it("resets to closed state", async () => {
     const breaker = new CircuitBreaker({ failureThreshold: 2 });
     const fn = vi.fn().mockRejectedValue(new Error("error"));
