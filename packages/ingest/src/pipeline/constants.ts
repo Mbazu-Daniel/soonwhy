@@ -4,6 +4,6 @@ export const MAX_DELIVERY_ATTEMPTS = 5;
 export const CLAIM_LEASE_MS = 60_000;
 export const DLQ_SUBJECT_PREFIX = "ingest.dlq.";
 export function retryDelayMs(deliveryCount: number, random: () => number = Math.random): number {
-  const base = 1000 * Math.max(1, deliveryCount);
-  return Math.round(base / 2 + random() * (base / 2));
+  const cap = Math.min(30_000, 500 * 2 ** Math.max(0, Math.floor(deliveryCount) - 1));
+  return Math.round(random() * cap);
 }
