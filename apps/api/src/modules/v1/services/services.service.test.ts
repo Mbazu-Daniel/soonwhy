@@ -180,3 +180,44 @@ describe("ServicesService", () => {
     expect(repository.createService).toHaveBeenCalledWith(expect.objectContaining({ name: "late-service" }));
   });
 });
+
+describe("ServicesService telemetry state and runtime", () => {
+  const row = (over: object) => ({ id: "s1", name: "api", slug: "api", language: null, ...over });
+
+  function build(searchImpl: (...args: any[]) => any, rows: object[]) {
+    const repository = {
+      getServicesByProjectId: vi.fn().mockResolvedValue(rows),
+      createService: vi.fn(),
+      updateService: vi.fn().mockResolvedValue(undefined),
+    };
+    const quickwit = { search: vi.fn(searchImpl) };
+    return { repository, quickwit, service: new ServicesService(repository as never, quickwit as never) };
+  }
+
+  const buckets = (names: string[]) => ({ hits: [], aggregations: { services: { buckets: names.map((key) => ({ key })) } } });
+
+  it("marks a service active when it sent data recently, and stores the SDK language", async () => {
+    const { service, repository } = build((_index, input) => {
+      if (input.aggregations) return Promise.resolve(buckets(["api"]));
+      return Promise.resolve({ hits: [{ _source: { resourceAttributes: { "telemetry.sdk.language": "nodejs" } } }] });
+    }, [row({})]);
+    const [svc] = (await service.getServicesForProject("p1", "o1")) as any[];
+    expect(svc.telemetry).toBe("active");
+    expect(svc.language).toBe("Node.js");
+    expect(repository.updateService).toHaveBeenCalledWith("s1", { language: "Node.js" });
+  });
+
+  it("leaves an owner-set language alone and reports no data for a silent service", async () => {
+    const { service, repository } = build(() => Promise.resolve(buckets([])), [row({ language: "Go" })]);
+    const [svc] = (await service.getServicesForProject("p1", "o1")) as any[];
+    expect(svc.telemetry).toBe("none");
+    expect(svc.language).toBe("Go");
+    expect(repository.updateService).not.toHaveBeenCalled();
+  });
+
+  it("reports an unknown state when the telemetry store cannot be read", async () => {
+    const { service } = build(() => Promise.reject(new Error("down")), [row({ language: "Go" })]);
+    const [svc] = (await service.getServicesForProject("p1", "o1")) as any[];
+    expect(svc.telemetry).toBeNull();
+  });
+});
