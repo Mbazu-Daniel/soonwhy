@@ -1,5 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { requiredEnvInProduction } from "../env";
+import { desiredCommitTimeout, withCommitTimeout } from "./indexing-settings";
 
 export interface QuickwitHit<T> {
   _source?: T;
@@ -106,6 +107,7 @@ export class QuickwitService {
   async ensureIndex(indexId: string, config: Record<string, unknown>): Promise<void> {
     if (await this.indexExists(indexId)) {
       await this.syncFieldMappings(indexId, config);
+      await this.syncCommitTimeout(indexId, config);
       return;
     }
     try {
@@ -121,6 +123,34 @@ export class QuickwitService {
         return;
       }
       throw error;
+    }
+  }
+
+  async syncCommitTimeout(
+    indexId: string,
+    config: Record<string, unknown>,
+  ): Promise<void> {
+    const desired = desiredCommitTimeout(config);
+    if (!desired) return;
+    try {
+      const current = await this.request<{
+        index_config?: Record<string, unknown>;
+      }>(`/api/v1/indexes/${encodeURIComponent(indexId)}`, { method: "GET" });
+      const updated = current.index_config
+        ? withCommitTimeout(current.index_config, desired)
+        : undefined;
+      if (!updated) return;
+      await this.request(`/api/v1/indexes/${encodeURIComponent(indexId)}`, {
+        method: "PUT",
+        body: JSON.stringify(updated),
+      });
+      this.logger.log(`Set the commit timeout of index ${indexId} to ${desired}s`);
+    } catch (error) {
+      this.logger.warn(
+        `Could not update the commit timeout for ${indexId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
     }
   }
 
