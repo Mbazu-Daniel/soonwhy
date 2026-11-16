@@ -105,4 +105,4 @@ export interface ErrorIssueState {
   resolvedAt: string | null;
 }
 
-export type ErrorGroupSummary = ErrorGroup & { issue: ErrorIssueState };
+export type ErrorGroupSummary = ErrorGroup & { issue: ErrorIssueState; scannerProbe: boolean };

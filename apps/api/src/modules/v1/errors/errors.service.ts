@@ -21,6 +21,7 @@ import {
   saveIssueState,
 } from "./error-issue-states.store";
 import { fetchTraceException } from "./trace-exception";
+import { isScannerProbe } from "./scanner-probe";
 import { mergeErrorSources } from "./error-sources";
 import { buildTimeline, groupErrorLogs, occurrencesOf, traceIdsOf } from "./error-groups";
 import {
@@ -44,6 +45,7 @@ import type {
 import { searchTenant } from "../../../common/telemetry/tenant-search";
 
 export interface ErrorQuery {
+  includeProbes?: boolean;
   from?: string;
   to?: string;
   service?: string;
@@ -63,10 +65,11 @@ export class ErrorsService {
   ): Promise<ErrorGroupSummary[]> {
     const range = this.rangeOf(query.from, query.to);
     const limit = query.limit ?? 50;
-    const key = `errors:${orgId}:${projectId}:${limit}:${range.start}:${range.end}:${query.service ?? ""}`;
+    const key = `errors:${orgId}:${projectId}:${limit}:${range.start}:${range.end}:${query.service ?? ""}:${query.includeProbes ? "all" : "real"}`;
     const groups = await this.cache.getOrSet(key, CACHE_TTL_SECONDS.dashboardOverview, async () => {
       const sources = await this.fetchSources(orgId, projectId, range, query.service);
-      return groupErrorLogs(sources).slice(0, limit);
+      const grouped = groupErrorLogs(sources).map((group) => ({ ...group, scannerProbe: isScannerProbe(group) }));
+      return grouped.filter((group) => query.includeProbes || !group.scannerProbe).slice(0, limit);
     });
     const states = await listIssueStates({ orgId, projectId });
     return groups.map((group) => ({
