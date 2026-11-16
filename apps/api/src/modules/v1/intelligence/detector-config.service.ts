@@ -34,10 +34,19 @@ export class DetectorConfigService {
     const cacheKey = `${organizationId}:${detectorName}:${thresholdName}`;
 
     if (this.cache) {
-      const cached = await this.cache.getJson<number>(cacheKey);
-      if (cached !== null) return cached;
+      return this.cache.getOrSet(cacheKey, this.CACHE_TTL, () =>
+        this.loadThreshold(organizationId, detectorName, thresholdName, defaultValue),
+      );
     }
+    return this.loadThreshold(organizationId, detectorName, thresholdName, defaultValue);
+  }
 
+  private async loadThreshold(
+    organizationId: string,
+    detectorName: string,
+    thresholdName: string,
+    defaultValue: number,
+  ): Promise<number> {
     if (this.db) {
       try {
         const result = await this.db
@@ -50,11 +59,7 @@ export class DetectorConfigService {
           const row = result[0];
           const detectorConfig = row.detectors[detectorName] as DetectorConfigRow | undefined;
           if (detectorConfig?.thresholds && detectorConfig.thresholds[thresholdName] !== undefined) {
-            const value = detectorConfig.thresholds[thresholdName];
-            if (this.cache) {
-              await this.cache.setJson(cacheKey, value, this.CACHE_TTL);
-            }
-            return value;
+            return detectorConfig.thresholds[thresholdName];
           }
         }
       } catch (error) {
@@ -198,7 +203,7 @@ export class DetectorConfigService {
 
   async clearCache(organizationId: string): Promise<void> {
     if (this.cache) {
-      await this.cache.deleteByPrefix(organizationId);
+      await this.cache.deleteByPrefix(`${organizationId}:`);
     }
   }
 
