@@ -131,7 +131,7 @@ function TraceExplorer() {
                   </div>
                   <div className="hidden items-center gap-2 sm:flex">
                     <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="font-mono text-xs">{t.durationMs}ms</span>
+                    <span className="font-mono text-xs">{formatMs(t.durationMs)}</span>
                     <Badge variant="outline">{t.spanCount} spans</Badge>
                     <Badge variant="outline" className={t.status === 'error' ? 'border-[#F8C7C2] text-[#F28B82]' : ''}>{t.status}</Badge>
                   </div>
