@@ -197,13 +197,22 @@ export class IngestController {
       if (trusted && signal !== "metric") {
         return this.sendError(res, 404, "Only metrics are accepted on this port");
       }
-      const auth = trusted ? await this.hostTarget.resolve() : await this.authenticate(authorization);
+      let auth: ValidatedApiKey | undefined;
+      if (trusted) {
+        try {
+          auth = await this.hostTarget.resolve();
+        } catch (error) {
+          this.logger.warn(
+            `Could not look up the host metrics project: ${error instanceof Error ? error.message : String(error)}`,
+          );
+          res.setHeader("Retry-After", "5");
+          return this.sendError(res, 503, "Host metrics project could not be looked up");
+        }
+      } else {
+        auth = await this.authenticate(authorization);
+      }
       if (!auth) {
-        return this.sendError(
-          res,
-          503,
-          "Host metrics project is not set. Add host_metrics_project_id to platform_settings.",
-        );
+        return this.sendError(res, 503, "No project exists yet to file host metrics under");
       }
       organizationId = auth.organizationId;
       if (!(await this.rateLimiter.checkRateLimit(auth.organizationId))) {
