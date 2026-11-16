@@ -62,12 +62,21 @@ describe("host metrics on the internal port", () => {
     expect(apiKeys.authenticate).not.toHaveBeenCalled();
   });
 
-  it("explains how to set the project when none is configured", async () => {
+  it("asks the sender to retry when the project lookup fails, instead of dropping the batch", async () => {
+    const { controller, hostTarget } = build(target);
+    hostTarget.resolve.mockRejectedValue(new Error('relation "platform_settings" does not exist'));
+    const res = response();
+    await controller.metric(request(3003), res, "application/json", undefined as never, undefined as never);
+    expect(res.statusCode).toBe(503);
+    expect(res.setHeader).toHaveBeenCalledWith("Retry-After", "5");
+  });
+
+  it("says so when there is no project to file host metrics under", async () => {
     const { controller } = build(undefined);
     const res = response();
     await controller.metric(request(3003), res, "application/json", undefined as never, undefined as never);
     expect(res.statusCode).toBe(503);
-    expect(JSON.stringify(res.body)).toContain("host_metrics_project_id");
+    expect(JSON.stringify(res.body)).toContain("No project exists");
   });
 
   it("does not accept traces or logs without a key on the internal port", async () => {
