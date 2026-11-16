@@ -59,7 +59,6 @@ import { HistoricalAnalysisModule } from "./modules/v1/historical-analysis/histo
 import { AlertModule } from "./modules/v1/alert/alert.module";
 import { CapacityMonitoringModule } from "./modules/v1/capacity-monitoring/capacity-monitoring.module";
 import { StorageCostModule } from "./modules/v1/storage-cost/storage-cost.module";
-import { SelfMonitoringModule } from "./modules/v1/self-monitoring/self-monitoring.module";
 import { QueryCatalogModule } from "./modules/v1/query-catalog/query-catalog.module";
 import { QueryIntelligenceModule } from "./modules/v1/intelligence/query-intelligence/query-intelligence.module";
 import { RuntimeIntelligenceModule } from "./modules/v1/intelligence/runtime-intelligence/runtime-intelligence.module";
@@ -164,7 +163,7 @@ const organizationScopedModules = [
     SearchAuditModule,
     ServiceAccountsModule,
     ...(selfObservabilityEnabled()
-      ? [IngestHealthModule, PipelineLagModule, SelfMonitoringModule]
+      ? [IngestHealthModule, PipelineLagModule]
       : []),
     PlatformAdminModule,
     SoonwhyMcpModule,

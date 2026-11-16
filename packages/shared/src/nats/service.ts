@@ -160,9 +160,6 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
   isReady(): boolean {
     return this.connection !== undefined && this.jetstream !== undefined;
   }
-  subscriptionSnapshot(): NatsSubscriptionSnapshot[] {
-    return [...this.subscriptions.values()].map((state) => ({ ...state }));
-  }
   async consumerSnapshot(): Promise<NatsConsumerSnapshot[]> {
     const jsm = await this.nc.jetstreamManager();
     const snapshots: NatsConsumerSnapshot[] = [];
