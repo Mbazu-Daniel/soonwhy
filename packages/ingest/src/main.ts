@@ -3,6 +3,7 @@ import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { Logger } from "@nestjs/common";
 import { IngestModule } from "./module";
+import { internalPortFrom, startInternalListener } from "./http/internal-listener";
 
 function checkProductionConfig() {
   if (process.env.NODE_ENV !== "production") return;
@@ -24,7 +25,13 @@ async function bootstrap() {
   const app = await NestFactory.create(IngestModule, { bodyParser: false });
   app.enableShutdownHooks();
   const port = Number(process.env.INGEST_PORT ?? 3002);
+  await app.init();
   await app.listen(port);
   Logger.log(`OTLP ingestion running on http://localhost:${port}`, "Bootstrap");
+  const internalPort = internalPortFrom(process.env.INGEST_INTERNAL_PORT, port);
+  if (internalPort) {
+    startInternalListener(app, internalPort);
+    Logger.log(`Host metrics listener on port ${internalPort}`, "Bootstrap");
+  }
 }
 bootstrap();
