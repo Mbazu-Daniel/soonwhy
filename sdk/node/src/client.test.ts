@@ -85,7 +85,8 @@ describe("Soonwhy Node SDK foundation", () => {
     await client.close();
   });
 
-  it("retries transient failures and fails open", async () => {
+  it("retries transient failures with jitter and fails open", async () => {
+    const random = vi.spyOn(Math, "random").mockReturnValue(0.5);
     const sleep = vi.fn().mockResolvedValue(undefined);
     const fetch = vi.fn().mockRejectedValue(new Error("offline"));
     const client = init(options({ maxRetries: 2, sleep, fetch }));
@@ -94,10 +95,11 @@ describe("Soonwhy Node SDK foundation", () => {
     const result = await client.flush();
 
     expect(fetch).toHaveBeenCalledTimes(3);
-    expect(sleep).toHaveBeenNthCalledWith(1, 1000);
-    expect(sleep).toHaveBeenNthCalledWith(2, 2000);
+    expect(sleep).toHaveBeenNthCalledWith(1, 500);
+    expect(sleep).toHaveBeenNthCalledWith(2, 1000);
     expect(result).toEqual({ sent: 0, dropped: 1 });
 
+    random.mockRestore();
     await client.close();
   });
 
