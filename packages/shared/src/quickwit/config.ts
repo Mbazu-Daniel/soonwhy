@@ -70,7 +70,7 @@ export const QUICKWIT_INDEX_CONFIG = {
     default_search_fields: ["message", "name", "service", "route"],
   },
   indexing_settings: {
-    commit_timeout_secs: 10,
+    commit_timeout_secs: 60,
   },
   retention: {
     period: "30 days",
