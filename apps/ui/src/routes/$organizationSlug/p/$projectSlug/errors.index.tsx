@@ -22,13 +22,14 @@ function ProjectErrors() {
   const { projectId } = useProject();
   const [range, setRange] = useState<TelemetryRange>('24h');
   const [filter, setFilter] = useState<StatusFilter>('open');
+  const [showProbes, setShowProbes] = useState(false);
   const [activeFingerprint, setActiveFingerprint] = useState<string | null>(null);
   const rangeQuery = new URLSearchParams(telemetryRangeParams(range)).toString();
   const queryClient = useQueryClient();
 
   const { data: errors, isLoading, isError, refetch } = useQuery({
-    queryKey: ['project-errors', projectId, range],
-    queryFn: () => api.get<ErrorGroup[]>(`/projects/${projectId}/dashboard/errors?${rangeQuery}`),
+    queryKey: ['project-errors', projectId, range, showProbes],
+    queryFn: () => api.get<ErrorGroup[]>(`/projects/${projectId}/dashboard/errors?${rangeQuery}${showProbes ? '&includeProbes=true' : ''}`),
     enabled: !!projectId,
     placeholderData: keepPreviousData,
   });
@@ -56,7 +57,13 @@ function ProjectErrors() {
             </button>
           ))}
         </div>
-        <TimeRangeControl value={range} onChange={setRange} />
+        <div className="flex items-center gap-4">
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+            <input type="checkbox" checked={showProbes} onChange={(event) => setShowProbes(event.target.checked)} className="h-3.5 w-3.5" />
+            Show scanner probes
+          </label>
+          <TimeRangeControl value={range} onChange={setRange} />
+        </div>
       </div>
       {isError && errors && (
         <div className="rounded-xl border border-[#5A4A1C] bg-[#2A220F] px-4 py-3 text-xs text-[#D8C68A]">
@@ -91,6 +98,7 @@ function ProjectErrors() {
                         <div className="flex flex-wrap items-center gap-2">
                           <h2 className="truncate font-mono text-sm font-medium">{error.errorMessage}</h2>
                           <Badge variant="outline">{error.errorType}</Badge>
+                          {error.scannerProbe ? <Badge variant="outline" className="text-muted-foreground">scanner probe</Badge> : null}
                           <IssueStatusBadge status={error.issue.status} />
                         </div>
                         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#989898]">

@@ -55,8 +55,10 @@ export class DashboardController {
     @Query("from") from?: string,
     @Query("to") to?: string,
     @Query("service") service?: string,
+    @Query("includeProbes") includeProbes?: string,
   ) {
     return this.errorsService.listGroups(org.orgId, projectId, {
+      includeProbes: includeProbes === "true",
       limit: limit ? parseInt(limit, 10) : 50,
       from,
       to,

@@ -7,6 +7,7 @@ export interface ErrorIssueState {
 
 export interface ErrorGroup {
   issue: ErrorIssueState;
+  scannerProbe?: boolean;
   fingerprint: string;
   errorMessage: string;
   errorType: string;
