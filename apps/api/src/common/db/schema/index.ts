@@ -57,6 +57,7 @@ export {
   webhookEndpoints,
   type WebhookEndpointType,
 } from "./webhook_endpoints";
+export { webhookDeliveries } from "./webhook-deliveries";
 export {
   notificationLogs,
   type NotificationChannelKind,
