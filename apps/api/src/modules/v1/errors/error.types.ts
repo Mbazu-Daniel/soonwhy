@@ -42,7 +42,16 @@ export interface ErrorTimelineBucket {
   count: number;
 }
 
+export interface TraceException {
+  type: string;
+  message: string;
+  stacktrace: string;
+  spanName: string;
+  spanId: string;
+}
+
 export interface ErrorGroupDetail extends ErrorGroup {
+  traceException: TraceException | null;
   findingId: string | null;
   issue: ErrorIssueState;
   occurrences: ErrorOccurrence[];

@@ -97,3 +97,21 @@ describe("error group prompt", () => {
     expect(buildRcaPrompt(bottleneck)).not.toContain("application error group");
   });
 });
+
+describe("trace exception evidence", () => {
+  it("exposes the exception recorded on the linked trace as supporting evidence", () => {
+    const evidence = buildErrorRcaEvidence(
+      finding([
+        { kind: "metric", label: "Occurrences", value: 1, context: { traceCount: 1 } },
+        {
+          kind: "log",
+          label: "Exception in linked trace",
+          value: "APIError: Invalid email or password",
+          context: { spanId: "s2", spanName: "handler /sign-in/email" },
+        },
+      ]),
+    );
+    expect(evidence?.supportingFindings.map((entry) => entry.label)).toEqual(["trace-exception"]);
+    expect(evidence?.supportingFindings[0]?.value).toContain("Invalid email or password");
+  });
+});

@@ -12,6 +12,7 @@ import { useProject } from '~/lib/project-context';
 import { TELEMETRY_RANGES, TimeRangeControl, telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
 import { InvestigationPanel } from '~/components/errors/investigation-panel';
 import { StackTraceView } from '~/components/errors/stack-trace-view';
+import { TraceExceptionView } from '~/components/errors/trace-exception-view';
 import { IssueStatusActions } from '~/components/errors/issue-status';
 import { ErrorAnalysis } from '~/components/errors/error-analysis';
 import { shortId, type ErrorGroupDetail, type FindingResult } from '~/lib/error-groups';
@@ -139,7 +140,7 @@ function ErrorDetail() {
         <Card className="border-border shadow-none">
           <CardContent className="space-y-3 p-5">
             <p className="text-sm font-medium">Stack trace</p>
-            {stack ? <StackTraceView stack={stack} /> : <p className="text-sm text-muted-foreground">No stack trace was captured for this error. HTTP status errors carry no stack; log it with captureError to get one.</p>}
+            {stack ? <StackTraceView stack={stack} /> : group.traceException ? <TraceExceptionView exception={group.traceException} /> : <p className="text-sm text-muted-foreground">No stack trace was captured for this error. HTTP status errors carry no stack; log it with captureError to get one.</p>}
           </CardContent>
         </Card>
         <Card className="border-border shadow-none">

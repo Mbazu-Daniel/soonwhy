@@ -23,3 +23,5 @@ export const REQUEST_LOG_MATCH_WINDOW_MS = 2000;
 export const FINGERPRINT_FRAME_COUNT = 3;
 export const FRAME_PATTERN = /^at\s+(?:(.*?)\s+\()?(.*?)\)?$/;
 export const FRAME_POSITION_PATTERN = /(?::\d+){1,2}$/;
+
+export const TRACE_EXCEPTION_MAX_SPANS = 200;

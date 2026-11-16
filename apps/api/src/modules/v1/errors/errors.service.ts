@@ -20,6 +20,7 @@ import {
   listIssueStates,
   saveIssueState,
 } from "./error-issue-states.store";
+import { fetchTraceException } from "./trace-exception";
 import { mergeErrorSources } from "./error-sources";
 import { buildTimeline, groupErrorLogs, occurrencesOf, traceIdsOf } from "./error-groups";
 import {
@@ -103,6 +104,7 @@ export class ErrorsService {
     if (!group) throw new NotFoundException("Error group not found in this time range");
     return {
       ...group,
+      traceException: await fetchTraceException(this.quickwit, { orgId, projectId }, group.traceId),
       findingId: await this.findingIdOf(orgId, projectId, group),
       issue: deriveIssueState(await findIssueState({ orgId, projectId }, fingerprint), group.lastSeen),
       occurrences: occurrencesOf(sources, fingerprint),
@@ -296,6 +298,15 @@ export class ErrorsService {
     }
     if (group.exception) {
       evidence.push({ kind: "log", label: "Stack trace", value: group.exception.slice(0, 2000) });
+    }
+    if (group.traceException) {
+      const { type, message, stacktrace, spanName, spanId } = group.traceException;
+      evidence.push({
+        kind: "log",
+        label: "Exception in linked trace",
+        value: [type, message].filter(Boolean).join(": ").slice(0, 500),
+        context: { spanId, spanName, stacktrace: stacktrace.slice(0, 2000) },
+      });
     }
     evidence.push(...this.stackEvidenceOf(group.exception));
     return evidence;

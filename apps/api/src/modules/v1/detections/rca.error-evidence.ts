@@ -12,6 +12,7 @@ const FRAMES_LABEL = "Application frames";
 const CAUSE_LABEL = /^Cause \d+$/;
 const LATEST_LABEL = "Latest occurrence";
 const RAW_STACK_LABEL = "Stack trace";
+const TRACE_EXCEPTION_LABEL = "Exception in linked trace";
 
 function item(
   finding: BottleneckEvidenceFinding & { id: string },
@@ -63,6 +64,7 @@ export function buildErrorRcaEvidence(
     if (entry.label === FRAMES_LABEL) supporting.push({ label: "application-frames", evidence: entry });
     else if (CAUSE_LABEL.test(entry.label)) supporting.push({ label: "cause", evidence: entry });
     else if (entry.label === RAW_STACK_LABEL) supporting.push({ label: "stack-trace", evidence: entry });
+    else if (entry.label === TRACE_EXCEPTION_LABEL) supporting.push({ label: "trace-exception", evidence: entry });
   }
   const supportingFindings = supporting.map((entry, index) => item(finding, index + 1, entry.label, entry.evidence));
 
