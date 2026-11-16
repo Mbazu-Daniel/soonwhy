@@ -203,7 +203,7 @@ function MetricsPage() {
                     </div>
                   ) : hostBuckets.length === 0 ? (
                     <div className="h-64 flex items-center justify-center text-muted-foreground">
-                      <p>No host metrics available yet. Ensure the OTel collector is running.</p>
+                      <p className="max-w-md text-center text-sm">No host metrics yet. They are shared across the organization: run the collector with an API key from any project in it.</p>
                     </div>
                   ) : (
                     <div className="space-y-4">

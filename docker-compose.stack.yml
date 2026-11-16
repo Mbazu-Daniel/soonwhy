@@ -7,8 +7,8 @@
 #   ingest-soonwhy.oktopals.com → service ingest  on 3002
 # collector reads host CPU, memory, disk and network and sends them to ingest
 # over the host network (so it sees the real interfaces). Set
-# SOONWHY_API_KEY to a project API key; the project that owns the key shows the
-# data on its Infrastructure page.
+# SOONWHY_API_KEY to an API key from any project in your organization; every
+# project in the organization shows the data on its Infrastructure page.
 # nats and quickwit stay internal on the project network — no host ports, no domains.
 # Postgres and Redis are NOT in this stack; point DATABASE_URL and REDIS_URL at
 # your own instances in the env form (.env next to this file on the server).
