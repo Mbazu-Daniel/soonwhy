@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Badge } from '~/components/ui/badge';
 import type { LogEntry } from '~/lib/log-types';
-import { LEVEL_TREATMENT, statusBadgeClass } from '~/components/logs/log-styles';
+import { LEVEL_TREATMENT, methodBadgeClass, statusBadgeClass } from '~/components/logs/log-styles';
 import { LogContext } from '~/components/logs/log-context';
 import { contextScopes } from '~/lib/log-context-scopes';
 
@@ -27,6 +27,13 @@ function parseRequestMessage(log: LogEntry) {
   return { method: match[1], endpoint: match[2], status: match[3] };
 }
 
+function attrText(fields: Record<string, unknown>, key: string): string | undefined {
+  const value = fields[key];
+  if (typeof value === 'string' && value.trim()) return value.trim();
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  return undefined;
+}
+
 interface LogRowProps {
   log: LogEntry;
   projectId: string | null | undefined;
@@ -40,7 +47,9 @@ export function LogRow({ log, projectId, organizationSlug, projectSlug, onFilter
   const [showContext, setShowContext] = useState(false);
   const fields = parseAttributes(log.attributes);
   const request = parseRequestMessage(log);
-  const status = log.status ?? request?.status ?? (fields['http.status_code'] as string | undefined);
+  const method = log.method ?? request?.method ?? attrText(fields, 'http.request.method') ?? attrText(fields, 'http.method');
+  const status = log.status ?? request?.status ?? attrText(fields, 'http.status_code') ?? attrText(fields, 'http.response.status_code');
+  const displayMessage = request ? request.endpoint : log.message;
   const scopes = contextScopes(log, fields);
   const expandable = Object.keys(fields).length > 0 || Boolean(log.traceId) || Boolean(log.stackTrace);
 
@@ -60,14 +69,17 @@ export function LogRow({ log, projectId, organizationSlug, projectSlug, onFilter
           <Badge variant="outline" className={`w-16 shrink-0 justify-center text-[10px] uppercase ${LEVEL_TREATMENT[log.level] ?? LEVEL_TREATMENT.debug}`}>{log.level}</Badge>
         </td>
         <td className="whitespace-nowrap p-3 py-2 text-left"><span className="text-xs font-medium text-[#ACFC15]">{log.service}</span></td>
-        <td className="min-w-0 max-w-0 p-3 py-2 text-left"><span className="block truncate font-mono text-xs">{log.message}</span></td>
+        <td className="whitespace-nowrap p-3 py-2 text-left">
+          {method ? <Badge variant="outline" className={`w-16 shrink-0 justify-center text-[10px] uppercase ${methodBadgeClass(method)}`}>{method}</Badge> : null}
+        </td>
+        <td className="min-w-0 max-w-0 p-3 py-2 text-left"><span className="block truncate font-mono text-xs" title={log.message}>{displayMessage}</span></td>
         <td className="whitespace-nowrap p-3 py-2 text-right">
           {status ? <Badge variant="outline" className={`w-12 shrink-0 justify-center text-[10px] ${statusBadgeClass(status)}`}>{status}</Badge> : null}
         </td>
       </tr>
       {expanded && (
         <tr className="border-b border-[#242426] bg-[#151517] last:border-0">
-          <td colSpan={6} className="space-y-3 p-3 pl-10">
+          <td colSpan={7} className="space-y-3 p-3 pl-10">
             <p className="break-words font-mono text-xs">{log.message}</p>
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <button type="button" className="rounded border border-[#242426] px-2 py-1 hover:bg-[#0B0B0C]" onClick={() => onFilter('service', log.service, false)}>Only {log.service}</button>

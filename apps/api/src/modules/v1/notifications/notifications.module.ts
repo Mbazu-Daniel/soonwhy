@@ -26,6 +26,7 @@ import { MaintenanceWindowsRepository } from "../maintenance-windows/maintenance
 import { SyntheticProbesModule } from "../synthetic-probes/synthetic-probes.module";
 import { WeeklySummaryCron } from "./weekly-summary.cron";
 import { SyntheticProbesCron } from "./synthetic-probes.cron";
+import { WebhookRetryCron } from "./retry-failed.cron";
 import { DedupService } from "./dedup/dedup.service";
 
 const getProjectsWithActiveChannels = async () => {
@@ -64,6 +65,7 @@ const getProjectsWithActiveChannels = async () => {
     DedupService,
     WeeklySummaryCron,
     SyntheticProbesCron,
+    WebhookRetryCron,
     {
       provide: WeeklySummaryService,
       useFactory: (notificationService: NotificationService) =>

@@ -1,5 +1,5 @@
 import { generateId } from "../generate-id";
-import { integer, pgTable, real, text, timestamp } from "drizzle-orm/pg-core";
+import { integer, pgTable, real, text, timestamp, index } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
 import { projects } from "./projects";
 import { findings } from "./findings";
@@ -32,4 +32,6 @@ export const rcaInvocations = pgTable("rca_invocations", {
   credentialId: text("credential_id"),
   errorCode: text("error_code"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("rca_invocations_finding_id_idx").on(table.findingId),
+]);

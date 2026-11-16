@@ -1,4 +1,13 @@
-import { Controller, Get, HttpCode, HttpStatus } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Req,
+  Res,
+  UnauthorizedException,
+} from "@nestjs/common";
+import type { Request, Response } from "express";
 import { NatsService } from "@soonwhy/shared";
 import { IngestConcurrency } from "../pipeline/concurrency";
 import { IngestStats } from "../pipeline/stats";
@@ -12,9 +21,9 @@ export class HealthController {
   ) {}
 
   @Get()
-  @HttpCode(HttpStatus.OK)
-  async status() {
+  async status(@Res({ passthrough: true }) res: Response) {
     const ready = this.nats.isReady();
+    res.status(ready ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE);
     return {
       status: ready ? "ok" : "degraded",
       ready,
@@ -22,15 +31,25 @@ export class HealthController {
         provider: "nats-jetstream",
         connected: ready,
       },
-      capacity: this.concurrency.snapshot(),
-      stats: this.stats.snapshot(),
-      consumers: ready ? await this.nats.consumerSnapshot() : [],
     };
+  }
+
+  @Get("live")
+  @HttpCode(HttpStatus.OK)
+  live() {
+    return { status: "ok" };
   }
 
   @Get("stats")
   @HttpCode(HttpStatus.OK)
-  async statsSnapshot() {
+  async statsSnapshot(@Req() req: Request) {
+    const token = process.env.INGEST_HEALTH_TOKEN;
+    if (token) {
+      const auth = req.headers.authorization;
+      if (auth !== `Bearer ${token}`) {
+        throw new UnauthorizedException("Set INGEST_HEALTH_TOKEN and send it as a bearer token.");
+      }
+    }
     return {
       stats: this.stats.snapshot(),
       capacity: this.concurrency.snapshot(),

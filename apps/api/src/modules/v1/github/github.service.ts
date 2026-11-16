@@ -6,9 +6,9 @@ import {
   environments,
   services,
   findings,
+  webhookDeliveries,
 } from "../../../common/db/schema";
 import { eq } from "drizzle-orm";
-import { WebhookDeliveries } from "./webhook-deliveries";
 
 function normalizeRepoUrl(url: string): string {
   return url
@@ -21,8 +21,6 @@ function normalizeRepoUrl(url: string): string {
 @Injectable()
 export class GithubService {
   private readonly logger = new Logger(GithubService.name);
-
-  constructor(private readonly deliveries: WebhookDeliveries) {}
 
   verifyWebhookSecret(): string {
     const secret = process.env.GITHUB_WEBHOOK_SECRET;
@@ -55,10 +53,6 @@ export class GithubService {
     eventName: string | undefined,
     deliveryId?: string,
   ) {
-    if (deliveryId && !(await this.deliveries.claim(deliveryId))) {
-      return { handled: false, reason: "duplicate delivery" };
-    }
-
     if (eventName && eventName !== "push") {
       return { handled: false, reason: `ignored event: ${eventName}` };
     }
@@ -87,48 +81,77 @@ export class GithubService {
       return { handled: false, reason: "no matching service" };
     }
 
-    const created = [];
-    for (const service of matched) {
-      let [environment] = await db
-        .select()
-        .from(environments)
-        .where(eq(environments.projectId, service.projectId))
-        .limit(1);
-
-      if (!environment) {
-        [environment] = await db
-          .insert(environments)
-          .values({
-            projectId: service.projectId,
-            name: "Production",
-            slug: "production",
-            kind: "production",
-          })
-          .returning();
+    const created: Array<typeof deployments.$inferSelect> = [];
+    let duplicate = false;
+    await db.transaction(async (tx) => {
+      if (deliveryId) {
+        const claim = await tx
+          .insert(webhookDeliveries)
+          .values({ source: "github", deliveryId })
+          .onConflictDoNothing()
+          .returning({ id: webhookDeliveries.id });
+        if (claim.length === 0) {
+          duplicate = true;
+          return;
+        }
       }
 
-      const [deployment] = await db
-        .insert(deployments)
-        .values({
-          serviceId: service.id,
-          environmentId: environment!.id,
-          version: String(commitSha).slice(0, 7),
-          commitSha: String(commitSha),
-          status: "active",
-          deployedAt: new Date(),
-        })
-        .returning();
+      for (const service of matched) {
+        let [environment] = await tx
+          .select()
+          .from(environments)
+          .where(eq(environments.projectId, service.projectId))
+          .limit(1);
 
-      created.push(deployment!);
-      this.logger.log(
-        `Created deployment ${deployment!.id} for service ${service.id} from GitHub push`,
-      );
+        if (!environment) {
+          [environment] = await tx
+            .insert(environments)
+            .values({
+              projectId: service.projectId,
+              name: "Production",
+              slug: "production",
+              kind: "production",
+            })
+            .returning();
+        }
 
-      await this.correlateDeploymentWithFindings(
-        service.id,
-        deployment!.id,
-        deployment!.deployedAt?.getTime() ?? Date.now(),
-      );
+        const [deployment] = await tx
+          .insert(deployments)
+          .values({
+            serviceId: service.id,
+            environmentId: environment!.id,
+            version: String(commitSha).slice(0, 7),
+            commitSha: String(commitSha),
+            status: "active",
+            deployedAt: new Date(),
+          })
+          .returning();
+
+        created.push(deployment!);
+        this.logger.log(
+          `Created deployment ${deployment!.id} for service ${service.id} from GitHub push`,
+        );
+      }
+    });
+
+    if (duplicate) {
+      return { handled: false, reason: "duplicate delivery" };
+    }
+
+    for (const [index, service] of matched.entries()) {
+      const deployment = created[index];
+      if (!deployment) continue;
+      try {
+        await this.correlateDeploymentWithFindings(
+          service.id,
+          deployment.id,
+          deployment.deployedAt?.getTime() ?? Date.now(),
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Finding correlation failed for deployment ${deployment.id}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
     }
 
     return { handled: true, deployments: created, commitMessage };

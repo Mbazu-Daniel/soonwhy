@@ -5,6 +5,7 @@ export const DEFAULT_ENDPOINT = "https://ingest-soonwhy.oktopals.com/v1";
 export const DEFAULT_BATCH_SIZE = 100;
 export const DEFAULT_FLUSH_INTERVAL_MS = 5_000;
 export const DEFAULT_MAX_RETRIES = 3;
+export const DEFAULT_TIMEOUT_MS = 10_000;
 
 export interface ResolvedOptions
   extends Omit<SoonwhyOptions, keyof SecurityOptions>,
@@ -13,6 +14,7 @@ export interface ResolvedOptions
   batchSize: number;
   flushIntervalMs: number;
   maxRetries: number;
+  timeoutMs: number;
   registerShutdownHandlers: boolean;
   fetch: typeof globalThis.fetch;
   sleep: (delayMs: number) => Promise<void>;
@@ -41,12 +43,18 @@ export function resolveOptions(options: SoonwhyOptions): ResolvedOptions {
     throw new Error("Soonwhy maxRetries must be a non-negative integer");
   }
 
+  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    throw new Error("Soonwhy timeoutMs must be a positive number");
+  }
+
   return {
     apiKey: options.apiKey,
     endpoint,
     batchSize,
     flushIntervalMs,
     maxRetries,
+    timeoutMs,
     registerShutdownHandlers: options.registerShutdownHandlers ?? true,
     fetch: options.fetch ?? globalThis.fetch.bind(globalThis),
     sleep:

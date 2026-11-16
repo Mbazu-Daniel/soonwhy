@@ -156,17 +156,18 @@ function LogViewer() {
                   <th className="p-3 pl-0">TIME</th>
                   <th className="p-3">LEVEL</th>
                   <th className="p-3">SERVICE</th>
+                  <th className="p-3">METHOD</th>
                   <th className="p-3">MESSAGE</th>
                   <th className="p-3 text-right">STATUS</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#242426]">
                 {pages.isLoading ? (
-                  <tr><td colSpan={6} className="p-4"><Skeleton className="h-40" /></td></tr>
+                  <tr><td colSpan={7} className="p-4"><Skeleton className="h-40" /></td></tr>
                 ) : logs.length > 0 ? (
                   logs.map((log) => <LogRow key={log.id} log={log} projectId={projectId} organizationSlug={organizationSlug} projectSlug={projectSlug} onFilter={addChip} />)
                 ) : (
-                  <tr><td colSpan={6} className="p-8 text-center text-[#6E6E70]">No logs match this query. Try a broader search or remove a filter.</td></tr>
+                  <tr><td colSpan={7} className="p-8 text-center text-[#6E6E70]">No logs match this query. Try a broader search or remove a filter.</td></tr>
                 )}
               </tbody>
             </table>

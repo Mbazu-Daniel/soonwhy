@@ -14,6 +14,7 @@ export class CircuitBreaker {
   private successCount = 0;
   private lastFailureTime = 0;
   private nextAttemptTime = 0;
+  private halfOpenProbeInFlight = false;
 
   constructor(private readonly options: CircuitBreakerOptions = {}) {}
 
@@ -25,13 +26,43 @@ export class CircuitBreaker {
       this.transitionTo("half-open");
     }
 
+    if (this.state === "half-open") {
+      if (this.halfOpenProbeInFlight) {
+        throw new Error("Circuit breaker is HALF-OPEN; a probe is already in flight");
+      }
+      this.halfOpenProbeInFlight = true;
+    }
+
     try {
-      const result = await fn();
+      const result = await this.withTimeout(fn);
       this.onSuccess();
       return result;
     } catch (error) {
       this.onFailure();
       throw error;
+    } finally {
+      this.halfOpenProbeInFlight = false;
+    }
+  }
+
+  private async withTimeout<T>(fn: () => Promise<T>): Promise<T> {
+    const timeoutMs = this.options.timeoutMs;
+    if (!timeoutMs || timeoutMs <= 0) return fn();
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        fn(),
+        new Promise<never>((_resolve, reject) => {
+          timer = setTimeout(
+            () => reject(new Error(`Circuit breaker timeout after ${timeoutMs}ms`)),
+            timeoutMs,
+          );
+          timer.unref?.();
+        }),
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
     }
   }
 

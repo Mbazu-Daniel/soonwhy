@@ -3,16 +3,15 @@ import {
   buildPrompt,
   buildStats,
   deterministicSummary,
+  sigFigs,
   type SummaryContext,
 } from "./summary-context";
 
 const healthyOverview = {
   totalRequests: 12_400,
   errorRate: 0.4,
-  avgLatency: 120,
   latencyP95: 300,
   latencyP99: 900,
-  requestRate: 0.14,
 };
 
 const baseContext = (
@@ -22,6 +21,17 @@ const baseContext = (
   findings: [],
   openIncidents: 0,
   ...overrides,
+});
+
+describe("sigFigs", () => {
+  it("rounds to 2 significant figures", () => {
+    expect(sigFigs(0.103299197274)).toBe("0.10");
+    expect(sigFigs(63.4396042503)).toBe("63");
+    expect(sigFigs(5.81166249187)).toBe("5.8");
+    expect(sigFigs(0.97)).toBe("0.97");
+    expect(sigFigs(0.004)).toBe("0.0040");
+    expect(sigFigs(0)).toBe("0");
+  });
 });
 
 describe("buildStats", () => {
@@ -53,16 +63,34 @@ describe("deterministicSummary", () => {
     const stats = buildStats(
       baseContext({ overview: { ...healthyOverview, totalRequests: 0 } }),
     );
-    expect(deterministicSummary(stats)).toMatch(/No telemetry has arrived/);
+    expect(deterministicSummary(stats)).toMatch(/No telemetry in the last 24h/);
   });
 
   it("states traffic, error rate and that nothing is on fire", () => {
     const stats = buildStats(baseContext());
     const summary = deterministicSummary(stats);
     expect(summary).toContain("12,400 requests");
-    expect(summary).toContain("0.4%");
+    expect(summary).toContain("0.40%");
     expect(summary).toContain("No new findings");
-    expect(summary).toContain("No incidents");
+    expect(summary).toContain("No open incidents");
+  });
+
+  it("rounds long-precision measurements to 2 significant figures", () => {
+    const stats = buildStats(
+      baseContext({
+        overview: {
+          totalRequests: 8_747,
+          errorRate: 0.9689,
+          latencyP95: 0.103299197274,
+          latencyP99: 63.4396042503,
+        },
+      }),
+    );
+    const summary = deterministicSummary(stats);
+    expect(summary).toContain("0.97%");
+    expect(summary).toContain("p95 0.10ms");
+    expect(summary).toContain("p99 63ms");
+    expect(summary).not.toContain("0.103299197274");
   });
 
   it("includes findings and incidents when present", () => {
@@ -78,7 +106,7 @@ describe("deterministicSummary", () => {
     expect(summary).toContain("1 finding");
     expect(summary).toContain("1 critical");
     expect(summary).toContain("error spike (api)");
-    expect(summary).toContain("2 incidents");
+    expect(summary).toContain("2 open incidents");
   });
 });
 
@@ -93,7 +121,7 @@ describe("buildPrompt", () => {
       }),
     );
     const prompt = buildPrompt(stats);
-    expect(prompt).toContain("Requests: 12400");
+    expect(prompt).toContain("Requests: 12,400");
     expect(prompt).toContain("Findings in window: 1 (1 critical");
     expect(prompt).toContain("error spike (api)");
     expect(prompt).toContain("Open incidents");

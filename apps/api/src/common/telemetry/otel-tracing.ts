@@ -20,6 +20,14 @@ export function initOtelTracing(): NodeSDK | null {
   const url = resolveOtlpEndpoint("traces");
   if (!url) return null;
 
+  const samplerRatio = Number(process.env.SOONWHY_TRACE_SAMPLE_RATIO ?? "0.1");
+  process.env.OTEL_TRACES_SAMPLER ??= "parentbased_traceidratio";
+  process.env.OTEL_TRACES_SAMPLER_ARG ??= String(
+    Number.isFinite(samplerRatio) && samplerRatio > 0 && samplerRatio <= 1
+      ? samplerRatio
+      : 0.1,
+  );
+
   const traceExporter = new OTLPTraceExporter({
     url,
     headers: resolveOtlpHeaders("traces"),
@@ -34,7 +42,13 @@ export function initOtelTracing(): NodeSDK | null {
         process.env.NODE_ENV ?? "development",
     }),
     traceExporter,
-    instrumentations: [getNodeAutoInstrumentations()],
+    instrumentations: [
+      getNodeAutoInstrumentations({
+        "@opentelemetry/instrumentation-pg": {
+          enhancedDatabaseReporting: false,
+        },
+      }),
+    ],
   });
 
   sdk.start();

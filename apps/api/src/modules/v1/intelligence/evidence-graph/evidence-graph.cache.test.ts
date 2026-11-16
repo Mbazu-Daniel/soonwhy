@@ -10,7 +10,7 @@ describe("EvidenceGraphCache", () => {
       setex: vi.fn().mockResolvedValue("OK"),
       get: vi.fn().mockResolvedValue(null),
       del: vi.fn().mockResolvedValue(1),
-      keys: vi.fn().mockResolvedValue([]),
+      scan: vi.fn().mockResolvedValue(["0", []]),
     };
 
     cache = new EvidenceGraphCache(mockRedis);
@@ -161,9 +161,9 @@ describe("EvidenceGraphCache", () => {
 
   describe("clearOrganization", () => {
     it("clears all organization keys", async () => {
-      mockRedis.keys.mockResolvedValue([
-        "evidence:org-1:node:node-1",
-        "evidence:org-1:edge:edge-1",
+      mockRedis.scan.mockResolvedValue([
+        "0",
+        ["evidence:org-1:node:node-1", "evidence:org-1:edge:edge-1"],
       ]);
 
       await cache.clearOrganization("org-1");
@@ -175,7 +175,7 @@ describe("EvidenceGraphCache", () => {
     });
 
     it("handles empty keys gracefully", async () => {
-      mockRedis.keys.mockResolvedValue([]);
+      mockRedis.scan.mockResolvedValue(["0", []]);
 
       await cache.clearOrganization("org-1");
 
@@ -185,11 +185,14 @@ describe("EvidenceGraphCache", () => {
 
   describe("getCacheStats", () => {
     it("returns cache statistics", async () => {
-      mockRedis.keys.mockResolvedValue([
-        "evidence:org-1:node:node-1",
-        "evidence:org-1:edge:edge-1",
-        "evidence:org-1:trace:trace-123",
-        "evidence:org-1:service:checkout",
+      mockRedis.scan.mockResolvedValue([
+        "0",
+        [
+          "evidence:org-1:node:node-1",
+          "evidence:org-1:edge:edge-1",
+          "evidence:org-1:trace:trace-123",
+          "evidence:org-1:service:checkout",
+        ],
       ]);
 
       const stats = await cache.getCacheStats();
@@ -203,7 +206,7 @@ describe("EvidenceGraphCache", () => {
     });
 
     it("handles errors gracefully", async () => {
-      mockRedis.keys.mockRejectedValue(new Error("Redis error"));
+      mockRedis.scan.mockRejectedValue(new Error("Redis error"));
 
       const stats = await cache.getCacheStats();
 

@@ -67,11 +67,19 @@ describe("EvidenceGraphRepository", () => {
 
   describe("deleteExpiredNodes", () => {
     it("deletes nodes past expiration", async () => {
-      mockDb.where.mockReturnValue({ returning: vi.fn().mockResolvedValue([{}, {}]) });
+      mockDb.where.mockReturnValue({
+        returning: vi
+          .fn()
+          .mockResolvedValue([
+            { organizationId: "org-1", nodeId: "node-1" },
+            { organizationId: "org-1", nodeId: "node-2" },
+          ]),
+      });
 
-      const count = await repository.deleteExpiredNodes();
+      const rows = await repository.deleteExpiredNodes();
 
-      expect(count).toBe(2);
+      expect(rows).toHaveLength(2);
+      expect(rows[0]).toEqual({ organizationId: "org-1", nodeId: "node-1" });
     });
   });
 });

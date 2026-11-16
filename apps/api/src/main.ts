@@ -24,7 +24,20 @@ import { maskPii } from "./common/privacy/pii-masker";
 import { apiDocument } from "./common/openapi/document";
 import { authCallbackHandler } from "./common/config/auth-callback";
 
+function assertRateLimitNotDisabledInProduction() {
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.RATE_LIMIT_DISABLED === "1"
+  ) {
+    Logger.error(
+      "RATE_LIMIT_DISABLED=1 is set in production: API rate limiting is OFF for every caller. Remove it or accept abuse exposure explicitly.",
+      "Bootstrap",
+    );
+  }
+}
+
 async function bootstrap() {
+  assertRateLimitNotDisabledInProduction();
   const app = await NestFactory.create<NestNodeApplication>(
     AppModule,
     new NodeAdapter(),

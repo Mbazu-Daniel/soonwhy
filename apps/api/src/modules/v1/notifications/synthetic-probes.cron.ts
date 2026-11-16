@@ -1,18 +1,30 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, Optional } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
+import { CronLeaseService } from "../../../common/cron/cron-lease.service";
 import { SyntheticProbesService } from "../synthetic-probes/synthetic-probes.service";
 
 @Injectable()
 export class SyntheticProbesCron {
   private readonly logger = new Logger(SyntheticProbesCron.name);
 
-  constructor(private readonly syntheticProbes: SyntheticProbesService) {}
+  constructor(
+    private readonly syntheticProbes: SyntheticProbesService,
+    @Optional() private readonly lease?: CronLeaseService,
+  ) {}
 
   @Cron(CronExpression.EVERY_MINUTE, {
     name: "synthetic-probes",
     timeZone: "UTC",
   })
   async runSyntheticProbes() {
+    if (this.lease) {
+      await this.lease.runExclusive("synthetic-probes", 55_000, () => this.run());
+      return;
+    }
+    await this.run();
+  }
+
+  private async run() {
     try {
       const result = await this.syntheticProbes.runDueProbes();
       if (result.due > 0) {

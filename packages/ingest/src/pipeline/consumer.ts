@@ -328,27 +328,58 @@ export class IngestConsumer implements OnModuleInit {
     try {
       await this.quickwit.ingest(indexId, toInsert);
       step = "commit";
-      await this.receipts.commitBatch(toInsert.map((r) => r.eventId));
+      await this.commitWithRetry(
+        () => this.receipts.commitBatch(toInsert.map((r) => r.eventId)),
+        indexId,
+        toInsert.length,
+      );
       this.metrics.recordInserted(toInsert.length);
     } catch (error) {
-      try {
-        await this.receipts.releaseBatch(toInsert.map((r) => r.eventId));
-      } catch (releaseError) {
-        this.logger.error(
-          `Failed to release ${toInsert.length} receipt claims for "${indexId}": ${
-            releaseError instanceof Error
-              ? releaseError.message
-              : String(releaseError)
-          }`,
-        );
+      if (step === "quickwit") {
+        try {
+          await this.receipts.releaseBatch(toInsert.map((r) => r.eventId));
+        } catch (releaseError) {
+          this.logger.error(
+            `Failed to release ${toInsert.length} receipt claims for "${indexId}": ${
+              releaseError instanceof Error
+                ? releaseError.message
+                : String(releaseError)
+            }`,
+          );
+        }
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Quickwit write to "${indexId}" failed: ${message}`);
       }
       const message = error instanceof Error ? error.message : String(error);
-      throw new Error(
-        step === "quickwit"
-          ? `Quickwit write to "${indexId}" failed: ${message}`
-          : `Receipt commit for "${indexId}" failed: ${message}`,
+      this.logger.error(
+        `Receipt commit for "${indexId}" (${toInsert.length} rows) failed after retries; leaving receipts pending so redeliveries wait out the lease instead of duplicating the Quickwit batch: ${message}`,
       );
+      throw new Error(`Receipt commit for "${indexId}" failed: ${message}`);
     }
+  }
+
+  private async commitWithRetry(
+    commit: () => Promise<unknown>,
+    indexId: string,
+    rowCount: number,
+  ): Promise<void> {
+    const delays = [100, 300, 900];
+    let lastError: unknown;
+    for (let attempt = 0; attempt <= delays.length; attempt += 1) {
+      try {
+        await commit();
+        return;
+      } catch (error) {
+        lastError = error;
+        const delay = delays[attempt];
+        if (delay === undefined) break;
+        this.logger.warn(
+          `Receipt commit for "${indexId}" (${rowCount} rows) attempt ${attempt + 1} failed; retrying in ${delay}ms`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+    throw lastError instanceof Error ? lastError : new Error(String(lastError));
   }
 
   private async insertRow(
@@ -379,26 +410,33 @@ export class IngestConsumer implements OnModuleInit {
     try {
       await this.quickwit.ingest(indexId, [row]);
       step = "commit";
-      await this.receipts.commit(row.eventId);
+      await this.commitWithRetry(
+        () => this.receipts.commit(row.eventId),
+        indexId,
+        1,
+      );
       this.metrics.recordInserted(1);
     } catch (error) {
-      try {
-        await this.receipts.release(row.eventId);
-      } catch (releaseError) {
-        this.logger.error(
-          `Failed to release receipt claim for "${indexId}": ${
-            releaseError instanceof Error
-              ? releaseError.message
-              : String(releaseError)
-          }`,
-        );
+      if (step === "quickwit") {
+        try {
+          await this.receipts.release(row.eventId);
+        } catch (releaseError) {
+          this.logger.error(
+            `Failed to release receipt claim for "${indexId}": ${
+              releaseError instanceof Error
+                ? releaseError.message
+                : String(releaseError)
+            }`,
+          );
+        }
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Quickwit write to "${indexId}" failed: ${message}`);
       }
       const message = error instanceof Error ? error.message : String(error);
-      throw new Error(
-        step === "quickwit"
-          ? `Quickwit write to "${indexId}" failed: ${message}`
-          : `Receipt commit for "${indexId}" failed: ${message}`,
+      this.logger.error(
+        `Receipt commit for "${indexId}" (event ${row.eventId}) failed after retries; leaving receipt pending so redeliveries wait out the lease instead of duplicating the Quickwit write: ${message}`,
       );
+      throw new Error(`Receipt commit for "${indexId}" failed: ${message}`);
     }
   }
 }

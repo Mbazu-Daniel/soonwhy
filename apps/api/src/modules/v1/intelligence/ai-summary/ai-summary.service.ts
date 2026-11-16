@@ -135,7 +135,7 @@ export class AiSummaryService {
         modelSettings: { temperature: 0.2, maxRetries: 0 },
       });
       const summary = result.text?.trim() ?? "";
-      if (!summary || summary.length > 1000) {
+      if (!summary || summary.length > 500) {
         this.logger.warn("AI summary returned an empty or oversized response");
         return null;
       }

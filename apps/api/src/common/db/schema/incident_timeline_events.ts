@@ -62,5 +62,6 @@ export const incidentTimelineEvents = pgTable(
       table.incidentId,
       table.createdAt,
     ),
+    index("incident_timeline_events_project_idx").on(table.projectId),
   ],
 );

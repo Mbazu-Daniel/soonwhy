@@ -1,4 +1,5 @@
-import { Inject, Injectable, Logger } from "@nestjs/common";
+import { Inject, Injectable, Logger, Optional, OnModuleInit, OnApplicationShutdown } from "@nestjs/common";
+import { Redis } from "ioredis";
 import { AiRepository } from "./ai.repository";
 import { CredentialCipher } from "./credential-cipher";
 import { LlmCatalog } from "./llm-catalog.service";
@@ -49,11 +50,13 @@ interface CacheEntry {
 const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000;
 const MAX_CACHED_ORGS = 256;
 const KEY_SEPARATOR = "\u0000";
+const INVALIDATE_CHANNEL = "soonwhy:llm-credential-invalidate";
 
 @Injectable()
-export class LlmProviderResolver {
+export class LlmProviderResolver implements OnModuleInit, OnApplicationShutdown {
   private static readonly logger = new Logger(LlmProviderResolver.name);
   private readonly cache = new Map<string, CacheEntry>();
+  private subscriber?: Redis;
   private readonly ttlMs =
     Number(process.env.SOONWHY_AI_CREDENTIAL_CACHE_TTL_MS) ||
     DEFAULT_CACHE_TTL_MS;
@@ -66,8 +69,35 @@ export class LlmProviderResolver {
     >,
     @Inject(CredentialCipher) private readonly cipher: CredentialCipher,
     @Inject(LlmCatalog) private readonly catalog: LlmCatalog,
+    @Optional() @Inject(Redis) private readonly redis?: Redis,
   ) {
     this.tuning = readLlmTuning();
+  }
+
+  async onModuleInit(): Promise<void> {
+    if (!this.redis) return;
+    try {
+      this.subscriber = this.redis.duplicate();
+      this.subscriber.on("error", (error: Error) => {
+        LlmProviderResolver.logger.warn(
+          `LLM credential invalidation subscriber error: ${error.message}`,
+        );
+      });
+      await this.subscriber.connect();
+      await this.subscriber.subscribe(INVALIDATE_CHANNEL);
+      this.subscriber.on("message", (_channel: string, orgId: string) => {
+        this.evictLocal(orgId);
+      });
+    } catch (error) {
+      this.subscriber = undefined;
+      LlmProviderResolver.logger.warn(
+        `LLM credential invalidation broadcast unavailable (cache TTL still applies): ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  async onApplicationShutdown(): Promise<void> {
+    await this.subscriber?.quit().catch(() => undefined);
   }
 
   async resolveForRca(orgId: string, credentialId?: string): Promise<ResolvedLlmHandle> {
@@ -96,6 +126,18 @@ export class LlmProviderResolver {
   }
 
   invalidate(orgId: string): void {
+    this.evictLocal(orgId);
+    if (!this.redis) return;
+    this.redis
+      .publish(INVALIDATE_CHANNEL, orgId)
+      .catch((error: Error) => {
+        LlmProviderResolver.logger.warn(
+          `Failed to broadcast LLM credential invalidation for org ${orgId}: ${error.message}`,
+        );
+      });
+  }
+
+  private evictLocal(orgId: string): void {
     for (const key of this.cache.keys()) {
       if (key.startsWith(`${orgId}${KEY_SEPARATOR}`)) this.cache.delete(key);
     }

@@ -47,6 +47,7 @@ export interface SoonwhyOptions extends ResourceOptions {
   batchSize?: number;
   flushIntervalMs?: number;
   maxRetries?: number;
+  timeoutMs?: number;
   registerShutdownHandlers?: boolean;
   fetch?: typeof globalThis.fetch;
   sleep?: (delayMs: number) => Promise<void>;
