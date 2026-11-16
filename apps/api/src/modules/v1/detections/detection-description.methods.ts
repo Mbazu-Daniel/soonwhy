@@ -11,6 +11,11 @@ function trimNoise(value: unknown): number {
   return Number.isFinite(parsed) ? Number(parsed.toPrecision(12)) : 0;
 }
 
+function latencyMs(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Number(parsed.toPrecision(2)) : 0;
+}
+
 function queryLabel(candidate: QueryCandidate): string {
   return String(
     candidate.querySummary ??
@@ -89,9 +94,9 @@ export function describePerformanceSignal(signal: {
 }): string {
   if (!signal) return 'Service performance degraded over the last 15 minutes.';
   return signal.reasons.join('. ') + '. P50: ' +
-    trimNoise(signal.latency.p50) + 'ms, P95: ' +
-    trimNoise(signal.latency.p95) + 'ms, P99: ' +
-    trimNoise(signal.latency.p99) + 'ms.';
+    latencyMs(signal.latency.p50) + 'ms, P95: ' +
+    latencyMs(signal.latency.p95) + 'ms, P99: ' +
+    latencyMs(signal.latency.p99) + 'ms.';
 }
 
 export function describeThroughputSignal(signal: {

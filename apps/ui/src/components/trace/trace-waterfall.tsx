@@ -1,5 +1,6 @@
 import { AlertCircle } from 'lucide-react';
-import { formatMs, serviceColor } from './trace.layout';
+import { serviceColor } from './trace.layout';
+import { formatMs } from '~/lib/format-ms';
 import type { TraceLayout } from './trace.types';
 
 const TICKS = [0, 0.25, 0.5, 0.75, 1];

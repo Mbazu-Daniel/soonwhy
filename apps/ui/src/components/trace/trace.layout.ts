@@ -97,7 +97,3 @@ export function buildServiceGraph(spans: TraceSpan[]): { nodes: ServiceNode[]; e
   const nodes = [...stats.values()].map((node) => ({ ...node, layer: layers.get(node.service) ?? 0 }));
   return { nodes, edges };
 }
-
-export function formatMs(value: number): string {
-  return `${Number.isFinite(value) ? Number(value.toPrecision(12)) : 0}ms`;
-}
