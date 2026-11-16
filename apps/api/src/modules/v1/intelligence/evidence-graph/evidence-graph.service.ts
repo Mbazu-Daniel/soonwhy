@@ -21,9 +21,19 @@ function createEmptyGraph(): EvidenceGraph {
   };
 }
 
+function parsePositiveIntEnv(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 @Injectable()
 export class EvidenceGraphService {
   private readonly graphs = new Map<string, EvidenceGraph>();
+  private readonly maxOrgs = parsePositiveIntEnv(process.env.EVIDENCE_GRAPH_MAX_ORGS, 50);
+  private readonly maxEntriesPerGraph = parsePositiveIntEnv(
+    process.env.EVIDENCE_GRAPH_MAX_ENTRIES,
+    5_000,
+  );
 
   constructor(
     @Optional() private readonly repository?: EvidenceGraphRepository,
@@ -31,12 +41,75 @@ export class EvidenceGraphService {
   ) {}
 
   private graphFor(organizationId: string): EvidenceGraph {
-    let graph = this.graphs.get(organizationId);
-    if (!graph) {
-      graph = createEmptyGraph();
-      this.graphs.set(organizationId, graph);
+    const existing = this.graphs.get(organizationId);
+    if (existing) {
+      this.graphs.delete(organizationId);
+      this.graphs.set(organizationId, existing);
+      return existing;
+    }
+
+    const graph = createEmptyGraph();
+    this.graphs.set(organizationId, graph);
+    while (this.graphs.size > this.maxOrgs) {
+      const oldest = this.graphs.keys().next().value;
+      if (oldest === undefined) break;
+      this.graphs.delete(oldest);
     }
     return graph;
+  }
+
+  private removeNodeFromGraph(graph: EvidenceGraph, nodeId: string): void {
+    graph.nodes.delete(nodeId);
+    for (const indexMap of [
+      graph.indexedByTrace,
+      graph.indexedByService,
+      graph.indexedByDeployment,
+    ]) {
+      for (const [key, ids] of indexMap) {
+        if (ids.delete(nodeId) && ids.size === 0) {
+          indexMap.delete(key);
+        }
+      }
+    }
+  }
+
+  private trimGraph(graph: EvidenceGraph): void {
+    while (graph.nodes.size > this.maxEntriesPerGraph) {
+      const oldest = graph.nodes.keys().next().value;
+      if (oldest === undefined) break;
+      this.removeNodeFromGraph(graph, oldest);
+    }
+    while (graph.edges.size > this.maxEntriesPerGraph) {
+      const oldest = graph.edges.keys().next().value;
+      if (oldest === undefined) break;
+      graph.edges.delete(oldest);
+    }
+  }
+
+  evictNodes(organizationId: string, nodeIds: string[]): void {
+    const graph = this.graphs.get(organizationId);
+    if (!graph) return;
+    for (const nodeId of nodeIds) {
+      this.removeNodeFromGraph(graph, nodeId);
+    }
+  }
+
+  private rememberNode(graph: EvidenceGraph, node: EvidenceNode): void {
+    graph.nodes.set(node.id, node);
+    this.trimGraph(graph);
+  }
+
+  private rememberEdge(graph: EvidenceGraph, edge: EvidenceEdge): void {
+    graph.edges.set(edge.id, edge);
+    this.trimGraph(graph);
+  }
+
+  evictEdges(organizationId: string, edgeIds: string[]): void {
+    const graph = this.graphs.get(organizationId);
+    if (!graph) return;
+    for (const edgeId of edgeIds) {
+      graph.edges.delete(edgeId);
+    }
   }
 
   async addNode(organizationId: string, node: EvidenceNode, expiresAt?: Date): Promise<void> {
@@ -71,6 +144,7 @@ export class EvidenceGraphService {
     if (this.repository) {
       await this.repository.addNode(organizationId, node, expiresAt);
     }
+    this.trimGraph(graph);
   }
 
   async addNodesBatch(organizationId: string, nodes: EvidenceNode[], expiresAt?: Date): Promise<void> {
@@ -92,6 +166,7 @@ export class EvidenceGraphService {
     if (this.repository) {
       await this.repository.addEdge(organizationId, edge, expiresAt);
     }
+    this.trimGraph(graph);
   }
 
   async getNode(organizationId: string, nodeId: string): Promise<EvidenceNode | undefined> {
@@ -104,7 +179,7 @@ export class EvidenceGraphService {
     if (this.cache) {
       const cached = await this.cache.getCachedNode(organizationId, nodeId);
       if (cached) {
-        graph.nodes.set(nodeId, cached);
+        this.rememberNode(graph, cached);
         return cached;
       }
     }
@@ -112,7 +187,7 @@ export class EvidenceGraphService {
     if (this.repository) {
       const result = await this.repository.getNode(organizationId, nodeId);
       if (result) {
-        graph.nodes.set(nodeId, result);
+        this.rememberNode(graph, result);
         if (this.cache) {
           await this.cache.cacheNode(organizationId, nodeId, result);
         }
@@ -133,7 +208,7 @@ export class EvidenceGraphService {
     if (this.cache) {
       const cached = await this.cache.getCachedEdge(organizationId, edgeId);
       if (cached) {
-        graph.edges.set(edgeId, cached);
+        this.rememberEdge(graph, cached);
         return cached;
       }
     }
@@ -141,7 +216,7 @@ export class EvidenceGraphService {
     if (this.repository) {
       const result = await this.repository.getEdge(organizationId, edgeId);
       if (result) {
-        graph.edges.set(edgeId, result);
+        this.rememberEdge(graph, result);
         if (this.cache) {
           await this.cache.cacheEdge(organizationId, edgeId, result);
         }
@@ -163,7 +238,7 @@ export class EvidenceGraphService {
       const cached = await this.cache.getCachedTraceNodes(organizationId, traceId);
       if (cached) {
         for (const node of cached) {
-          graph.nodes.set(node.id, node);
+          this.rememberNode(graph, node);
         }
         return cached;
       }
@@ -172,7 +247,7 @@ export class EvidenceGraphService {
     if (this.repository) {
       const nodes = await this.repository.getNodesByTrace(organizationId, traceId);
       for (const node of nodes) {
-        graph.nodes.set(node.id, node);
+        this.rememberNode(graph, node);
       }
       if (this.cache && nodes.length > 0) {
         await this.cache.cacheTraceNodes(organizationId, traceId, nodes);
@@ -194,7 +269,7 @@ export class EvidenceGraphService {
       const cached = await this.cache.getCachedServiceNodes(organizationId, serviceName);
       if (cached) {
         for (const node of cached) {
-          graph.nodes.set(node.id, node);
+          this.rememberNode(graph, node);
         }
         return cached;
       }
@@ -203,7 +278,7 @@ export class EvidenceGraphService {
     if (this.repository) {
       const nodes = await this.repository.getNodesByService(organizationId, serviceName);
       for (const node of nodes) {
-        graph.nodes.set(node.id, node);
+        this.rememberNode(graph, node);
       }
       if (this.cache && nodes.length > 0) {
         await this.cache.cacheServiceNodes(organizationId, serviceName, nodes);
@@ -224,7 +299,7 @@ export class EvidenceGraphService {
     if (this.repository) {
       const nodes = await this.repository.getNodesByDeployment(organizationId, deploymentId);
       for (const node of nodes) {
-        graph.nodes.set(node.id, node);
+        this.rememberNode(graph, node);
       }
       return nodes;
     }
