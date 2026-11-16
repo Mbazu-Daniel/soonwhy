@@ -227,21 +227,21 @@ export class EvidenceGraphRepository {
     }));
   }
 
-  async deleteExpiredNodes(): Promise<number> {
+  async deleteExpiredNodes(): Promise<Array<{ organizationId: string; nodeId: string }>> {
     const now = new Date();
     const result = await this.db
       .delete(evidenceNodes)
       .where(lt(evidenceNodes.expiresAt, now))
-      .returning();
-    return result.length;
+      .returning({ organizationId: evidenceNodes.organizationId, nodeId: evidenceNodes.nodeId });
+    return result;
   }
 
-  async deleteExpiredEdges(): Promise<number> {
+  async deleteExpiredEdges(): Promise<Array<{ organizationId: string; edgeId: string }>> {
     const now = new Date();
     const result = await this.db
       .delete(evidenceEdges)
       .where(lt(evidenceEdges.expiresAt, now))
-      .returning();
-    return result.length;
+      .returning({ organizationId: evidenceEdges.organizationId, edgeId: evidenceEdges.edgeId });
+    return result;
   }
 }

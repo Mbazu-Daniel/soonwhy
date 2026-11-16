@@ -130,9 +130,9 @@ export class EvidenceGraphCache {
   async clearOrganization(organizationId: string): Promise<void> {
     const pattern = `evidence:${organizationId}:*`;
     try {
-      const keys = await this.redis.keys(pattern);
-      if (keys.length > 0) {
-        await this.redis.del(...keys);
+      const keys = await this.scanKeys(pattern);
+      for (let i = 0; i < keys.length; i += 100) {
+        await this.redis.del(...keys.slice(i, i + 100));
       }
     } catch (error) {
       this.logger.warn(`Failed to clear organization ${organizationId}: ${error}`);
@@ -141,8 +141,7 @@ export class EvidenceGraphCache {
 
   async getCacheStats(): Promise<{ nodes: number; edges: number; traces: number; services: number }> {
     try {
-      const pattern = "evidence:*";
-      const keys = await this.redis.keys(pattern);
+      const keys = await this.scanKeys("evidence:*");
       const stats = { nodes: 0, edges: 0, traces: 0, services: 0 };
 
       for (const key of keys) {
@@ -157,6 +156,17 @@ export class EvidenceGraphCache {
       this.logger.warn(`Failed to get cache stats: ${error}`);
       return { nodes: 0, edges: 0, traces: 0, services: 0 };
     }
+  }
+
+  private async scanKeys(pattern: string): Promise<string[]> {
+    const keys: string[] = [];
+    let cursor = "0";
+    do {
+      const [next, batch] = await this.redis.scan(cursor, "MATCH", pattern, "COUNT", 100);
+      cursor = next;
+      keys.push(...batch);
+    } while (cursor !== "0");
+    return keys;
   }
 
   private nodeKey(organizationId: string, nodeId: string): string {
