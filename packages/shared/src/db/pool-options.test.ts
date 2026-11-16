@@ -23,4 +23,20 @@ describe("dbPoolOptions", () => {
       max_lifetime: 1800,
     });
   });
+
+  it("sets statement and idle-in-transaction timeouts with env overrides", () => {
+    expect(dbPoolOptions({}).connection).toEqual({
+      statement_timeout: 30_000,
+      idle_in_transaction_session_timeout: 30_000,
+    });
+    expect(
+      dbPoolOptions({
+        DB_STATEMENT_TIMEOUT_MS: "5000",
+        DB_IDLE_IN_TRANSACTION_TIMEOUT_MS: "15000",
+      }).connection,
+    ).toEqual({ statement_timeout: 5000, idle_in_transaction_session_timeout: 15_000 });
+    expect(
+      dbPoolOptions({ DB_STATEMENT_TIMEOUT_MS: "nope" }).connection?.statement_timeout,
+    ).toBe(30_000);
+  });
 });

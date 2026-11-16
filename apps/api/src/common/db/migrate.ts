@@ -36,7 +36,20 @@ export async function markBaselineApplied(client: postgres.Sql, folder: string =
 export async function runMigrations(connectionString: string): Promise<void> {
   const client = postgres(connectionString, { max: 1, onnotice: () => undefined });
   try {
-    await client`select pg_advisory_lock(${LOCK_KEY})`;
+    await client`SET lock_timeout = '3s'`;
+    await client`SET statement_timeout = '120s'`;
+    let locked = false;
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      const [row] = await client`select pg_try_advisory_lock(${LOCK_KEY}) as locked`;
+      if (row?.locked) {
+        locked = true;
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2_000));
+    }
+    if (!locked) {
+      throw new Error(`Could not acquire migration advisory lock ${LOCK_KEY} after 60s`);
+    }
     if (await markBaselineApplied(client)) {
       console.warn("Existing database detected: recorded the baseline migration as already applied.");
     }
