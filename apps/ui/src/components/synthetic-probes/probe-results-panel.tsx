@@ -5,6 +5,7 @@ import { Card, CardContent } from '~/components/ui/card';
 import { Skeleton } from '~/components/ui/skeleton';
 import { api } from '~/lib/api';
 import { QueryErrorState } from '~/components/query-error-state';
+import { formatMs } from '~/lib/format-ms';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
 interface SyntheticProbeResult {
@@ -38,8 +39,9 @@ export function ProbeResultsPanel({ projectId, probeId }: ProbeResultsPanelProps
   if (results.isError) return <QueryErrorState onRetry={() => void results.refetch()} />;
 
   const items = results.data ?? [];
-  const avgResponseTime = items.filter((r) => r.responseTimeMs).length
-    ? Number((items.filter((r) => r.responseTimeMs).reduce((sum, r) => sum + (r.responseTimeMs || 0), 0) / items.filter((r) => r.responseTimeMs).length).toPrecision(12))
+  const responded = items.filter((r) => r.responseTimeMs);
+  const avgResponseTime = responded.length
+    ? responded.reduce((sum, r) => sum + (r.responseTimeMs || 0), 0) / responded.length
     : 0;
   const upCount = items.filter((r) => r.status === 'up').length;
   const uptimePercent = items.length ? Math.round((upCount / items.length) * 100) : 0;
@@ -98,7 +100,7 @@ export function ProbeResultsPanel({ projectId, probeId }: ProbeResultsPanelProps
               <span className="text-xs text-muted-foreground">Average response time</span>
               <Activity className="h-4 w-4 text-[#16931F]" />
             </div>
-            <p className="mt-2 text-lg font-semibold">{avgResponseTime}ms</p>
+            <p className="mt-2 text-lg font-semibold">{formatMs(avgResponseTime)}</p>
           </CardContent>
         </Card>
         <Card className="border-border bg-card shadow-none">

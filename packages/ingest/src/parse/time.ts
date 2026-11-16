@@ -14,7 +14,7 @@ export function nanoTimestamp(nano: string): string | null {
 
 export function nanoToMs(nano: string): number {
   try {
-    return Number(BigInt(nano) / 1_000_000n);
+    return Number(BigInt(nano) / 1_000n) / 1_000;
   } catch {
     return 0;
   }

@@ -14,6 +14,7 @@ import { EmptyProject } from '~/components/empty-state';
 import { metricsInterval } from '~/lib/metrics-interval';
 import { useRequestSummary } from '~/lib/use-request-summary';
 import { statusShare } from '~/lib/request-summary';
+import { formatMsValue } from '~/lib/format-ms';
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/metrics')({
   component: MetricsPage,
@@ -120,9 +121,9 @@ function MetricsPage() {
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             <MetricCard label="Total requests" value={summaryLoading ? '—' : (summary?.totalRequests ?? 0).toLocaleString()} icon={Activity} />
             <MetricCard label="Error rate" value={summaryLoading ? '—' : (summary?.errorRate ?? 0).toFixed(2)} suffix="%" icon={AlertTriangle} />
-            <MetricCard label="P50 latency" value={summaryLoading ? '—' : String(summary?.latencyP50 ?? 0)} suffix="ms" icon={Gauge} />
-            <MetricCard label="P95 latency" value={summaryLoading ? '—' : String(summary?.latencyP95 ?? 0)} suffix="ms" icon={Clock3} />
-            <MetricCard label="P99 latency" value={summaryLoading ? '—' : String(summary?.latencyP99 ?? 0)} suffix="ms" icon={Zap} />
+            <MetricCard label="P50 latency" value={summaryLoading ? '—' : formatMsValue(summary?.latencyP50 ?? 0)} suffix="ms" icon={Gauge} />
+            <MetricCard label="P95 latency" value={summaryLoading ? '—' : formatMsValue(summary?.latencyP95 ?? 0)} suffix="ms" icon={Clock3} />
+            <MetricCard label="P99 latency" value={summaryLoading ? '—' : formatMsValue(summary?.latencyP99 ?? 0)} suffix="ms" icon={Zap} />
           </section>
 
           <section className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(300px,.75fr)]">
