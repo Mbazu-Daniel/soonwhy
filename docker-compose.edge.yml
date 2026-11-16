@@ -1,0 +1,19 @@
+# Optional TLS edge proxy in front of the stack. Not used by default.
+# 1. cp infra/nginx/edge.conf.example infra/nginx/edge.conf
+# 2. Point server_name and ssl_certificate* at your domain and certs
+# 3. Point the upstream blocks in edge.conf at your api and ui services
+#    (ui is defined only in docker-compose.local.yml; if the UI is deployed
+#    elsewhere, set the ui upstream to that host)
+# 4. docker compose -f docker-compose.local.yml -f docker-compose.edge.yml up -d
+#    (or add the edge service to your own deployment compose)
+services:
+  edge:
+    image: nginx:stable-alpine
+    container_name: soonwhy-edge
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/edge.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./infra/nginx/certs:/etc/nginx/certs:ro

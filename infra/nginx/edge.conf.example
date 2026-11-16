@@ -1,0 +1,68 @@
+# Example TLS edge proxy for Soonwhy. Copy to a mounted path and point
+# ssl_certificate/ssl_certificate_key at your certs (or terminate TLS at your
+# cloud LB and proxy plain HTTP). Not wired into any compose file by default;
+# see docker-compose.edge.yml.
+limit_req_zone $binary_remote_addr zone=soonwhy_api:10m rate=30r/s;
+limit_req_zone $binary_remote_addr zone=soonwhy_auth:10m rate=5r/s;
+
+map $http_upgrade $connection_upgrade {
+  default upgrade;
+  ""      close;
+}
+
+upstream soonwhy_api {
+  server api:3001;
+}
+
+upstream soonwhy_ui {
+  server ui:3000;
+}
+
+server {
+  listen 443 ssl;
+  http2 on;
+  server_name soonwhy.example.com;
+
+  ssl_certificate     /etc/nginx/certs/fullchain.pem;
+  ssl_certificate_key /etc/nginx/certs/privkey.pem;
+
+  client_max_body_size 5m;
+  proxy_read_timeout 60s;
+  proxy_send_timeout 60s;
+  proxy_connect_timeout 10s;
+  keepalive_timeout 65;
+
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+  add_header X-Content-Type-Options nosniff always;
+  add_header X-Frame-Options DENY always;
+  add_header Referrer-Policy no-referrer always;
+
+  location /api/v1/auth {
+    limit_req zone=soonwhy_auth burst=20 nodelay;
+    proxy_pass http://soonwhy_api;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+
+  location /api/v1/ {
+    limit_req zone=soonwhy_api burst=100 nodelay;
+    proxy_pass http://soonwhy_api;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+
+  location / {
+    proxy_pass http://soonwhy_ui;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+  }
+}
