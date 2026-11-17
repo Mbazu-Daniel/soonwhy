@@ -72,6 +72,14 @@ export const ERROR_GROUP = {
   issue: { status: 'unresolved', resolvedAt: null },
 };
 
+export const HOST = {
+  id: 'host-1',
+  hostName: 'web-1',
+  projectId: 'proj-1',
+  firstSeenAt: new Date(NOW - 86_400_000).toISOString(),
+  lastSeenAt: new Date(NOW - 60_000).toISOString(),
+};
+
 export interface MockOptions {
   buckets?: typeof SAMPLE_BUCKETS;
 }
@@ -79,7 +87,8 @@ export interface MockOptions {
 function body(pathname: string, options: MockOptions): unknown {
   if (pathname === '/auth/session') return { user: { id: 'user-1', email: 'a@b.test' } };
   if (pathname === '/organizations') return [ORG];
-  if (pathname.endsWith('/projects')) return [PROJECT];
+  if (pathname.endsWith('/projects')) return [PROJECT, { id: 'proj-2', name: 'Worker', slug: 'worker' }];
+  if (pathname.endsWith('/hosts')) return [HOST];
   if (pathname.endsWith('/services')) return [];
   if (pathname.endsWith('/metrics/summary')) return SUMMARY;
   if (pathname.endsWith('/metrics/host')) return { buckets: [] };

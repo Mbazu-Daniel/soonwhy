@@ -22,6 +22,17 @@ test.describe('metrics', () => {
   });
 });
 
+test.describe('infrastructure', () => {
+  test('lists the hosts filed under the project and offers to move them', async ({ page }) => {
+    await mockApi(page);
+    await page.goto(`${project}/metrics`);
+    await page.getByRole('tab', { name: 'Infrastructure' }).click();
+    await expect(page.getByText('web-1')).toBeVisible();
+    await expect(page.getByText(/Reporting/)).toBeVisible();
+    await expect(page.getByLabel('Move web-1 to another project')).toBeVisible();
+  });
+});
+
 test.describe('logs', () => {
   test('shows a tooltip when hovering the histogram', async ({ page }) => {
     await mockApi(page);
