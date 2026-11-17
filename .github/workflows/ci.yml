@@ -39,6 +39,34 @@ jobs:
           docker compose -f docker-compose.observability.yml config --quiet
           docker compose -f docker-compose.stack.yml config --quiet
 
+  ui-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+      - name: Install the browser
+        run: pnpm exec playwright install --with-deps chromium
+        working-directory: apps/ui
+      - name: Browser smoke tests
+        run: pnpm test:e2e
+        working-directory: apps/ui
+      - name: Keep the failure traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: apps/ui/test-results
+          retention-days: 7
+
   build-image:
     needs: checks
     if: github.event_name == 'push' && contains(fromJSON('["refs/heads/dev","refs/heads/main"]'), github.ref)
