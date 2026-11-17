@@ -43,6 +43,13 @@
       "when": 1794930528969,
       "tag": "0005_hosts",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795016928969,
+      "tag": "0006_error_ignore_rules",
+      "breakpoints": true
     }
   ]
 }

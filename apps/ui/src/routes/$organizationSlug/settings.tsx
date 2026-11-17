@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { Building2, FolderKanban, Users, UserRound } from 'lucide-react';
+import { Building2, EyeOff, FolderKanban, Users, UserRound } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { useProject } from '~/lib/project-context';
 import { useQuery } from '@tanstack/react-query';
@@ -7,6 +7,7 @@ import { api } from '~/lib/api';
 import { OrganizationSection } from '~/components/settings/organization-section';
 import { MembersSection } from '~/components/settings/members-section';
 import { ProjectsSection } from '~/components/settings/projects-section';
+import { ErrorRulesSection } from '~/components/settings/error-rules-section';
 import { ProfileSection } from '~/components/settings/profile-section';
 
 export const Route = createFileRoute('/$organizationSlug/settings')({
@@ -52,6 +53,9 @@ function SettingsPage() {
             <FolderKanban className="h-4 w-4" />Projects
             {projects.data && <span className="rounded-full bg-[#242426] px-2 py-0.5 text-xs font-medium text-[#989898]">{projects.data.length}</span>}
           </TabsTrigger>
+          <TabsTrigger value="error-rules" className={tabTriggerClass}>
+            <EyeOff className="h-4 w-4" />Error rules
+          </TabsTrigger>
           <TabsTrigger value="profile" className={tabTriggerClass}>
             <UserRound className="h-4 w-4" />Profile
           </TabsTrigger>
@@ -65,6 +69,9 @@ function SettingsPage() {
         </TabsContent>
         <TabsContent value="projects" className="focus-visible:ring-0">
           <ProjectsSection />
+        </TabsContent>
+        <TabsContent value="error-rules" className="focus-visible:ring-0">
+          <ErrorRulesSection />
         </TabsContent>
         <TabsContent value="profile" className="focus-visible:ring-0">
           <ProfileSection />

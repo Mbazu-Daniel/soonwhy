@@ -95,3 +95,4 @@ export { idempotencyKeys } from "./idempotency-keys"
 export { uploads, type UploadKind, type UploadStatus } from "./uploads";
 export { chatThreads, chatMessages, type ChatMessageRole, type ChatMessageStatus, type ChatMessageStep } from "./chat-threads";
 export { errorIssueStates, type ErrorIssueStateRow, type StoredErrorIssueStatus } from "./error-issue-states";
+export { errorIgnoreRules, type ErrorIgnoreRuleRow } from "./error-ignore-rules";
