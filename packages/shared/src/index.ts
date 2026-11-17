@@ -20,6 +20,7 @@ export { createDb, dbPoolOptions, type Db, DB, schema } from "./db";
 export { ApiKeyAuthenticator, apiKeyFromAuthorization } from "./auth/api-keys";
 export type { ApiKeyAuthentication, ValidatedApiKey } from "./auth/api-keys.types";
 export { HostMetricsTarget, HOST_METRICS_PROJECT_SETTING } from "./auth/host-metrics-target";
+export { HostRegistry, normalizeHostName } from "./auth/host-registry";
 export {
   QuickwitService,
   type QuickwitHit,

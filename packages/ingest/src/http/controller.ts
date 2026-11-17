@@ -15,10 +15,12 @@ import { gunzipSync } from "zlib";
 import {
   ApiKeyAuthenticator,
   HostMetricsTarget,
+  HostRegistry,
   NatsService,
   RateLimiter,
   type ValidatedApiKey,
 } from "@soonwhy/shared";
+import { groupByHost } from "./host-groups";
 import { internalPortFrom, isInternalRequest } from "./internal-listener";
 import { IngestStats } from "../pipeline/stats";
 import { IngestConcurrency } from "../pipeline/concurrency";
@@ -29,6 +31,7 @@ import {
   DEFAULT_PUBLISH_MAX_BYTES,
 } from "../pipeline/constants";
 import type { IngestBatch, IngestItem, IngestSignal } from "../pipeline/types";
+import type { OtlpLogsPayload, OtlpTracesPayload } from "../parse/otlp.types";
 import { parseTracesPayload } from "../parse/traces";
 import { parseLogsPayload } from "../parse/logs";
 import { parseMetricsPayload } from "../parse/metrics";
@@ -49,7 +52,7 @@ const SIGNAL_META: Record<Signal, SignalMeta> = {
     rejectedField: "rejectedSpans",
     label: "spans",
     parse: (raw) => {
-      const r = parseTracesPayload(raw);
+      const r = parseTracesPayload(raw as OtlpTracesPayload);
       return { items: r.spans as unknown as IngestItem[], rejected: r.rejected };
     },
   },
@@ -57,7 +60,7 @@ const SIGNAL_META: Record<Signal, SignalMeta> = {
     rejectedField: "rejectedLogRecords",
     label: "log records",
     parse: (raw) => {
-      const r = parseLogsPayload(raw);
+      const r = parseLogsPayload(raw as OtlpLogsPayload);
       return { items: r.records as unknown as IngestItem[], rejected: r.rejected };
     },
   },
@@ -82,6 +85,7 @@ export class IngestController {
   constructor(
     private readonly apiKeys: ApiKeyAuthenticator,
     private readonly hostTarget: HostMetricsTarget,
+    private readonly hostRegistry: HostRegistry,
     private readonly rateLimiter: RateLimiter,
     private readonly nats: NatsService,
     private readonly metrics: IngestStats,
@@ -235,8 +239,18 @@ export class IngestController {
       const accepted = result.items.slice(0, 10000);
       const rejected =
         result.rejected + Math.max(0, result.items.length - 10000);
+      let targets: Array<{ auth: ValidatedApiKey; items: IngestItem[] }>;
       try {
-        await this.publish(auth, signal, accepted);
+        targets = await this.publishTargets(auth, trusted, accepted);
+      } catch (error) {
+        this.logger.warn(
+          `Could not look up the host's project: ${error instanceof Error ? error.message : String(error)}`,
+        );
+        res.setHeader("Retry-After", "5");
+        return this.sendError(res, 503, "Host project could not be looked up");
+      }
+      try {
+        for (const target of targets) await this.publish(target.auth, signal, target.items);
       } catch (error) {
         this.metrics.recordError();
         this.logger.error(
@@ -278,6 +292,20 @@ export class IngestController {
         this.concurrency.release(organizationId);
       }
     }
+  }
+
+  private async publishTargets(
+    auth: ValidatedApiKey,
+    trusted: boolean,
+    items: IngestItem[],
+  ): Promise<Array<{ auth: ValidatedApiKey; items: IngestItem[] }>> {
+    if (!trusted) return [{ auth, items }];
+    const targets: Array<{ auth: ValidatedApiKey; items: IngestItem[] }> = [];
+    for (const [hostName, group] of groupByHost(items)) {
+      const resolved = await this.hostRegistry.resolve(hostName || undefined);
+      targets.push({ auth: resolved ?? auth, items: group });
+    }
+    return targets;
   }
 
   private async publish(

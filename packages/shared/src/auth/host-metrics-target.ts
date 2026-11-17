@@ -56,7 +56,7 @@ export class HostMetricsTarget {
     return this.projectTarget(first.id);
   }
 
-  private async projectTarget(projectId: string): Promise<ValidatedApiKey | undefined> {
+  async projectTarget(projectId: string): Promise<ValidatedApiKey | undefined> {
     const [row] = await this.db
       .select({
         projectId: projects.id,

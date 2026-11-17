@@ -1,5 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { metricValues } from "./alert-metric-values";
+import { HOST_SAMPLE_COUNT_METRIC, hostSampleValues, metricValues } from "./alert-metric-values";
 import { MetricsRepository } from "../../../modules/v1/metrics/metrics.repository";
 import { NotificationService } from "./notification.service";
 import { IncidentsService } from "../incidents/incidents.service";
@@ -16,7 +16,7 @@ interface AlertRuleRow {
   orgId: string;
   projectId: string;
   name: string;
-  conditions: any[];
+  conditions: unknown[];
   minSeverity: string;
   channelIds: string[];
   dedupeWindowSeconds: number;
@@ -319,6 +319,9 @@ export class AlertEvaluationService {
     to: string,
   ): Promise<Record<string, unknown>> {
     try {
+      if (metric === HOST_SAMPLE_COUNT_METRIC) {
+        return hostSampleValues(await this.metricsRepository.countHostSamples({ orgId, projectId, from, to }));
+      }
       const buckets = await this.metricsRepository.queryMetrics({
         orgId,
         projectId,

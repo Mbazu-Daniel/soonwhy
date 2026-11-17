@@ -17,6 +17,7 @@ import { PublicIdBackfillService } from "./common/db/backfill-public-ids";
 import { AuthModule } from "./modules/v1/auth";
 import { OrganizationsModule } from "./modules/v1/organizations";
 import { ApiKeysModule } from "./modules/v1/api-keys";
+import { HostsModule } from "./modules/v1/hosts";
 import { ServicesModule } from "./modules/v1/services";
 import { ProjectsModule } from "./modules/v1/projects";
 import { UploadsModule } from "./modules/v1/uploads/uploads.module";
@@ -84,6 +85,7 @@ import { selfObservabilityEnabled } from "./common/telemetry/self-observability"
 
 const organizationScopedModules = [
   ApiKeysModule,
+  HostsModule,
   ServicesModule,
   ProjectsModule,
   UploadsModule,

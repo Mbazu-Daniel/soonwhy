@@ -11,6 +11,7 @@ export const CONTROLLER_POLICY: Record<string, RoutePolicy> = {
   DetectorSettingsController: "admin",
   DlqController: "platform",
   GithubController: "public",
+  HostsController: "admin",
   OrganizationController: "admin",
   OrganizationsController: "public",
   ProjectsController: "admin",

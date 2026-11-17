@@ -8,6 +8,7 @@ import { Card, CardContent } from '~/components/ui/card';
 import { Skeleton } from '~/components/ui/skeleton';
 import { api } from '~/lib/api';
 import { QueryErrorState } from '~/components/query-error-state';
+import { HostsCard } from '~/components/metrics/hosts-card';
 import { useProject } from '~/lib/project-context';
 import { TimeRangeControl, telemetryRangeParams, type TelemetryRange } from '~/components/telemetry/time-range-control';
 import { MetricCard, StatusCodeBreakdown } from '~/components/metric-cards';
@@ -196,6 +197,8 @@ function MetricsPage() {
                 <MetricCard label="Network I/O" value={`${formatBytes(traffic.received)} in · ${formatBytes(traffic.transmitted)} out`} icon={Network} />
               </section>
 
+              <HostsCard projectId={projectId} />
+
               <Card className="border-border bg-card shadow-none">
                 <CardContent className="p-5">
                   <div className="mb-4">
@@ -208,7 +211,7 @@ function MetricsPage() {
                     </div>
                   ) : hostBuckets.length === 0 ? (
                     <div className="h-64 flex items-center justify-center text-muted-foreground">
-                      <p className="max-w-md text-center text-sm">No host metrics yet. The collector sends them every 30 seconds and they are shared across the organization.</p>
+                      <p className="max-w-md text-center text-sm">No host metrics for this project yet. The collector sends them every 30 seconds to the project it reports to.</p>
                     </div>
                   ) : (
                     <HostCharts points={hostPoints(hostBuckets)} />

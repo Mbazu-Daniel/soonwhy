@@ -4,6 +4,7 @@ export const ALERT_METRICS = [
   { value: 'http.server.request.duration.p99', label: 'HTTP duration P99 (ms)' },
   { value: 'http.server.request.errors.rate', label: 'HTTP error rate (%)' },
   { value: 'http.server.request.count', label: 'HTTP request count (use < 1 to alert on silence)' },
+  { value: 'host.metrics.sample.count', label: 'Host metric samples (use < 1 to alert when hosts go quiet)' },
 ] as const;
 
 export const ALERT_OPERATORS = [

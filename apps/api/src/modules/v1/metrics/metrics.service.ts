@@ -53,10 +53,11 @@ export class MetricsService {
 
   async getHostMetrics(
     orgId: string,
-    input: { from?: string; to?: string; interval?: string },
+    input: { projectId: string; from?: string; to?: string; interval?: string },
   ) {
     const buckets = await this.metricsRepository.queryHostMetrics({
       orgId,
+      projectId: input.projectId,
       from: input.from ?? new Date(Date.now() - 3600000).toISOString(),
       to: input.to ?? new Date().toISOString(),
       interval: input.interval ?? "1m",

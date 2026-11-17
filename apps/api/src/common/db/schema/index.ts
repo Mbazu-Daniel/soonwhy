@@ -59,6 +59,7 @@ export {
 } from "./webhook_endpoints";
 export { webhookDeliveries } from "./webhook-deliveries";
 export { platformSettings } from "./platform-settings";
+export { hosts } from "./hosts";
 export {
   notificationLogs,
   type NotificationChannelKind,
