@@ -6,10 +6,14 @@ import {
   Put,
   Post,
   Param,
+  UseGuards,
 } from "@nestjs/common";
 import { CurrentOrg, OrgContext } from "../../../common/decorators/current-org.decorator";
+import { OwnerOrAdminGuard } from "../../../common/guards/owner-or-admin.guard";
+import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
 import { DetectorConfigService } from "./detector-config.service";
 
+@UseGuards(TenantGuard)
 @Controller("intelligence/detector-config")
 export class DetectorConfigController {
   constructor(private readonly configService: DetectorConfigService) {}
@@ -45,6 +49,7 @@ export class DetectorConfigController {
     return this.configService.getAllDetectorConfigs(org.orgId);
   }
 
+  @UseGuards(OwnerOrAdminGuard)
   @Put(":detectorName/:thresholdName")
   async setThreshold(
     @CurrentOrg() org: OrgContext,
@@ -56,6 +61,7 @@ export class DetectorConfigController {
     return { success: true };
   }
 
+  @UseGuards(OwnerOrAdminGuard)
   @Delete(":detectorName/:thresholdName")
   async deleteThreshold(
     @CurrentOrg() org: OrgContext,
@@ -66,6 +72,7 @@ export class DetectorConfigController {
     return { success: true };
   }
 
+  @UseGuards(OwnerOrAdminGuard)
   @Post("cache/clear")
   async clearCache(@CurrentOrg() org: OrgContext): Promise<{ success: boolean }> {
     this.configService.clearCache(org.orgId);
