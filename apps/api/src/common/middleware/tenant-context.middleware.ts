@@ -1,7 +1,7 @@
 import {
+  ForbiddenException,
   Injectable,
   NestMiddleware,
-  UnauthorizedException,
 } from "@nestjs/common";
 import { Request, Response, NextFunction } from "express";
 import { and, eq, sql } from "drizzle-orm";
@@ -53,7 +53,7 @@ export class TenantContextMiddleware implements NestMiddleware {
     if (orgId) {
       const headerOrg = headerValue(req.headers["x-org-id"]);
       if (headerOrg && headerOrg !== orgId) {
-        throw new UnauthorizedException(
+        throw new ForbiddenException(
           "X-Org-Id does not match the organization in the path",
         );
       }
@@ -74,11 +74,11 @@ export class TenantContextMiddleware implements NestMiddleware {
         .limit(1);
 
       if (!member) {
-        throw new UnauthorizedException("Not a member of this organization");
+        throw new ForbiddenException("Not a member of this organization");
       }
 
       if (member.deletedAt) {
-        throw new UnauthorizedException("Organization not found");
+        throw new ForbiddenException("Organization not found");
       }
 
       await db.execute(sql`SELECT set_config('app.org_id', ${orgId}, true)`);
