@@ -81,7 +81,7 @@ export class TimelineService {
     orgId: string,
     projectId: string,
     incidentId: string,
-  ): Promise<any[]> {
+  ) {
     const history = await db
       .select({
         ownerId: incidentTimelineEvents.actorId,

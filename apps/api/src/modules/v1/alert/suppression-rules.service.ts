@@ -7,7 +7,7 @@ interface SuppressionConditions {
   services?: string[];
   severity?: string[];
   timeRanges?: Array<{ start: string; end: string; daysOfWeek?: number[] }>;
-  custom?: Array<{ field: string; operator: string; value: unknown }>;
+  custom?: Array<{ field: string; operator: string; value?: unknown }>;
 }
 
 interface SuppressionCheckParams {
@@ -39,7 +39,7 @@ export class SuppressionRulesService {
       .insert(alertSuppressionRules)
       .values({
         ...data,
-        conditions: data.conditions as any,
+        conditions: data.conditions,
         targetAlertRuleIds: data.targetAlertRuleIds || null,
         targetServices: data.targetServices || null,
         scheduleConfig: data.scheduleConfig || null,
@@ -106,7 +106,7 @@ export class SuppressionRulesService {
     return { suppressed: false };
   }
 
-  private async matchesRule(rule: any, params: SuppressionCheckParams): Promise<boolean> {
+  private async matchesRule(rule: typeof alertSuppressionRules.$inferSelect, params: SuppressionCheckParams): Promise<boolean> {
     if (rule.targetAlertRuleIds && !rule.targetAlertRuleIds.includes(params.alertRuleId)) {
       return false;
     }
@@ -140,7 +140,7 @@ export class SuppressionRulesService {
     return true;
   }
 
-  private isWithinSchedule(scheduleConfig: any, timestamp: Date): boolean {
+  private isWithinSchedule(scheduleConfig: unknown, timestamp: Date): boolean {
     if (!scheduleConfig) return true;
 
     const config = scheduleConfig as {
@@ -174,7 +174,7 @@ export class SuppressionRulesService {
     return true;
   }
 
-  private async checkConditional(_conditionalConfig: any, _params: SuppressionCheckParams): Promise<boolean> {
+  private async checkConditional(_conditionalConfig: unknown, _params: SuppressionCheckParams): Promise<boolean> {
     return true;
   }
 }

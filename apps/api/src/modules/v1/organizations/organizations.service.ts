@@ -7,10 +7,9 @@ import { OrganizationsRepository } from "./organizations.repository";
 import { ProjectsRepository } from "../projects/projects.repository";
 import { CreateOrganizationInput, UpdateOrganizationInput } from "./dto";
 import { auth } from "../../../common/config/better-auth.config";
+import type { OrganizationAuthApi } from "./organization-auth-api.types";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const authApi = auth.api as any;
-
+const authApi = auth.api as unknown as OrganizationAuthApi;
 @Injectable()
 export class OrganizationsService {
   constructor(

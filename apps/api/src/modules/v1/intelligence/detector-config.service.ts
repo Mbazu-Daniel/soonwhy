@@ -1,5 +1,5 @@
 import { Injectable, Logger, Optional } from "@nestjs/common";
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import type { AppDatabase } from "../../../common/db/types";
 import { eq } from "drizzle-orm";
 import { detectorSettings, type DetectorConfigRow } from "../../../common/db/schema/detector-settings";
 import { CacheService } from "../../../common/cache/cache.service";
@@ -17,13 +17,13 @@ export class DetectorConfigService {
   private readonly CACHE_TTL = 3600;
 
   constructor(
-    @Optional() private readonly customDb?: PostgresJsDatabase<any>,
+    @Optional() private readonly customDb?: AppDatabase,
     @Optional() private readonly cache?: CacheService,
   ) {
     this.db = customDb || db;
   }
 
-  private readonly db: PostgresJsDatabase<any>;
+  private readonly db: AppDatabase;
 
   async getDetectorThreshold(
     organizationId: string,

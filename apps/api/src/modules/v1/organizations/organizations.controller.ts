@@ -47,6 +47,11 @@ const createInvitationSchema = z.object({
   role: z.enum(["member", "admin"]).optional().default("member"),
 });
 
+const addMemberSchema = z.object({
+  userId: z.string().trim().min(1).max(100),
+  role: z.enum(["member", "admin"]).optional().default("member"),
+});
+
 const updateMemberRoleSchema = z.object({
   role: z.enum(["member", "admin"]),
 });
@@ -184,7 +189,7 @@ export class OrganizationController {
   @Post("members")
   async addMemberToOrganization(
     @Param("organizationId") organizationId: string,
-    @Body() body: { userId: string; role?: string },
+    @Body({ schema: addMemberSchema }) body: z.output<typeof addMemberSchema>,
     @Headers("authorization") authorization: string | undefined,
     @CurrentMember() member: MemberContext,
     @Req() req: Request,

@@ -12,6 +12,7 @@ import {
   OrgContext,
 } from "../../../common/decorators/current-org.decorator";
 import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
+import { CreateCanaryDto, type CreateCanaryInput } from "./canary.dto";
 import { CanaryService } from "./canary.service";
 
 @UseGuards(TenantGuard)
@@ -23,16 +24,12 @@ export class CanaryController {
   createCanary(
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
-    @Body() body: any,
+    @Body({ schema: CreateCanaryDto }) body: CreateCanaryInput,
   ) {
     return this.service.createCanary({
       orgId: org.orgId,
       projectId,
-      deploymentId: body.deploymentId,
-      name: body.name,
-      targetUrl: body.targetUrl,
-      baselineUrl: body.baselineUrl,
-      validationRules: body.validationRules,
+      ...body,
     });
   }
 

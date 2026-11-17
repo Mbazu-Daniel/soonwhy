@@ -67,8 +67,8 @@ function DlqPage() {
   });
 
   const bulkReplay = useMutation({
-    mutationFn: (ids: number[]) => api.post('/admin/dlq/bulk-replay', { ids }),
-    onSuccess: (result: any) => {
+    mutationFn: (ids: number[]) => api.post<{ successful: number; failed: number }>('/admin/dlq/bulk-replay', { ids }),
+    onSuccess: (result) => {
       toast.success(`Replayed ${result.successful} entries, ${result.failed} failed`);
       setSelectedIds([]);
       void queryClient.invalidateQueries({ queryKey: ['dlq-entries'] });

@@ -1,6 +1,7 @@
 import type {
   RuntimeMetrics,
   RuntimeAggregation,
+  RuntimeRegression,
 } from "./runtime-intelligence.types";
 import {
   createTelemetryIdentity,
@@ -63,7 +64,7 @@ export function detectRuntimeRegression(
   memoryThreshold: number = 0.5,
   eventLoopThreshold: number = 0.5,
 ): {
-  identity: any;
+  identity: RuntimeRegression["identity"];
   currentAggregation: RuntimeAggregation;
   baselineAggregation: RuntimeAggregation;
   cpuChangePercent: number;

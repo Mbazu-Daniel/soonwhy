@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { MetricsRepository } from "../metrics/metrics.repository";
 import { DeploymentsRepository } from "../deployments/deployments.repository";
+import type { PeriodMetrics } from "./historical-analysis.types";
 
 interface TimeComparisonResult {
   current: {
@@ -227,7 +228,7 @@ export class HistoricalAnalysisService {
     };
   }
 
-  private calculateChange(current: any, previous: any) {
+  private calculateChange(current: PeriodMetrics, previous: PeriodMetrics) {
     const calculatePercentChange = (current: number, previous: number) => {
       if (previous === 0) return current > 0 ? 100 : 0;
       return ((current - previous) / previous) * 100;

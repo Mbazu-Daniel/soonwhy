@@ -92,7 +92,7 @@ export class DashboardService {
         maxHits: 1,
         sortBy: ["timestamp:desc"],
       });
-      const latest = quickwitSource<Record<string, any>>(result.hits[0]);
+      const latest = quickwitSource<{ timestamp?: string; service?: string; traceId?: string }>(result.hits[0]);
       const lastTelemetryAt = latest?.timestamp ?? null;
       const lastTelemetryAgeMs = lastTelemetryAt
         ? Math.max(0, Date.now() - new Date(lastTelemetryAt).getTime())

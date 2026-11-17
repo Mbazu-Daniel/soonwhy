@@ -36,40 +36,22 @@ export class StatusPageController {
         const incidents: { start: string; end: string; duration: number }[] = [];
         let currentIncident: { start: string; end: string } | null = null;
 
-        results.slice().reverse().forEach((result) => {
-          if (!result.checkedAt) return;
-          
-          const checkedAtStr = new Date(result.checkedAt).toISOString();
-          
-          if (result.status === "down" || result.status === "degraded") {
-            if (!currentIncident) {
-              currentIncident = { start: checkedAtStr, end: checkedAtStr };
-            } else {
-              currentIncident.end = checkedAtStr;
-            }
-          } else {
-            if (currentIncident) {
-              const start = new Date(currentIncident.start).getTime();
-              const end = new Date(currentIncident.end).getTime();
-              incidents.push({
-                start: currentIncident.start,
-                end: currentIncident.end,
-                duration: Math.round((end - start) / 1000 / 60),
-              });
-              currentIncident = null;
-            }
-          }
-        });
+        for (const result of results.slice().reverse()) {
+          if (!result.checkedAt) continue;
 
-        if (currentIncident) {
-          const start = new Date((currentIncident as any).start).getTime();
-          const end = new Date((currentIncident as any).end).getTime();
-          incidents.push({
-            start: (currentIncident as any).start,
-            end: (currentIncident as any).end,
-            duration: Math.round((end - start) / 1000 / 60),
-          });
+          const checkedAtStr = new Date(result.checkedAt).toISOString();
+
+          if (result.status === "down" || result.status === "degraded") {
+            currentIncident = currentIncident
+              ? { start: currentIncident.start, end: checkedAtStr }
+              : { start: checkedAtStr, end: checkedAtStr };
+          } else if (currentIncident) {
+            incidents.push(closedIncident(currentIncident));
+            currentIncident = null;
+          }
         }
+
+        if (currentIncident) incidents.push(closedIncident(currentIncident));
 
         return {
           name: probe.name,
@@ -98,4 +80,14 @@ export class StatusPageController {
       lastUpdated: new Date().toISOString(),
     };
   }
+}
+
+function closedIncident(incident: { start: string; end: string }) {
+  const start = new Date(incident.start).getTime();
+  const end = new Date(incident.end).getTime();
+  return {
+    start: incident.start,
+    end: incident.end,
+    duration: Math.round((end - start) / 1000 / 60),
+  };
 }

@@ -71,7 +71,13 @@ export class IncidentsService {
     }
   }
 
-  private async sendRecoveryNotification(incident: any) {
+  private async sendRecoveryNotification(incident: {
+    orgId: string;
+    projectId: string;
+    incidentId: string;
+    title: string;
+    alertRuleId: string;
+  }) {
     await this.notificationService.dispatchAlert({
       orgId: incident.orgId,
       projectId: incident.projectId,

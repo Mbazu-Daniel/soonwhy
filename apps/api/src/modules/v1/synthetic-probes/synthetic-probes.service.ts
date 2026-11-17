@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import type { syntheticProbes } from "../../../common/db/schema";
 import { SyntheticProbesRepository, type ProbeScope } from "./synthetic-probes.repository";
 import { CreateSyntheticProbeInput, UpdateSyntheticProbeInput } from "./dto";
 import { URL } from "url";
@@ -148,7 +149,7 @@ export class SyntheticProbesService {
     return this.repository.cleanupOldResults(daysOld);
   }
 
-  async executeProbe(probe: any) {
+  async executeProbe(probe: typeof syntheticProbes.$inferSelect) {
     this.validateProbeUrl(probe.url);
     const hostname = new URL(probe.url).hostname;
     await assertPublicDns(hostname.replace(/^\[|\]$/g, ""));
@@ -179,11 +180,12 @@ export class SyntheticProbesService {
         status = "degraded";
         errorMessage = `Expected status ${probe.expectedStatusCode}, got ${result.statusCode}`;
       }
-    } catch (error: any) {
+    } catch (error) {
+      const failure = error as { message?: string; name?: string };
       responseTimeMs = null;
       status = "down";
-      errorMessage = error.message || "Request failed";
-      if (error.name === "AbortError") {
+      errorMessage = failure.message || "Request failed";
+      if (failure.name === "AbortError") {
         errorMessage = `Request timeout after ${probe.timeoutMs}ms`;
       }
     }

@@ -43,7 +43,7 @@ export class AlertService {
     }
   }
 
-  private async checkSingleSLO(slo: any) {
+  private async checkSingleSLO(slo: typeof slos.$inferSelect) {
     const [latestSnapshot] = await db
       .select()
       .from(sloComplianceSnapshots)
@@ -106,7 +106,7 @@ export class AlertService {
   }
 
   private async triggerSLOAlert(
-    slo: any,
+    slo: typeof slos.$inferSelect,
     errorBudgetPercent: number,
     burnRate: number,
     threshold: SLOAlertThreshold,

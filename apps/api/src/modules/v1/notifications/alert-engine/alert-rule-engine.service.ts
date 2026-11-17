@@ -184,7 +184,7 @@ export class AlertRuleEngineService {
     orgId: string,
     projectId: string,
     _minSeverity: string,
-  ): Promise<any[]> {
+  ): Promise<(typeof notificationChannels.$inferSelect)[]> {
     const rules = await db
       .select()
       .from(alertRules)
@@ -224,7 +224,7 @@ export class AlertRuleEngineService {
     projectId: string,
     severity: string,
     alertRuleId: string,
-  ): Promise<{ channel?: any; success: boolean }> {
+  ): Promise<{ channel?: typeof notificationChannels.$inferSelect; success: boolean }> {
     const [rule] = await db
       .select()
       .from(alertRules)

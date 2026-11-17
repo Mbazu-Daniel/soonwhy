@@ -1,5 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Redis } from "ioredis";
+import type { EvidenceEdge, EvidenceNode } from "./evidence-graph.types";
 
 @Injectable()
 export class EvidenceGraphCache {
@@ -11,7 +12,7 @@ export class EvidenceGraphCache {
 
   constructor(private readonly redis: Redis) {}
 
-  async cacheNode(organizationId: string, nodeId: string, node: any): Promise<void> {
+  async cacheNode(organizationId: string, nodeId: string, node: EvidenceNode): Promise<void> {
     const key = this.nodeKey(organizationId, nodeId);
     try {
       await this.redis.setex(key, this.NODE_TTL, JSON.stringify(node));
@@ -20,7 +21,7 @@ export class EvidenceGraphCache {
     }
   }
 
-  async getCachedNode(organizationId: string, nodeId: string): Promise<any | null> {
+  async getCachedNode(organizationId: string, nodeId: string): Promise<EvidenceNode | null> {
     const key = this.nodeKey(organizationId, nodeId);
     try {
       const cached = await this.redis.get(key);
@@ -31,7 +32,7 @@ export class EvidenceGraphCache {
     }
   }
 
-  async cacheEdge(organizationId: string, edgeId: string, edge: any): Promise<void> {
+  async cacheEdge(organizationId: string, edgeId: string, edge: EvidenceEdge): Promise<void> {
     const key = this.edgeKey(organizationId, edgeId);
     try {
       await this.redis.setex(key, this.EDGE_TTL, JSON.stringify(edge));
@@ -40,7 +41,7 @@ export class EvidenceGraphCache {
     }
   }
 
-  async getCachedEdge(organizationId: string, edgeId: string): Promise<any | null> {
+  async getCachedEdge(organizationId: string, edgeId: string): Promise<EvidenceEdge | null> {
     const key = this.edgeKey(organizationId, edgeId);
     try {
       const cached = await this.redis.get(key);
@@ -51,7 +52,7 @@ export class EvidenceGraphCache {
     }
   }
 
-  async cacheTraceNodes(organizationId: string, traceId: string, nodes: any[]): Promise<void> {
+  async cacheTraceNodes(organizationId: string, traceId: string, nodes: EvidenceNode[]): Promise<void> {
     const key = this.traceNodesKey(organizationId, traceId);
     try {
       await this.redis.setex(key, this.TRACE_NODES_TTL, JSON.stringify(nodes));
@@ -60,7 +61,7 @@ export class EvidenceGraphCache {
     }
   }
 
-  async getCachedTraceNodes(organizationId: string, traceId: string): Promise<any[] | null> {
+  async getCachedTraceNodes(organizationId: string, traceId: string): Promise<EvidenceNode[] | null> {
     const key = this.traceNodesKey(organizationId, traceId);
     try {
       const cached = await this.redis.get(key);
@@ -71,7 +72,7 @@ export class EvidenceGraphCache {
     }
   }
 
-  async cacheServiceNodes(organizationId: string, serviceName: string, nodes: any[]): Promise<void> {
+  async cacheServiceNodes(organizationId: string, serviceName: string, nodes: EvidenceNode[]): Promise<void> {
     const key = this.serviceNodesKey(organizationId, serviceName);
     try {
       await this.redis.setex(key, this.SERVICE_NODES_TTL, JSON.stringify(nodes));
@@ -80,7 +81,7 @@ export class EvidenceGraphCache {
     }
   }
 
-  async getCachedServiceNodes(organizationId: string, serviceName: string): Promise<any[] | null> {
+  async getCachedServiceNodes(organizationId: string, serviceName: string): Promise<EvidenceNode[] | null> {
     const key = this.serviceNodesKey(organizationId, serviceName);
     try {
       const cached = await this.redis.get(key);
