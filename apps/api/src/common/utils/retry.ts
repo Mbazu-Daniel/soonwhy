@@ -4,8 +4,8 @@ export interface RetryOptions {
   maxDelayMs?: number;
   backoffMultiplier?: number;
   jitter?: boolean;
-  retryableErrors?: (error: any) => boolean;
-  onRetry?: (attempt: number, error: any) => void;
+  retryableErrors?: (error: unknown) => boolean;
+  onRetry?: (attempt: number, error: unknown) => void;
 }
 
 const defaultRetryOptions: Required<RetryOptions> = {
@@ -23,7 +23,7 @@ export async function withRetry<T>(
   options: RetryOptions = {},
 ): Promise<T> {
   const opts = { ...defaultRetryOptions, ...options };
-  let lastError: any;
+  let lastError: unknown;
   let delay = opts.initialDelayMs;
 
   for (let attempt = 1; attempt <= opts.maxAttempts; attempt++) {
@@ -54,7 +54,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function isRetryableError(error: any): boolean {
+export function isRetryableError(error: unknown): boolean {
   if (!error) return false;
 
   const errorStr = String(error).toLowerCase();
@@ -77,7 +77,7 @@ export function isRetryableError(error: any): boolean {
   return retryablePatterns.some((pattern) => errorStr.includes(pattern));
 }
 
-export function isNonRetryableError(error: any): boolean {
+export function isNonRetryableError(error: unknown): boolean {
   if (!error) return false;
 
   const errorStr = String(error).toLowerCase();

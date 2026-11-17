@@ -137,7 +137,8 @@ const organizationScopedModules = [
 @Module({
   imports: [
     IdempotencyModule.forRoot({
-      scope: (req: any) => req.headers['x-org-id'] || req.user?.id || 'global',
+      scope: (req: { headers: Record<string, string | undefined>; user?: { id?: string } }) =>
+        req.headers['x-org-id'] || req.user?.id || 'global',
     }),
     ScheduleModule.forRoot(),
     DrizzleIdempotencyModule,

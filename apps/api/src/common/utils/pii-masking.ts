@@ -24,23 +24,23 @@ export class PIIMaskingService {
     return masked;
   }
 
-  maskObject(obj: any): any {
+  maskObject<T>(obj: T): T {
     if (!obj || typeof obj !== "object") {
       return obj;
     }
 
     if (Array.isArray(obj)) {
-      return obj.map((item) => {
+      return obj.map((item: unknown) => {
         if (typeof item === "string") {
           return this.maskText(item);
         } else if (typeof item === "object" && item !== null) {
           return this.maskObject(item);
         }
         return item;
-      });
+      }) as T;
     }
 
-    const masked: any = {};
+    const masked: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj)) {
       if (typeof value === "string") {
         masked[key] = this.maskText(value);
@@ -51,10 +51,10 @@ export class PIIMaskingService {
       }
     }
 
-    return masked;
+    return masked as T;
   }
 
-  maskError(error: any): any {
+  maskError<T extends { message?: string; stack?: string }>(error: T): T {
     if (!error) return error;
 
     const masked = { ...error };
