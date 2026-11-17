@@ -17,6 +17,8 @@ export interface PersistRcaAnalysisInput {
   promptVersion: string;
   credentialSource: LlmCredentialSource;
   usage: RcaUsage;
+  trigger?: "manual" | "auto";
+  evidenceHash?: string | null;
 }
 
 @Injectable()
@@ -50,6 +52,8 @@ export class RcaPersistenceService {
       model: input.model,
       promptVersion: input.promptVersion,
       credentialSource: input.credentialSource,
+      trigger: input.trigger ?? "manual",
+      evidenceHash: input.evidenceHash ?? null,
     };
 
     return this.repository.create(values);

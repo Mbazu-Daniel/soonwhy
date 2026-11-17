@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, ArrowLeft, Clock3, ExternalLink, FileSearch, GitBranch, Loader2, Plus, ScrollText } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { AlertCircle, ArrowLeft, Clock3, ExternalLink, GitBranch, ScrollText } from 'lucide-react';
 import { useState } from 'react';
 import { Card, CardContent } from '~/components/ui/card';
 import { Badge } from '~/components/ui/badge';
@@ -14,8 +14,8 @@ import { InvestigationPanel } from '~/components/errors/investigation-panel';
 import { StackTraceView } from '~/components/errors/stack-trace-view';
 import { TraceExceptionView } from '~/components/errors/trace-exception-view';
 import { IssueStatusActions } from '~/components/errors/issue-status';
-import { ErrorAnalysis } from '~/components/errors/error-analysis';
-import { shortId, type ErrorGroupDetail, type FindingResult } from '~/lib/error-groups';
+import { ErrorAnalysisDrawer } from '~/components/errors/error-analysis-drawer';
+import { shortId, type ErrorGroupDetail } from '~/lib/error-groups';
 
 interface ErrorSearch { range: TelemetryRange; environment?: string }
 
@@ -34,7 +34,6 @@ function ErrorDetail() {
   const { range, environment } = Route.useSearch();
   const navigate = Route.useNavigate();
   const { projectId } = useProject();
-  const queryClient = useQueryClient();
   const rangeQuery = new URLSearchParams(telemetryRangeParams(range)).toString();
   const environmentQuery = environment ? `&environment=${encodeURIComponent(environment)}` : '';
 
@@ -53,11 +52,6 @@ function ErrorDetail() {
     queryKey: ['error-logs', projectId, traceId],
     queryFn: () => api.get<{ data: LogEntry[] }>(`/projects/${projectId}/logs?traceId=${encodeURIComponent(traceId)}&limit=50`),
     enabled: !!projectId && !!traceId,
-  });
-
-  const createFinding = useMutation({
-    mutationFn: () => api.post<FindingResult>(`/projects/${projectId}/dashboard/errors/${fingerprint}/finding?${rangeQuery}`, {}),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['detections', projectId] }),
   });
 
   const back = (
@@ -107,15 +101,7 @@ function ErrorDetail() {
         </div>
         <IssueStatusActions projectId={projectId} fingerprint={group.fingerprint} issue={group.issue} />
         <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" variant="outline" disabled={createFinding.isPending} onClick={() => createFinding.mutate()}>
-            {createFinding.isPending ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Plus className="mr-2 h-3.5 w-3.5" />}Create finding
-          </Button>
-          {createFinding.isSuccess && (
-            <Link to="/$organizationSlug/p/$projectSlug/intelligence/findings" params={{ organizationSlug, projectSlug }}>
-              <Button size="sm" variant="outline"><FileSearch className="mr-2 h-3.5 w-3.5" />{createFinding.data.status === 'created' ? 'Finding created' : 'Finding updated'}: open findings</Button>
-            </Link>
-          )}
-          {createFinding.isError && <span className="text-sm text-[#8A1C13]">{createFinding.error instanceof Error ? createFinding.error.message : 'Could not create finding.'}</span>}
+          <ErrorAnalysisDrawer projectId={projectId} organizationSlug={organizationSlug} fingerprint={fingerprint} rangeQuery={rangeQuery} findingId={group.findingId} />
           {group.traceIds.length > 0 && (
             <Link to="/$organizationSlug/p/$projectSlug/traces" params={{ organizationSlug, projectSlug }} search={{ ids: group.traceIds.join(',') }}>
               <Button size="sm" variant="outline"><GitBranch className="mr-2 h-3.5 w-3.5" />Open {group.traceIds.length === group.traceCount ? `all ${group.traceCount.toLocaleString()}` : `latest ${group.traceIds.length.toLocaleString()} of ${group.traceCount.toLocaleString()}`} in traces</Button>
@@ -170,8 +156,6 @@ function ErrorDetail() {
           </CardContent>
         </Card>
       </section>
-
-      <ErrorAnalysis projectId={projectId} organizationSlug={organizationSlug} fingerprint={fingerprint} rangeQuery={rangeQuery} findingId={group.findingId} />
 
       <InvestigationPanel projectId={projectId} organizationSlug={organizationSlug} suggestion={`Why is "${group.errorMessage.slice(0, 120)}" happening in ${group.service}?`} />
 

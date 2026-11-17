@@ -6,6 +6,7 @@ export const PARAM_ROUTE_ARGUMENT = 5;
 export const CONTROLLER_POLICY: Record<string, RoutePolicy> = {
   AiController: "admin",
   AuthController: "public",
+  AutoAnalysisController: "admin",
   ClientEventsController: "public",
   DetectorConfigController: "admin",
   DetectorSettingsController: "admin",

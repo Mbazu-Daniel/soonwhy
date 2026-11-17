@@ -20,6 +20,7 @@ import {
 } from "../ai/llm-provider.config";
 import type { LlmCredentialSummary } from "../ai/llm-provider.resolver";
 import type { RcaAnalysisOutcome } from "./rca.types";
+import { MANUAL_ORIGIN, type RcaOrigin } from "./rca-origin";
 
 type UsageEvent = Parameters<BillingService["recordUsage"]>[0];
 
@@ -64,6 +65,7 @@ export class RcaApiService {
     findingId: string,
     regenerate: boolean,
     credentialId?: string,
+    origin: RcaOrigin = MANUAL_ORIGIN,
   ) {
     const finding = await this.assertFinding(orgId, projectId, findingId);
     if (!regenerate) {
@@ -116,6 +118,8 @@ export class RcaApiService {
         promptVersion: result.promptVersion,
         credentialSource: result.credential.source,
         usage: result.usage,
+        trigger: origin.trigger,
+        evidenceHash: origin.evidenceHash,
       });
       await this.governance.recordSuccess({
         id: invocationId,
