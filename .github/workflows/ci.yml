@@ -122,3 +122,32 @@ jobs:
             echo "::error::Dokploy did not start a deploy (branch sent: ${DOKPLOY_BRANCH}). Set the repo variable DOKPLOY_BRANCH to the branch configured on the Dokploy app."
             exit 1
           fi
+
+      - name: Wait for the new deploy to be healthy
+        env:
+          SOONWHY_API_URL: ${{ vars.SOONWHY_API_URL }}
+        run: |
+          if [ -z "$SOONWHY_API_URL" ]; then
+            echo "::warning::Repo variable SOONWHY_API_URL is not set, so the deploy was not verified. Set it to the public API origin, for example https://api-soonwhy.example.com"
+            exit 0
+          fi
+          url="${SOONWHY_API_URL%/}/api/v1/health/ready"
+          sleep 45
+          ok=0
+          for attempt in $(seq 1 40); do
+            code=$(curl -s -o /tmp/ready.json -w '%{http_code}' --max-time 10 "$url" || echo 000)
+            if [ "$code" = "200" ]; then
+              ok=$((ok + 1))
+              echo "attempt $attempt: ready ($ok/3)"
+              if [ "$ok" -ge 3 ]; then
+                echo "Deploy is healthy: $(cat /tmp/ready.json)"
+                exit 0
+              fi
+            else
+              ok=0
+              echo "attempt $attempt: $code"
+            fi
+            sleep 15
+          done
+          echo "::error::$url did not report ready after the deploy. Last body: $(cat /tmp/ready.json 2>/dev/null)"
+          exit 1
