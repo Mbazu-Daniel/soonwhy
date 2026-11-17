@@ -12,11 +12,10 @@ export function groupLogFields(fields: LogFieldName[], query: string): LogFieldG
   const matches = (field: LogFieldName) => !needle || field.name.toLowerCase().includes(needle);
   const quick = QUICK_FIELDS.flatMap((name) => fields.filter((field) => field.name === name && matches(field)));
   const rest = fields.filter((field) => !QUICK_FIELDS.includes(field.name) && matches(field));
-  return {
-    quick,
-    core: rest.filter((field) => field.kind === 'core'),
-    attributes: rest.filter((field) => field.kind === 'attribute'),
-  };
+  const core = rest.filter((field) => field.kind === 'core');
+  const coreNames = new Set(fields.filter((field) => field.kind === 'core').map((field) => field.name));
+  const attributes = rest.filter((field) => field.kind === 'attribute' && !coreNames.has(fieldLabel(field.name)));
+  return { quick, core, attributes };
 }
 
 export function fieldLabel(name: string): string {

@@ -5,6 +5,8 @@ import { Button } from '~/components/ui/button';
 import { Skeleton } from '~/components/ui/skeleton';
 import { EmptyProject } from '~/components/empty-state';
 import { QueryErrorState } from '~/components/query-error-state';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '~/components/ui/resizable';
+import { useMediaQuery } from '~/lib/use-media-query';
 import { LogFieldPanel } from '~/components/logs/log-field-panel';
 import { LogHistogram } from '~/components/logs/log-histogram';
 import { LogRow } from '~/components/logs/log-row';
@@ -51,6 +53,7 @@ function LogViewer() {
   const [draft, setDraft] = useState(initial.q);
   const [text, setText] = useState(initial.q);
   const [chips, setChips] = useState<LogFilterChip[]>(initial.chips);
+  const wide = useMediaQuery('(min-width: 1024px)');
   const shared = useSharedView(projectId, urlSearch.view);
 
   function applyView(view: LogViewState) {
@@ -106,6 +109,41 @@ function LogViewer() {
   const syntaxError = pages.isError && pages.error instanceof Error && /Invalid search query|Query /.test(pages.error.message) ? pages.error.message : null;
   if (pages.isError && !syntaxError && !pages.data) return <QueryErrorState onRetry={() => void pages.refetch()} />;
 
+  const panel = <LogFieldPanel search={search} chips={chips} onFilter={addChip} />;
+  const results = (
+    <div className="min-w-0 space-y-3">
+          <div className="overflow-hidden rounded-lg border border-[#242426] bg-[#0B0B0C]">
+            <table className="w-full text-left text-sm text-[#F6F6F6]">
+              <thead className="sticky top-0 z-10 border-b border-[#242426] bg-[#0B0B0C] text-xs text-[#989898]">
+                <tr className="h-10">
+                  <th className="w-6 p-3"></th>
+                  <th className="p-3 pl-0">TIME</th>
+                  <th className="p-3">LEVEL</th>
+                  <th className="p-3">SERVICE</th>
+                  <th className="p-3">METHOD</th>
+                  <th className="p-3">MESSAGE</th>
+                  <th className="p-3 text-right">STATUS</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#242426]">
+                {pages.isLoading ? (
+                  <tr><td colSpan={7} className="p-4"><Skeleton className="h-40" /></td></tr>
+                ) : logs.length > 0 ? (
+                  logs.map((log) => <LogRow key={log.id} log={log} projectId={projectId} organizationSlug={organizationSlug} projectSlug={projectSlug} onFilter={addChip} />)
+                ) : (
+                  <tr><td colSpan={7} className="p-8 text-center text-[#6E6E70]">No logs match this query. Try a broader search or remove a filter.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          {pages.hasNextPage && (
+            <div className="flex justify-center">
+              <Button variant="outline" size="sm" disabled={pages.isFetchingNextPage} onClick={() => void pages.fetchNextPage()}>{pages.isFetchingNextPage ? 'Loading…' : 'Load more'}</Button>
+            </div>
+          )}
+    </div>
+  );
+
   return (
     <div className="mx-auto w-full space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -145,40 +183,22 @@ function LogViewer() {
         {polling ? <span>Refreshing every {refresh}s</span> : <span>Newest first</span>}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <LogFieldPanel search={search} chips={chips} onFilter={addChip} />
-        <div className="min-w-0 space-y-3">
-          <div className="overflow-hidden rounded-lg border border-[#242426] bg-[#0B0B0C]">
-            <table className="w-full text-left text-sm text-[#F6F6F6]">
-              <thead className="sticky top-0 z-10 border-b border-[#242426] bg-[#0B0B0C] text-xs text-[#989898]">
-                <tr className="h-10">
-                  <th className="w-6 p-3"></th>
-                  <th className="p-3 pl-0">TIME</th>
-                  <th className="p-3">LEVEL</th>
-                  <th className="p-3">SERVICE</th>
-                  <th className="p-3">METHOD</th>
-                  <th className="p-3">MESSAGE</th>
-                  <th className="p-3 text-right">STATUS</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#242426]">
-                {pages.isLoading ? (
-                  <tr><td colSpan={7} className="p-4"><Skeleton className="h-40" /></td></tr>
-                ) : logs.length > 0 ? (
-                  logs.map((log) => <LogRow key={log.id} log={log} projectId={projectId} organizationSlug={organizationSlug} projectSlug={projectSlug} onFilter={addChip} />)
-                ) : (
-                  <tr><td colSpan={7} className="p-8 text-center text-[#6E6E70]">No logs match this query. Try a broader search or remove a filter.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          {pages.hasNextPage && (
-            <div className="flex justify-center">
-              <Button variant="outline" size="sm" disabled={pages.isFetchingNextPage} onClick={() => void pages.fetchNextPage()}>{pages.isFetchingNextPage ? 'Loading…' : 'Load more'}</Button>
-            </div>
-          )}
+      {wide ? (
+        <ResizablePanelGroup direction="horizontal" autoSaveId="log-viewer-split" className="h-[calc(100vh-16rem)] min-h-[480px]">
+          <ResizablePanel defaultSize={22} minSize={14} maxSize={45} className="pr-3">
+            <div className="h-full overflow-auto">{panel}</div>
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel defaultSize={78} minSize={40} className="min-w-0 pl-3">
+            <div className="h-full overflow-auto">{results}</div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      ) : (
+        <div className="space-y-4">
+          {panel}
+          {results}
         </div>
-      </div>
+      )}
     </div>
   );
 }
