@@ -1,4 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { metricValues } from "./alert-metric-values";
 import { MetricsRepository } from "../../../modules/v1/metrics/metrics.repository";
 import { NotificationService } from "./notification.service";
 import { IncidentsService } from "../incidents/incidents.service";
@@ -327,43 +328,7 @@ export class AlertEvaluationService {
         service: "",
       });
 
-      const data: Record<string, unknown> = {};
-
-      const latest = buckets[buckets.length - 1];
-      if (!latest) return data;
-
-      switch (metric) {
-        case "http.server.request.duration.p95":
-          data.value = latest.p95;
-          data.p95 = latest.p95;
-          break;
-        case "http.server.request.duration.p50":
-          data.value = latest.p50;
-          data.p50 = latest.p50;
-          break;
-        case "http.server.request.duration.p99":
-          data.value = latest.p99;
-          data.p99 = latest.p99;
-          break;
-        case "http.server.request.errors.rate":
-          const total =
-            (latest._2xx ?? 0) +
-            (latest._3xx ?? 0) +
-            (latest._4xx ?? 0) +
-            (latest._5xx ?? 0);
-          const errors = (latest._4xx ?? 0) + (latest._5xx ?? 0);
-          data.value = total ? (errors / total) * 100 : 0;
-          data.errorRate = data.value;
-          break;
-        case "http.server.request.count":
-          data.value = latest.count;
-          data.requestCount = latest.count;
-          break;
-        default:
-          data.value = latest.p95;
-      }
-
-      return data;
+      return metricValues(metric, buckets[buckets.length - 1]);
     } catch (error) {
       this.logger.error(
         `Failed to fetch metric data for ${metric}`,

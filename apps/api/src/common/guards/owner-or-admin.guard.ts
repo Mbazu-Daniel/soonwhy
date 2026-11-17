@@ -13,7 +13,7 @@ export class OwnerOrAdminGuard implements CanActivate {
     const role = request?.userRole ?? "member";
 
     if (role !== "owner" && role !== "admin") {
-      throw new ForbiddenException("Only owners and admins can view this");
+      throw new ForbiddenException("Only owners and admins can do this");
     }
 
     return true;
