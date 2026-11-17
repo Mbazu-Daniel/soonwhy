@@ -1,3 +1,4 @@
+import type { EvidenceEdge, EvidenceNode } from "./evidence-graph.types";
 import { describe, expect, it, beforeEach, vi } from "vitest";
 import { EvidenceGraphCache } from "./evidence-graph.cache";
 
@@ -18,7 +19,7 @@ describe("EvidenceGraphCache", () => {
 
   describe("cacheNode", () => {
     it("caches a node", async () => {
-      const node = { id: "node-1", type: "service" };
+      const node = { id: "node-1", type: "service" } as unknown as EvidenceNode;
 
       await cache.cacheNode("org-1", "node-1", node);
 
@@ -32,7 +33,7 @@ describe("EvidenceGraphCache", () => {
     it("handles cache errors gracefully", async () => {
       mockRedis.setex.mockRejectedValue(new Error("Redis error"));
 
-      await expect(cache.cacheNode("org-1", "node-1", {})).resolves.not.toThrow();
+      await expect(cache.cacheNode("org-1", "node-1", {} as EvidenceNode)).resolves.not.toThrow();
     });
   });
 
@@ -44,7 +45,7 @@ describe("EvidenceGraphCache", () => {
     });
 
     it("returns cached node", async () => {
-      const node = { id: "node-1", type: "service" };
+      const node = { id: "node-1", type: "service" } as unknown as EvidenceNode;
       mockRedis.get.mockResolvedValue(JSON.stringify(node));
 
       const result = await cache.getCachedNode("org-1", "node-1");
@@ -63,7 +64,7 @@ describe("EvidenceGraphCache", () => {
 
   describe("cacheEdge", () => {
     it("caches an edge", async () => {
-      const edge = { id: "edge-1", sourceId: "node-1", targetId: "node-2" };
+      const edge = { id: "edge-1", sourceId: "node-1", targetId: "node-2" } as unknown as EvidenceEdge;
 
       await cache.cacheEdge("org-1", "edge-1", edge);
 
@@ -85,7 +86,7 @@ describe("EvidenceGraphCache", () => {
 
   describe("cacheTraceNodes", () => {
     it("caches trace nodes", async () => {
-      const nodes = [{ id: "node-1" }, { id: "node-2" }];
+      const nodes = [{ id: "node-1" }, { id: "node-2" }] as unknown as EvidenceNode[];
 
       await cache.cacheTraceNodes("org-1", "trace-123", nodes);
 
@@ -107,7 +108,7 @@ describe("EvidenceGraphCache", () => {
 
   describe("cacheServiceNodes", () => {
     it("caches service nodes", async () => {
-      const nodes = [{ id: "node-1" }];
+      const nodes = [{ id: "node-1" }] as unknown as EvidenceNode[];
 
       await cache.cacheServiceNodes("org-1", "checkout", nodes);
 
