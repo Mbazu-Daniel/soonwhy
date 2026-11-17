@@ -6,6 +6,7 @@ const fields = [
   { name: 'service', kind: 'core' as const, count: 0 },
   { name: 'traceId', kind: 'core' as const, count: 0 },
   { name: 'attributes.http.route', kind: 'attribute' as const, count: 24 },
+  { name: 'attributes.traceId', kind: 'attribute' as const, count: 24 },
 ];
 
 describe('groupLogFields', () => {
@@ -14,6 +15,11 @@ describe('groupLogFields', () => {
     expect(groups.quick.map((field) => field.name)).toEqual(['level', 'service']);
     expect(groups.core.map((field) => field.name)).toEqual(['traceId']);
     expect(groups.attributes).toHaveLength(1);
+  });
+
+  it('lists a field once when an attribute repeats a core field', () => {
+    const names = Object.values(groupLogFields(fields, '')).flat().map((field) => fieldLabel(field.name));
+    expect(names.filter((name) => name === 'traceId')).toHaveLength(1);
   });
 
   it('filters every group by the search text', () => {
