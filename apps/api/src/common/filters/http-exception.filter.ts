@@ -9,6 +9,7 @@ import {
 import { STATUS_CODES } from "node:http";
 import { Response } from "express";
 import { maskPii } from "../privacy/pii-masker";
+import type { ProblemBody } from "./problem-body.types";
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -19,7 +20,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let body: any = {
+    let body: ProblemBody = {
       type: "about:blank",
       title: "Internal Server Error",
       status: 500,

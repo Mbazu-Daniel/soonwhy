@@ -72,14 +72,17 @@ export const instrumentedDb: typeof rawDb = new Proxy(rawDb, {
       typeof value === "function" &&
       dbMethods.includes(prop as (typeof dbMethods)[number])
     ) {
-      return (...args: any[]) => {
+      return (...args: unknown[]) => {
         const result = value.apply(target, args);
         if (
           result &&
           typeof result === "object" &&
           typeof (result as { then?: unknown }).then === "function"
         ) {
-          const queryName = `${String(prop)}:${args?.[0]?.name ?? args?.[0]?.constructor?.name ?? "unknown"}`;
+          const first = args[0] as
+            | { name?: string; constructor?: { name?: string } }
+            | undefined;
+          const queryName = `${String(prop)}:${first?.name ?? first?.constructor?.name ?? "unknown"}`;
           return instrumentThenable(result as Thenable<unknown>, queryName);
         }
         return result;

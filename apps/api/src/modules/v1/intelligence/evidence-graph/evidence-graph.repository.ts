@@ -1,6 +1,6 @@
 import { Injectable, Optional } from "@nestjs/common";
 import { and, eq, lt } from "drizzle-orm";
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import type { AppDatabase } from "../../../../common/db/types";
 import type { TelemetryIdentity } from "@soonwhy/shared";
 import { db } from "../../../../common/db";
 import { evidenceEdges, evidenceNodes } from "../../../../common/db/schema";
@@ -13,9 +13,9 @@ import type {
 
 @Injectable()
 export class EvidenceGraphRepository {
-  private readonly db: PostgresJsDatabase<any>;
+  private readonly db: AppDatabase;
 
-  constructor(@Optional() customDb?: PostgresJsDatabase<any>) {
+  constructor(@Optional() customDb?: AppDatabase) {
     this.db = customDb ?? db;
   }
 

@@ -1,3 +1,4 @@
+import type { ChangePointSummary, DetectionSummary, SloSummary } from "./chat-intelligence.types";
 
 export interface ChatResponse {
   id: string;
@@ -23,13 +24,13 @@ const CHAT_RESPONSES = {
   greeting:
     "Hello! I can help you monitor your systems. You can ask me about detection anomalies, SLO burn rates, or get recommendations based on your metrics.",
 
-  detection_anomaly: (detection: any) =>
+  detection_anomaly: (detection: DetectionSummary) =>
     `I found a *${detection.severity}* detection for *${detection.type}*. Title: ${detection.title}. Observed value: ${detection.observedValue} ${detection.unit}. Description: ${detection.description}`,
 
-  slo_burn_rate: (slo: any) =>
+  slo_burn_rate: (slo: SloSummary) =>
     `SLO Status: *${slo.status}*. Burn rate: ${slo.burnRate}x the allowed rate. Budget remaining: ${slo.budgetRemaining}%.`,
 
-  change_point_analysis: (cpr: any) =>
+  change_point_analysis: (cpr: ChangePointSummary) =>
     `Change point detection found ${cpr.changePoints.length} change points. Penalty used: ${cpr.penaltyUsed.toFixed(2)}.`,
 
   recommendations: (recs: string[]) =>
@@ -43,8 +44,8 @@ const CHAT_RESPONSES = {
 export async function handleChatMessage(
   message: string,
   orgId: string,
-  detectionService?: any,
-  sloService?: any,
+  detectionService?: unknown,
+  sloService?: unknown,
 ): Promise<ChatResponse> {
   const lowerMessage = message.toLowerCase();
   const intent = classifyIntent(lowerMessage);

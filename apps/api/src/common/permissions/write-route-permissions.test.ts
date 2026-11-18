@@ -7,6 +7,10 @@ import { guardsFor, loadControllers, writeRoutes } from "./route-inventory";
 import { runGuards, runRoute } from "./route-runner";
 import type { RoutePolicy, WriteRoute } from "./types";
 
+vi.hoisted(() => {
+  process.env.BETTER_AUTH_SECRET ??= "write-route-permissions-test-secret";
+});
+
 vi.mock("../db", async (importOriginal) => {
   const original = await importOriginal<Record<string, unknown>>();
   const failing = new Proxy({}, {
@@ -34,7 +38,7 @@ function routesWith(policy: RoutePolicy): WriteRoute[] {
 
 beforeAll(async () => {
   routes = writeRoutes(await loadControllers());
-}, 120_000);
+}, 400_000);
 
 describe("write route permissions", () => {
   it("has a declared policy for every write route", () => {

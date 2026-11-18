@@ -1,8 +1,8 @@
 import { ForbiddenException } from "@nestjs/common";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { TenantContextMiddleware } from "./tenant-context.middleware";
 
-const getSession = vi.fn();
-const limit = vi.fn();
+const { getSession, limit } = vi.hoisted(() => ({ getSession: vi.fn(), limit: vi.fn() }));
 
 vi.mock("../config/better-auth.config", () => ({ auth: { api: { getSession } } }));
 vi.mock("../db", () => ({
@@ -12,7 +12,7 @@ vi.mock("../db", () => ({
   },
 }));
 
-const { TenantContextMiddleware } = await import("./tenant-context.middleware");
+
 
 const request = (extra: Record<string, unknown> = {}) =>
   ({

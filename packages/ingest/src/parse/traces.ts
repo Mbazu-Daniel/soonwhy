@@ -1,5 +1,6 @@
 import { decodeAttributes } from "./attributes";
 import { nanoToMs } from "./time";
+import type { OtlpSpanEvent, OtlpSpanLink, OtlpTracesPayload } from "./otlp.types";
 import { hexId, resourceFromAttributes } from "./types";
 import type {
   ParsedSpan,
@@ -22,7 +23,7 @@ function normalizeStatusCode(code: unknown): number {
   return 0;
 }
 
-function parseEvents(events: any[] | undefined): ParsedSpanEvent[] {
+function parseEvents(events: OtlpSpanEvent[] | undefined): ParsedSpanEvent[] {
   return (events ?? []).map((event) => ({
     name: String(event.name ?? ""),
     timeUnixNano: String(event.timeUnixNano ?? event.time_unix_nano ?? "0"),
@@ -30,7 +31,7 @@ function parseEvents(events: any[] | undefined): ParsedSpanEvent[] {
   }));
 }
 
-function parseLinks(links: any[] | undefined): ParsedSpanLink[] {
+function parseLinks(links: OtlpSpanLink[] | undefined): ParsedSpanLink[] {
   return (links ?? []).flatMap((link) => {
     const traceId = hexId(link.traceId || link.trace_id || "", 32);
     const spanId = hexId(link.spanId || link.span_id || "", 16);
@@ -39,7 +40,7 @@ function parseLinks(links: any[] | undefined): ParsedSpanLink[] {
   });
 }
 
-export function parseTracesPayload(payload: any): ParseTracesResult {
+export function parseTracesPayload(payload: OtlpTracesPayload): ParseTracesResult {
   const resourceSpans = payload.resourceSpans || payload.resource_spans || [];
   const spans: ParsedSpan[] = [];
   let rejected = 0;

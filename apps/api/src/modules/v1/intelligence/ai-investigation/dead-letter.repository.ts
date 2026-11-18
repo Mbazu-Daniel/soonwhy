@@ -1,14 +1,14 @@
 import { Injectable, Optional } from "@nestjs/common";
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import type { AppDatabase } from "../../../../common/db/types";
 import { db } from "../../../../common/db";
 import { deadLetterInvestigations } from "../../../../common/db/schema";
 import type { InvestigationRequest } from "./ai-investigation.types";
 
 @Injectable()
 export class DeadLetterInvestigationRepository {
-  private readonly db: PostgresJsDatabase<any>;
+  private readonly db: AppDatabase;
 
-  constructor(@Optional() customDb?: PostgresJsDatabase<any>) {
+  constructor(@Optional() customDb?: AppDatabase) {
     this.db = customDb ?? db;
   }
 

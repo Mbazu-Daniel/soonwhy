@@ -1,10 +1,4 @@
-type QueryCandidate = {
-  signal?: Record<string, unknown>;
-  querySummary?: string;
-  queryOperation?: string;
-  query?: string;
-  endpoint?: string;
-};
+import type { QueryCandidate } from "./detection-description.types";
 
 function trimNoise(value: unknown): number {
   const parsed = Number(value);
@@ -28,7 +22,7 @@ function queryLabel(candidate: QueryCandidate): string {
   );
 }
 
-export function describeDatabaseResultSet(candidate: any): string {
+export function describeDatabaseResultSet(candidate: QueryCandidate): string {
   const endpoint = candidate.endpoint ? ' on ' + candidate.endpoint : '';
   const regression = candidate.signal?.regressionDetected && candidate.signal?.p95RowsChangePercent !== undefined
     ? ' P95 returned rows increased by ' + Number(candidate.signal.p95RowsChangePercent).toFixed(0) + '% from the comparable baseline.'
@@ -42,7 +36,7 @@ export function describeDatabaseResultSet(candidate: any): string {
     Number(candidate.signal?.sampleCount ?? 0) + ' executions.' + regression + contribution;
 }
 
-export function describeDatabaseBatch(candidate: any): string {
+export function describeDatabaseBatch(candidate: QueryCandidate): string {
   const regression = candidate.signal?.p95DurationChangePercent !== undefined
     ? ' P95 database duration changed by ' + Number(candidate.signal.p95DurationChangePercent).toFixed(0) + '% from baseline.'
     : '';
@@ -55,12 +49,12 @@ export function describeDatabaseBatch(candidate: any): string {
     regression + contribution;
 }
 
-export function describeDatabaseTimeout(candidate: any): string {
+export function describeDatabaseTimeout(candidate: QueryCandidate): string {
   const timeoutRate = Number(candidate.signal?.timeoutRate ?? 0);
   return queryLabel(candidate) + ' timed out ' + Number(candidate.signal?.timeoutCount ?? 0) + ' times out of ' + Number(candidate.signal?.totalCount ?? 0) + ' executions (' + (timeoutRate * 100).toFixed(1) + '%).';
 }
 
-export function describeDatabaseError(candidate: any): string {
+export function describeDatabaseError(candidate: QueryCandidate): string {
   const errorRate = Number(candidate.signal?.errorRate ?? 0);
   return queryLabel(candidate) +
     ' failed ' + Number(candidate.signal?.errorCount ?? 0) +
@@ -70,7 +64,7 @@ export function describeDatabaseError(candidate: any): string {
     '% database error rate.';
 }
 
-export function describeDatabaseQueryVolume(candidate: any): string {
+export function describeDatabaseQueryVolume(candidate: QueryCandidate): string {
   return queryLabel(candidate) +
     ' ran ' + Number(candidate.signal?.currentCount ?? 0) +
     ' times in the current window versus ' +
@@ -80,7 +74,7 @@ export function describeDatabaseQueryVolume(candidate: any): string {
     '% increase.';
 }
 
-export function describeNPlusOne(candidate: any): string {
+export function describeNPlusOne(candidate: QueryCandidate): string {
   return queryLabel(candidate) +
     ' was executed ' + Number(candidate.signal?.occurrences ?? 0) +
     ' times in one trace under the same parent span, consuming about ' +
@@ -108,7 +102,7 @@ export function describeThroughputSignal(signal: {
     ' requests to ' + trimNoise(signal.observedValue) + ' requests over the last 15 minutes (' + signal.changePercent.toFixed(0) + '%).';
 }
 
-export function describeDatabaseQuery(candidate: any): string {
+export function describeDatabaseQuery(candidate: QueryCandidate): string {
   const distribution = candidate.signal?.distribution;
   const p95 = Number(candidate.signal?.observedValue ?? distribution?.p95 ?? 0);
   const threshold = Number(candidate.signal?.threshold ?? 0);
@@ -120,7 +114,7 @@ export function describeDatabaseQuery(candidate: any): string {
     ' executions (threshold ' + trimNoise(threshold) + 'ms).' + regression;
 }
 
-export function describeDatabaseLatencyContribution(candidate: any): string {
+export function describeDatabaseLatencyContribution(candidate: QueryCandidate): string {
   const sampleCount = Number(candidate.signal?.sampleCount ?? 0);
   const p50 = Number(candidate.signal?.p50ContributionPercent ?? 0);
   const p95 = Number(candidate.signal?.p95ContributionPercent ?? 0);
@@ -130,7 +124,7 @@ export function describeDatabaseLatencyContribution(candidate: any): string {
     ' traces, consuming ' + trimNoise(p95Duration) + 'ms of database time at p95.';
 }
 
-export function describeDatabaseConnectionWait(candidate: any): string {
+export function describeDatabaseConnectionWait(candidate: QueryCandidate): string {
   const pool = candidate.poolName ? ' for pool ' + candidate.poolName : '';
   const severity = candidate.signal?.severity ? ' (' + candidate.signal.severity + ')' : '';
   const regression = candidate.signal?.p95ChangePercent !== undefined
@@ -145,7 +139,7 @@ export function describeDatabaseConnectionWait(candidate: any): string {
     Number(candidate.signal?.sampleCount ?? 0) + ' samples' + severity + '.' + regression;
 }
 
-export function describeDatabaseConnectionPool(candidate: any): string {
+export function describeDatabaseConnectionPool(candidate: QueryCandidate): string {
   const pool = candidate.poolName ? ' ' + candidate.poolName : '';
   const parts: string[] = [];
   const utilization = candidate.signal?.p95UtilizationPercent;
@@ -157,7 +151,7 @@ export function describeDatabaseConnectionPool(candidate: any): string {
     parts.push('p95 pending requests ' + Number(pending).toFixed(0));
   }
   const timeoutIncrease = candidate.signal?.timeoutIncrease;
-  if (timeoutIncrease !== undefined && timeoutIncrease > 0) {
+  if (timeoutIncrease != null && timeoutIncrease > 0) {
     parts.push('timeouts increased by ' + Number(timeoutIncrease).toFixed(0));
   }
   const detail = parts.length ? parts.join(', ') : 'elevated pressure';

@@ -13,6 +13,14 @@ import {
   OrgContext,
 } from "../../../common/decorators/current-org.decorator";
 import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
+import {
+  CheckSuppressionDto,
+  CreateSuppressionRuleDto,
+  UpdateSuppressionRuleDto,
+  type CheckSuppressionInput,
+  type CreateSuppressionRuleInput,
+  type UpdateSuppressionRuleInput,
+} from "./suppression-rules.dto";
 import { SuppressionRulesService } from "./suppression-rules.service";
 
 @Controller("projects/:projectId/alert-suppression-rules")
@@ -32,12 +40,12 @@ export class SuppressionRulesController {
   async createRule(
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
-    @Body() body: any,
+    @Body({ schema: CreateSuppressionRuleDto }) body: CreateSuppressionRuleInput,
   ) {
     return this.service.createRule({
+      ...body,
       orgId: org.orgId,
       projectId,
-      ...body,
     });
   }
 
@@ -46,7 +54,7 @@ export class SuppressionRulesController {
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
     @Param("id") id: string,
-    @Body() body: any,
+    @Body({ schema: UpdateSuppressionRuleDto }) body: UpdateSuppressionRuleInput,
   ) {
     return this.service.updateRule({ orgId: org.orgId, projectId }, id, body);
   }
@@ -65,11 +73,7 @@ export class SuppressionRulesController {
   async checkSuppression(
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
-    @Body() body: {
-      alertRuleId: string;
-      service: string;
-      severity: string;
-    },
+    @Body({ schema: CheckSuppressionDto }) body: CheckSuppressionInput,
   ) {
     return this.service.shouldSuppressAlert({
       orgId: org.orgId,

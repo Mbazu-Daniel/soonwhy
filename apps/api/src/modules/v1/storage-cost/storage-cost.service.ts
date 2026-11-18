@@ -49,7 +49,7 @@ export class StorageCostMonitoringService {
     };
   }
 
-  private estimateSize(policies: any[], dataType: string): number {
+  private estimateSize(policies: { dataType: string; retentionDays: number }[], dataType: string): number {
     const policy = policies.find((p) => p.dataType === dataType);
     if (!policy) {
       return this.calculateEstimatedSize(30);

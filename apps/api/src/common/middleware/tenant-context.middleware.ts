@@ -11,9 +11,6 @@ import { members } from "../db/schema/auth";
 import { organizations } from "../db/schema/organizations";
 import { organizationIdFromUrl } from "./organization-path";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const authApi = auth.api as any;
-
 export interface TenantRequest extends Request {
   user?: {
     id: string;
@@ -38,7 +35,7 @@ export class TenantContextMiddleware implements NestMiddleware {
 
     const token = authorization.replace("Bearer ", "");
 
-    const session = await authApi.getSession({
+    const session = await auth.api.getSession({
       headers: { authorization: `Bearer ${token}` },
     });
 

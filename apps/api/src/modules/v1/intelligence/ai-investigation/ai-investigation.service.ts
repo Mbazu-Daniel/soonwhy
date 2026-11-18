@@ -406,7 +406,7 @@ export class AIInvestigationService {
     });
   }
 
-  private getInvestigationSchema(): any {
+  private getInvestigationSchema(): Record<string, unknown> {
     return {
       type: "object",
       properties: {

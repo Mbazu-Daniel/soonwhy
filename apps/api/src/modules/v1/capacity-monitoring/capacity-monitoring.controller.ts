@@ -12,6 +12,10 @@ import {
   OrgContext,
 } from "../../../common/decorators/current-org.decorator";
 import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
+import {
+  RecordCapacityMetricDto,
+  type RecordCapacityMetricInput,
+} from "./capacity-monitoring.dto";
 import { CapacityMonitoringService } from "./capacity-monitoring.service";
 
 @Controller("projects/:projectId/capacity")
@@ -64,12 +68,12 @@ export class CapacityMonitoringController {
   async recordMetric(
     @CurrentOrg() org: OrgContext,
     @Param("projectId") projectId: string,
-    @Body() body: any,
+    @Body({ schema: RecordCapacityMetricDto }) body: RecordCapacityMetricInput,
   ) {
     return this.service.recordMetric({
+      ...body,
       orgId: org.orgId,
       projectId,
-      ...body,
     });
   }
 }

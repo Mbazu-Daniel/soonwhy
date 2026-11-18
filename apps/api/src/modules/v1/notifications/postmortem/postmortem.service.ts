@@ -1,8 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
 
-type PostmortemRecord = any;
-type ActionItemRecord = any;
-
 @Injectable()
 export class PostmortemService {
   private readonly logger = new Logger(PostmortemService.name);
@@ -38,7 +35,7 @@ export class PostmortemService {
     _orgId: string,
     _projectId: string,
     _incidentId: string,
-  ): Promise<PostmortemRecord | undefined> {
+  ): Promise<Record<string, unknown> | undefined> {
     return undefined;
   }
 
@@ -59,7 +56,7 @@ export class PostmortemService {
     _orgId: string,
     _projectId: string,
     _postmortemId: string,
-  ): Promise<ActionItemRecord[]> {
+  ): Promise<Record<string, unknown>[]> {
     return [];
   }
 

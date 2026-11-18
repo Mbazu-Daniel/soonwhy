@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { db } from "../../../common/db";
 import { syntheticProbes, syntheticProbeResults } from "../../../common/db/schema";
+import type { CreateSyntheticProbeInput, UpdateSyntheticProbeInput } from "./dto";
 import { eq, desc, and, lt, isNull, or, sql } from "drizzle-orm";
 
 export type ProbeScope = { orgId: string; projectId: string };
@@ -15,7 +16,7 @@ function probeWhere(scope: ProbeScope, id: number) {
 
 @Injectable()
 export class SyntheticProbesRepository {
-  async createProbe(orgId: string, projectId: string, input: any) {
+  async createProbe(orgId: string, projectId: string, input: CreateSyntheticProbeInput) {
     const [probe] = await db
       .insert(syntheticProbes)
       .values({
@@ -57,7 +58,7 @@ export class SyntheticProbesRepository {
     return probe;
   }
 
-  async updateProbe(scope: ProbeScope, id: number, input: any) {
+  async updateProbe(scope: ProbeScope, id: number, input: UpdateSyntheticProbeInput) {
     const [probe] = await db
       .update(syntheticProbes)
       .set({

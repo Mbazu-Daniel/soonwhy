@@ -56,7 +56,7 @@ export class RcaService {
     const rankingResult = this.ranker.rank({
       findings: [
         { ...bottleneck.latency, timestamp: bottleneck.latency.window.start.toISOString() },
-        ...bottleneck.supportingFindings.map(f => ({ ...f, timestamp: (f as any).timestamp || bottleneck.latency.window.start.toISOString() })),
+        ...bottleneck.supportingFindings.map(f => ({ ...f, timestamp: f.window.start.toISOString() })),
       ],
     });
 

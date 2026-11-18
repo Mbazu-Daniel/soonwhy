@@ -1,5 +1,6 @@
 import { decodeAttributes } from "./attributes";
 import { nanoTimestamp } from "./time";
+import type { OtlpLogsPayload } from "./otlp.types";
 import { hexId, resourceFromAttributes } from "./types";
 import type { LogLevel, ParsedLogRecord, ParseLogsResult } from "../interfaces";
 
@@ -26,7 +27,7 @@ function logMessage(body: unknown): string {
   return JSON.stringify(body);
 }
 
-export function parseLogsPayload(payload: any): ParseLogsResult {
+export function parseLogsPayload(payload: OtlpLogsPayload): ParseLogsResult {
   const resourceLogs = payload.resourceLogs || payload.resource_logs || [];
   const records: ParsedLogRecord[] = [];
   let rejected = 0;
@@ -51,7 +52,11 @@ export function parseLogsPayload(payload: any): ParseLogsResult {
             "0";
           const timestamp =
             nanoTimestamp(timeNano) || nanoTimestamp(observedNano);
-          const body = logRecord.body?.stringValue ?? logRecord.body ?? null;
+          const rawBody = logRecord.body;
+          const body =
+            (typeof rawBody === "object" && rawBody !== null ? rawBody.stringValue : undefined) ??
+            rawBody ??
+            null;
           const message = (
             logMessage(body) ||
             logRecord.eventName ||

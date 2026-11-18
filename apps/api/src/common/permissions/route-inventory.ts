@@ -34,7 +34,10 @@ function firstPath(value: unknown): string {
 
 export async function loadControllers(): Promise<Function[]> {
   const files = controllerFiles(SOURCE_ROOT).sort();
-  const modules = await Promise.all(files.map((file) => import(pathToFileURL(file).href)));
+  const modules: unknown[] = [];
+  for (const file of files) {
+    modules.push(await import(pathToFileURL(file).href));
+  }
   return modules.flatMap((loaded) =>
     Object.values(loaded as Record<string, unknown>).filter(
       (value): value is Function =>

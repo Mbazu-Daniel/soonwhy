@@ -126,7 +126,7 @@ export class SeverityRoutingService {
     projectId: string,
     severity: AlertRuleSeverity,
     alertRuleId: string,
-    _payload: any,
+    _payload: unknown,
   ): Promise<{ channel?: ChannelRecord; success: boolean }> {
     const [rule] = await db
       .select()
