@@ -55,7 +55,6 @@ export class StatusPageController {
 
         return {
           name: probe.name,
-          url: probe.url,
           status: fresh.lastStatus,
           uptimePercent,
           totalChecks,

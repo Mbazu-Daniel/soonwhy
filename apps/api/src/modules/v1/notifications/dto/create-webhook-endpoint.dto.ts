@@ -1,8 +1,9 @@
 import { z } from "zod";
+import { publicHttpUrl } from "../../../../common/net/public-url.dto";
 
 export const CreateWebhookEndpointDto = z.object({
   name: z.string().min(1).max(100),
-  url: z.string().url(),
+  url: publicHttpUrl,
   secret: z.string().optional(),
   types: z.array(z.string()).default([]),
 });
@@ -12,7 +13,7 @@ export type CreateWebhookEndpointInput = z.infer<
 
 export const UpdateWebhookEndpointDto = z.object({
   name: z.string().min(1).max(100).optional(),
-  url: z.string().url().optional(),
+  url: publicHttpUrl.optional(),
   secret: z.string().optional(),
   types: z.array(z.string()).optional(),
   isActive: z.boolean().optional(),

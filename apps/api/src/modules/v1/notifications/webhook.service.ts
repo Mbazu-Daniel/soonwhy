@@ -44,6 +44,7 @@ export class WebhookService {
       const res = await this.http.request({
         url: input.url,
         preset: "webhook",
+        publicOnly: true,
         source: "WebhookService.deliver",
         init: {
           method: "POST",

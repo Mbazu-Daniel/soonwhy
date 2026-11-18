@@ -1,7 +1,7 @@
 import { NotFoundException } from "@nestjs/common";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "../../../common/db";
-import { organizations, projects } from "../../../common/db/schema";
+import { organizations, projects, projectSettings } from "../../../common/db/schema";
 
 export async function resolveStatusTarget(
   orgSlug: string,
@@ -20,6 +20,13 @@ export async function resolveStatusTarget(
     .where(and(eq(projects.slug, projectSlug), eq(projects.organizationId, org.id)))
     .limit(1);
   if (!project) throw new NotFoundException("Project not found");
+
+  const [settings] = await db
+    .select({ statusPagePublic: projectSettings.statusPagePublic })
+    .from(projectSettings)
+    .where(eq(projectSettings.projectId, project.id))
+    .limit(1);
+  if (!settings?.statusPagePublic) throw new NotFoundException("Project not found");
 
   return { orgId: org.id, projectId: project.id };
 }

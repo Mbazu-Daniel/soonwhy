@@ -1,12 +1,5 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Post,
-  Param,
-  Query,
-} from "@nestjs/common";
+import { Body, Controller, Delete, Get, Post, Param, Query, UseGuards } from "@nestjs/common";
+import { TenantGuard } from "../../../../common/middleware/tenant-context.guard";
 import { CurrentOrg, OrgContext } from "../../../../common/decorators/current-org.decorator";
 import { EvidenceGraphService } from "./evidence-graph.service";
 import type {
@@ -18,6 +11,7 @@ import type {
   GraphTraversalResult,
 } from "./evidence-graph.types";
 
+@UseGuards(TenantGuard)
 @Controller("intelligence/evidence-graph")
 export class EvidenceGraphController {
   constructor(private readonly graphService: EvidenceGraphService) {}

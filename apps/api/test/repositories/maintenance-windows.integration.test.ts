@@ -115,13 +115,14 @@ describe.skipIf(!databaseTestsEnabled)("MaintenanceWindowsRepository", () => {
       endTime: new Date("2026-05-01T13:00:00.000Z"),
     });
 
-    const updated = await repository.updateMaintenanceWindow(window.id, {
+    const scope = { orgId: "org-1", projectId: "project-1" };
+    const updated = await repository.updateMaintenanceWindow(scope, window.id, {
       name: "renamed",
       isActive: false,
     });
     expect(updated).toMatchObject({ name: "renamed", isActive: false });
 
-    await repository.deleteMaintenanceWindow(window.id);
+    await repository.deleteMaintenanceWindow(scope, window.id);
     await expect(repository.getMaintenanceWindows("org-1", "project-1")).resolves.toEqual([]);
   });
 });

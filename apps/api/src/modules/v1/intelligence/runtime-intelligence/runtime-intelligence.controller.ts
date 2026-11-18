@@ -1,7 +1,9 @@
-import { Controller, Post, Body } from "@nestjs/common";
+import { Controller, Post, Body, UseGuards } from "@nestjs/common";
+import { TenantGuard } from "../../../../common/middleware/tenant-context.guard";
 import { RuntimeIntelligenceService } from "./runtime-intelligence.service";
 import type { RuntimeMetrics, RuntimeAggregation } from "./runtime-intelligence.types";
 
+@UseGuards(TenantGuard)
 @Controller("intelligence/runtime")
 export class RuntimeIntelligenceController {
   constructor(private readonly service: RuntimeIntelligenceService) {}

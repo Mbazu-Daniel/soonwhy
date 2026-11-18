@@ -4,7 +4,7 @@ import { RcaApiService } from "../detections/rca.api";
 import { RcaService } from "../detections/rca.service";
 import { NotificationService } from "../notifications/notification.service";
 import { analysisNotification } from "./notification-content";
-import { SCAN_GROUP_LIMIT } from "./auto-analysis.constants";
+import { AUTO_ANALYSIS_RUN_BUDGET_MS, SCAN_GROUP_LIMIT } from "./auto-analysis.constants";
 import {
   countAutoAnalysesSince,
   getSettings,
@@ -30,17 +30,22 @@ export class AutoAnalysisService {
     @Inject(NotificationService) private readonly notifications: Pick<NotificationService, "dispatchAlert">,
   ) {}
 
-  async runAll(now = new Date()): Promise<void> {
+  async runAll(now = new Date(), budgetMs = AUTO_ANALYSIS_RUN_BUDGET_MS): Promise<void> {
+    const deadline = Date.now() + budgetMs;
     for (const orgId of await listEnabledOrgIds()) {
+      if (Date.now() >= deadline) {
+        this.logger.warn("Auto-analysis ran out of time; the remaining organizations wait for the next run");
+        return;
+      }
       try {
-        await this.runOrg(orgId, now);
+        await this.runOrg(orgId, now, deadline);
       } catch (error) {
         this.logger.warn(`Auto-analysis failed for an organization: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
   }
 
-  async runOrg(orgId: string, now = new Date()): Promise<AutoAnalysisRun> {
+  async runOrg(orgId: string, now = new Date(), deadline = Number.POSITIVE_INFINITY): Promise<AutoAnalysisRun> {
     const run: AutoAnalysisRun = { analyzed: 0, skipped: 0, failed: 0, capReached: false };
     const settings = await getSettings(orgId);
     if (!settings.enabled) return run;
@@ -50,8 +55,8 @@ export class AutoAnalysisService {
       ? Number.POSITIVE_INFINITY
       : settings.dailyCap - (await countAutoAnalysesSince(orgId, startOfUtcDay(now)));
     for (const projectId of await listProjectIds(orgId)) {
-      if (remaining <= 0) break;
-      remaining = await this.runProject(orgId, projectId, settings, remaining, run);
+      if (remaining <= 0 || Date.now() >= deadline) break;
+      remaining = await this.runProject(orgId, projectId, settings, remaining, run, deadline);
     }
     run.capReached = !byok && remaining <= 0;
     return run;
@@ -63,6 +68,7 @@ export class AutoAnalysisService {
     settings: AutoAnalysisSettings,
     allowance: number,
     run: AutoAnalysisRun,
+    deadline: number,
   ): Promise<number> {
     let remaining = allowance;
     const groups = (await this.errors.listGroups(orgId, projectId, { limit: SCAN_GROUP_LIMIT }))
@@ -70,7 +76,7 @@ export class AutoAnalysisService {
       .sort((a, b) => b.count - a.count);
 
     for (const group of groups) {
-      if (remaining <= 0) break;
+      if (remaining <= 0 || Date.now() >= deadline) break;
       try {
         const { finding } = await this.errors.createFinding(orgId, projectId, group.fingerprint);
         if (!finding) {

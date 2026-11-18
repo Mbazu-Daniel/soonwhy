@@ -1,7 +1,9 @@
-import { Controller, Post, Body } from "@nestjs/common";
+import { Controller, Post, Body, UseGuards } from "@nestjs/common";
+import { TenantGuard } from "../../../../common/middleware/tenant-context.guard";
 import { TraceIntelligenceService } from "./trace-intelligence.service";
 import type { Trace, CriticalPathAnalysis, TraceFinding } from "./trace-intelligence.types";
 
+@UseGuards(TenantGuard)
 @Controller("intelligence/trace")
 export class TraceIntelligenceController {
   constructor(private readonly traceService: TraceIntelligenceService) {}

@@ -23,6 +23,7 @@ export const projectSettings = pgTable("project_settings", {
   maxAttributeValueLength: integer("max_attribute_value_length")
     .default(4096)
     .notNull(),
+  statusPagePublic: boolean("status_page_public").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

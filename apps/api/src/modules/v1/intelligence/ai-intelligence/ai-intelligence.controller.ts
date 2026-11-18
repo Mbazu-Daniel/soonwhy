@@ -1,7 +1,9 @@
-import { Controller, Post, Body } from "@nestjs/common";
+import { Controller, Post, Body, UseGuards } from "@nestjs/common";
+import { TenantGuard } from "../../../../common/middleware/tenant-context.guard";
 import { AIIntelligenceService } from "./ai-intelligence.service";
 import type { AIOperation } from "./ai-intelligence.types";
 
+@UseGuards(TenantGuard)
 @Controller("intelligence/ai")
 export class AIIntelligenceController {
   constructor(private readonly aiService: AIIntelligenceService) {}

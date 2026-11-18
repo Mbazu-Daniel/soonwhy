@@ -1,4 +1,5 @@
-import { Controller, Post, Body, Param } from "@nestjs/common";
+import { Controller, Post, Body, Param, UseGuards } from "@nestjs/common";
+import { TenantGuard } from "../../../../common/middleware/tenant-context.guard";
 import { RecommendationEngineService } from "./recommendation-engine.service";
 import type {
   RecommendationRequest,
@@ -8,6 +9,7 @@ import type {
   RecommendationPriority,
 } from "./recommendation-engine.types";
 
+@UseGuards(TenantGuard)
 @Controller("intelligence/recommendations")
 export class RecommendationEngineController {
   constructor(private readonly recommendationService: RecommendationEngineService) {}
