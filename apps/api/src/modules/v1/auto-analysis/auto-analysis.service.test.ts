@@ -146,4 +146,11 @@ describe("AutoAnalysisService", () => {
     expect(run.analyzed).toBe(1);
     expect(run.failed).toBe(0);
   });
+
+  it("stops analysing once the run's time budget is spent", async () => {
+    const { service, rca } = build([group("a", "HTTP 500", 9), group("b", "HTTP 500", 8)]);
+    const run = await service.runOrg("org", new Date(), Date.now() - 1);
+    expect(run.analyzed).toBe(0);
+    expect(rca.generate).not.toHaveBeenCalled();
+  });
 });

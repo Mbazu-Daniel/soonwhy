@@ -5,6 +5,7 @@ export const MAX_MIN_OCCURRENCES = 1000;
 export const SCAN_GROUP_LIMIT = 50;
 export const AUTO_ANALYSIS_CRON_NAME = "auto-analysis";
 export const AUTO_ANALYSIS_LEASE_MS = 10 * 60 * 1000;
+export const AUTO_ANALYSIS_RUN_BUDGET_MS = 8 * 60 * 1000;
 export const NEVER_ANALYZED_STATUS = 404;
 export const SERVER_ERROR_FLOOR = 500;
 export const EVIDENCE_LABELS_THAT_DEFINE_A_CAUSE: readonly RegExp[] = [
