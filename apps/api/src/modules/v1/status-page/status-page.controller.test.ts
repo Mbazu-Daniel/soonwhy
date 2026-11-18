@@ -31,4 +31,17 @@ describe("StatusPageController.getStatus", () => {
     expect(repository.getProbeResults).not.toHaveBeenCalled();
     expect(page.services.map((s) => [s.totalChecks, s.failedChecks])).toEqual([[3, 1], [1, 0], [0, 0]]);
   });
+
+  it("does not expose the probe URL on the public page", async () => {
+    const repository = {
+      getProbes: vi.fn().mockResolvedValue([{ ...probe(1), url: "https://internal.example/health?token=secret" }]),
+      getRecentResultsForProbes: vi.fn().mockResolvedValue(new Map()),
+    };
+    const service = { withFreshStatus: (p: { lastStatus: string }) => p };
+    const controller = new StatusPageController(service as never, repository as never);
+
+    const page = await controller.getStatus("org", "project");
+
+    expect(JSON.stringify(page)).not.toContain("internal.example");
+  });
 });

@@ -58,6 +58,7 @@ export class ProjectsRepository {
         projectId: projectSettings.projectId,
         maxAttributeCount: projectSettings.maxAttributeCount,
         maxAttributeValueLength: projectSettings.maxAttributeValueLength,
+        statusPagePublic: projectSettings.statusPagePublic,
       })
       .from(projectSettings)
       .innerJoin(projects, eq(projectSettings.projectId, projects.id))
@@ -78,6 +79,7 @@ export class ProjectsRepository {
     data: {
       maxAttributeCount?: number;
       maxAttributeValueLength?: number;
+      statusPagePublic?: boolean;
     },
   ) {
     const project = await this.getProjectById(id, orgId);
@@ -105,6 +107,7 @@ export class ProjectsRepository {
       captureResponseBody: true,
       maxAttributeCount: 100,
       maxAttributeValueLength: 4096,
+      statusPagePublic: false,
     };
   }
 }

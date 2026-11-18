@@ -64,6 +64,7 @@ export class ProjectsController {
     @Param("id") id: string,
     @Body({ schema: UpdateProjectSettingsDto }) body: UpdateProjectSettingsInput,
   ) {
+    if (body.statusPagePublic !== undefined) assertCanManageProjects(org);
     return this.projectsService.updateProjectSettings(id, org.orgId, body);
   }
 

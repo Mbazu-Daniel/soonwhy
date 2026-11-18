@@ -16,7 +16,6 @@ export const Route = createFileRoute('/public/status/$orgSlug/$projectSlug')({
 
 interface ServiceStatus {
   name: string;
-  url: string;
   status: string;
   uptimePercent: number;
   totalChecks: number;
@@ -132,7 +131,6 @@ function PublicStatusPage() {
                           />
                           <h3 className="text-lg font-medium">{service.name}</h3>
                         </div>
-                        <p className="mt-1 text-sm text-muted-foreground">{service.url}</p>
                         <div className="mt-4 flex items-center gap-6 text-sm">
                           <div className="flex items-center gap-2">
                             <Clock className="h-4 w-4 text-muted-foreground" />

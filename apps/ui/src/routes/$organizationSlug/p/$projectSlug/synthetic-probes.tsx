@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import { QueryErrorState } from '~/components/query-error-state';
 import { SyntheticProbeDialog } from '~/components/synthetic-probes/synthetic-probe-dialog';
 import { ProbeResultsPanel } from '~/components/synthetic-probes/probe-results-panel';
+import { StatusPageCard } from '~/components/synthetic-probes/status-page-card';
 import { api } from '~/lib/api';
 import { useProject } from '~/lib/project-context';
 
@@ -114,6 +115,8 @@ function SyntheticProbesPage() {
           <Plus className="h-4 w-4" /> Create probe
         </Button>
       </div>
+
+      <StatusPageCard />
 
       {rows.length === 0 && !probes.isLoading ? (
         <Card>
