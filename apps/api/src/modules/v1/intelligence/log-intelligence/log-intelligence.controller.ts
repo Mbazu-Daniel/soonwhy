@@ -1,7 +1,9 @@
-import { Controller, Post, Body } from "@nestjs/common";
+import { Controller, Post, Body, UseGuards } from "@nestjs/common";
+import { TenantGuard } from "../../../../common/middleware/tenant-context.guard";
 import { LogIntelligenceService } from "./log-intelligence.service";
 import type { LogEntry, LogCorrelation, LogPattern, LogAnomaly, LogTraceFinding } from "./log-intelligence.types";
 
+@UseGuards(TenantGuard)
 @Controller("intelligence/logs")
 export class LogIntelligenceController {
   constructor(private readonly logService: LogIntelligenceService) {}

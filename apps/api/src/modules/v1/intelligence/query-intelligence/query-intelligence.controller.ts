@@ -1,7 +1,9 @@
-import { Controller, Post, Body } from "@nestjs/common";
+import { Controller, Post, Body, UseGuards } from "@nestjs/common";
+import { TenantGuard } from "../../../../common/middleware/tenant-context.guard";
 import { QueryIntelligenceService } from "./query-intelligence.service";
 import type { QueryExecution, QueryAggregation } from "./query-intelligence.types";
 
+@UseGuards(TenantGuard)
 @Controller("intelligence/query")
 export class QueryIntelligenceController {
   constructor(private readonly service: QueryIntelligenceService) {}

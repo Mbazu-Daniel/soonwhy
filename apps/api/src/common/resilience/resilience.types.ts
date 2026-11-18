@@ -5,4 +5,5 @@ export interface OutboundRequestInput {
   preset: ResiliencePresetName;
   source: string;
   init?: RequestInit;
+  publicOnly?: boolean;
 }

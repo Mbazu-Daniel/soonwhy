@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { publicHttpUrl } from "../../../../common/net/public-url.dto";
 
 export const CreateNotificationChannelDto = z.object({
   name: z.string().min(1).max(100),
@@ -8,7 +9,7 @@ export const CreateNotificationChannelDto = z.object({
   recipientEmails: z.array(z.string().email()).default([]),
   slackChannelId: z.string().optional(),
   slackUserId: z.string().optional(),
-  webhookUrl: z.string().url().optional(),
+  webhookUrl: publicHttpUrl.optional(),
   webhookSecret: z.string().optional(),
   webhookTypes: z.array(z.string()).default([]),
 });
@@ -22,7 +23,7 @@ export const UpdateNotificationChannelDto = z.object({
   recipientEmails: z.array(z.string().email()).optional(),
   slackChannelId: z.string().optional(),
   slackUserId: z.string().optional(),
-  webhookUrl: z.string().url().optional(),
+  webhookUrl: publicHttpUrl.optional(),
   webhookSecret: z.string().optional(),
   webhookTypes: z.array(z.string()).optional(),
 });

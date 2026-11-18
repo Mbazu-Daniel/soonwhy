@@ -1,4 +1,5 @@
-import { Controller, Post, Body } from "@nestjs/common";
+import { Controller, Post, Body, UseGuards } from "@nestjs/common";
+import { TenantGuard } from "../../../../common/middleware/tenant-context.guard";
 import { VerificationEngineService } from "./verification-engine.service";
 import type {
   VerificationRequest,
@@ -7,6 +8,7 @@ import type {
   RecommendationVerification,
 } from "./verification-engine.types";
 
+@UseGuards(TenantGuard)
 @Controller("intelligence/verification")
 export class VerificationEngineController {
   constructor(private readonly verificationService: VerificationEngineService) {}

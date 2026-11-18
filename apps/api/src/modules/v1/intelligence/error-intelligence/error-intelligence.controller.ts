@@ -1,7 +1,9 @@
-import { Controller, Post, Body } from "@nestjs/common";
+import { Controller, Post, Body, UseGuards } from "@nestjs/common";
+import { TenantGuard } from "../../../../common/middleware/tenant-context.guard";
 import { ErrorIntelligenceService } from "./error-intelligence.service";
 import type { ErrorOccurrence, ErrorAggregation } from "./error-intelligence.types";
 
+@UseGuards(TenantGuard)
 @Controller("intelligence/error")
 export class ErrorIntelligenceController {
   constructor(private readonly service: ErrorIntelligenceService) {}

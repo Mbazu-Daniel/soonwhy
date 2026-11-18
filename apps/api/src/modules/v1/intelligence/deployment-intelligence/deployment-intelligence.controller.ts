@@ -1,7 +1,9 @@
-import { Controller, Post, Body } from "@nestjs/common";
+import { Controller, Post, Body, UseGuards } from "@nestjs/common";
+import { TenantGuard } from "../../../../common/middleware/tenant-context.guard";
 import { DeploymentIntelligenceService } from "./deployment-intelligence.service";
 import type { DeploymentMetrics } from "./deployment-intelligence.types";
 
+@UseGuards(TenantGuard)
 @Controller("intelligence/deployment")
 export class DeploymentIntelligenceController {
   constructor(private readonly service: DeploymentIntelligenceService) {}
