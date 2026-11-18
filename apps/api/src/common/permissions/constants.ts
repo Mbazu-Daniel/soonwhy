@@ -27,6 +27,7 @@ export const CONTROLLER_POLICY: Record<string, RoutePolicy> = {
   DeploymentsController: "member",
   DetectionController: "member",
   EnvironmentsController: "member",
+  ErrorIgnoreRulesController: "admin",
   ErrorRegressionsController: "member",
   IncidentsController: "member",
   IngestLimitsController: "member",

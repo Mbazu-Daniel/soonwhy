@@ -7,6 +7,11 @@ const dbState = vi.hoisted(() => ({
   inserted: [] as Record<string, unknown>[],
   updated: [] as Record<string, unknown>[],
   deleted: 0,
+  rules: [] as { pathPattern: string; status: string | null }[],
+}));
+
+vi.mock("./ignore-rules.store", () => ({
+  listIgnoreRules: async () => dbState.rules,
 }));
 
 vi.mock("../../../common/db", () => {
@@ -84,6 +89,7 @@ beforeEach(() => {
   dbState.selects = [];
   dbState.inserted = [];
   dbState.updated = [];
+  dbState.rules = [];
 });
 
 describe("ErrorsService", () => {
@@ -173,6 +179,25 @@ describe("ErrorsService", () => {
     const groups = await service.listGroups("org", "project", { from: "2026-11-14T00:00:00Z", to: "2026-11-15T00:00:00Z" });
     const notFound = groups.find((group) => group.errorType === "HTTP 404");
     expect(notFound).toMatchObject({ count: 2, traceCount: 2, service: "api", errorMessage: "GET /nope 404" });
+  });
+
+  it("hides groups matching a project ignore rule before the limit", async () => {
+    dbState.rules = [{ pathPattern: "/nope", status: "404" }];
+    const { service } = build([
+      { id: "r1", timestamp: "2026-11-14T10:10:00.000Z", service: "api", method: "GET", url: "/nope", route: "", statusCode: 404, duration: 2, traceId: "t-404-a", spanId: "s1" },
+    ]);
+    const groups = await service.listGroups("org", "project", { from: "2026-11-14T00:00:00Z", to: "2026-11-15T00:00:00Z" });
+    expect(groups.find((group) => group.errorType === "HTTP 404")).toBeUndefined();
+    expect(groups.some((group) => group.errorType === "HTTP 500" || group.count > 0)).toBe(true);
+  });
+
+  it("keeps a 404 on a path no rule matches", async () => {
+    dbState.rules = [{ pathPattern: "/internal/*", status: "404" }];
+    const { service } = build([
+      { id: "r1", timestamp: "2026-11-14T10:10:00.000Z", service: "api", method: "GET", url: "/orders", route: "", statusCode: 404, duration: 2, traceId: "t-404-a", spanId: "s1" },
+    ]);
+    const groups = await service.listGroups("org", "project", { from: "2026-11-14T00:00:00Z", to: "2026-11-15T00:00:00Z" });
+    expect(groups.find((group) => group.errorType === "HTTP 404")).toBeDefined();
   });
 
   it("does not count a request twice when its trace already has an error log", async () => {
