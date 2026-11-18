@@ -96,3 +96,4 @@ export { uploads, type UploadKind, type UploadStatus } from "./uploads";
 export { chatThreads, chatMessages, type ChatMessageRole, type ChatMessageStatus, type ChatMessageStep } from "./chat-threads";
 export { errorIssueStates, type ErrorIssueStateRow, type StoredErrorIssueStatus } from "./error-issue-states";
 export { errorIgnoreRules, type ErrorIgnoreRuleRow } from "./error-ignore-rules";
+export { autoAnalysisSettings, type AutoAnalysisSettingsRow } from "./auto-analysis-settings";

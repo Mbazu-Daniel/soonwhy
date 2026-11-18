@@ -22,6 +22,8 @@ export interface CreateRcaAnalysisInput {
   model: string;
   promptVersion: string;
   credentialSource: LlmCredentialSource;
+  trigger?: "manual" | "auto";
+  evidenceHash?: string | null;
 }
 
 export class RcaAnalysisRepository {

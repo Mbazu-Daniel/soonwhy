@@ -28,6 +28,8 @@ import { MetricsModule } from "./modules/v1/metrics";
 import { RequestsModule } from "./modules/v1/requests";
 import { TracesModule } from "./modules/v1/traces";
 import { DetectionModule } from "./modules/v1/detections";
+import { AutoAnalysisModule } from "./modules/v1/auto-analysis";
+import { ErrorsModule } from "./modules/v1/errors";
 import { MemberContextModule } from "./modules/v1/member-context/member-context.module";
 import { PlatformAdminModule } from "./modules/v1/platform-admin/platform-admin.module";
 import { DetectorSettingsModule } from "./modules/v1/detector-settings";
@@ -95,6 +97,8 @@ const organizationScopedModules = [
   RequestsModule,
   TracesModule,
   DetectionModule,
+  AutoAnalysisModule,
+  ErrorsModule,
   RcaModule,
   DetectorSettingsModule,
   EnvironmentsModule,

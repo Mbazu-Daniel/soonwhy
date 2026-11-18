@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bot, Coins, Loader2, Pencil, Plus, Star, Trash2, Wallet } from "lucide-react";
 import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
+import { AutoAnalysisCard } from "~/components/ai/auto-analysis-card";
 import { MetricCard } from "~/components/metric-cards";
 import { ProviderModal } from "~/components/ai/provider-modal";
 import { AI_CATALOG_KEY, AI_CREDENTIALS_KEY } from "~/lib/ai-providers.constants";
@@ -107,6 +108,8 @@ function AIProvidersPage() {
         <MetricCard label="Tokens this month" value={formatTokens(tokens)} icon={Coins} />
         <MetricCard label="RCA runs" value={String(usage.data?.invocations ?? 0)} icon={Bot} />
       </section>
+
+      <AutoAnalysisCard canManage={canManage} />
 
       {credentials.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

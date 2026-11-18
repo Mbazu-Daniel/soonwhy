@@ -37,7 +37,10 @@ export const rcaAnalyses = pgTable("rca_analyses", {
   model: text("model").notNull(),
   promptVersion: text("prompt_version").notNull(),
   credentialSource: text("credential_source").$type<LlmCredentialSource>(),
+  trigger: text("trigger").$type<"manual" | "auto">().notNull().default("manual"),
+  evidenceHash: text("evidence_hash"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("rca_analyses_finding_id_idx").on(table.findingId),
+  index("rca_analyses_org_trigger_idx").on(table.orgId, table.trigger, table.createdAt),
 ]);
