@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { ForbiddenException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException } from "@nestjs/common";
 import { AiController, ChatSchema } from "./ai.controller";
 import type { OrgContext } from "../../../common/decorators/current-org.decorator";
 
@@ -46,7 +46,22 @@ describe("AiController", () => {
     await h.controller.usage(h.org);
 
     expect(h.service.get).toHaveBeenCalledWith("org_1", false);
-    expect(h.service.usage).toHaveBeenCalledWith("org_1");
+    expect(h.service.usage).toHaveBeenCalledWith("org_1", "month");
+  });
+
+  it("passes the requested usage period to the service", async () => {
+    const h = harness("admin");
+
+    await h.controller.usage(h.org, "last_month");
+
+    expect(h.service.usage).toHaveBeenCalledWith("org_1", "last_month");
+  });
+
+  it("rejects an unknown usage period before reading any data", () => {
+    const h = harness("admin");
+
+    expect(() => h.controller.usage(h.org, "decade")).toThrow(BadRequestException);
+    expect(h.service.usage).not.toHaveBeenCalled();
   });
 
   it("refuses to let a member change AI settings", async () => {

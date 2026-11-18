@@ -1,3 +1,4 @@
+import { usagePeriodRange, type UsagePeriod } from "./ai-usage-period";
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { maskPii } from "../../../common/privacy/pii-masker";
 import { AiRepository } from "./ai.repository";
@@ -109,6 +110,8 @@ export class AiService {
       | "remove"
       | "recordVerification"
       | "getInvocationTotals"
+      | "getProjectSpend"
+      | "getChatCostTotals"
     >,
     @Inject(CredentialCipher) private readonly cipher: CredentialCipher,
     @Inject(LlmProviderResolver) private readonly resolver: Pick<
@@ -382,14 +385,13 @@ export class AiService {
     return isUniqueViolation(error) ? aiCredentialNameTaken(name) : error;
   }
 
-  async usage(orgId: string) {
-    const end = new Date();
-    const start = new Date(
-      Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), 1),
-    );
-    const [metrics, runs, aiTokensLimit, invocationsLimit] = await Promise.all([
+  async usage(orgId: string, period: UsagePeriod = "month", now: Date = new Date()) {
+    const { start, end } = usagePeriodRange(period, now);
+    const [metrics, runs, projects, chatCosts, aiTokensLimit, invocationsLimit] = await Promise.all([
       this.billing.getUsage(orgId, start, end),
       this.repository.getInvocationTotals(orgId, start, end),
+      this.repository.getProjectSpend(orgId, start, end),
+      this.repository.getChatCostTotals(orgId, start, end),
       this.billing.getLimit(orgId, "ai_tokens"),
       this.billing.getLimit(orgId, "rca_invocations"),
     ]);
@@ -398,16 +400,20 @@ export class AiService {
     const costOf = (source: "platform" | "byok") =>
       runs
         .filter((run) => run.credentialSource === source)
-        .reduce((sum, run) => sum + (run.costUsd ?? 0), 0);
+        .reduce((sum, run) => sum + (run.costUsd ?? 0), 0) +
+      chatCosts
+        .filter((chat) => chat.credentialSource === source)
+        .reduce((sum, chat) => sum + (chat.costUsd ?? 0), 0);
 
     return {
-      period: { start, end },
+      period: { name: period, start, end },
       quotaEnforced: this.quota.enforced,
       tokens: { platform: total("ai_tokens"), byok: total("ai_tokens_byok") },
       invocations: total("rca_invocations"),
       limits: { aiTokens: aiTokensLimit, rcaInvocations: invocationsLimit },
       costUsd: { platform: costOf("platform"), byok: costOf("byok") },
       runs,
+      projects,
     };
   }
 

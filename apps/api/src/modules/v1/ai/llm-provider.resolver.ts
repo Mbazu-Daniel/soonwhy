@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger, Optional, OnModuleInit, OnApplicationShutdo
 import { Redis } from "ioredis";
 import { AiRepository } from "./ai.repository";
 import { CredentialCipher } from "./credential-cipher";
-import { LlmCatalog } from "./llm-catalog.service";
+import { LlmCatalog, type ModelPricing } from "./llm-catalog.service";
 import {
   buildProviderConfig,
   readLlmTuning,
@@ -98,6 +98,10 @@ export class LlmProviderResolver implements OnModuleInit, OnApplicationShutdown 
 
   async onApplicationShutdown(): Promise<void> {
     await this.subscriber?.quit().catch(() => undefined);
+  }
+
+  pricingFor(providerId: string, modelId: string): ModelPricing | null {
+    return this.catalog.pricing(providerId, modelId);
   }
 
   async resolveForRca(orgId: string, credentialId?: string): Promise<ResolvedLlmHandle> {

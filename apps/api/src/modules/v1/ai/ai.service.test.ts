@@ -80,6 +80,8 @@ function build(input: HarnessInput = {}) {
     remove: vi.fn().mockResolvedValue({ id: "aicredential_1" }),
     recordVerification: vi.fn().mockResolvedValue(undefined),
     getInvocationTotals: vi.fn().mockResolvedValue([]),
+    getProjectSpend: vi.fn().mockResolvedValue([]),
+    getChatCostTotals: vi.fn().mockResolvedValue([]),
   } as unknown as Pick<
     AiRepository,
     | "get"
@@ -90,6 +92,8 @@ function build(input: HarnessInput = {}) {
     | "remove"
     | "recordVerification"
     | "getInvocationTotals"
+    | "getProjectSpend"
+    | "getChatCostTotals"
   > & {
     create: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
@@ -97,6 +101,8 @@ function build(input: HarnessInput = {}) {
     find: ReturnType<typeof vi.fn>;
     recordVerification: ReturnType<typeof vi.fn>;
     getInvocationTotals: ReturnType<typeof vi.fn>;
+    getProjectSpend: ReturnType<typeof vi.fn>;
+    getChatCostTotals: ReturnType<typeof vi.fn>;
   };
 
   const resolver = {
@@ -519,6 +525,50 @@ describe("AiService", () => {
         costUsd: 0,
       },
     ]);
+  });
+
+  it("returns each project's spend alongside the organization totals", async () => {
+    const h = build();
+    const projects = [
+      { projectId: "p1", name: "Web", slug: "web", runs: 3, rcaTokens: 9_000, chatTokens: 1_000, chatCostUsd: 0.1, costUsd: 0.4 },
+      { projectId: "p2", name: "Worker", slug: "worker", runs: 0, rcaTokens: 0, chatTokens: 500, chatCostUsd: 0, costUsd: 0 },
+    ];
+    h.repository.getProjectSpend.mockResolvedValue(projects);
+
+    const usage = await h.service.usage("org_1");
+
+    expect(usage.projects).toEqual(projects);
+    expect(h.repository.getProjectSpend).toHaveBeenCalledWith("org_1", expect.any(Date), expect.any(Date));
+  });
+
+  it("adds chat cost to the organization totals, split by who paid", async () => {
+    const h = build();
+    h.repository.getInvocationTotals.mockResolvedValue([
+      { credentialSource: "byok", status: "success", runs: 1, tokens: 1_000, costUsd: 1 },
+      { credentialSource: "platform", status: "success", runs: 1, tokens: 1_000, costUsd: 0.5 },
+    ]);
+    h.repository.getChatCostTotals.mockResolvedValue([
+      { credentialSource: "byok", costUsd: 0.25 },
+      { credentialSource: null, costUsd: 0 },
+    ]);
+
+    const usage = await h.service.usage("org_1");
+
+    expect(usage.costUsd).toEqual({ platform: 0.5, byok: 1.25 });
+  });
+
+  it("reads the previous month when asked for it", async () => {
+    const h = build();
+
+    const usage = await h.service.usage("org_1", "last_month", new Date("2026-11-18T13:30:00Z"));
+
+    expect(usage.period).toEqual({
+      name: "last_month",
+      start: new Date("2026-10-01T00:00:00Z"),
+      end: new Date("2026-11-01T00:00:00Z"),
+    });
+    expect(h.repository.getProjectSpend).toHaveBeenCalledWith("org_1", usage.period.start, usage.period.end);
+    expect(h.repository.getInvocationTotals).toHaveBeenCalledWith("org_1", usage.period.start, usage.period.end);
   });
 
   describe("provider library", () => {

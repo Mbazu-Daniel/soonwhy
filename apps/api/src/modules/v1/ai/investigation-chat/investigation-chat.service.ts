@@ -23,12 +23,15 @@ import {
   CHAT_USAGE_SOURCE,
 } from "./investigation-chat.constants";
 import { buildInvestigationTools } from "./investigation-chat.tools";
+import { estimateChatCostUsd } from "./chat-cost";
 import type { ChatEvent, ChatRequest, ChatStep, ChatUsage } from "./investigation-chat.types";
 
 export interface ChatSession {
   threadId: string;
   events: AsyncGenerator<ChatEvent>;
 }
+
+type ResolvedChatModel = Awaited<ReturnType<LlmProviderResolver["resolve"]>>;
 
 interface TurnRecord {
   text: string;
@@ -63,7 +66,7 @@ export class InvestigationChatService {
       { errors: this.errors, telemetry: this.telemetry, findings: this.findings, rca: this.rca },
     );
     const agent = createInvestigationAgent(model, tools);
-    return { threadId, events: this.run(agent, scope, threadId, [...history, { role: "user", content: request.message }], signal) };
+    return { threadId, events: this.run(agent, model, scope, threadId, [...history, { role: "user", content: request.message }], signal) };
   }
 
   private async openThread(scope: ThreadScope, request: ChatRequest): Promise<{ threadId: string; history: CoreMessage[] }> {
@@ -79,6 +82,7 @@ export class InvestigationChatService {
 
   private async *run(
     agent: ReturnType<typeof createInvestigationAgent>,
+    model: ResolvedChatModel,
     scope: ThreadScope,
     threadId: string,
     messages: CoreMessage[],
@@ -106,7 +110,7 @@ export class InvestigationChatService {
       const usage = await this.usageOf(output.usage);
       record.totalTokens = usage.totalTokens;
       record.status = "complete";
-      await this.meter(scope, runId, usage);
+      await this.meter(scope, runId, usage, model);
       yield { type: "done", usage };
     } catch (error) {
       record.status = signal.aborted ? "cancelled" : "failed";
@@ -148,9 +152,10 @@ export class InvestigationChatService {
     return { inputTokens, outputTokens, totalTokens: value.totalTokens ?? inputTokens + outputTokens };
   }
 
-  private async meter(scope: ThreadScope, runId: string, usage: ChatUsage): Promise<void> {
+  private async meter(scope: ThreadScope, runId: string, usage: ChatUsage, model: ResolvedChatModel): Promise<void> {
     if (usage.totalTokens <= 0) return;
     try {
+      const costUsd = estimateChatCostUsd(usage, this.resolver.pricingFor(model.providerId, model.model));
       await this.billing.recordUsage({
         orgId: scope.orgId,
         projectId: scope.projectId,
@@ -159,6 +164,14 @@ export class InvestigationChatService {
         source: CHAT_USAGE_SOURCE,
         idempotencyKey: `${runId}:tokens`,
         enforce: false,
+        metadata: {
+          provider: model.providerId,
+          model: model.model,
+          credentialSource: model.source,
+          inputTokens: usage.inputTokens,
+          outputTokens: usage.outputTokens,
+          costUsd: costUsd ?? null,
+        },
       });
     } catch {
       this.logger.warn(`Chat usage could not be recorded for run ${runId}`);

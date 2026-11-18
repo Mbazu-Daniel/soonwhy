@@ -58,7 +58,10 @@ function fakeThreads() {
 const USER_SCOPE = { orgId: "org_1", projectId: "proj_1", userId: "user_1" };
 
 function build(overrides: { project?: unknown; groups?: unknown } = {}) {
-  const resolver = { resolve: vi.fn(async () => ({ source: "byok", providerId: "soonwhy", model: "m", baseUrl: "https://example.test/v1", apiKey: "k", credentialId: "cred" })) };
+  const resolver = {
+    resolve: vi.fn(async () => ({ source: "byok", providerId: "soonwhy", model: "m", baseUrl: "https://example.test/v1", apiKey: "k", credentialId: "cred" })),
+    pricingFor: vi.fn((): { inputUsdPerMillion: number; outputUsdPerMillion: number } | null => ({ inputUsdPerMillion: 1, outputUsdPerMillion: 2 })),
+  };
   const projects = { getProjectById: vi.fn(async () => ("project" in overrides ? overrides.project : { id: "proj_1" })) };
   const billing = { recordUsage: vi.fn(async () => undefined) };
   const threads = fakeThreads();
@@ -90,6 +93,32 @@ describe("InvestigationChatService", () => {
     expect(events[2]).toMatchObject({ type: "step", status: "complete", detail: "No errors in the last 24 hours." });
     expect(events[4]).toMatchObject({ type: "done", usage: { totalTokens: 38 } });
     expect(billing.recordUsage).toHaveBeenCalledWith(expect.objectContaining({ orgId: "org_1", projectId: "proj_1", metric: "ai_tokens_byok", quantity: 38, enforce: false }));
+  });
+
+  it("records the estimated cost of the turn with the model that answered", async () => {
+    let call = 0;
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () => (++call === 1 ? toolCallResponse("list_error_groups", {}) : textResponse("Done.")));
+    const { service, billing, resolver } = build();
+
+    const session = await service.start(USER_SCOPE, { message: "q" }, new AbortController().signal);
+    await collect(session.events);
+
+    expect(resolver.pricingFor).toHaveBeenCalledWith("soonwhy", "m");
+    const recorded = (billing.recordUsage.mock.calls[0] as unknown as [{ metadata: Record<string, unknown> }])[0];
+    expect(recorded.metadata).toMatchObject({ provider: "soonwhy", model: "m", credentialSource: "byok", inputTokens: 30, outputTokens: 8 });
+    expect(recorded.metadata.costUsd).toBeCloseTo(0.000046, 9);
+  });
+
+  it("records the tokens but no cost when the model has no price", async () => {
+    let call = 0;
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () => (++call === 1 ? toolCallResponse("list_error_groups", {}) : textResponse("Done.")));
+    const { service, billing, resolver } = build();
+    resolver.pricingFor.mockReturnValue(null);
+
+    const session = await service.start(USER_SCOPE, { message: "q" }, new AbortController().signal);
+    await collect(session.events);
+
+    expect(billing.recordUsage).toHaveBeenCalledWith(expect.objectContaining({ quantity: 38, metadata: expect.objectContaining({ costUsd: null }) }));
   });
 
   it("marks an unavailable tool result as failed, not complete", async () => {

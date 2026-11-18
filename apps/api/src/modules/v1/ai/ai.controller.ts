@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
@@ -20,6 +21,7 @@ import {
 import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
 import { OwnerOrAdminGuard } from "../../../common/guards/owner-or-admin.guard";
 import { AiService, canManageAi } from "./ai.service";
+import { parseUsagePeriod } from "./ai-usage-period";
 import { BillingService } from "../billing/billing.service";
 
 const AiCredentialSchema = z
@@ -207,13 +209,13 @@ export class AiController {
   }
 
   @ApiOperation({
-    summary: "AI usage this month",
+    summary: "AI usage for a period",
     description:
-      "Tokens and estimated cost split by who paid (platform-funded vs BYOK), plus RCA invocation totals. Cost is a price-list estimate, not billing reconciliation.",
+      "Tokens and estimated cost for ?period=month (default), last_month or last_30_days, split by who paid (platform-funded vs BYOK), plus RCA invocation totals. Cost is a price-list estimate, not billing reconciliation.",
   })
   @UseGuards(OwnerOrAdminGuard)
-  @Get("usage") usage(@CurrentOrg() org: OrgContext) {
-    return this.service.usage(org.orgId);
+  @Get("usage") usage(@CurrentOrg() org: OrgContext, @Query("period") period?: string) {
+    return this.service.usage(org.orgId, parseUsagePeriod(period));
   }
 
   @Put("quota") setQuota(

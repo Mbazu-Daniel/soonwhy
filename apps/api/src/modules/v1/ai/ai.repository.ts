@@ -1,10 +1,24 @@
 import { Injectable } from "@nestjs/common";
-import { and, asc, desc, eq, gte, isNull, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { db } from "../../../common/db";
 import {
   aiProviderCredentials,
+  projects,
   rcaInvocations,
+  usageEvents,
 } from "../../../common/db/schema";
+import { CHAT_USAGE_SOURCE } from "./investigation-chat/investigation-chat.constants";
+
+export interface ProjectAiSpend {
+  projectId: string;
+  name: string;
+  slug: string;
+  runs: number;
+  rcaTokens: number;
+  chatTokens: number;
+  chatCostUsd: number;
+  costUsd: number;
+}
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -163,5 +177,85 @@ export class AiRepository {
         ),
       )
       .groupBy(rcaInvocations.credentialSource, rcaInvocations.status);
+  }
+
+  async getProjectSpend(orgId: string, from: Date, to: Date): Promise<ProjectAiSpend[]> {
+    const [rca, chat] = await Promise.all([
+      db
+        .select({
+          projectId: rcaInvocations.projectId,
+          runs: sql<number>`count(*)::int`,
+          tokens: sql<number>`coalesce(sum(${rcaInvocations.totalTokens}), 0)::float8`,
+          costUsd: sql<number>`coalesce(round(sum(${rcaInvocations.estimatedCostUsd})::numeric, 6), 0)::float8`,
+        })
+        .from(rcaInvocations)
+        .where(
+          and(
+            eq(rcaInvocations.orgId, orgId),
+            gte(rcaInvocations.createdAt, from),
+            lt(rcaInvocations.createdAt, to),
+          ),
+        )
+        .groupBy(rcaInvocations.projectId),
+      db
+        .select({
+          projectId: usageEvents.projectId,
+          tokens: sql<number>`coalesce(sum(${usageEvents.quantity}), 0)::float8`,
+          costUsd: sql<number>`coalesce(round(sum((${usageEvents.metadata}->>'costUsd')::numeric), 6), 0)::float8`,
+        })
+        .from(usageEvents)
+        .where(
+          and(
+            eq(usageEvents.orgId, orgId),
+            eq(usageEvents.source, CHAT_USAGE_SOURCE),
+            isNotNull(usageEvents.projectId),
+            gte(usageEvents.occurredAt, from),
+            lt(usageEvents.occurredAt, to),
+          ),
+        )
+        .groupBy(usageEvents.projectId),
+    ]);
+
+    const ids = [...new Set([...rca.map((row) => row.projectId), ...chat.map((row) => row.projectId!)])];
+    if (!ids.length) return [];
+    const named = await db
+      .select({ id: projects.id, name: projects.name, slug: projects.slug })
+      .from(projects)
+      .where(and(eq(projects.organizationId, orgId), inArray(projects.id, ids)));
+
+    return named
+      .map((project) => {
+        const runs = rca.find((row) => row.projectId === project.id);
+        const talk = chat.find((row) => row.projectId === project.id);
+        return {
+          projectId: project.id,
+          name: project.name,
+          slug: project.slug,
+          runs: runs?.runs ?? 0,
+          rcaTokens: runs?.tokens ?? 0,
+          chatTokens: talk?.tokens ?? 0,
+          chatCostUsd: talk?.costUsd ?? 0,
+          costUsd: Math.round(((runs?.costUsd ?? 0) + (talk?.costUsd ?? 0)) * 1_000_000) / 1_000_000,
+        };
+      })
+      .sort((a, b) => b.costUsd - a.costUsd || b.rcaTokens + b.chatTokens - (a.rcaTokens + a.chatTokens) || a.name.localeCompare(b.name));
+  }
+
+  async getChatCostTotals(orgId: string, from: Date, to: Date) {
+    return db
+      .select({
+        credentialSource: sql<string | null>`${usageEvents.metadata}->>'credentialSource'`,
+        costUsd: sql<number>`coalesce(round(sum((${usageEvents.metadata}->>'costUsd')::numeric), 6), 0)::float8`,
+      })
+      .from(usageEvents)
+      .where(
+        and(
+          eq(usageEvents.orgId, orgId),
+          eq(usageEvents.source, CHAT_USAGE_SOURCE),
+          gte(usageEvents.occurredAt, from),
+          lt(usageEvents.occurredAt, to),
+        ),
+      )
+      .groupBy(sql`${usageEvents.metadata}->>'credentialSource'`);
   }
 }
