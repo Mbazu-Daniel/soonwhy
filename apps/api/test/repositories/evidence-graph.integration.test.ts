@@ -102,8 +102,12 @@ describe.skipIf(!databaseTestsEnabled)("EvidenceGraphRepository", () => {
       future,
     );
 
-    await expect(repository.deleteExpiredNodes()).resolves.toBe(1);
-    await expect(repository.deleteExpiredEdges()).resolves.toBe(1);
+    await expect(repository.deleteExpiredNodes()).resolves.toEqual([
+      { organizationId: organization.id, nodeId: expiredNode },
+    ]);
+    await expect(repository.deleteExpiredEdges()).resolves.toEqual([
+      { organizationId: organization.id, edgeId: expiredEdge },
+    ]);
     await expect(repository.getNode(organization.id, expiredNode)).resolves.toBeNull();
     await expect(repository.getNode(organization.id, liveNode)).resolves.toBeDefined();
     await expect(repository.getEdge(organization.id, expiredEdge)).resolves.toBeNull();
