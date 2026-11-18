@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import {
   ApiKeyAuthenticator,
   HostMetricsTarget,
+  HostRegistry,
   DB,
   createDb,
   NatsService,
@@ -23,6 +24,7 @@ import { IngestReceiptRepository } from "./pipeline/receipt.repository";
     { provide: DB, useFactory: createDb },
     ApiKeyAuthenticator,
     HostMetricsTarget,
+    HostRegistry,
     RateLimiter,
     NatsService,
     IngestStats,

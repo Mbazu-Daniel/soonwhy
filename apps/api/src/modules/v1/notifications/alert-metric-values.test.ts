@@ -20,3 +20,11 @@ describe("metricValues", () => {
     expect(metricValues("unknown.metric", bucket)).toMatchObject({ value: 40 });
   });
 });
+
+describe("hostSampleValues", () => {
+  it("passes the sample count through, including zero", async () => {
+    const { hostSampleValues } = await import("./alert-metric-values");
+    expect(hostSampleValues(0)).toEqual({ value: 0, sampleCount: 0 });
+    expect(hostSampleValues(30)).toEqual({ value: 30, sampleCount: 30 });
+  });
+});

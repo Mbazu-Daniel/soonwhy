@@ -58,6 +58,16 @@ export const projectSettings = pgTable("project_settings", {
     .notNull(),
 });
 
+/** Mirrors apps/api hosts; ingest files each host's metrics under the project it is linked to. */
+export const hosts = pgTable("hosts", {
+  id: text("id").primaryKey(),
+  hostName: text("host_name").notNull(),
+  organizationId: text("organization_id").notNull(),
+  projectId: text("project_id").notNull(),
+  firstSeenAt: timestamp("first_seen_at").defaultNow().notNull(),
+  lastSeenAt: timestamp("last_seen_at").defaultNow().notNull(),
+});
+
 /** Mirrors apps/api platform_settings; read by ingest to find the host metrics project. */
 export const platformSettings = pgTable("platform_settings", {
   key: text("key").primaryKey(),

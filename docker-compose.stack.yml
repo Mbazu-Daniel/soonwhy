@@ -8,8 +8,10 @@
 # collector reads host CPU, memory, disk and network and sends them to ingest
 # over the host network (so it sees the real interfaces). It needs no API key:
 # it posts to ingest's internal port, published on the host's loopback only, and
-# ingest files the data under the project named by the host_metrics_project_id
-# row in platform_settings. Every project in that organization shows it.
+# ingest files each host's data under the project that host is linked to (the
+# hosts table, keyed by host.name). A host seen for the first time is linked to
+# the project named by the host_metrics_project_id row in platform_settings;
+# move it to another project from the Infrastructure tab.
 # nats and quickwit stay internal on the project network — no host ports, no domains.
 # Postgres and Redis are NOT in this stack; point DATABASE_URL and REDIS_URL at
 # your own instances in the env form (.env next to this file on the server).

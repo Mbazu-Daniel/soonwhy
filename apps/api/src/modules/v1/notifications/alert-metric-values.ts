@@ -1,5 +1,7 @@
 import type { MetricsBucket } from "../metrics/metrics.repository";
 
+export const HOST_SAMPLE_COUNT_METRIC = "host.metrics.sample.count";
+
 const COUNT_METRICS = new Set(["http.server.request.count"]);
 
 export function isCountMetric(metric: string): boolean {
@@ -28,4 +30,8 @@ export function metricValues(
     default:
       return { value: latest.p95, p95: latest.p95 };
   }
+}
+
+export function hostSampleValues(count: number): Record<string, unknown> {
+  return { value: count, sampleCount: count };
 }

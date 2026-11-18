@@ -41,6 +41,11 @@ processors:
     include:
       match_type: strict
       metrics: [system.network.io]
+  resourcedetection:
+    detectors: [env, system]
+    system:
+      hostname_sources: ["os"]
+    override: false
   resource:
     attributes:
       - key: service.name
@@ -70,5 +75,5 @@ service:
 
     metrics:
       receivers: [otlp, hostmetrics]
-      processors: [memory_limiter, cumulativetodelta, resource, batch]
+      processors: [memory_limiter, cumulativetodelta, resourcedetection, resource, batch]
       exporters: [otlphttp/soonwhy]

@@ -12,6 +12,7 @@ const target = {
 function build(resolved: unknown) {
   const apiKeys = { authenticate: vi.fn().mockResolvedValue({ ok: false, reason: "missing", message: "Missing or invalid API key" }) };
   const hostTarget = { resolve: vi.fn().mockResolvedValue(resolved) };
+  const hostRegistry = { resolve: vi.fn().mockResolvedValue(resolved) };
   const stats = {
     beginRequest: vi.fn(),
     endRequest: vi.fn(),
@@ -21,19 +22,21 @@ function build(resolved: unknown) {
     recordError: vi.fn(),
     recordPublished: vi.fn(),
   };
+  const nats = { publishWithAck: vi.fn().mockResolvedValue(true) };
   const controller = new IngestController(
     apiKeys as never,
     hostTarget as never,
+    hostRegistry as never,
     { checkRateLimit: vi.fn().mockResolvedValue(true) } as never,
-    { publishWithAck: vi.fn().mockResolvedValue(true) } as never,
+    nats as never,
     stats as never,
     { tryAcquire: vi.fn().mockReturnValue(true), release: vi.fn() } as never,
   );
-  return { controller, apiKeys, hostTarget };
+  return { controller, apiKeys, hostTarget, hostRegistry, nats };
 }
 
-function request(localPort: number) {
-  const body = Buffer.from(JSON.stringify({ resourceMetrics: [] }));
+function request(localPort: number, payload: unknown = { resourceMetrics: [] }) {
+  const body = Buffer.from(JSON.stringify(payload));
   return { socket: { localPort }, [Symbol.asyncIterator]: async function* () { yield body; } } as never;
 }
 
@@ -102,5 +105,30 @@ describe("host metrics on the internal port", () => {
       controller.metric(request(3003), response(), "application/json", undefined as never, undefined as never),
     ).rejects.toBeInstanceOf(UnauthorizedException);
     expect(hostTarget.resolve).not.toHaveBeenCalled();
+  });
+
+  it("files each host's metrics under the project that host is linked to", async () => {
+    const { controller, hostRegistry, nats } = build(target);
+    hostRegistry.resolve.mockImplementation(async (name?: string) => ({ ...target, projectId: name === "web-1" ? "p-web" : "p-db" }));
+    const resourceFor = (host: string) => ({
+      resource: { attributes: [{ key: "host.name", value: { stringValue: host } }] },
+      scopeMetrics: [{ metrics: [{ name: "system.cpu.utilization", gauge: { dataPoints: [{ asDouble: 0.5, timeUnixNano: "1700000000000000000" }] } }] }],
+    });
+    const res = response();
+    await controller.metric(request(3003, { resourceMetrics: [resourceFor("web-1"), resourceFor("db-1")] }), res, "application/json", undefined as never, undefined as never);
+    expect(res.statusCode).toBe(200);
+    const subjects = nats.publishWithAck.mock.calls.map((call) => call[0]).sort();
+    expect(subjects).toEqual(["ingest.p-db.metric", "ingest.p-web.metric"]);
+  });
+
+  it("asks the sender to retry when a host's project cannot be looked up", async () => {
+    const { controller, hostRegistry, nats } = build(target);
+    hostRegistry.resolve.mockRejectedValue(new Error("db down"));
+    const payload = { resourceMetrics: [{ resource: { attributes: [{ key: "host.name", value: { stringValue: "web-1" } }] }, scopeMetrics: [{ metrics: [{ name: "m", gauge: { dataPoints: [{ asDouble: 1, timeUnixNano: "1700000000000000000" }] } }] }] }] };
+    const res = response();
+    await controller.metric(request(3003, payload), res, "application/json", undefined as never, undefined as never);
+    expect(res.statusCode).toBe(503);
+    expect(res.setHeader).toHaveBeenCalledWith("Retry-After", "5");
+    expect(nats.publishWithAck).not.toHaveBeenCalled();
   });
 });

@@ -33,8 +33,9 @@ import type {
   ServiceRequestSummary,
   SummaryAggregation,
 } from "./request-summary.types";
-import { searchOrg, searchTenant } from "../../../common/telemetry/tenant-search";
+import { searchTenant } from "../../../common/telemetry/tenant-search";
 import {
+  CPU_UTILIZATION,
   mergeHostMetrics,
   trafficSearch,
   utilizationSearch,
@@ -265,16 +266,27 @@ export class MetricsRepository {
     };
   }
 
+  async countHostSamples(params: { orgId: string; projectId: string; from: string; to: string }): Promise<number> {
+    const result = await searchTenant(this.quickwit, "metrics", params, {
+      filter: quickwitTerm("name", CPU_UTILIZATION),
+      startTimestamp: quickwitTimestamp(params.from),
+      endTimestamp: quickwitTimestamp(params.to),
+      maxHits: 0,
+    });
+    return result.num_hits;
+  }
+
   async queryHostMetrics(params: {
     orgId: string;
+    projectId: string;
     from: string;
     to: string;
     interval: string;
   }): Promise<HostMetricsBucket[]> {
     const [levels, received, transmitted] = await Promise.all([
-      searchOrg(this.quickwit, "metrics", params.orgId, utilizationSearch(params)),
-      searchOrg(this.quickwit, "metrics", params.orgId, trafficSearch(params, "receive")),
-      searchOrg(this.quickwit, "metrics", params.orgId, trafficSearch(params, "transmit")),
+      searchTenant(this.quickwit, "metrics", params, utilizationSearch(params)),
+      searchTenant(this.quickwit, "metrics", params, trafficSearch(params, "receive")),
+      searchTenant(this.quickwit, "metrics", params, trafficSearch(params, "transmit")),
     ]);
     return mergeHostMetrics({
       levels: bucketsOf<HostLevelBucket>(levels),
