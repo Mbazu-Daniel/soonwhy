@@ -53,7 +53,7 @@ export async function runRoute(route: WriteRoute, caller: RouteCaller): Promise<
     ...Array.from({ length: parameters }, stubService),
   );
   try {
-    await instance[route.handlerName](...handlerArguments(route, request));
+    await instance[route.handlerName]!(...handlerArguments(route, request));
     return "allowed";
   } catch (error) {
     return isRejection(error) ? "rejected" : "allowed";
