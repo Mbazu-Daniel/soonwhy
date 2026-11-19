@@ -10,10 +10,6 @@ export const createMaintenanceWindowBodySchema = z.object({
   recurringSchedule: z.record(z.unknown()).optional(),
 });
 
-type CreateMaintenanceWindowBody = z.infer<
-  typeof createMaintenanceWindowBodySchema
->;
-
 export const updateMaintenanceWindowBodySchema = z.object({
   name: z.string().optional(),
   description: z.string().optional(),
@@ -24,7 +20,3 @@ export const updateMaintenanceWindowBodySchema = z.object({
   affectedAlertRules: z.array(z.string()).optional(),
   recurringSchedule: z.record(z.unknown()).optional(),
 });
-
-type UpdateMaintenanceWindowBody = z.infer<
-  typeof updateMaintenanceWindowBodySchema
->;

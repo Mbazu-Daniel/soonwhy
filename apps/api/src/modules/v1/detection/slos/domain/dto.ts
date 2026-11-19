@@ -13,8 +13,6 @@ export const createSloBodySchema = z.object({
   alertThresholds: z.record(z.unknown()).optional(),
 });
 
-type CreateSloBody = z.infer<typeof createSloBodySchema>;
-
 export const updateSloBodySchema = z.object({
   name: z.string().optional(),
   description: z.string().optional(),
@@ -27,5 +25,3 @@ export const updateSloBodySchema = z.object({
   alertThresholds: z.record(z.unknown()).optional(),
   isActive: z.boolean().optional(),
 });
-
-type UpdateSloBody = z.infer<typeof updateSloBodySchema>;
