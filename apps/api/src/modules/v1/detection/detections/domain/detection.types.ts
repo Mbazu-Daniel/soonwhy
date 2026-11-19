@@ -1,4 +1,4 @@
-import type { DetectionEvidence } from "../../../common/db/schema/findings";
+import type { DetectionEvidence } from "../../../../../common/db/schema/findings";
 
 export type FindingType =
   | "latency"

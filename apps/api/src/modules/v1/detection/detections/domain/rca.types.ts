@@ -1,6 +1,6 @@
 import type { DetectionFinding } from "./detection.types";
-import type { LlmCredentialSource } from "../../../common/db/schema";
-import type { RankedCandidate, ScoringWeights } from "./root-cause/root-cause.types";
+import type { LlmCredentialSource } from "../../../../../common/db/schema";
+import type { RankedCandidate, ScoringWeights } from "../root-cause/root-cause.types";
 
 export type RcaConfidence = "low" | "medium" | "high";
 

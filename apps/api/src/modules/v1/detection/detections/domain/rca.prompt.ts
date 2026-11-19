@@ -1,6 +1,6 @@
 import type { RcaEvidence } from "./rca.types";
-
-export const RCA_PROMPT_VERSION = "v2";
+import type { RcaPromptDefinition } from "./rca.prompt.types";
+import { RCA_PROMPT_VERSION } from "./rca.prompt.constants";
 
 const ERROR_GROUP_GUIDANCE = [
   "This evidence describes one application error group, not a latency bottleneck.",
@@ -10,21 +10,6 @@ const ERROR_GROUP_GUIDANCE = [
   "If there are no application frames, no cause items and no trace, the root cause is not established; say what telemetry is missing, such as a captured stack trace.",
   "Suggested changes must be concrete fix candidates for the named code path, and each must say what to verify first.",
 ].join(" ");
-
-export interface RcaPromptDefinition {
-  version: string;
-  systemPrompt: string;
-  schema: {
-    summary: "string";
-    rootCause: "string";
-    contributingFactors: string[];
-    investigationSteps: string[];
-    suggestedChanges: string[];
-    evidenceRefs: string[];
-    confidence: "low | medium | high";
-    limitations: string[];
-  };
-}
 
 const BASE_SYSTEM_PROMPT = [
   "You are Soonwhy RCA, an observability root-cause analysis assistant.",

@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  evaluateDetectionCase,
-  runDetectionEvaluation,
-  type DetectionEvaluationCase,
-} from "./detection.evaluation";
+import { evaluateDetectionCase, runDetectionEvaluation } from "./detection.evaluation";
+import { type DetectionEvaluationCase } from "./detection.evaluation.types";
 
 const cases: DetectionEvaluationCase[] = [
   {

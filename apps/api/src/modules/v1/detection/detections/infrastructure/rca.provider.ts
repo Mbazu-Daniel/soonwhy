@@ -1,29 +1,13 @@
-import {
-  BadGatewayException,
-  HttpException,
-  RequestTimeoutException,
-  HttpStatus,
-} from "@nestjs/common";
+import { BadGatewayException, HttpException, RequestTimeoutException, HttpStatus } from "@nestjs/common";
 import { Agent } from "@mastra/core/agent";
 import { noopLogger } from "@mastra/core/logger";
-import { buildRcaPrompt, RCA_PROMPT_VERSION } from "./rca.prompt";
-import { generateStructured } from "../ai/structured-output";
-import { providerMessageOf } from "./provider-error-message";
-import { RcaAnalysisSchema } from "./rca.validation";
-import type { RcaEvidence, RcaProviderResult } from "./rca.types";
-
-export interface MastraRcaProviderConfig {
-  apiKey: string;
-  model: string;
-  providerId?: string;
-  baseUrl?: string;
-  timeoutMs?: number;
-  maxPromptCharacters?: number;
-  maxRetries?: number;
-  inputCostPerMillionTokensUsd?: number;
-  outputCostPerMillionTokensUsd?: number;
-  promptVersion?: string;
-}
+import { buildRcaPrompt } from "../domain/rca.prompt";
+import { RCA_PROMPT_VERSION } from "../domain/rca.prompt.constants";
+import { generateStructured } from "../../../investigation/ai/domain/structured-output";
+import { providerMessageOf } from "../domain/provider-error-message";
+import { RcaAnalysisSchema } from "../domain/rca.validation";
+import type { RcaEvidence, RcaProviderResult } from "../domain/rca.types";
+import type { MastraRcaProviderConfig } from "../domain/rca.provider.types";
 
 const RCA_AGENT_INSTRUCTIONS = [
   "You are Soonwhy RCA, an observability root-cause analysis assistant.",

@@ -1,43 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import type { RcaUsage } from "./rca.types";
-import { db } from "../../../common/db";
-import { rcaInvocations } from "../../../common/db/schema";
-import type { LlmCredentialSource } from "../../../common/db/schema";
-import { recordAiInvocationMetrics } from "../../../common/telemetry/otel-metrics";
-
-export type RcaInvocationStatus = "succeeded" | "failed";
-
-export interface RcaInvocationRecord {
-  id: string;
-  orgId: string;
-  projectId: string;
-  findingId: string;
-  status: RcaInvocationStatus;
-  provider: string;
-  model: string;
-  promptVersion: string;
-  requestDurationMs: number;
-  retries: number;
-  inputTokens?: number;
-  outputTokens?: number;
-  totalTokens?: number;
-  estimatedCostUsd?: number;
-  credentialSource: LlmCredentialSource | null;
-  credentialId: string | null;
-  errorCode?: string;
-  createdAt: Date;
-}
-
-export interface RcaGovernanceSink {
-  recordSuccess(
-    input: Omit<RcaInvocationRecord, "status" | "createdAt" | "errorCode">,
-  ): Promise<void>;
-  recordFailure(
-    input: Omit<RcaInvocationRecord, "status" | "createdAt"> & {
-      errorCode?: string;
-    },
-  ): Promise<void>;
-}
+import { db } from "../../../../../common/db";
+import { rcaInvocations } from "../../../../../common/db/schema";
+import { recordAiInvocationMetrics } from "../../../../../common/telemetry/otel-metrics";
+import type { RcaInvocationRecord, RcaGovernanceSink } from "./rca.governance.types";
 
 @Injectable()
 export class DatabaseRcaGovernanceSink implements RcaGovernanceSink {

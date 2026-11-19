@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  buildRcaPrompt,
-  getRcaPromptDefinition,
-  RCA_PROMPT_VERSION,
-} from "./rca.prompt";
+import { buildRcaPrompt, getRcaPromptDefinition } from "./rca.prompt";
+import { RCA_PROMPT_VERSION } from "./rca.prompt.constants";
 import type { RcaEvidence } from "./rca.types";
 
 const evidence: RcaEvidence = {

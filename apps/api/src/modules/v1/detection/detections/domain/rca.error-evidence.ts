@@ -1,6 +1,6 @@
-import type { DetectionEvidence } from "../../../common/db/schema/findings";
-import { ERROR_FINDING_TYPE } from "../errors/error.constants";
-import type { BottleneckEvidenceFinding } from "./rca.evidence";
+import type { DetectionEvidence } from "../../../../../common/db/schema/findings";
+import { ERROR_FINDING_TYPE } from "../../errors/domain/error.constants";
+import type { BottleneckEvidenceFinding } from "./rca.evidence.types";
 import type { RcaEvidence, RcaEvidenceItem } from "./rca.types";
 import { sanitizeRcaContext, sanitizeRcaText, sanitizeRcaValue } from "./rca.security";
 

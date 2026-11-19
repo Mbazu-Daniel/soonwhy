@@ -1,20 +1,5 @@
-import type { DetectionEvidence } from "../../../common/db/schema/findings";
-
-export interface TraceSpanLike {
-  timestamp: string;
-  service: string;
-  traceId: string;
-  spanId: string;
-  duration: number;
-  dependencyType: string;
-  dependencyName: string;
-  parentSpanId?: string;
-  dbQueryText?: string;
-  dbQuerySummary?: string;
-  dbOperationName?: string;
-  dbSystemName?: string;
-  dbCollectionName?: string;
-}
+import type { DetectionEvidence } from "../../../../../common/db/schema/findings";
+import type { TraceSpanLike } from "./detection.finding.types";
 
 export function traceSpanPayload<S extends TraceSpanLike>(sample: S) {
   return {

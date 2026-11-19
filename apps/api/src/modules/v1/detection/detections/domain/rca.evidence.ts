@@ -1,9 +1,10 @@
-import type { CorrelatedBottleneck } from "./detection.correlation";
+import type { CorrelatedBottleneck } from "./detection.correlation.types";
 import type { DetectionFinding } from "./detection.types";
-import type { DetectionEvidence } from "../../../common/db/schema/findings";
+import type { DetectionEvidence } from "../../../../../common/db/schema/findings";
 import type { RcaEvidence, RcaEvidenceItem } from "./rca.types";
-import type { RankingResult } from "./root-cause/root-cause.types";
+import type { RankingResult } from "../root-cause/root-cause.types";
 import { sanitizeRcaContext, sanitizeRcaValue } from "./rca.security";
+import type { BottleneckEvidenceFinding } from "./rca.evidence.types";
 
 function toItem(
   findingId: string,
@@ -126,21 +127,6 @@ export function buildRcaEvidence(
     evidenceCoverage: rankingResult?.overallEvidenceCoverage,
     rankingLimitations: rankingResult?.limitations,
   };
-}
-
-export interface BottleneckEvidenceFinding {
-  type: string;
-  projectId: string;
-  serviceName: string;
-  severity: string;
-  title: string;
-  description: string;
-  observedValue: number;
-  threshold: number;
-  unit: string;
-  windowStart: Date;
-  windowEnd: Date;
-  evidence: DetectionEvidence[];
 }
 
 export function decodeRcaBottleneck(

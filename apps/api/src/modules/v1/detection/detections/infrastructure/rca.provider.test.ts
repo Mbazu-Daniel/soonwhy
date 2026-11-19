@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { RcaEvidence } from "./rca.types";
+import type { RcaEvidence } from "../domain/rca.types";
 import { MastraRcaProvider } from "./rca.provider";
 
 const evidence: RcaEvidence = {

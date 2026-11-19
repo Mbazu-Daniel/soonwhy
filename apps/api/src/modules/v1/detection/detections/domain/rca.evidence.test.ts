@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { CorrelatedBottleneck } from "./detection.correlation";
+import type { CorrelatedBottleneck } from "./detection.correlation.types";
 import { buildRcaEvidence } from "./rca.evidence";
 
 describe("buildRcaEvidence", () => {

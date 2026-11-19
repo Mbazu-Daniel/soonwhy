@@ -1,16 +1,6 @@
-import {
-  evaluatePerformance,
-  type PerformanceFinding,
-} from "../intelligence/performance-intelligence";
-
-export interface EndpointPerformanceStat {
-  serviceName: string;
-  endpointName: string;
-  sampleCount: number;
-  p95Duration: number;
-  throughputPerMinute: number;
-  errorRate: number;
-}
+import { evaluatePerformance } from "../../intelligence/domain/performance-intelligence";
+import { type PerformanceFinding } from "../../intelligence/domain/performance-intelligence.types";
+import type { EndpointPerformanceStat } from "./performance-detection.types";
 
 export function evaluateEndpointPerformance(
   current: EndpointPerformanceStat,
