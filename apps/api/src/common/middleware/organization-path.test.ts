@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { organizationIdFromUrl } from "./organization-path";
+import { organizationIdFromUrl, projectIdFromUrl } from "./organization-path";
 
 describe("organizationIdFromUrl", () => {
   it("reads the organization id from the route prefix", () => {
@@ -19,5 +19,16 @@ describe("organizationIdFromUrl", () => {
     expect(organizationIdFromUrl("/api/v1/marketing/waitlist")).toBeUndefined();
     expect(organizationIdFromUrl("/api/v1/health/ready")).toBeUndefined();
     expect(organizationIdFromUrl("/api/v1/organizations")).toBeUndefined();
+  });
+});
+
+describe("projectIdFromUrl", () => {
+  it("reads the project id from the path or the query", () => {
+    expect(projectIdFromUrl("/api/v1/organization/o/projects/p1/services")).toBe("p1");
+    expect(projectIdFromUrl("/api/v1/organization/o/environments?projectId=p2")).toBe("p2");
+  });
+
+  it("returns nothing for collection routes", () => {
+    expect(projectIdFromUrl("/api/v1/organization/o/projects")).toBeUndefined();
   });
 });

@@ -1,0 +1,69 @@
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
+import { MetricsService } from "../application/metrics.service";
+import { getMetricPercentilesSchema, getMetricsSchema, getSummarySchema } from "../domain/dto";
+import {
+  CurrentOrg,
+  OrgContext,
+} from "../../../../../common/decorators/current-org.decorator";
+import { TenantGuard } from "../../../../../common/middleware/tenant-context.guard";
+import { z } from "zod";
+
+const hostMetricsSchema = z.object({
+  projectId: z.string().min(1),
+  from: z.string().optional(),
+  to: z.string().optional(),
+  interval: z.string().optional(),
+});
+
+@UseGuards(TenantGuard)
+@Controller("metrics")
+export class MetricsController {
+  constructor(private readonly metricsService: MetricsService) {}
+
+  @Get()
+  async getMetrics(
+    @CurrentOrg() org: OrgContext,
+    @Query() query: Record<string, unknown>,
+  ) {
+    const orgId = org.orgId;
+    const parsed = getMetricsSchema.safeParse(query);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.metricsService.getMetrics(orgId, parsed.data);
+  }
+
+  @Get("summary")
+  async getSummary(
+    @CurrentOrg() org: OrgContext,
+    @Query() query: Record<string, unknown>,
+  ) {
+    const parsed = getSummarySchema.safeParse(query);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.metricsService.getSummary(org.orgId, parsed.data);
+  }
+
+  @Get("percentiles")
+  async getMetricPercentiles(
+    @CurrentOrg() org: OrgContext,
+    @Query() query: Record<string, unknown>,
+  ) {
+    const parsed = getMetricPercentilesSchema.safeParse(query);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.metricsService.getMetricPercentiles(org.orgId, parsed.data);
+  }
+
+  @Get("host")
+  async getHostMetrics(
+    @CurrentOrg() org: OrgContext,
+    @Query() query: Record<string, unknown>,
+  ) {
+    const parsed = hostMetricsSchema.safeParse(query);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.metricsService.getHostMetrics(org.orgId, parsed.data);
+  }
+}

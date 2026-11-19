@@ -7,7 +7,7 @@ import { LEVEL_TREATMENT, methodBadgeClass, statusBadgeClass } from '~/component
 import { LogContext } from '~/components/logs/log-context';
 import { contextScopes } from '~/lib/log-context-scopes';
 
-export function parseAttributes(attributes: LogEntry['attributes']): Record<string, unknown> {
+function parseAttributes(attributes: LogEntry['attributes']): Record<string, unknown> {
   if (typeof attributes === 'string') {
     try {
       return JSON.parse(attributes) as Record<string, unknown>;

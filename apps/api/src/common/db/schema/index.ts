@@ -38,7 +38,6 @@ export {
   type LlmCredentialSource,
 } from "./ai-provider-credentials";
 export { issueLifecycles } from "./issue-lifecycles";
-// Notifications & alerting
 export {
   notificationChannels,
   type NotificationChannelType,

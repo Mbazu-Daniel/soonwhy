@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '~/lib/api';
 import { sanitizeView, type LogViewState } from '~/lib/log-view';
 
-export interface SavedView {
+interface SavedView {
   id: string;
   name: string;
   description?: string | null;

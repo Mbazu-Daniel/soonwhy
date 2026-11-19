@@ -4,7 +4,7 @@ import {
   ForbiddenException,
   Injectable,
 } from "@nestjs/common";
-import type { TenantRequest } from "../middleware/tenant-context.middleware";
+import type { TenantRequest } from "../middleware/tenant-context.middleware.types";
 
 @Injectable()
 export class OwnerOrAdminGuard implements CanActivate {

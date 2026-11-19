@@ -1,24 +1,7 @@
 import type { SoonwhyOptions } from "./types.js";
-import { DEFAULT_SECURITY_OPTIONS, type SecurityOptions } from "./security.js";
-
-export const DEFAULT_ENDPOINT = "https://ingest-soonwhy.oktopals.com/v1";
-export const DEFAULT_BATCH_SIZE = 100;
-export const DEFAULT_FLUSH_INTERVAL_MS = 5_000;
-export const DEFAULT_MAX_RETRIES = 3;
-export const DEFAULT_TIMEOUT_MS = 10_000;
-
-export interface ResolvedOptions
-  extends Omit<SoonwhyOptions, keyof SecurityOptions>,
-    SecurityOptions {
-  endpoint: string;
-  batchSize: number;
-  flushIntervalMs: number;
-  maxRetries: number;
-  timeoutMs: number;
-  registerShutdownHandlers: boolean;
-  fetch: typeof globalThis.fetch;
-  sleep: (delayMs: number) => Promise<void>;
-}
+import { DEFAULT_SECURITY_OPTIONS } from "./security.constants.js";
+import type { ResolvedOptions } from "./config.types.js";
+import { DEFAULT_ENDPOINT, DEFAULT_BATCH_SIZE, DEFAULT_FLUSH_INTERVAL_MS, DEFAULT_MAX_RETRIES, DEFAULT_TIMEOUT_MS } from "./config.constants.js";
 
 export function resolveOptions(options: SoonwhyOptions): ResolvedOptions {
   if (!options.apiKey.trim()) throw new Error("Soonwhy apiKey is required");

@@ -1,5 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import { MaintenanceWindowsRepository } from "../../src/modules/v1/maintenance-windows/maintenance-windows.repository";
+import { MaintenanceWindowsRepository } from "../../src/modules/v1/detection/maintenance-windows/infrastructure/maintenance-windows.repository";
 import { closeDatabase, databaseTestsEnabled, resetDatabase } from "../support/test-database";
 
 describe.skipIf(!databaseTestsEnabled)("MaintenanceWindowsRepository", () => {

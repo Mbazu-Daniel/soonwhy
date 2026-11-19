@@ -38,6 +38,11 @@ describe("assertSafeUserQuery", () => {
     expect(() => assertSafeUserQuery('a \\" ) OR (org_id:x')).toThrow();
   });
 
+  it("rejects single quotes that could hide parentheses from the guard", () => {
+    expect(() => assertSafeUserQuery("'\"' ) ) OR * OR ( ( '\"'")).toThrow(/single quotes/);
+    expect(() => assertSafeUserQuery("don't")).toThrow(/single quotes/);
+  });
+
   it("rejects a query that is too long", () => {
     expect(() => assertSafeUserQuery("a".repeat(2001))).toThrow(/longer than/);
   });

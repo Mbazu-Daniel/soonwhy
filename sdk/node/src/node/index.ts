@@ -1,10 +1,7 @@
 export { Client, initNode, shutdown } from "./client.js";
-export {
-  DEFAULT_ENDPOINT,
-  DEFAULT_TIMEOUT_MS,
-  resolveNodeOptions,
-  type ResolvedNodeSdkOptions,
-} from "./config.js";
+export { DEFAULT_ENDPOINT, resolveNodeOptions } from "./config.js";
+export { type ResolvedNodeSdkOptions } from "./config.types.js";
+export { DEFAULT_TIMEOUT_MS } from "./config.constants.js";
 export type { NodeSampling, NodeSdk, NodeSdkOptions } from "./types.js";
 export type {
   SoonwhyClient,

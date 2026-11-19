@@ -1,12 +1,4 @@
-export interface RetryOptions {
-  maxAttempts?: number;
-  initialDelayMs?: number;
-  maxDelayMs?: number;
-  backoffMultiplier?: number;
-  jitter?: boolean;
-  retryableErrors?: (error: unknown) => boolean;
-  onRetry?: (attempt: number, error: unknown) => void;
-}
+import type { RetryOptions } from "./retry.types";
 
 const defaultRetryOptions: Required<RetryOptions> = {
   maxAttempts: 3,

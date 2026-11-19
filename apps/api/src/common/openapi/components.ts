@@ -32,7 +32,7 @@ export const authProvidersSchema = z
     example: { emailAndPassword: true, google: false, github: false },
   });
 
-export const authUserSchema = z
+const authUserSchema = z
   .looseObject({
     id: z.string(),
     email: z.email(),
@@ -47,7 +47,7 @@ export const authUserSchema = z
     description: "User record returned by better-auth after (un)authenticating.",
   });
 
-export const authSessionSchema = z
+const authSessionSchema = z
   .looseObject({
     id: z.string(),
     token: z.string(),

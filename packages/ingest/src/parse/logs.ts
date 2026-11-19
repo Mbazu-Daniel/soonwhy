@@ -4,8 +4,6 @@ import type { OtlpLogsPayload } from "./otlp.types";
 import { hexId, resourceFromAttributes } from "./types";
 import type { LogLevel, ParsedLogRecord, ParseLogsResult } from "../interfaces";
 
-export type { ParseLogsResult };
-
 function severityLevel(number: number, text: string): LogLevel {
   if (number >= 21) return "fatal";
   if (number >= 17) return "error";

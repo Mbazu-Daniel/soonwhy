@@ -1,4 +1,4 @@
-import type { ResolvedOptions } from "./config.js";
+import type { ResolvedOptions } from "./config.types.js";
 import { SDK_VERSION } from "./version.js";
 import { toErrorLog, toLogsPayload, toMetricsPayload } from "./otlp.js";
 import type {
@@ -8,7 +8,7 @@ import type {
   MetricInput,
   ResourceOptions,
 } from "./types.js";
-import type { TelemetryTransport } from "./transport.js";
+import type { TelemetryTransport } from "./transport.types.js";
 
 export class TelemetryBatcher {
   private readonly logs: LogInput[] = [];

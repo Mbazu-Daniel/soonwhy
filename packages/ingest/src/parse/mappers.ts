@@ -1,35 +1,13 @@
 import { randomUUID } from "crypto";
-import {
-  isPiiKey,
-  isPiiValue,
-} from "@soonwhy/shared";
+import { isPiiKey, isPiiValue } from "@soonwhy/shared";
 import { stableEventId } from "./event-id";
 import { nanoToMs } from "./time";
 import { spanDetailFields } from "./span-details";
 import { encryptOrRedact, encryptTextOrRedact } from "./pii-safe";
 import { httpStatusCodeOf } from "./http-fields";
-import {
-  EXCEPTION_STACKTRACE_KEY,
-  FREE_TEXT_ATTRIBUTE_KEYS,
-  MAX_STORED_STACK_LENGTH,
-} from "./exception-attributes";
-import type {
-  CaptureSettings,
-  ParsedLogRecord,
-  ParsedMetricPoint,
-  ParsedSpan,
-  OrganizationContext,
-} from "../interfaces";
-
-export type { OrganizationContext };
-
-const SENSITIVE_ATTRIBUTE_PATTERN =
-  /authorization|cookie|set-cookie|password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|credit[_-]?card|card[_-]?number|cvv/i;
-const SENSITIVE_TEXT_PATTERNS = [
-  /(authorization\s*[:=]\s*bearer\s+)[^\s,;]+/gi,
-  /((?:password|passwd|token|api[_-]?key|access[_-]?key|secret|client[_-]?secret|private[_-]?key)\s*[:=]\s*)[^\s,;]+/gi,
-  /((?:cookie|set-cookie)\s*[:=]\s*)[^\n]+/gi,
-];
+import { EXCEPTION_STACKTRACE_KEY, FREE_TEXT_ATTRIBUTE_KEYS, MAX_STORED_STACK_LENGTH } from "./exception-attributes";
+import type { CaptureSettings, ParsedLogRecord, ParsedMetricPoint, ParsedSpan, OrganizationContext } from "../interfaces";
+import { SENSITIVE_ATTRIBUTE_PATTERN, SENSITIVE_TEXT_PATTERNS } from "./mappers.constants";
 function telemetryTimestamp(isoOrMs: string | number): string {
   const date =
     typeof isoOrMs === "number"
@@ -538,8 +516,6 @@ export function mapMetricToRow(
     ...(connectionPoolName ? { connectionPoolName } : {}),
   };
 }
-
-
 
 function httpFields(span: ParsedSpan): { httpStatusCode?: number } {
   const httpStatusCode = httpStatusCodeOf(span.attributes);

@@ -1,0 +1,29 @@
+import { ConflictException, Injectable } from "@nestjs/common";
+import { TeamsRepository } from "../infrastructure/teams.repository";
+import type { CreateTeamInput } from "../domain/dto/create-team.dto";
+
+@Injectable()
+export class TeamsService {
+  constructor(private readonly repository: TeamsRepository) {}
+
+  list(orgId: string) {
+    return this.repository
+      .list(orgId)
+      .then((rows) => rows.map(({ team }) => team));
+  }
+
+  async create(orgId: string, input: CreateTeamInput) {
+    if (await this.repository.findBySlug(orgId, input.slug)) {
+      throw new ConflictException(
+        "Team slug already exists in this organization",
+      );
+    }
+    const team = await this.repository.create(orgId, input);
+    if (!team) {
+      throw new ConflictException(
+        "Team slug already exists in this organization",
+      );
+    }
+    return team;
+  }
+}

@@ -1,20 +1,9 @@
 import type { Attributes, AttributeValue } from "./types.js";
+import type { SecurityOptions } from "./security.types.js";
 
 const SENSITIVE_KEY =
   /(authorization|cookie|set-cookie|password|passwd|secret|token|api[-_]?key|access[-_]?key|private[-_]?key|client[-_]?secret|session[-_]?id)/i;
 const MAX_DEPTH = 6;
-
-export interface SecurityOptions {
-  redactSensitiveData: boolean;
-  maxAttributeCount: number;
-  maxAttributeValueLength: number;
-}
-
-export const DEFAULT_SECURITY_OPTIONS: SecurityOptions = {
-  redactSensitiveData: true,
-  maxAttributeCount: 100,
-  maxAttributeValueLength: 4096,
-};
 
 export function sanitizeAttributes(
   attributes: Attributes | undefined,

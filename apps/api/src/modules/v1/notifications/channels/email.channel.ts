@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import { ZeptoMailService } from "../zepto-mail.service";
-import { ResendMailService } from "../resend-mail.service";
+import { ZeptoMailService } from "../application/zepto-mail.service";
+import { ResendMailService } from "../application/resend-mail.service";
 import { ChannelSendInput, ChannelSendResult } from "./base.channel";
 
 @Injectable()

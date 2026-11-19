@@ -1,4 +1,4 @@
-export type UncaughtErrorSink = (error: unknown, kind: "uncaughtException" | "unhandledRejection") => void;
+import type { UncaughtErrorSink } from "./uncaught.types.js";
 
 export class UncaughtErrorHandlers {
   private readonly removers: Array<() => void> = [];

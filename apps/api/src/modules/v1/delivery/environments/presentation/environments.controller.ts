@@ -1,0 +1,31 @@
+import { Body, Controller, Get, Post, Query, UseGuards } from "@nestjs/common";
+import {
+  CurrentOrg,
+  OrgContext,
+} from "../../../../../common/decorators/current-org.decorator";
+import { TenantGuard } from "../../../../../common/middleware/tenant-context.guard";
+import {
+  CreateEnvironmentDto,
+  type CreateEnvironmentInput,
+} from "../domain/dto/create-environment.dto";
+import { EnvironmentsService } from "../application/environments.service";
+
+@UseGuards(TenantGuard)
+@Controller("environments")
+export class EnvironmentsController {
+  constructor(private readonly service: EnvironmentsService) {}
+
+  @Get()
+  list(@CurrentOrg() org: OrgContext, @Query("projectId") projectId: string) {
+    return this.service.list(projectId, org.orgId);
+  }
+
+  @Post()
+  create(
+    @CurrentOrg() org: OrgContext,
+    @Query("projectId") projectId: string,
+    @Body({ schema: CreateEnvironmentDto }) body: CreateEnvironmentInput,
+  ) {
+    return this.service.create(projectId, org.orgId, body);
+  }
+}

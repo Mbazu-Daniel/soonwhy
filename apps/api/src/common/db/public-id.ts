@@ -1,8 +1,8 @@
 import { randomInt } from "node:crypto";
+import { PUBLIC_ID_LENGTH } from "./public-id.constants";
 
 const ALPHABET =
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-export const PUBLIC_ID_LENGTH = 10;
 
 export function generatePublicId(): string {
   let id = "";

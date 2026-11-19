@@ -2,20 +2,8 @@ import { decodeAttributes } from "./attributes";
 import { nanoToMs } from "./time";
 import type { OtlpSpanEvent, OtlpSpanLink, OtlpTracesPayload } from "./otlp.types";
 import { hexId, resourceFromAttributes } from "./types";
-import type {
-  ParsedSpan,
-  ParsedSpanEvent,
-  ParsedSpanLink,
-  ParseTracesResult,
-} from "../interfaces";
-
-export type { ParseTracesResult };
-
-const STATUS_CODE_NAMES: Record<string, number> = {
-  STATUS_CODE_UNSET: 0,
-  STATUS_CODE_OK: 1,
-  STATUS_CODE_ERROR: 2,
-};
+import type { ParsedSpan, ParsedSpanEvent, ParsedSpanLink, ParseTracesResult } from "../interfaces";
+import { STATUS_CODE_NAMES } from "./traces.constants";
 
 function normalizeStatusCode(code: unknown): number {
   if (typeof code === "number") return code;

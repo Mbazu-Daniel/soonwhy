@@ -2,7 +2,7 @@ import type { RcaConfidence } from '~/lib/rca.types';
 
 export const NOT_ESTABLISHED = /^\s*not established/i;
 
-export const CONFIDENCE_STYLES: Record<RcaConfidence, string> = {
+const CONFIDENCE_STYLES: Record<RcaConfidence, string> = {
   low: 'bg-[#FEF3C7] text-[#713F12]',
   medium: 'bg-[#DBEAFE] text-[#1E3A8A]',
   high: 'bg-[#DCFCE7] text-[#14532D]',
@@ -13,7 +13,7 @@ export function firstSentence(text: string): string {
   return (match ? match[0] : text).trim();
 }
 
-export function stripCandidate(step: string): string {
+function stripCandidate(step: string): string {
   return step.replace(/^candidate:\s*/i, '');
 }
 

@@ -7,19 +7,15 @@ export const slos = pgTable('slos', {
   name: text('name').notNull(),
   description: text('description'),
   serviceName: text('service_name').notNull(),
-  // SLO definition
   targetPercentage: integer('target_percentage').notNull(), // e.g., 99.9 for 99.9%
   period: text('period').notNull(), // '7d', '30d', '90d', 'rolling'
-  // Error budget calculation
   measurementType: text('measurement_type').notNull(), // 'availability', 'latency', 'error_rate'
   goodEventsThreshold: integer('good_events_threshold'), // For latency: response time threshold in ms
   windowSize: integer('window_size').notNull().default(30), // Number of days in rolling window
-  // Current state
   currentCompliance: integer('current_compliance'), // Current percentage
   errorBudgetRemaining: integer('error_budget_remaining'), // Percentage remaining
   errorBudgetBurnRate: text('error_budget_burn_rate'), // 'slow', 'fast', 'critical'
   lastCalculatedAt: timestamp('last_calculated_at'),
-  // Alerting
   alertOnBurnRate: boolean('alert_on_burn_rate').notNull().default(true),
   alertThresholds: jsonb('alert_thresholds'), // { warning: 20, critical: 10 } - percentage remaining
   isActive: boolean('is_active').notNull().default(true),

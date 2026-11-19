@@ -11,7 +11,6 @@ import {
   Logger,
 } from "@nestjs/common";
 import { Request, Response } from "express";
-import { gunzipSync } from "zlib";
 import {
   ApiKeyAuthenticator,
   HostMetricsTarget,
@@ -21,6 +20,8 @@ import {
   type ValidatedApiKey,
 } from "@soonwhy/shared";
 import { groupByHost } from "./host-groups";
+import { PayloadTooLargeError } from "./payload-too-large.error";
+import { readLimitedBody } from "./read-body";
 import { internalPortFrom, isInternalRequest } from "./internal-listener";
 import { IngestStats } from "../pipeline/stats";
 import { IngestConcurrency } from "../pipeline/concurrency";
@@ -100,18 +101,6 @@ export class IngestController {
 
   private sendError(res: Response, status: number, message: string): void {
     res.status(status).json({ error: message });
-  }
-
-  private async readBody(req: Request, contentEncoding: string | undefined): Promise<Buffer> {
-    const chunks: Buffer[] = [];
-    for await (const chunk of req) {
-      chunks.push(chunk);
-    }
-    const body = Buffer.concat(chunks);
-    if (contentEncoding === "gzip") {
-      return gunzipSync(body);
-    }
-    return body;
   }
 
   private decodePayload(body: Buffer, contentType: string | undefined, signal: Signal): Record<string, unknown> | null {
@@ -230,7 +219,7 @@ export class IngestController {
       this.metrics.beginRequest();
       acquired = true;
 
-      const body = await this.readBody(req, contentEncoding);
+      const body = await readLimitedBody(req, contentEncoding);
       const parsed = this.decodePayload(body, contentType, signal);
       if (!parsed)
         return this.sendError(res, 400, `Invalid OTLP ${signal} payload`);
@@ -277,6 +266,9 @@ export class IngestController {
     } catch (error) {
       if (error instanceof UnauthorizedException) throw error;
       this.metrics.recordError();
+      if (error instanceof PayloadTooLargeError) {
+        return this.sendError(res, 413, error.message);
+      }
       if (!(error instanceof BadRequestException)) {
         this.logger.error(
           `Failed to process OTLP ${signal} request: ${

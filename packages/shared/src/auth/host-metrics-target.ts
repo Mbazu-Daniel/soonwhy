@@ -1,12 +1,11 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { asc, eq } from "drizzle-orm";
 import { platformSettings, projects, projectSettings } from "../db/schema";
-import type { CaptureSettings } from "../capture-settings";
+import type { CaptureSettings } from "../capture-settings.types";
 import type { Db } from "../db";
 import { DB } from "../db";
 import type { ValidatedApiKey } from "./api-keys.types";
-
-export const HOST_METRICS_PROJECT_SETTING = "host_metrics_project_id";
+import { HOST_METRICS_PROJECT_SETTING } from "./host-metrics-target.constants";
 
 const CACHE_TTL_MS = 30_000;
 

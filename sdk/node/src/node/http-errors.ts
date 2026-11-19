@@ -17,7 +17,7 @@ function text(value: unknown): string | undefined {
     : undefined;
 }
 
-export function statusOf(error: unknown): number {
+function statusOf(error: unknown): number {
   if (error && typeof error === "object") {
     const record = error as { status?: unknown; statusCode?: unknown };
     for (const candidate of [record.status, record.statusCode]) {

@@ -26,20 +26,16 @@ export const alertRules = pgTable(
       .references(() => projects.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     description: text("description"),
-    // Severity routing: only notify at or above this severity
     minSeverity: text("min_severity", {
       enum: ["critical", "high", "medium", "low"],
     }).notNull(),
-    // Which notification channel IDs to notify
     channelIds: text("channel_ids").array().default([]),
     status: text("status", { enum: ["active", "disabled"] })
       .default("active")
       .notNull(),
-    // Dedupe window in seconds: suppress repeat alerts for same identity within this window
     dedupeWindowSeconds: integer("dedupe_window_seconds")
       .default(300)
       .notNull(),
-    // JSON-encoded alert conditions (metric, operator, threshold, window, etc.)
     conditions: jsonb("conditions").default([]).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),

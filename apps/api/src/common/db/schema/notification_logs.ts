@@ -25,7 +25,6 @@ export const notificationLogs = pgTable(
     channelType: text("channel_type", {
       enum: ["email", "slack", "webhook"],
     }).notNull(),
-    // What triggered this notification
     incidentId: text("incident_id"), // references issue_lifecycles.id
     alertRuleId: text("alert_rule_id"),
     status: text("status", { enum: ["sent", "failed", "pending"] })
@@ -34,7 +33,6 @@ export const notificationLogs = pgTable(
     providerMessageId: text("provider_message_id"), // external id from resend/zeptomail/slack
     error: text("error"),
     payload: jsonb("payload"), // what was sent
-    // Outbox pattern fields for idempotent delivery
     idempotencyKey: text("idempotency_key")
       .notNull()
       .unique(),
@@ -57,14 +55,4 @@ export const notificationLogs = pgTable(
   ],
 );
 
-// NOTE: Database migration required for new outbox fields:
-// - idempotency_key (text, unique)
-// - attempts (text, default '0')
-// - last_attempt_at (timestamp)
-// - next_attempt_at (timestamp)
-// - leased_until (timestamp)
-// - permanent_failure (text)
-// - updated_at (timestamp)
-
-// Re-export for type use
 export { notificationChannels } from "./notification_channels";

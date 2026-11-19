@@ -1,5 +1,6 @@
 import { SDK_VERSION } from "./version.js";
-import { resolveOptions, type ResolvedOptions } from "./config.js";
+import { resolveOptions } from "./config.js";
+import { type ResolvedOptions } from "./config.types.js";
 import { TelemetryBatcher } from "./batcher.js";
 import { ShutdownHandlers } from "./shutdown.js";
 import { HttpTelemetryTransport } from "./transport.js";

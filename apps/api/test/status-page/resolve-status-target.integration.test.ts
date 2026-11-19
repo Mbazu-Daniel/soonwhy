@@ -2,7 +2,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { NotFoundException } from "@nestjs/common";
 import { db } from "../../src/common/db";
 import { projectSettings } from "../../src/common/db/schema";
-import { resolveStatusTarget } from "../../src/modules/v1/status-page/resolve-status-target";
+import { resolveStatusTarget } from "../../src/modules/v1/delivery/status-page/domain/resolve-status-target";
 import { createOrganization, createProject } from "../support/fixtures";
 import { closeDatabase, databaseTestsEnabled, resetDatabase } from "../support/test-database";
 

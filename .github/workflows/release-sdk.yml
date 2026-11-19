@@ -28,8 +28,7 @@ concurrency:
 
 jobs:
   release:
-    # Optional hardening: create a GitHub Environment named "npm" (with required
-    # reviewers) and add `environment: npm` here to require a second human before publishing.
+    environment: npm
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -48,7 +47,7 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Verify SDK versions are aligned
         run: |

@@ -1,12 +1,4 @@
-export interface CircuitBreakerOptions {
-  failureThreshold?: number;
-  successThreshold?: number;
-  timeoutMs?: number;
-  resetTimeoutMs?: number;
-  onStateChange?: (state: CircuitState) => void;
-}
-
-export type CircuitState = "closed" | "open" | "half-open";
+import type { CircuitBreakerOptions, CircuitState } from "./circuit-breaker.types";
 
 export class CircuitBreaker {
   private state: CircuitState = "closed";

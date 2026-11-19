@@ -5,9 +5,9 @@ import { describe, expect, it } from "vitest";
 const SRC = join(__dirname, "..", "..");
 
 const PLATFORM_LEVEL = [
-  "modules/v1/pipeline-lag/pipeline-lag.service.ts",
-  "modules/v1/retention/retention-policies.service.ts",
-  "modules/v1/index-health/index-health.service.ts",
+  "modules/v1/telemetry/pipeline-lag/application/pipeline-lag.service.ts",
+  "modules/v1/telemetry/retention/application/retention-policies.service.ts",
+  "modules/v1/telemetry/index-health/application/index-health.service.ts",
 ];
 
 function sourceFiles(dir: string): string[] {

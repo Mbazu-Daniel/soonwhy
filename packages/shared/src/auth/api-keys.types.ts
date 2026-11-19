@@ -1,4 +1,4 @@
-import type { CaptureSettings } from "../capture-settings";
+import type { CaptureSettings } from "../capture-settings.types";
 
 export interface ValidatedApiKey {
   projectId: string;

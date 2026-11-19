@@ -2,15 +2,7 @@ import http from "node:http";
 import https from "node:https";
 import { pinnedLookup } from "./pinned-lookup";
 import { assertPublicHttpUrlSyntax } from "./public-address";
-
-export interface PublicHttpRequest {
-  url: string;
-  method?: string;
-  headers?: HeadersInit;
-  body?: unknown;
-  signal?: AbortSignal;
-  lookup?: typeof pinnedLookup;
-}
+import type { PublicHttpRequest } from "./public-http.types";
 
 export function publicHttpRequest(input: PublicHttpRequest): Promise<{ status: number }> {
   const url = assertPublicHttpUrlSyntax(input.url);
