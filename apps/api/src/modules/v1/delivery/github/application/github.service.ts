@@ -9,6 +9,7 @@ import {
   webhookDeliveries,
 } from "../../../../../common/db/schema";
 import { eq } from "drizzle-orm";
+import { WEBHOOK_SECRET_CONTEXT } from "../domain/github.constants";
 
 function normalizeRepoUrl(url: string): string {
   return url
@@ -21,6 +22,12 @@ function normalizeRepoUrl(url: string): string {
 @Injectable()
 export class GithubService {
   private readonly logger = new Logger(GithubService.name);
+
+  secretForProject(projectId: string): string {
+    return createHmac("sha256", this.verifyWebhookSecret())
+      .update(`${WEBHOOK_SECRET_CONTEXT}:${projectId}`)
+      .digest("hex");
+  }
 
   verifyWebhookSecret(): string {
     const secret = process.env.GITHUB_WEBHOOK_SECRET;
@@ -49,6 +56,7 @@ export class GithubService {
   }
 
   async handlePushEvent(
+    projectId: string,
     rawBody: Buffer | string,
     eventName: string | undefined,
     deliveryId?: string,
@@ -70,8 +78,11 @@ export class GithubService {
     }
 
     const normalized = normalizeRepoUrl(repoUrl);
-    const allServices = await db.select().from(services);
-    const matched = allServices.filter(
+    const projectServices = await db
+      .select()
+      .from(services)
+      .where(eq(services.projectId, projectId));
+    const matched = projectServices.filter(
       (service) =>
         service.repositoryUrl &&
         normalizeRepoUrl(service.repositoryUrl) === normalized,
@@ -79,10 +90,6 @@ export class GithubService {
 
     if (matched.length === 0) {
       return { handled: false, reason: "no matching service" };
-    }
-
-    if (new Set(matched.map((service) => service.orgId)).size > 1) {
-      return { handled: false, reason: "repository is claimed by more than one organization" };
     }
 
     const created: Array<typeof deployments.$inferSelect> = [];

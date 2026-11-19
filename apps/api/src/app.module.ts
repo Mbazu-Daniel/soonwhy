@@ -44,6 +44,7 @@ import { ClientEventsModule } from "./modules/v1/telemetry/client-events";
 import { IssueLifecycleModule } from "./modules/v1/detection/intelligence/issue-lifecycle.module";
 import { NotificationsModule } from "./modules/v1/notifications";
 import { GithubModule } from "./modules/v1/delivery/github/github.module";
+import { GithubSetupModule } from "./modules/v1/delivery/github/github-setup.module";
 import { SyntheticProbesModule } from "./modules/v1/detection/synthetic-probes";
 import { StatusPageModule } from "./modules/v1/delivery/status-page/status-page.module";
 import { CanaryModule } from "./modules/v1/detection/canary/canary.module";
@@ -78,6 +79,7 @@ const organizationScopedModules = [
   ApiKeysModule,
   HostsModule,
   ServicesModule,
+  GithubSetupModule,
   ProjectsModule,
   UploadsModule,
   DashboardModule,

@@ -29,7 +29,7 @@ describe("project scoped routes", () => {
         const handler = controller.prototype[name];
         if (typeof handler !== "function" || Reflect.getMetadata(METHOD_METADATA, handler) === undefined) continue;
         const path = `${prefix}/${first(Reflect.getMetadata(PATH_METADATA, handler))}`;
-        if (path.startsWith("public/")) continue;
+        if (path.startsWith("public/") || path.startsWith("github/webhook/")) continue;
         const args = (Reflect.getMetadata(ROUTE_ARGS_METADATA, controller, name) ?? {}) as Record<string, { data?: unknown }>;
         for (const [key, entry] of Object.entries(args)) {
           if (!key.startsWith(`${PARAM_ROUTE_ARGUMENT}:`) || typeof entry.data !== "string") continue;
