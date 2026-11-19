@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { MAX_TRACE_IDS } from "../traces.constants";
 
-export const traceFilterShape = {
+const traceFilterShape = {
   projectId: z.string().min(1),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),

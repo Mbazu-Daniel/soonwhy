@@ -1,9 +1,9 @@
 import { Injectable, Logger, Optional } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { RetentionPoliciesService } from "./retention-policies.service";
-import { CronLeaseService } from "../../../common/cron/cron-lease.service";
-import { isCleanupDue } from "./retention.schedule";
-import type { CleanupPolicyResult } from "./retention.types";
+import { CronLeaseService } from "../../../../../common/cron/cron-lease.service";
+import { isCleanupDue } from "../domain/retention.schedule";
+import type { CleanupPolicyResult } from "../domain/retention.types";
 
 @Injectable()
 export class RetentionEnforcementService {

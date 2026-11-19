@@ -13,17 +13,18 @@ import {
 import {
   CurrentOrg,
   OrgContext,
-} from "../../../common/decorators/current-org.decorator";
-import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
+} from "../../../../../common/decorators/current-org.decorator";
+import { TenantGuard } from "../../../../../common/middleware/tenant-context.guard";
 import {
   createRetentionPolicyBodySchema,
   exportRetentionDataBodySchema,
   updateRetentionPolicyBodySchema,
-} from "./dto";
-import { RetentionPoliciesService } from "./retention-policies.service";
+} from "../domain/dto";
+import { OwnerOrAdminGuard } from "../../../../../common/guards/owner-or-admin.guard";
+import { RetentionPoliciesService } from "../application/retention-policies.service";
 
 @Controller("projects/:projectId/retention-policies")
-@UseGuards(TenantGuard)
+@UseGuards(TenantGuard, OwnerOrAdminGuard)
 export class RetentionPoliciesController {
   constructor(private readonly service: RetentionPoliciesService) {}
 

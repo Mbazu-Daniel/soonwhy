@@ -1,14 +1,6 @@
-import { quickwitTerm } from "../../../common/quickwit/query";
-import { REQUEST_SPAN_FILTER } from "../../../common/telemetry/span-filters";
-
-export interface TraceFilter {
-  q?: string;
-  traceIds?: string[];
-  service?: string;
-  operation?: string;
-  minDuration?: number;
-  maxDuration?: number;
-}
+import { quickwitTerm } from "../../../../../common/quickwit/query";
+import { REQUEST_SPAN_FILTER } from "../../../../../common/telemetry/span-filters";
+import type { TraceFilter } from "./trace-filters.types";
 
 export function traceFilters(filter: TraceFilter): string[] {
   const filters = [REQUEST_SPAN_FILTER];

@@ -1,15 +1,15 @@
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { and, eq } from "drizzle-orm";
-import { db } from "../../../common/db";
-import { retentionPolicies } from "../../../common/db/schema";
-import { quickwitTenantQuery } from "../../../common/quickwit/query";
+import { db } from "../../../../../common/db";
+import { retentionPolicies } from "../../../../../common/db/schema";
+import { quickwitTenantQuery } from "../../../../../common/quickwit/query";
 import { QuickwitService } from "@soonwhy/shared";
 import {
   QUICKWIT_INDEX_BY_DATA_TYPE,
   RETENTION_TIMESTAMP_FIELD,
-} from "./retention.constants";
-import { retentionCutoff } from "./retention.schedule";
-import type { CleanupPolicyResult, ExportResult } from "./retention.types";
+} from "../domain/retention.constants";
+import { retentionCutoff } from "../domain/retention.schedule";
+import type { CleanupPolicyResult, ExportResult } from "../domain/retention.types";
 
 type RetentionPolicy = typeof retentionPolicies.$inferSelect;
 

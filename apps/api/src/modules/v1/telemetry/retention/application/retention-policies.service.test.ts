@@ -2,11 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import { RetentionPoliciesService } from "./retention-policies.service";
 import { QUICKWIT_INDEXES } from "@soonwhy/shared";
 
-vi.mock("../../../common/db", () => ({
+vi.mock("../../../../../common/db", () => ({
   db: { update: vi.fn() },
 }));
 
-import { db } from "../../../common/db";
+import { db } from "../../../../../common/db";
 
 function policy(overrides: Record<string, unknown> = {}) {
   return {

@@ -1,54 +1,16 @@
 import { Injectable } from "@nestjs/common";
-import { quickwitSource, quickwitTerm } from "../../../common/quickwit/query";
-import { TelemetryQueryService } from "../../../common/telemetry";
-import { bucketInterval, clampBucketStart } from "../../../common/telemetry/bucket-interval";
-import { ERROR_SPAN_FILTER } from "../../../common/telemetry/span-filters";
-import { MAX_EXTENT_SPANS, MAX_SPAN_LOG_BUCKETS, MAX_STATUS_TRACE_IDS } from "./traces.constants";
-import { traceFilters, traceIdList, type TraceFilter } from "./trace-filters";
-import { traceExtents, type ExtentSpan } from "./trace-extent";
-import { buildTraceList, type EntrySpan, type TraceListRow } from "./trace-list";
-
-export type { TraceListRow } from "./trace-list";
-
-export interface TraceRow {
-  traceId: string;
-  spanId: string;
-  parentSpanId: string;
-  name: string;
-  duration: number;
-  timestamp: string;
-  service: string;
-  statusCode?: number | string;
-  statusMessage?: string;
-  attributes?: Record<string, unknown>;
-  resourceAttributes?: Record<string, unknown>;
-  events?: Array<{ name: string; timestamp: string; attributes: Record<string, unknown> }>;
-  links?: Array<{ traceId: string; spanId: string; attributes: Record<string, unknown> }>;
-  exceptionType?: string;
-  exceptionMessage?: string;
-  exceptionStacktrace?: string;
-}
-
-export interface TraceScope extends TraceFilter {
-  orgId: string;
-  projectId: string;
-  from: string;
-  to: string;
-  status?: "ok" | "error";
-}
-
-interface CountBuckets {
-  buckets?: Array<{ key: string | number; doc_count: number }>;
-}
-
-interface TimelineBuckets {
-  buckets?: Array<{
-    key: number;
-    doc_count: number;
-    p95?: { values?: Record<string, number | null> };
-    avg?: { value?: number | null };
-  }>;
-}
+import { quickwitSource, quickwitTerm } from "../../../../../common/quickwit/query";
+import { TelemetryQueryService } from "../../../../../common/telemetry";
+import { bucketInterval, clampBucketStart } from "../../../../../common/telemetry/bucket-interval";
+import { ERROR_SPAN_FILTER } from "../../../../../common/telemetry/span-filters";
+import { MAX_EXTENT_SPANS, MAX_SPAN_LOG_BUCKETS, MAX_STATUS_TRACE_IDS } from "../domain/traces.constants";
+import { traceFilters, traceIdList } from "../domain/trace-filters";
+import { traceExtents } from "../domain/trace-extent";
+import { type ExtentSpan } from "../domain/trace-extent.types";
+import { buildTraceList } from "../domain/trace-list";
+import { type EntrySpan, type TraceListRow } from "../domain/trace-list.types";
+import type { TraceRow, TraceScope } from "../domain/traces.repository.types";
+import type { CountBuckets, TimelineBuckets } from "../domain/traces.repository.types";
 
 @Injectable()
 export class TracesRepository {

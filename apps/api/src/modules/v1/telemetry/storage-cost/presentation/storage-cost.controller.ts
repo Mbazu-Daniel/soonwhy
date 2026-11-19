@@ -7,9 +7,9 @@ import {
 import {
   CurrentOrg,
   OrgContext,
-} from "../../../common/decorators/current-org.decorator";
-import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
-import { StorageCostMonitoringService } from "./storage-cost.service";
+} from "../../../../../common/decorators/current-org.decorator";
+import { TenantGuard } from "../../../../../common/middleware/tenant-context.guard";
+import { StorageCostMonitoringService } from "../application/storage-cost.service";
 
 @Controller("projects/:projectId/storage-cost")
 @UseGuards(TenantGuard)

@@ -1,32 +1,36 @@
 import { z } from "zod";
+import { MAX_RETENTION_DAYS, RETENTION_DATA_TYPES } from "./retention.constants";
+
+const dataType = z.enum(RETENTION_DATA_TYPES);
+const retentionDays = z.number().int().min(1).max(MAX_RETENTION_DAYS);
 
 export const createRetentionPolicyBodySchema = z.object({
-  dataType: z.string(),
-  retentionDays: z.number(),
+  dataType,
+  retentionDays,
   maxStorageGb: z.number().optional(),
   autoCleanup: z.boolean().optional(),
   cleanupSchedule: z.string().optional(),
 });
 
-export type CreateRetentionPolicyBody = z.infer<
+type CreateRetentionPolicyBody = z.infer<
   typeof createRetentionPolicyBodySchema
 >;
 
 export const updateRetentionPolicyBodySchema = z.object({
-  retentionDays: z.number().optional(),
+  retentionDays: retentionDays.optional(),
   maxStorageGb: z.number().optional(),
   autoCleanup: z.boolean().optional(),
   cleanupSchedule: z.string().optional(),
   isActive: z.boolean().optional(),
 });
 
-export type UpdateRetentionPolicyBody = z.infer<
+type UpdateRetentionPolicyBody = z.infer<
   typeof updateRetentionPolicyBodySchema
 >;
 
 export const exportRetentionDataBodySchema = z.object({
-  dataType: z.string(),
-  beforeDate: z.string(),
+  dataType,
+  beforeDate: z.string().datetime(),
 });
 
-export type ExportRetentionDataBody = z.infer<typeof exportRetentionDataBodySchema>;
+type ExportRetentionDataBody = z.infer<typeof exportRetentionDataBodySchema>;

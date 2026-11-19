@@ -1,11 +1,9 @@
 import { Injectable } from "@nestjs/common";
-import { TracesRepository, TraceRow, type TraceScope } from "./traces.repository";
-import { GetTraceStatsInput, GetTracesInput } from "./dto";
-import { decodeOffset, nextOffsetCursor } from "./trace-cursor";
-
-export interface TraceSpan extends TraceRow {
-  children: TraceSpan[];
-}
+import { TracesRepository } from "../infrastructure/traces.repository";
+import { TraceRow, type TraceScope } from "../domain/traces.repository.types";
+import { GetTraceStatsInput, GetTracesInput } from "../domain/dto";
+import { decodeOffset, nextOffsetCursor } from "../domain/trace-cursor";
+import type { TraceSpan } from "../domain/traces.service.types";
 
 @Injectable()
 export class TracesService {

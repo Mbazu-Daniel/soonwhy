@@ -1,10 +1,4 @@
-export interface ExtentSpan {
-  traceId: string;
-  timestamp: string;
-  duration?: number | string;
-}
-
-export type TraceExtents = Map<string, number>;
+import type { ExtentSpan, TraceExtents } from "./trace-extent.types";
 
 export function traceExtents(spans: ExtentSpan[]): TraceExtents {
   const bounds = new Map<string, { start: number; end: number }>();

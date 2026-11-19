@@ -1,5 +1,8 @@
 import { QUICKWIT_INDEXES } from "@soonwhy/shared";
 
+export const RETENTION_DATA_TYPES = ["logs", "traces", "metrics", "requests"] as const;
+export const MAX_RETENTION_DAYS = 3650;
+
 export const QUICKWIT_INDEX_BY_DATA_TYPE: Record<string, string> = {
   logs: QUICKWIT_INDEXES.logs,
   traces: QUICKWIT_INDEXES.traces,

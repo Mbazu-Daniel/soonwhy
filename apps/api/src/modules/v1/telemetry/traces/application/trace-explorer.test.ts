@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { bucketInterval, clampBucketStart } from "../../../common/telemetry/bucket-interval";
-import { decodeOffset, nextOffsetCursor } from "./trace-cursor";
-import { traceFilters, traceIdList } from "./trace-filters";
-import { buildTraceList } from "./trace-list";
-import { TracesRepository } from "./traces.repository";
+import { bucketInterval, clampBucketStart } from "../../../../../common/telemetry/bucket-interval";
+import { decodeOffset, nextOffsetCursor } from "../domain/trace-cursor";
+import { traceFilters, traceIdList } from "../domain/trace-filters";
+import { buildTraceList } from "../domain/trace-list";
+import { TracesRepository } from "../infrastructure/traces.repository";
 
 describe("traceFilters", () => {
   it("always limits to entry spans and adds each filter", () => {
@@ -98,7 +98,7 @@ describe("trace id filter", () => {
   });
 
   it("parses a comma separated list and rejects odd ids or too many", async () => {
-    const { getTracesSchema } = await import("./dto");
+    const { getTracesSchema } = await import("../domain/dto");
     const base = { projectId: "p" };
     expect(getTracesSchema.parse({ ...base, traceIds: "a, b ,c" }).traceIds).toEqual(["a", "b", "c"]);
     expect(getTracesSchema.safeParse({ ...base, traceIds: 'a" OR org_id:x' }).success).toBe(false);
@@ -108,7 +108,7 @@ describe("trace id filter", () => {
 
 describe("traceExtents", () => {
   it("measures from the earliest start to the latest end", async () => {
-    const { traceExtents } = await import("./trace-extent");
+    const { traceExtents } = await import("../domain/trace-extent");
     const extents = traceExtents([
       { traceId: "t1", timestamp: "2026-11-14T10:00:00.000Z", duration: 0.3 },
       { traceId: "t1", timestamp: "2026-11-14T10:00:00.001Z", duration: 4.6 },
