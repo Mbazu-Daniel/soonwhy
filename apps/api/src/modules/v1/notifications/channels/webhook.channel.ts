@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { WebhookService } from "../webhook.service";
+import { WebhookService } from "../application/webhook.service";
 import { ChannelSendInput, ChannelSendResult } from "./base.channel";
 
 @Injectable()

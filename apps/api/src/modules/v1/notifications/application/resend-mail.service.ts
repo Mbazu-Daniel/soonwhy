@@ -1,20 +1,6 @@
-import {
-  BadRequestException,
-  Injectable,
-  ServiceUnavailableException,
-} from "@nestjs/common";
+import { BadRequestException, Injectable, ServiceUnavailableException } from "@nestjs/common";
 import { Resend, type CreateEmailOptions } from "resend";
-
-export interface ResendSendInput {
-  to: string[];
-  subject: string;
-  html?: string;
-  text?: string;
-}
-
-export interface ResendSendResponse {
-  id: string | null;
-}
+import type { ResendSendInput, ResendSendResponse } from "../domain/resend-mail.service.types";
 
 @Injectable()
 export class ResendMailService {

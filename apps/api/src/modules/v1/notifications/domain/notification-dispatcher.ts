@@ -1,29 +1,11 @@
 import { Injectable } from "@nestjs/common";
 import { and, eq, isNull, lt, or } from "drizzle-orm";
-import { db } from "../../../common/db";
-import {
-  alertRules,
-  notificationChannels,
-  notificationLogs,
-  incidentTimelineEvents,
-  type AlertRuleSeverity,
-} from "../../../common/db/schema";
-import { EmailChannel } from "./channels/email.channel";
-import { SlackChannel } from "./channels/slack.channel";
-import { WebhookChannel } from "./channels/webhook.channel";
-
-export type DispatchInput = {
-  orgId: string;
-  projectId: string;
-  incidentId: string;
-  severity: AlertRuleSeverity;
-  title: string;
-  body: string;
-  htmlBody?: string;
-  metadata?: Record<string, string>;
-};
-
-export type DispatchResult = { sent: number; failed: number; results: { channelId: string; channelType: string; ok: boolean; error?: string }[] };
+import { db } from "../../../../common/db";
+import { alertRules, notificationChannels, notificationLogs, incidentTimelineEvents, type AlertRuleSeverity } from "../../../../common/db/schema";
+import { EmailChannel } from "../channels/email.channel";
+import { SlackChannel } from "../channels/slack.channel";
+import { WebhookChannel } from "../channels/webhook.channel";
+import type { DispatchInput, DispatchResult } from "./notification-dispatcher.types";
 
 type ChannelInput = {
   to: string[];

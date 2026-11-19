@@ -4,13 +4,13 @@ import {
   Optional,
 } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
-import { CronLeaseService } from "../../../common/cron/cron-lease.service";
-import { AlertEvaluationService } from "./alert-evaluation.service";
-import { maskPii } from "../../../common/privacy/pii-masker";
-import { db } from "../../../common/db";
-import { alertRules } from "../../../common/db/schema";
+import { CronLeaseService } from "../../../../common/cron/cron-lease.service";
+import { AlertEvaluationService } from "../application/alert-evaluation.service";
+import { maskPii } from "../../../../common/privacy/pii-masker";
+import { db } from "../../../../common/db";
+import { alertRules } from "../../../../common/db/schema";
 import { eq } from "drizzle-orm";
-import { SyntheticProbesService } from "../synthetic-probes/synthetic-probes.service";
+import { SyntheticProbesService } from "../../detection/synthetic-probes/application/synthetic-probes.service";
 
 @Controller("notifications/cron")
 export class CronController {

@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { OutboundHttpError } from "../../../common/resilience/outbound-http.errors";
+import { OutboundHttpError } from "../../../../common/resilience/outbound-http.errors";
 import { WebhookService } from "./webhook.service";
 
 const NOW = new Date("2026-11-17T12:00:00.000Z");

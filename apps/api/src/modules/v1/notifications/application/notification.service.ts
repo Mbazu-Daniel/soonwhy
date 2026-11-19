@@ -1,39 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { and, desc, eq, isNull } from "drizzle-orm";
-import { db } from "../../../common/db";
-import {
-  notificationChannels,
-  alertRules,
-  webhookEndpoints,
-  notificationLogs,
-  incidentTimelineEvents,
-  incidentOwnership,
-  type AlertRuleStatus,
-} from "../../../common/db/schema";
-import {
-  toChannelDto,
-  toAlertRuleDto,
-  toWebhookEndpointDto,
-  toTimelineEventDto,
-  toOwnershipDto,
-  toNotificationLogDto,
-  type AlertRuleDto,
-  type NotificationLogDto,
-  type IncidentOwnershipDto,
-  type IncidentTimelineEventDto,
-  type NotificationChannelDto,
-  type WebhookEndpointDto,
-} from "./dto/notification.dto";
-import {
-  NotificationDispatcher,
-  type DispatchInput,
-  type DispatchResult,
-} from "./notification-dispatcher";
-export type { DispatchInput, DispatchResult } from "./notification-dispatcher";
-
-type ChannelRecord = typeof notificationChannels.$inferSelect;
-
-const ALERT_RULE_STATUSES = new Set<AlertRuleStatus>(["active", "disabled"]);
+import { db } from "../../../../common/db";
+import { notificationChannels, alertRules, webhookEndpoints, notificationLogs, incidentTimelineEvents, incidentOwnership, type AlertRuleStatus } from "../../../../common/db/schema";
+import { toChannelDto, toAlertRuleDto, toWebhookEndpointDto, toTimelineEventDto, toOwnershipDto, toNotificationLogDto } from "../domain/dto/notification.dto";
+import { type AlertRuleDto, type NotificationLogDto, type IncidentOwnershipDto, type IncidentTimelineEventDto, type NotificationChannelDto, type WebhookEndpointDto } from "../domain/dto/notification.dto.types";
+import { NotificationDispatcher } from "../domain/notification-dispatcher";
+import { type DispatchInput, type DispatchResult } from "../domain/notification-dispatcher.types";
+import type { ChannelRecord } from "../domain/notification.service.types";
+import { ALERT_RULE_STATUSES } from "../domain/notification.service.constants";
 
 function assertAlertRuleInput(input: { status?: string | null }) {
   if (
@@ -478,7 +452,13 @@ export class NotificationService {
     const [existing] = await db
       .select()
       .from(incidentOwnership)
-      .where(eq(incidentOwnership.incidentId, incidentId));
+      .where(
+        and(
+          eq(incidentOwnership.incidentId, incidentId),
+          eq(incidentOwnership.orgId, orgId),
+          eq(incidentOwnership.projectId, projectId),
+        ),
+      );
 
     if (existing) {
       const [row] = await db
@@ -490,7 +470,13 @@ export class NotificationService {
           assignedByName,
           assignedAt: new Date(),
         })
-        .where(eq(incidentOwnership.incidentId, incidentId))
+        .where(
+          and(
+            eq(incidentOwnership.incidentId, incidentId),
+            eq(incidentOwnership.orgId, orgId),
+            eq(incidentOwnership.projectId, projectId),
+          ),
+        )
         .returning();
       return toOwnershipDto(row!);
     }

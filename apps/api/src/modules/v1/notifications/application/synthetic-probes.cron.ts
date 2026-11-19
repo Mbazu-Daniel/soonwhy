@@ -1,7 +1,7 @@
 import { Injectable, Logger, Optional } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
-import { CronLeaseService } from "../../../common/cron/cron-lease.service";
-import { SyntheticProbesService } from "../synthetic-probes/synthetic-probes.service";
+import { CronLeaseService } from "../../../../common/cron/cron-lease.service";
+import { SyntheticProbesService } from "../../detection/synthetic-probes/application/synthetic-probes.service";
 
 @Injectable()
 export class SyntheticProbesCron {

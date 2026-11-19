@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { dbCalls, stepArgs, useFakeDb } from "../../../common/testing/fake-db";
+import { dbCalls, stepArgs, useFakeDb } from "../../../../common/testing/fake-db";
 import { NotificationDispatcher } from "./notification-dispatcher";
 
-vi.mock("../../../common/db", async () => {
-  const { delegatingDb } = await import("../../../common/testing/fake-db");
+vi.mock("../../../../common/db", async () => {
+  const { delegatingDb } = await import("../../../../common/testing/fake-db");
   return { db: delegatingDb };
 });
 

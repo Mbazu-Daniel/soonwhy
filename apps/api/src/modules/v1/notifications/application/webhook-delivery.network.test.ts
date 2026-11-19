@@ -5,12 +5,12 @@ import http from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../../common/net/public-address", async (importOriginal) => {
-  const original = await importOriginal<typeof import("../../../common/net/public-address")>();
+vi.mock("../../../../common/net/public-address", async (importOriginal) => {
+  const original = await importOriginal<typeof import("../../../../common/net/public-address")>();
   return { ...original, isPublicIpAddress: (address: string) => address === "127.0.0.1" || original.isPublicIpAddress(address) };
 });
 
-import { OutboundHttpService } from "../../../common/resilience/outbound-http.service";
+import { OutboundHttpService } from "../../../../common/resilience/outbound-http.service";
 import { WebhookService } from "./webhook.service";
 
 const resilience = {

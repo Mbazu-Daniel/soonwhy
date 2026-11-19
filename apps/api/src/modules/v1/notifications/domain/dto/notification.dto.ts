@@ -1,100 +1,4 @@
-export interface NotificationChannelDto {
-  id: string;
-  orgId: string;
-  projectId: string;
-  name: string;
-  type: string;
-  fromEmail: string | null;
-  fromName: string | null;
-  recipientEmails: string[];
-  slackAccessToken: string | null;
-  slackChannelId: string | null;
-  slackUserId: string | null;
-  slackConnectedAt: string | null;
-  webhookUrl: string | null;
-  webhookSecret: string | null;
-  webhookTypes: string[];
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface NotificationLogDto {
-  id: string;
-  orgId: string;
-  projectId: string;
-  channelId: string | null;
-  channelType: string;
-  incidentId: string | null;
-  alertRuleId: string | null;
-  status: string;
-  providerMessageId: string | null;
-  error: string | null;
-  title: string | null;
-  createdAt: string;
-}
-
-export interface AlertRuleDto {
-  id: string;
-  orgId: string;
-  projectId: string | null;
-  name: string;
-  description: string | null;
-  conditions: Array<{
-    type: string;
-    metric: string;
-    operator: string;
-    value?: number | string;
-    window?: string;
-    aggregation?: string;
-    negate?: boolean;
-    description?: string;
-  }>;
-  minSeverity: string;
-  channelIds: string[];
-  status: string;
-  dedupeWindowSeconds: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface WebhookEndpointDto {
-  id: string;
-  orgId: string;
-  projectId: string;
-  name: string;
-  url: string;
-  secret: string | null;
-  types: string[];
-  isActive: boolean;
-  lastTriggeredAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface IncidentTimelineEventDto {
-  id: string;
-  orgId: string;
-  projectId: string;
-  incidentId: string;
-  type: string;
-  actorName: string;
-  message: string;
-  metadata: Record<string, unknown> | null;
-  createdAt: string;
-}
-
-export interface IncidentOwnershipDto {
-  id: string;
-  orgId: string;
-  projectId: string;
-  incidentId: string;
-  ownerId: string;
-  ownerName: string;
-  assignedBy: string | null;
-  assignedByName: string | null;
-  assignedAt: string;
-}
+import type { NotificationChannelDto, NotificationLogDto, AlertRuleDto, WebhookEndpointDto, IncidentTimelineEventDto, IncidentOwnershipDto } from "./notification.dto.types";
 
 export function toChannelDto(row: {
   createdAt: Date;
@@ -110,12 +14,12 @@ export function toChannelDto(row: {
     fromEmail: row.fromEmail as string | null,
     fromName: row.fromName as string | null,
     recipientEmails: (row.recipientEmails as string[]) ?? [],
-    slackAccessToken: row.slackAccessToken as string | null,
+    hasSlackToken: Boolean(row.slackAccessToken),
     slackChannelId: row.slackChannelId as string | null,
     slackUserId: row.slackUserId as string | null,
     slackConnectedAt: row.slackConnectedAt as string | null,
     webhookUrl: row.webhookUrl as string | null,
-    webhookSecret: row.webhookSecret as string | null,
+    hasWebhookSecret: Boolean(row.webhookSecret),
     webhookTypes: (row.webhookTypes as string[]) ?? [],
     isActive: Boolean(row.isActive),
     createdAt:
@@ -200,7 +104,7 @@ export function toWebhookEndpointDto(row: {
     projectId: row.projectId as string,
     name: row.name as string,
     url: row.url as string,
-    secret: row.secret as string | null,
+    hasSecret: Boolean(row.secret),
     types: (row.types as string[]) ?? [],
     isActive: Boolean(row.isActive),
     lastTriggeredAt:

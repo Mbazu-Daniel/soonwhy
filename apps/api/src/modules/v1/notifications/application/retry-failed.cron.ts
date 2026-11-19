@@ -1,6 +1,6 @@
 import { Injectable, Logger, Optional } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
-import { CronLeaseService } from "../../../common/cron/cron-lease.service";
+import { CronLeaseService } from "../../../../common/cron/cron-lease.service";
 import { NotificationService } from "./notification.service";
 
 @Injectable()

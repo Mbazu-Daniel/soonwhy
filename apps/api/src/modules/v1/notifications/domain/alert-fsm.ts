@@ -1,4 +1,4 @@
-import type { AlertTriggerStatus, AlertState } from "../../../common/db/schema";
+import type { AlertTriggerStatus, AlertState } from "../../../../common/db/schema";
 
 const ALERT_TRIGGER_ACTIVE_TRANSITIONS: Record<AlertState, ReadonlySet<AlertState>> = {
   healthy: new Set(["healthy", "pending", "firing", "no_data", "error"]),

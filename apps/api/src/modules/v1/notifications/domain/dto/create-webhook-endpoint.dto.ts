@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicHttpUrl } from "../../../../common/net/public-url.dto";
+import { publicHttpUrl } from "../../../../../common/net/public-url.dto";
 
 export const CreateWebhookEndpointDto = z.object({
   name: z.string().min(1).max(100),

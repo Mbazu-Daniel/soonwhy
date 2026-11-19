@@ -1,15 +1,16 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { HOST_SAMPLE_COUNT_METRIC, hostSampleValues, metricValues } from "./alert-metric-values";
-import { MetricsRepository } from "../../../modules/v1/metrics/metrics.repository";
+import { hostSampleValues, metricValues } from "./alert-metric-values";
+import { HOST_SAMPLE_COUNT_METRIC } from "../domain/alert-metric-values.constants";
+import { MetricsRepository } from "../../telemetry/metrics/infrastructure/metrics.repository";
 import { NotificationService } from "./notification.service";
-import { IncidentsService } from "../incidents/incidents.service";
-import { MaintenanceWindowsService } from "../maintenance-windows/maintenance-windows.service";
-import { db } from "../../../common/db";
-import { alertTriggers, alertRules } from "../../../common/db/schema";
+import { IncidentsService } from "../../detection/incidents/application/incidents.service";
+import { MaintenanceWindowsService } from "../../detection/maintenance-windows/application/maintenance-windows.service";
+import { db } from "../../../../common/db";
+import { alertTriggers, alertRules } from "../../../../common/db/schema";
 import { eq, and, or, isNull } from "drizzle-orm";
-import { AlertRuleEngineService } from "./alert-engine/alert-rule-engine.service";
-import { DedupService } from "./dedup/dedup.service";
-import type { AlertRuleSeverity } from "../../../common/db/schema";
+import { AlertRuleEngineService } from "../alert-engine/alert-rule-engine.service";
+import { DedupService } from "../dedup/dedup.service";
+import type { AlertRuleSeverity } from "../../../../common/db/schema";
 
 interface AlertRuleRow {
   id: string;
@@ -22,10 +23,8 @@ interface AlertRuleRow {
   dedupeWindowSeconds: number;
 }
 
-import {
-  decideAlertEvaluationRoute,
-  type AlertEvaluationRoute,
-} from "./alert-evaluation-fsm";
+import { decideAlertEvaluationRoute } from "../domain/alert-evaluation-fsm";
+import { type AlertEvaluationRoute } from "../domain/alert-evaluation-fsm.types";
 
 type AlertCondition = {
   type: string;

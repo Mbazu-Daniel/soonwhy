@@ -14,29 +14,29 @@ import { Idempotent } from "@nestjs/idempotency";
 import {
   CurrentOrg,
   OrgContext,
-} from "../../../common/decorators/current-org.decorator";
-import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
-import { WebhookEndpointType } from "../../../common/db/schema";
-import { NotificationService } from "./notification.service";
-import { SlackService } from "./slack.service";
+} from "../../../../common/decorators/current-org.decorator";
+import { TenantGuard } from "../../../../common/middleware/tenant-context.guard";
+import { WebhookEndpointType } from "../../../../common/db/schema";
+import { NotificationService } from "../application/notification.service";
+import { SlackService } from "../application/slack.service";
 import {
   CreateNotificationChannelDto,
   UpdateNotificationChannelDto,
   type CreateNotificationChannelInput,
   type UpdateNotificationChannelInput,
-} from "./dto/create-notification-channel.dto";
+} from "../domain/dto/create-notification-channel.dto";
 import {
   CreateAlertRuleDto,
   UpdateAlertRuleDto,
   type CreateAlertRuleInput,
   type UpdateAlertRuleInput,
-} from "./dto/create-alert-rule.dto";
+} from "../domain/dto/create-alert-rule.dto";
 import {
   CreateWebhookEndpointDto,
   UpdateWebhookEndpointDto,
   type CreateWebhookEndpointInput,
   type UpdateWebhookEndpointInput,
-} from "./dto/create-webhook-endpoint.dto";
+} from "../domain/dto/create-webhook-endpoint.dto";
 import {
   DispatchAlertDto,
   SlackConnectDto,
@@ -44,7 +44,7 @@ import {
   type DispatchAlertInput,
   type SlackConnectInput,
   type AssignOwnerInput,
-} from "./dto/notification-requests.dto";
+} from "../domain/dto/notification-requests.dto";
 import { z } from "zod";
 
 const NotificationLogQuerySchema = z.object({
@@ -317,10 +317,5 @@ export class NotificationsController {
     @Param("incidentId") incidentId: string,
   ) {
     return this.service.getOwner(org.orgId, projectId, incidentId);
-  }
-
-  @Post("retry-failed")
-  async retryFailedNotifications() {
-    return this.service.retryFailedNotifications();
   }
 }

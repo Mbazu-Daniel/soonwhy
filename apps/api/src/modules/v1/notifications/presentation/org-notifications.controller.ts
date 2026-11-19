@@ -11,15 +11,15 @@ import {
 import {
   CurrentOrg,
   OrgContext,
-} from "../../../common/decorators/current-org.decorator";
-import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
-import { NotificationService } from "./notification.service";
+} from "../../../../common/decorators/current-org.decorator";
+import { TenantGuard } from "../../../../common/middleware/tenant-context.guard";
+import { NotificationService } from "../application/notification.service";
 import {
   CreateAlertRuleDto,
   UpdateAlertRuleDto,
   type CreateAlertRuleInput,
   type UpdateAlertRuleInput,
-} from "./dto/create-alert-rule.dto";
+} from "../domain/dto/create-alert-rule.dto";
 
 @UseGuards(TenantGuard)
 @Controller("notifications")

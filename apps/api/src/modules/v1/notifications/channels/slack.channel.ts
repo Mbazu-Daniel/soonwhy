@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { SlackService } from "../slack.service";
+import { SlackService } from "../application/slack.service";
 import { ChannelSendInput, ChannelSendResult } from "./base.channel";
 
 @Injectable()

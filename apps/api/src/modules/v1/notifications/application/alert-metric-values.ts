@@ -1,10 +1,8 @@
-import type { MetricsBucket } from "../metrics/metrics.repository";
-
-export const HOST_SAMPLE_COUNT_METRIC = "host.metrics.sample.count";
+import type { MetricsBucket } from "../../telemetry/metrics/domain/metrics.repository.types";
 
 const COUNT_METRICS = new Set(["http.server.request.count"]);
 
-export function isCountMetric(metric: string): boolean {
+function isCountMetric(metric: string): boolean {
   return COUNT_METRICS.has(metric);
 }
 

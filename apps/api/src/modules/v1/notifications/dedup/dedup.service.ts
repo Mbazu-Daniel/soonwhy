@@ -9,7 +9,7 @@ import { and, eq, sql, gt } from "drizzle-orm";
 import {
   canTransitionTriggerState,
   canResolveTrigger,
-} from "../alert-fsm";
+} from "../domain/alert-fsm";
 
 interface NoDataPolicy {
   mode: "alerting" | "healthy";

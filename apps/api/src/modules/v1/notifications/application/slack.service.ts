@@ -1,32 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import { OutboundHttpService } from "../../../common/resilience/outbound-http.service";
-
-export interface SlackBlock {
-  type: string;
-  text?: { type: string; text: string };
-}
-
-export interface SlackSendMessageInput {
-  channel: string;
-  text?: string;
-  blocks?: SlackBlock[];
-}
-
-export interface SlackOAuthResponse {
-  ok: boolean;
-  access_token?: string;
-  user_id?: string;
-  team_id?: string;
-  scope?: string;
-  bot_user_id?: string;
-  error?: string;
-}
-
-export interface SlackConnectedChannel {
-  channelId: string;
-  channelName: string;
-  isBotMember: boolean;
-}
+import { OutboundHttpService } from "../../../../common/resilience/outbound-http.service";
+import type { SlackSendMessageInput, SlackOAuthResponse } from "../domain/slack.service.types";
 
 @Injectable()
 export class SlackService {
