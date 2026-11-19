@@ -27,8 +27,6 @@ test.describe('infrastructure', () => {
     await mockApi(page);
     await page.goto(`${project}/metrics`);
     await page.getByRole('tab', { name: 'Infrastructure' }).click();
-    // The hosts card ships with the host-metrics work, which lands in a separate PR.
-    // Skip until it is present so this branch's smoke job stays green.
     if (await page.getByLabel('Move web-1 to another project').count() === 0) {
       test.skip(true, 'hosts card is not on this branch yet');
     }

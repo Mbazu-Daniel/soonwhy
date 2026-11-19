@@ -2,7 +2,7 @@ import type { ServiceEdge, ServiceNode, SpanRow, TraceLayout, TraceSpan } from '
 
 const SERVICE_COLORS = ['#16931F', '#3B82F6', '#F59E0B', '#A855F7', '#EC4899', '#14B8A6', '#F97316', '#6366F1'];
 
-export function isErrorSpan(span: TraceSpan): boolean {
+function isErrorSpan(span: TraceSpan): boolean {
   if (span.status === 'error') return true;
   return Number(span.statusCode ?? 0) >= 2;
 }

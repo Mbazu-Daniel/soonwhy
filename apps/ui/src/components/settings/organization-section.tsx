@@ -21,7 +21,7 @@ interface Organization {
   logo?: string | null;
 }
 
-export interface SettingsMember {
+interface SettingsMember {
   id: string;
   userId: string;
   role: string;
