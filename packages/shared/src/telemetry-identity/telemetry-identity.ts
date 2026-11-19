@@ -1,11 +1,6 @@
 import { createHash } from "node:crypto";
-import type {
-  CanonicalValue,
-  TelemetryIdentity,
-  TelemetryIdentityInput,
-} from "./telemetry-identity.types";
-
-export const TELEMETRY_FINGERPRINT_VERSION = 1;
+import type { CanonicalValue, TelemetryIdentity, TelemetryIdentityInput } from "./telemetry-identity.types";
+import { TELEMETRY_FINGERPRINT_VERSION } from "./telemetry-identity.constants";
 
 export function createTelemetryIdentity(
   input: TelemetryIdentityInput,

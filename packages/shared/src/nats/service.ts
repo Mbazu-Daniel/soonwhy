@@ -1,44 +1,7 @@
-import {
-  Injectable,
-  OnModuleInit,
-  OnModuleDestroy,
-  Logger,
-} from "@nestjs/common";
-import {
-  connect,
-  headers,
-  NatsConnection,
-  JetStreamClient,
-  RetentionPolicy,
-  AckPolicy,
-  DeliverPolicy,
-  JsMsg,
-  StorageType,
-} from "nats";
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from "@nestjs/common";
+import { connect, headers, NatsConnection, JetStreamClient, RetentionPolicy, AckPolicy, DeliverPolicy, StorageType } from "nats";
 import { requiredEnvInProduction } from "../env";
-
-export type NatsServiceOptions = {
-  required?: boolean;
-};
-
-export type NatsMessageHandler = (msg: JsMsg) => Promise<void>;
-
-export type NatsSubscriptionSnapshot = {
-  subject: string;
-  durable: string;
-  active: boolean;
-  processed: number;
-  failed: number;
-  lastError: string | undefined;
-};
-
-export type NatsConsumerSnapshot = {
-  subject: string;
-  durable: string;
-  pending: number;
-  ackPending: number;
-  redelivered: number;
-};
+import type { NatsMessageHandler, NatsSubscriptionSnapshot, NatsConsumerSnapshot } from "./service.types";
 
 @Injectable()
 export class NatsService implements OnModuleInit, OnModuleDestroy {

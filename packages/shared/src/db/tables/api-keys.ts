@@ -1,0 +1,23 @@
+import { generateId } from "../generate-id";
+import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { projects } from "./projects";
+import { serviceAccounts } from "./service-accounts";
+
+export const apiKeys = pgTable("api_keys", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => generateId()),
+  projectId: text("project_id")
+    .references(() => projects.id, { onDelete: "cascade" })
+    .notNull(),
+  name: text("name").notNull(),
+  prefix: text("prefix").notNull(),
+  keyHash: text("key_hash").notNull(),
+  scopes: text("scopes").array().default([]),
+  expiresAt: timestamp("expires_at"),
+  lastUsedAt: timestamp("last_used_at"),
+  serviceAccountId: text("service_account_id").references(() => serviceAccounts.id, {
+    onDelete: "cascade",
+  }),
+  createdAt: timestamp("created_at").defaultNow(),
+});

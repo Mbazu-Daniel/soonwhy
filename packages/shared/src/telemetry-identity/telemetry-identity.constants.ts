@@ -1,0 +1,1 @@
+export const TELEMETRY_FINGERPRINT_VERSION = 1;
