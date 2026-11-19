@@ -1,6 +1,6 @@
 import { ConflictException, Injectable } from "@nestjs/common";
-import { TeamsRepository } from "./teams.repository";
-import type { CreateTeamInput } from "./dto/create-team.dto";
+import { TeamsRepository } from "../infrastructure/teams.repository";
+import type { CreateTeamInput } from "../domain/dto/create-team.dto";
 
 @Injectable()
 export class TeamsService {

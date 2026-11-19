@@ -1,16 +1,16 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
-import { CurrentOrg, OrgContext } from "../../../common/decorators/current-org.decorator";
-import { CurrentUser } from "../../../common/decorators/current-user.decorator";
-import { OwnerOrAdminGuard } from "../../../common/guards/owner-or-admin.guard";
-import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
+import { CurrentOrg, OrgContext } from "../../../../../common/decorators/current-org.decorator";
+import { CurrentUser } from "../../../../../common/decorators/current-user.decorator";
+import { OwnerOrAdminGuard } from "../../../../../common/guards/owner-or-admin.guard";
+import { TenantGuard } from "../../../../../common/middleware/tenant-context.guard";
 import {
   CreateServiceAccountDto,
   CreateServiceAccountKeyDto,
   UpdateServiceAccountDto,
   type CreateServiceAccountInput,
   type CreateServiceAccountKeyInput,
-} from "./service-accounts.dto";
-import { ServiceAccountsService } from "./service-accounts.service";
+} from "../domain/service-accounts.dto";
+import { ServiceAccountsService } from "../application/service-accounts.service";
 
 @UseGuards(TenantGuard, OwnerOrAdminGuard)
 @Controller("service-accounts")
