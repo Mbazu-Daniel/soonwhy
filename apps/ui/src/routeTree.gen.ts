@@ -56,6 +56,7 @@ import { Route as OrganizationSlugPProjectSlugErrorsFingerprintRouteImport } fro
 import { Route as OrganizationSlugPProjectSlugIntelligenceIndexRouteImport } from './routes/$organizationSlug/p/$projectSlug/intelligence/index'
 import { Route as OrganizationSlugPProjectSlugIntelligenceFindingsRouteImport } from './routes/$organizationSlug/p/$projectSlug/intelligence/findings'
 import { Route as OrganizationSlugPProjectSlugIntelligenceInvestigationsRouteImport } from './routes/$organizationSlug/p/$projectSlug/intelligence/investigations'
+import { Route as OrganizationSlugPProjectSlugIntelligenceReportRouteImport } from './routes/$organizationSlug/p/$projectSlug/intelligence/report'
 import { Route as OrganizationSlugPProjectSlugInvestigationsInvestigationIdRouteImport } from './routes/$organizationSlug/p/$projectSlug/investigations.$investigationId'
 import { Route as OrganizationSlugPProjectSlugServiceServiceIdRouteImport } from './routes/$organizationSlug/p/$projectSlug/service.$serviceId'
 import { Route as OrganizationSlugPProjectSlugTraceTraceIdRouteImport } from './routes/$organizationSlug/p/$projectSlug/trace.$traceId'
@@ -323,6 +324,12 @@ const OrganizationSlugPProjectSlugIntelligenceInvestigationsRoute =
     path: '/investigations',
     getParentRoute: () => OrganizationSlugPProjectSlugIntelligenceRouteRoute,
   } as any)
+const OrganizationSlugPProjectSlugIntelligenceReportRoute =
+  OrganizationSlugPProjectSlugIntelligenceReportRouteImport.update({
+    id: '/report',
+    path: '/report',
+    getParentRoute: () => OrganizationSlugPProjectSlugIntelligenceRouteRoute,
+  } as any)
 const OrganizationSlugPProjectSlugInvestigationsInvestigationIdRoute =
   OrganizationSlugPProjectSlugInvestigationsInvestigationIdRouteImport.update({
     id: '/investigations/$investigationId',
@@ -388,6 +395,7 @@ export interface FileRoutesByFullPath {
   '/$organizationSlug/p/$projectSlug/errors/$fingerprint': typeof OrganizationSlugPProjectSlugErrorsFingerprintRoute
   '/$organizationSlug/p/$projectSlug/intelligence/findings': typeof OrganizationSlugPProjectSlugIntelligenceFindingsRoute
   '/$organizationSlug/p/$projectSlug/intelligence/investigations': typeof OrganizationSlugPProjectSlugIntelligenceInvestigationsRoute
+  '/$organizationSlug/p/$projectSlug/intelligence/report': typeof OrganizationSlugPProjectSlugIntelligenceReportRoute
   '/$organizationSlug/p/$projectSlug/investigations/$investigationId': typeof OrganizationSlugPProjectSlugInvestigationsInvestigationIdRoute
   '/$organizationSlug/p/$projectSlug/service/$serviceId': typeof OrganizationSlugPProjectSlugServiceServiceIdRoute
   '/$organizationSlug/p/$projectSlug/trace/$traceId': typeof OrganizationSlugPProjectSlugTraceTraceIdRoute
@@ -436,6 +444,7 @@ export interface FileRoutesByTo {
   '/$organizationSlug/p/$projectSlug/errors/$fingerprint': typeof OrganizationSlugPProjectSlugErrorsFingerprintRoute
   '/$organizationSlug/p/$projectSlug/intelligence/findings': typeof OrganizationSlugPProjectSlugIntelligenceFindingsRoute
   '/$organizationSlug/p/$projectSlug/intelligence/investigations': typeof OrganizationSlugPProjectSlugIntelligenceInvestigationsRoute
+  '/$organizationSlug/p/$projectSlug/intelligence/report': typeof OrganizationSlugPProjectSlugIntelligenceReportRoute
   '/$organizationSlug/p/$projectSlug/investigations/$investigationId': typeof OrganizationSlugPProjectSlugInvestigationsInvestigationIdRoute
   '/$organizationSlug/p/$projectSlug/service/$serviceId': typeof OrganizationSlugPProjectSlugServiceServiceIdRoute
   '/$organizationSlug/p/$projectSlug/trace/$traceId': typeof OrganizationSlugPProjectSlugTraceTraceIdRoute
@@ -489,6 +498,7 @@ export interface FileRoutesById {
   '/$organizationSlug/p/$projectSlug/errors/$fingerprint': typeof OrganizationSlugPProjectSlugErrorsFingerprintRoute
   '/$organizationSlug/p/$projectSlug/intelligence/findings': typeof OrganizationSlugPProjectSlugIntelligenceFindingsRoute
   '/$organizationSlug/p/$projectSlug/intelligence/investigations': typeof OrganizationSlugPProjectSlugIntelligenceInvestigationsRoute
+  '/$organizationSlug/p/$projectSlug/intelligence/report': typeof OrganizationSlugPProjectSlugIntelligenceReportRoute
   '/$organizationSlug/p/$projectSlug/investigations/$investigationId': typeof OrganizationSlugPProjectSlugInvestigationsInvestigationIdRoute
   '/$organizationSlug/p/$projectSlug/service/$serviceId': typeof OrganizationSlugPProjectSlugServiceServiceIdRoute
   '/$organizationSlug/p/$projectSlug/trace/$traceId': typeof OrganizationSlugPProjectSlugTraceTraceIdRoute
@@ -543,6 +553,7 @@ export interface FileRouteTypes {
     | '/$organizationSlug/p/$projectSlug/errors/$fingerprint'
     | '/$organizationSlug/p/$projectSlug/intelligence/findings'
     | '/$organizationSlug/p/$projectSlug/intelligence/investigations'
+    | '/$organizationSlug/p/$projectSlug/intelligence/report'
     | '/$organizationSlug/p/$projectSlug/investigations/$investigationId'
     | '/$organizationSlug/p/$projectSlug/service/$serviceId'
     | '/$organizationSlug/p/$projectSlug/trace/$traceId'
@@ -591,6 +602,7 @@ export interface FileRouteTypes {
     | '/$organizationSlug/p/$projectSlug/errors/$fingerprint'
     | '/$organizationSlug/p/$projectSlug/intelligence/findings'
     | '/$organizationSlug/p/$projectSlug/intelligence/investigations'
+    | '/$organizationSlug/p/$projectSlug/intelligence/report'
     | '/$organizationSlug/p/$projectSlug/investigations/$investigationId'
     | '/$organizationSlug/p/$projectSlug/service/$serviceId'
     | '/$organizationSlug/p/$projectSlug/trace/$traceId'
@@ -643,6 +655,7 @@ export interface FileRouteTypes {
     | '/$organizationSlug/p/$projectSlug/errors/$fingerprint'
     | '/$organizationSlug/p/$projectSlug/intelligence/findings'
     | '/$organizationSlug/p/$projectSlug/intelligence/investigations'
+    | '/$organizationSlug/p/$projectSlug/intelligence/report'
     | '/$organizationSlug/p/$projectSlug/investigations/$investigationId'
     | '/$organizationSlug/p/$projectSlug/service/$serviceId'
     | '/$organizationSlug/p/$projectSlug/trace/$traceId'
@@ -997,6 +1010,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrganizationSlugPProjectSlugIntelligenceInvestigationsRouteImport
       parentRoute: typeof OrganizationSlugPProjectSlugIntelligenceRouteRoute
     }
+    '/$organizationSlug/p/$projectSlug/intelligence/report': {
+      id: '/$organizationSlug/p/$projectSlug/intelligence/report'
+      path: '/report'
+      fullPath: '/$organizationSlug/p/$projectSlug/intelligence/report'
+      preLoaderRoute: typeof OrganizationSlugPProjectSlugIntelligenceReportRouteImport
+      parentRoute: typeof OrganizationSlugPProjectSlugIntelligenceRouteRoute
+    }
     '/$organizationSlug/p/$projectSlug/investigations/$investigationId': {
       id: '/$organizationSlug/p/$projectSlug/investigations/$investigationId'
       path: '/investigations/$investigationId'
@@ -1024,6 +1044,7 @@ declare module '@tanstack/react-router' {
 interface OrganizationSlugPProjectSlugIntelligenceRouteRouteChildren {
   OrganizationSlugPProjectSlugIntelligenceFindingsRoute: typeof OrganizationSlugPProjectSlugIntelligenceFindingsRoute
   OrganizationSlugPProjectSlugIntelligenceInvestigationsRoute: typeof OrganizationSlugPProjectSlugIntelligenceInvestigationsRoute
+  OrganizationSlugPProjectSlugIntelligenceReportRoute: typeof OrganizationSlugPProjectSlugIntelligenceReportRoute
   OrganizationSlugPProjectSlugIntelligenceIndexRoute: typeof OrganizationSlugPProjectSlugIntelligenceIndexRoute
 }
 
@@ -1033,6 +1054,8 @@ const OrganizationSlugPProjectSlugIntelligenceRouteRouteChildren: OrganizationSl
       OrganizationSlugPProjectSlugIntelligenceFindingsRoute,
     OrganizationSlugPProjectSlugIntelligenceInvestigationsRoute:
       OrganizationSlugPProjectSlugIntelligenceInvestigationsRoute,
+    OrganizationSlugPProjectSlugIntelligenceReportRoute:
+      OrganizationSlugPProjectSlugIntelligenceReportRoute,
     OrganizationSlugPProjectSlugIntelligenceIndexRoute:
       OrganizationSlugPProjectSlugIntelligenceIndexRoute,
   }

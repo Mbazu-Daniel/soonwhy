@@ -21,6 +21,10 @@ import { mergeErrorSources } from "../domain/error-sources";
 import { buildTimeline, groupErrorLogs, occurrencesOf, traceIdsOf } from "../domain/error-groups";
 import { DEFAULT_RANGE_MS, ERROR_FINDING_TYPE, ERROR_LOG_LEVELS, HTTP_ERROR_FLOOR, MAX_ERROR_HITS } from "../domain/error.constants";
 import type { ErrorGroup, ErrorGroupDetail, ErrorGroupSummary, ErrorIssueState, ErrorIssueStatusInput, ErrorLogSource, ErrorRange, RequestErrorSource, SpanErrorSource } from "../domain/error.types";
+import { categoryOf } from "../../findings/domain/finding-category";
+import { findingFingerprint } from "../../findings/domain/finding-fingerprint";
+import { recommendationFor } from "../../findings/domain/finding-recommendation";
+import { recurrenceUpdate } from "../../findings/infrastructure/finding-recurrence";
 import { searchTenant } from "../../../../../common/telemetry/tenant-search";
 import type { ErrorQuery } from "../domain/errors.service.types";
 
@@ -143,6 +147,9 @@ export class ErrorsService {
       windowEnd: new Date(group.lastSeen),
       detectedAt: new Date(),
       evidence: this.evidenceOf(group),
+      category: categoryOf(ERROR_FINDING_TYPE),
+      fingerprint: findingFingerprint(ERROR_FINDING_TYPE, group.service, fingerprint),
+      recommendation: recommendationFor(ERROR_FINDING_TYPE),
     };
     const [existing] = await db
       .select({ id: findings.id })
@@ -160,7 +167,7 @@ export class ErrorsService {
     if (existing) {
       const [finding] = await db
         .update(findings)
-        .set(values)
+        .set({ ...values, ...recurrenceUpdate(new Date(group.lastSeen)) })
         .where(eq(findings.id, existing.id))
         .returning();
       return { status: "updated" as const, finding };
@@ -179,6 +186,7 @@ export class ErrorsService {
         serviceName: group.service,
         type: ERROR_FINDING_TYPE,
         title,
+        lastSeenAt: new Date(group.lastSeen),
         ...values,
       })
       .returning();

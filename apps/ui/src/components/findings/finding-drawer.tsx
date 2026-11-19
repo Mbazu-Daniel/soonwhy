@@ -1,8 +1,10 @@
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { Badge } from '~/components/ui/badge';
+import { FindingStatusActions } from '~/components/findings/finding-status-actions';
 import { RemediationPanel } from '~/components/findings/remediation-panel';
-import { evidenceObject, ruleLabel } from '~/lib/findings';
+import { FINDING_CATEGORY_LABELS } from '~/lib/findings.constants';
+import { evidenceObject, ruleLabel, statusLabel } from '~/lib/findings';
 import type { DetectionFinding } from '~/lib/findings.types';
 
 const SEVERITY_STYLE = {
@@ -33,7 +35,8 @@ export function FindingDrawer({
                   <Badge variant="outline" className={SEVERITY_STYLE[finding.severity]}>
                     {finding.severity}
                   </Badge>
-                  <Badge variant="outline">open</Badge>
+                  <Badge variant="outline">{statusLabel(finding.status)}</Badge>
+                  <Badge variant="outline">{FINDING_CATEGORY_LABELS[finding.category]}</Badge>
                 </div>
                 <DialogPrimitive.Close aria-label="Close" className="rounded-md p-1 text-[#8A1C13] hover:bg-muted">
                   <X className="h-5 w-5" />
@@ -48,10 +51,24 @@ export function FindingDrawer({
                 </DialogPrimitive.Description>
               </div>
 
+              <FindingStatusActions projectId={projectId} finding={finding} />
+
+              {finding.recommendation && (
+                <section className="rounded-xl border border-border bg-card p-4 text-sm">
+                  <h2 className="mb-1 font-semibold">Recommended fix</h2>
+                  <p className="leading-6 text-muted-foreground">{finding.recommendation}</p>
+                </section>
+              )}
+
               <dl className="space-y-2 rounded-xl bg-muted p-4 text-sm">
                 <Row label="Affected service" value={finding.serviceName} />
                 <Row label="First detected" value={new Date(finding.windowStart).toLocaleString()} />
-                <Row label="Observed" value={`${finding.observedValue}${finding.unit} (threshold ${finding.threshold}${finding.unit})`} />
+                <Row label="Last seen" value={new Date(finding.lastSeenAt).toLocaleString()} />
+                <Row label="Times detected" value={String(finding.occurrences)} />
+                {finding.resolvedAt && <Row label="Resolved" value={new Date(finding.resolvedAt).toLocaleString()} />}
+                {finding.category !== 'vulnerability' && (
+                  <Row label="Observed" value={`${finding.observedValue}${finding.unit} (threshold ${finding.threshold}${finding.unit})`} />
+                )}
               </dl>
 
               <div>

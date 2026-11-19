@@ -1,3 +1,4 @@
+import { upsertable } from "../domain/detection.fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "../../../../../common/db";
 import type { DetectionEvidence } from "../../../../../common/db/schema/findings";
@@ -31,8 +32,7 @@ describe("DetectionService realistic telemetry scenarios", () => {
           values: vi
             .fn()
             .mockImplementation(
-              (input: { type: string; evidence?: DetectionEvidence[] }) => ({
-                returning: vi.fn().mockResolvedValue([
+              (input: { type: string; evidence?: DetectionEvidence[] }) => upsertable(vi.fn().mockResolvedValue([
                   {
                     id: "finding-" + ++sequence,
                     projectId: "project-1",
@@ -49,8 +49,7 @@ describe("DetectionService realistic telemetry scenarios", () => {
                     windowEnd: new Date("2026-09-20T18:15:00.000Z"),
                     evidence: input.evidence ?? [],
                   },
-                ]),
-              }),
+                ])),
             ),
         }) as never,
     );

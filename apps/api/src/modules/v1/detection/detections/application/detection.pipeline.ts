@@ -1,11 +1,14 @@
 import { Injectable } from '@nestjs/common';
+import { categoryOf } from '../../findings/domain/finding-category';
+import { findingFingerprint } from '../../findings/domain/finding-fingerprint';
+import { recommendationFor } from '../../findings/domain/finding-recommendation';
+import { upsertFinding } from '../../findings/infrastructure/finding-upsert';
 import { QuickwitService } from '@soonwhy/shared';
 import { CacheService } from '../../../../../common/cache/cache.service';
 import { CACHE_TTL_SECONDS } from '../../../../../common/cache/cache.constants';
 import { DetectorSettingsService } from '../../detector-settings/application/detector-settings.service';
 import { DetectionTelemetryService } from './detection-telemetry.service';
-import { db } from '../../../../../common/db';
-import { findings, type DetectionEvidence } from '../../../../../common/db/schema/findings';
+import { type DetectionEvidence } from '../../../../../common/db/schema/findings';
 import { createIssueFromDetection } from '../../intelligence/infrastructure/detection-issue.adapter';
 import { IssueLifecycleService } from '../../intelligence/application/issue-lifecycle.service';
 import { recordDetectionFinding } from '../../../../../common/telemetry/otel-metrics';
@@ -156,25 +159,26 @@ export class DetectionPipeline {
     start: Date;
     end: Date;
     evidence: DetectionEvidence[];
+    fingerprint?: string;
   }): Promise<DetectionFinding & { projectOrgId: string }> {
-    const [row] = await db
-      .insert(findings)
-      .values({
-        orgId: input.orgId,
-        projectId: input.projectId,
-        serviceName: input.serviceName,
-        type: input.type,
-        severity: input.severity,
-        title: input.title,
-        description: input.description,
-        observedValue: input.observedValue,
-        threshold: input.threshold,
-        unit: input.unit,
-        windowStart: input.start,
-        windowEnd: input.end,
-        evidence: input.evidence,
-      })
-      .returning();
+    const row = await upsertFinding({
+      orgId: input.orgId,
+      projectId: input.projectId,
+      serviceName: input.serviceName,
+      type: input.type,
+      category: categoryOf(input.type),
+      fingerprint: findingFingerprint(input.type, input.serviceName, input.fingerprint),
+      severity: input.severity,
+      title: input.title,
+      description: input.description,
+      observedValue: input.observedValue,
+      threshold: input.threshold,
+      unit: input.unit,
+      windowStart: input.start,
+      windowEnd: input.end,
+      evidence: input.evidence,
+      recommendation: recommendationFor(input.type),
+    });
 
     if (!row) throw new Error('Failed to persist detection finding');
     recordDetectionFinding(input.severity);

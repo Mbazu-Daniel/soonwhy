@@ -1,3 +1,4 @@
+import { upsertable } from "../domain/detection.fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "../../../../../common/db";
 import type { QuickwitService } from "@soonwhy/shared";
@@ -31,8 +32,7 @@ describe("DetectionService unified dependency intelligence", () => {
           values: vi
             .fn()
             .mockImplementation(
-              (input: { type: string; evidence?: unknown[] }) => ({
-                returning: vi.fn().mockResolvedValue([
+              (input: { type: string; evidence?: unknown[] }) => upsertable(vi.fn().mockResolvedValue([
                   {
                     id: "finding-" + ++sequence,
                     projectId: "project-1",
@@ -48,8 +48,7 @@ describe("DetectionService unified dependency intelligence", () => {
                     windowEnd: new Date("2026-09-20T18:15:00.000Z"),
                     evidence: input.evidence ?? [],
                   },
-                ]),
-              }),
+                ])),
             ),
         }) as never,
     );

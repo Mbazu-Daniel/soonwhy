@@ -1,0 +1,2 @@
+export const DEFAULT_FINDINGS_LIMIT = 50;
+export const MAX_FINDINGS_LIMIT = 200;

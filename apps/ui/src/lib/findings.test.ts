@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evidenceObject, matchesFilters, ruleLabel, splitEvidence } from './findings';
+import { evidenceObject, matchesFilters, ruleLabel, splitEvidence, statusActions, statusLabel } from './findings';
 import type { DetectionFinding } from './findings.types';
 
 const finding: DetectionFinding = {
@@ -15,6 +15,12 @@ const finding: DetectionFinding = {
   unit: ' errors',
   windowStart: '2026-11-01T00:00:00Z',
   windowEnd: '2026-11-01T01:00:00Z',
+  category: 'error',
+  status: 'open',
+  occurrences: 3,
+  lastSeenAt: '2026-11-01T01:00:00Z',
+  resolvedAt: null,
+  recommendation: 'fix it',
   evidence: [
     { kind: 'metric', label: 'count', value: 12 },
     { kind: 'recommendation', label: 'fix', value: 'guard the null' },
@@ -43,5 +49,18 @@ describe('findings helpers', () => {
     expect(matchesFilters(finding, { ...base, type: 'latency' })).toBe(false);
     expect(matchesFilters(finding, { ...base, query: 'CHECKOUT' })).toBe(true);
     expect(matchesFilters(finding, { ...base, query: 'nope' })).toBe(false);
+  });
+
+  it('filters by category', () => {
+    const base = { query: '', severity: '', type: '' };
+    expect(matchesFilters(finding, { ...base, category: 'error' })).toBe(true);
+    expect(matchesFilters(finding, { ...base, category: 'security' })).toBe(false);
+  });
+
+  it('offers resolve and ignore on an open finding and reopen otherwise', () => {
+    expect(statusActions('open').map((action) => action.to)).toEqual(['resolved', 'ignored']);
+    expect(statusActions('resolved').map((action) => action.to)).toEqual(['open']);
+    expect(statusActions('ignored').map((action) => action.to)).toEqual(['open']);
+    expect(statusLabel('resolved')).toBe('Resolved');
   });
 });
