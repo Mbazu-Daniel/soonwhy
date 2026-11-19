@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, Clock, FileSearch, Search } from 'lucide-react';
 import { ConnectServiceButton } from '~/components/connect-service-button';
 import { EmptyProject } from '~/components/empty-state';
+import { DependencyScan } from '~/components/findings/dependency-scan';
 import { FindingDrawer } from '~/components/findings/finding-drawer';
 import { QueryErrorState } from '~/components/query-error-state';
 import { Badge } from '~/components/ui/badge';
@@ -44,6 +45,8 @@ function DetectionOverview() {
   return (
     <div className="space-y-5">
       <h1 className="text-xl font-semibold tracking-tight">Findings</h1>
+
+      <DependencyScan projectId={projectId} />
 
       <div role="tablist" aria-label="Status" className="flex gap-1 border-b border-border">
         {FINDING_STATUS_TABS.map((tab) => (

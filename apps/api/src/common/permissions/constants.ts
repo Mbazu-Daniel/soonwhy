@@ -30,6 +30,7 @@ export const CONTROLLER_POLICY: Record<string, RoutePolicy> = {
   EnvironmentsController: "member",
   ErrorIgnoreRulesController: "admin",
   ErrorRegressionsController: "member",
+  DependenciesController: "member",
   FindingsController: "member",
   IncidentsController: "member",
   IngestLimitsController: "member",

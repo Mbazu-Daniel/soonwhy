@@ -61,3 +61,18 @@ export interface FindingReport {
   services: Array<{ serviceName: string; open: number }>;
   markdown: string;
 }
+
+export interface DependencySnapshotRow {
+  id: string;
+  serviceName: string;
+  ecosystem: string;
+  updatedAt: string;
+  lastScannedAt: string | null;
+  lastScanError: string | null;
+}
+
+export interface DependencyScanSummary {
+  packages: number;
+  vulnerabilities: number;
+  resolved: number;
+}

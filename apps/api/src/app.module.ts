@@ -31,6 +31,7 @@ import { DetectionModule } from "./modules/v1/detection/detections";
 import { AutoAnalysisModule } from "./modules/v1/investigation/auto-analysis";
 import { ErrorsModule } from "./modules/v1/detection/errors";
 import { FindingsModule } from "./modules/v1/detection/findings";
+import { VulnerabilitiesModule } from "./modules/v1/detection/vulnerabilities";
 import { MemberContextModule } from "./modules/v1/identity/member-context/member-context.module";
 import { PlatformAdminModule } from "./modules/v1/identity/platform-admin/platform-admin.module";
 import { DetectorSettingsModule } from "./modules/v1/detection/detector-settings";
@@ -92,6 +93,7 @@ const organizationScopedModules = [
   AutoAnalysisModule,
   ErrorsModule,
   FindingsModule,
+  VulnerabilitiesModule,
   RcaModule,
   DetectorSettingsModule,
   EnvironmentsModule,
