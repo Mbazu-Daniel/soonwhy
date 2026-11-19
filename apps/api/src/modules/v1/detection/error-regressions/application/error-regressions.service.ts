@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
-import { errorRegressions } from "../../../common/db/schema";
-import { db } from "../../../common/db";
+import { errorRegressions } from "../../../../../common/db/schema";
+import { db } from "../../../../../common/db";
 import { eq, and, gt, desc } from "drizzle-orm";
 
 @Injectable()

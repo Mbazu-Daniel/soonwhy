@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { isIgnoredByRules, matchesIgnoreRule, rulesFingerprint } from "./ignore-rules";
-import { IgnoreRuleSchema } from "./ignore-rules.schema";
+import { isIgnoredByRules, matchesIgnoreRule, rulesFingerprint } from "../domain/ignore-rules";
+import { IgnoreRuleSchema } from "../domain/ignore-rules.schema";
 
 const group = (errorType: string, path: string) => ({ errorType, errorMessage: `GET ${path}` });
 

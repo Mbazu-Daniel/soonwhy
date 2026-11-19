@@ -3,12 +3,12 @@ import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import {
   CurrentOrg,
   OrgContext,
-} from "../../../common/decorators/current-org.decorator";
-import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
-import { DetectionRuns } from "./detection-runs.service";
-import { DetectionService } from "./detection.service";
-import { listDetectionRuns } from "./detection.run";
-import { ErrorsService } from "../errors";
+} from "../../../../../common/decorators/current-org.decorator";
+import { TenantGuard } from "../../../../../common/middleware/tenant-context.guard";
+import { DetectionRuns } from "../application/detection-runs.service";
+import { DetectionService } from "../application/detection.service";
+import { listDetectionRuns } from "../application/detection.run";
+import { ErrorsService } from "../../errors";
 
 @UseGuards(TenantGuard)
 @ApiTags("detections")

@@ -1,51 +1,9 @@
-
 import { CandidateGenerator } from './root-cause.candidates';
 import { SignalExtractor } from './root-cause.signals';
 import { calculateScoreWithMissingSignals } from './root-cause.scorer';
-import type {
-  RankedCandidate,
-  ScoringWeights,
-  SignalScores,
-  RankingResult,
-} from './root-cause.types';
+import type { RankedCandidate, SignalScores, RankingResult } from './root-cause.types';
 import { DEFAULT_WEIGHTS } from './root-cause.types';
-
-interface TraceSpan {
-  spanId: string;
-  serviceName: string;
-  operationName?: string;
-  duration: number;
-  startTime: number;
-  parentSpanId?: string;
-  isCriticalPath?: boolean;
-}
-
-interface ErrorData {
-  timestamp: string;
-  serviceName: string;
-  traceId: string;
-  errorMessage: string;
-}
-
-export interface RankingInput {
-  findings: Array<{
-    id: string;
-    type: string;
-    serviceName: string;
-    operationName?: string;
-    traceId?: string;
-    timestamp: string;
-    severity?: 'warning' | 'critical';
-    observedValue?: number;
-    baselineValue?: number;
-    threshold?: number;
-    data?: Record<string, unknown>;
-  }>;
-  traces?: TraceSpan[][];
-  errors?: ErrorData[];
-  dependencyMap?: Map<string, { upstream: string[]; downstream: string[] }>;
-  weights?: ScoringWeights;
-}
+import type { RankingInput } from "./root-cause.ranker.types";
 
 export class RootCauseRanker {
   private candidateGenerator: CandidateGenerator;

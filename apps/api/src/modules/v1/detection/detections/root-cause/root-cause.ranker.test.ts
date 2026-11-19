@@ -1,7 +1,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { RootCauseRanker } from './root-cause.ranker';
-import type { RankingInput } from './root-cause.ranker';
+import type { RankingInput } from "./root-cause.ranker.types";
 
 describe('Root Cause Ranker', () => {
   const ranker = new RootCauseRanker();

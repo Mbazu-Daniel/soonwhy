@@ -1,58 +1,28 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { summarizeStack } from "./stack-summary";
+import { summarizeStack } from "../domain/stack-summary";
 import { and, eq, or, sql } from "drizzle-orm";
 import { QuickwitService } from "@soonwhy/shared";
-import { CacheService } from "../../../common/cache/cache.service";
-import { CACHE_TTL_SECONDS } from "../../../common/cache/cache.constants";
-import { db } from "../../../common/db";
-import { findings, type DetectionEvidence } from "../../../common/db/schema/findings";
-import { services } from "../../../common/db/schema/services";
-import {
-  quickwitSource,
-  quickwitTerm,
-} from "../../../common/quickwit/query";
-import { ERROR_SPAN_FILTER, REQUEST_SPAN_FILTER } from "../../../common/telemetry/span-filters";
-import { normalizeErrorMessage } from "./error-fingerprint";
-import { UNRESOLVED, deriveIssueState } from "./error-issue-state";
-import {
-  clearIssueState,
-  findIssueState,
-  listIssueStates,
-  saveIssueState,
-} from "./error-issue-states.store";
-import { fetchTraceException } from "./trace-exception";
-import { isScannerProbe } from "./scanner-probe";
-import { isIgnoredByRules, rulesFingerprint } from "./ignore-rules";
-import { listIgnoreRules } from "./ignore-rules.store";
-import { mergeErrorSources } from "./error-sources";
-import { buildTimeline, groupErrorLogs, occurrencesOf, traceIdsOf } from "./error-groups";
-import {
-  DEFAULT_RANGE_MS,
-  ERROR_FINDING_TYPE,
-  ERROR_LOG_LEVELS,
-  HTTP_ERROR_FLOOR,
-  MAX_ERROR_HITS,
-} from "./error.constants";
-import type {
-  ErrorGroup,
-  ErrorGroupDetail,
-  ErrorGroupSummary,
-  ErrorIssueState,
-  ErrorIssueStatusInput,
-  ErrorLogSource,
-  ErrorRange,
-  RequestErrorSource,
-  SpanErrorSource,
-} from "./error.types";
-import { searchTenant } from "../../../common/telemetry/tenant-search";
-
-export interface ErrorQuery {
-  environment?: string;
-  includeProbes?: boolean;
-  from?: string;
-  to?: string;
-  service?: string;
-}
+import { CacheService } from "../../../../../common/cache/cache.service";
+import { CACHE_TTL_SECONDS } from "../../../../../common/cache/cache.constants";
+import { db } from "../../../../../common/db";
+import { findings, type DetectionEvidence } from "../../../../../common/db/schema/findings";
+import { services } from "../../../../../common/db/schema/services";
+import { quickwitSource, quickwitTerm } from "../../../../../common/quickwit/query";
+import { ERROR_SPAN_FILTER, REQUEST_SPAN_FILTER } from "../../../../../common/telemetry/span-filters";
+import { normalizeErrorMessage } from "../domain/error-fingerprint";
+import { deriveIssueState } from "../domain/error-issue-state";
+import { UNRESOLVED } from "../domain/error-issue-state.constants";
+import { clearIssueState, findIssueState, listIssueStates, saveIssueState } from "../infrastructure/error-issue-states.store";
+import { fetchTraceException } from "../domain/trace-exception";
+import { isScannerProbe } from "../domain/scanner-probe";
+import { isIgnoredByRules, rulesFingerprint } from "../domain/ignore-rules";
+import { listIgnoreRules } from "../infrastructure/ignore-rules.store";
+import { mergeErrorSources } from "../domain/error-sources";
+import { buildTimeline, groupErrorLogs, occurrencesOf, traceIdsOf } from "../domain/error-groups";
+import { DEFAULT_RANGE_MS, ERROR_FINDING_TYPE, ERROR_LOG_LEVELS, HTTP_ERROR_FLOOR, MAX_ERROR_HITS } from "../domain/error.constants";
+import type { ErrorGroup, ErrorGroupDetail, ErrorGroupSummary, ErrorIssueState, ErrorIssueStatusInput, ErrorLogSource, ErrorRange, RequestErrorSource, SpanErrorSource } from "../domain/error.types";
+import { searchTenant } from "../../../../../common/telemetry/tenant-search";
+import type { ErrorQuery } from "../domain/errors.service.types";
 
 @Injectable()
 export class ErrorsService {

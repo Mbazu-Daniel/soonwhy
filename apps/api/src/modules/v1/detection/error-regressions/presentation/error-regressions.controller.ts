@@ -10,10 +10,11 @@ import {
 import {
   CurrentOrg,
   OrgContext,
-} from "../../../common/decorators/current-org.decorator";
-import { actorLabel, AuthUser, CurrentUser } from "../../../common/decorators/current-user.decorator";
-import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
-import { ErrorRegressionsService } from "./error-regressions.service";
+} from "../../../../../common/decorators/current-org.decorator";
+import { actorLabel, CurrentUser } from "../../../../../common/decorators/current-user.decorator";
+import { AuthUser } from "../../../../../common/decorators/current-user.decorator.types";
+import { TenantGuard } from "../../../../../common/middleware/tenant-context.guard";
+import { ErrorRegressionsService } from "../application/error-regressions.service";
 
 @Controller("projects/:projectId/error-regressions")
 @UseGuards(TenantGuard)

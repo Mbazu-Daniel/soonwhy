@@ -3,10 +3,10 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import {
   CurrentOrg,
   OrgContext,
-} from "../../../common/decorators/current-org.decorator";
-import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
-import { OwnerOrAdminGuard } from "../../../common/guards/owner-or-admin.guard";
-import { getDetectionHealth } from "./detection-health";
+} from "../../../../../common/decorators/current-org.decorator";
+import { TenantGuard } from "../../../../../common/middleware/tenant-context.guard";
+import { OwnerOrAdminGuard } from "../../../../../common/guards/owner-or-admin.guard";
+import { getDetectionHealth } from "../domain/detection-health";
 
 @ApiTags("detections")
 @ApiBearerAuth()

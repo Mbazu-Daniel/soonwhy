@@ -1,6 +1,6 @@
 import { NotFoundException } from "@nestjs/common";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ErrorLogSource } from "./error.types";
+import type { ErrorLogSource } from "../domain/error.types";
 
 const dbState = vi.hoisted(() => ({
   selects: [] as unknown[][],
@@ -10,11 +10,11 @@ const dbState = vi.hoisted(() => ({
   rules: [] as { pathPattern: string; status: string | null }[],
 }));
 
-vi.mock("./ignore-rules.store", () => ({
+vi.mock("../infrastructure/ignore-rules.store", () => ({
   listIgnoreRules: async () => dbState.rules,
 }));
 
-vi.mock("../../../common/db", () => {
+vi.mock("../../../../../common/db", () => {
   const chain = (rows: () => unknown[]) => {
     const node: Record<string, unknown> = {};
     for (const name of ["from", "where"]) node[name] = () => node;
@@ -49,7 +49,7 @@ vi.mock("../../../common/db", () => {
   };
 });
 
-import { errorFingerprint } from "./error-fingerprint";
+import { errorFingerprint } from "../domain/error-fingerprint";
 import { ErrorsService } from "./errors.service";
 
 const sources: ErrorLogSource[] = [

@@ -10,9 +10,9 @@ import {
 import {
   CurrentOrg,
   OrgContext,
-} from "../../../common/decorators/current-org.decorator";
-import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
-import { RcaApiService } from "./rca.api";
+} from "../../../../../common/decorators/current-org.decorator";
+import { TenantGuard } from "../../../../../common/middleware/tenant-context.guard";
+import { RcaApiService } from "../application/rca.api";
 import { z } from "zod";
 
 export const RcaRequestSchema = z

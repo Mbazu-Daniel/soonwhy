@@ -11,10 +11,10 @@ import {
 import {
   CurrentOrg,
   type OrgContext,
-} from "../../../common/decorators/current-org.decorator";
-import { OwnerOrAdminGuard } from "../../../common/guards/owner-or-admin.guard";
-import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
-import { DetectorSettingsService } from "./detector-settings.service";
+} from "../../../../../common/decorators/current-org.decorator";
+import { OwnerOrAdminGuard } from "../../../../../common/guards/owner-or-admin.guard";
+import { TenantGuard } from "../../../../../common/middleware/tenant-context.guard";
+import { DetectorSettingsService } from "../application/detector-settings.service";
 
 @UseGuards(TenantGuard)
 @Controller("settings/detectors")

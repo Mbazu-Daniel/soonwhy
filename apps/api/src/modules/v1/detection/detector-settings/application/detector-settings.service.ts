@@ -6,27 +6,16 @@ import {
 } from "@nestjs/common";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "../../../common/db";
-import { detectorSettings } from "../../../common/db/schema";
-import { CacheService } from "../../../common/cache/cache.service";
-import { CACHE_TTL_SECONDS } from "../../../common/cache/cache.constants";
+import { db } from "../../../../../common/db";
+import { detectorSettings } from "../../../../../common/db/schema";
+import { CacheService } from "../../../../../common/cache/cache.service";
+import { CACHE_TTL_SECONDS } from "../../../../../common/cache/cache.constants";
 import {
   DETECTOR_DEFINITIONS,
   FEATURE_FLAG_DEFINITIONS,
-} from "./detector-settings.constants";
-import {
-  effectiveDetectors,
-  effectiveFeatureFlags,
-  isDetectorEnabled,
-  isFeatureEnabled,
-  mergeDetectorOverrides,
-  normalizeDetectorOverrides,
-  normalizeFeatureFlags,
-  parseDetectorSettingsPatch,
-  thresholdOverride,
-  type DetectorSettingsPatch,
-  type DetectorSettingsSnapshot,
-} from "./detector-settings.validation";
+} from "../domain/detector-settings.constants";
+import { effectiveDetectors, effectiveFeatureFlags, isDetectorEnabled, isFeatureEnabled, mergeDetectorOverrides, normalizeDetectorOverrides, normalizeFeatureFlags, parseDetectorSettingsPatch, thresholdOverride } from "../domain/detector-settings.validation";
+import { type DetectorSettingsPatch, type DetectorSettingsSnapshot } from "../domain/detector-settings.validation.types";
 
 const CACHE_PREFIX = "detector-settings:v1";
 

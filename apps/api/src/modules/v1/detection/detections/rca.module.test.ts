@@ -1,8 +1,8 @@
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { RcaApiService } from "./rca.api";
-import { RcaController } from "./rca.controller";
+import { RcaApiService } from "./application/rca.api";
+import { RcaController } from "./presentation/rca.controller";
 import { RcaModule } from "./rca.module";
 
 describe("RcaModule", () => {

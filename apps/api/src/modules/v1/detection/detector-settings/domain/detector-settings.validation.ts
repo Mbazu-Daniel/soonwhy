@@ -1,33 +1,6 @@
 import { z } from "zod";
-import {
-  DETECTOR_DEFINITIONS,
-  DETECTOR_THRESHOLD_KEYS,
-  DEFAULT_FEATURE_FLAGS,
-  FEATURE_FLAG_DEFINITIONS,
-  FEATURE_FLAG_KEYS,
-  DETECTOR_KEYS,
-  type DetectorConfigInput,
-} from "./detector-settings.constants";
-
-export type DetectorFeatureFlags = Record<string, boolean>;
-
-export type DetectorSettingsSnapshot = {
-  organizationId: string;
-  detectors: Record<string, { enabled: boolean; thresholds: Record<string, number> }>;
-  featureFlags: DetectorFeatureFlags;
-  overrides: {
-    detectors: Record<string, DetectorConfigInput>;
-    featureFlags: Record<string, boolean>;
-  };
-  knownDetectors: typeof DETECTOR_DEFINITIONS;
-  knownFeatureFlags: typeof FEATURE_FLAG_DEFINITIONS;
-  updatedAt?: string;
-};
-
-export type DetectorSettingsPatch = {
-  detectors?: Record<string, DetectorConfigInput>;
-  featureFlags?: Record<string, boolean>;
-};
+import { DETECTOR_DEFINITIONS, DETECTOR_THRESHOLD_KEYS, DEFAULT_FEATURE_FLAGS, FEATURE_FLAG_DEFINITIONS, FEATURE_FLAG_KEYS, DETECTOR_KEYS, type DetectorConfigInput } from "./detector-settings.constants";
+import type { DetectorSettingsPatch } from "./detector-settings.validation.types";
 
 const thresholdSchema = z
   .number()

@@ -1,7 +1,6 @@
-import type { ErrorIssueStateRow } from "../../../common/db/schema/error-issue-states";
+import type { ErrorIssueStateRow } from "../../../../../common/db/schema/error-issue-states";
 import type { ErrorIssueState } from "./error.types";
-
-export const UNRESOLVED: ErrorIssueState = { status: "unresolved", resolvedAt: null };
+import { UNRESOLVED } from "./error-issue-state.constants";
 
 export function deriveIssueState(
   row: Pick<ErrorIssueStateRow, "status" | "resolvedAt"> | undefined,
