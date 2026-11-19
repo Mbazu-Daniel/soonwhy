@@ -1,11 +1,11 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { Tool, type McpContext } from "@nestjs/mcp";
 import type { z } from "zod4";
-import { FindingsInvestigation } from "../investigation-tools/findings-investigation.service";
-import { getRcaSchema, listFindingsSchema } from "../investigation-tools/investigation-tools.schemas";
-import { RcaInvestigation } from "../investigation-tools/rca-investigation.service";
-import { principalOf } from "./mcp-principal";
-import type { McpAuthedRequest } from "./mcp.types";
+import { FindingsInvestigation } from "../../investigation-tools/application/findings-investigation.service";
+import { getRcaSchema, listFindingsSchema } from "../../investigation-tools/infrastructure/investigation-tools.schemas";
+import { RcaInvestigation } from "../../investigation-tools/application/rca-investigation.service";
+import { principalOf } from "../domain/mcp-principal";
+import type { McpAuthedRequest } from "../domain/mcp.types";
 
 @Injectable()
 export class McpFindingsTools {

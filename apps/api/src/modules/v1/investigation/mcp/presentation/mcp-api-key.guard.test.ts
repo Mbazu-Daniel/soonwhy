@@ -1,7 +1,7 @@
 import { ForbiddenException, UnauthorizedException } from "@nestjs/common";
 import { describe, expect, it, vi } from "vitest";
 import { McpApiKeyGuard } from "./mcp-api-key.guard";
-import { MCP_PRINCIPAL_KEY, MCP_READ_SCOPE } from "./mcp.constants";
+import { MCP_PRINCIPAL_KEY, MCP_READ_SCOPE } from "../domain/mcp.constants";
 
 function build(result: unknown) {
   const authenticate = vi.fn().mockResolvedValue(result);

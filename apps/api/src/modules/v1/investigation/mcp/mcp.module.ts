@@ -1,9 +1,9 @@
 import { Module, UseGuards } from "@nestjs/common";
 import { McpModule } from "@nestjs/mcp";
-import { ApiKeysModule } from "../api-keys";
-import { McpApiKeyGuard } from "./mcp-api-key.guard";
+import { ApiKeysModule } from "../../identity/api-keys";
+import { McpApiKeyGuard } from "./presentation/mcp-api-key.guard";
 import { McpToolsModule } from "./mcp-tools.module";
-import { MCP_INSTRUCTIONS, MCP_PATH, MCP_SERVER_NAME, MCP_SERVER_VERSION } from "./mcp.constants";
+import { MCP_INSTRUCTIONS, MCP_PATH, MCP_SERVER_NAME, MCP_SERVER_VERSION } from "./domain/mcp.constants";
 
 @Module({
   imports: [

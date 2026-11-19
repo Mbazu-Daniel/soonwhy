@@ -1,8 +1,8 @@
 import { type CanActivate, type ExecutionContext, Inject, Injectable } from "@nestjs/common";
 import { ApiKeyAuthenticator } from "@soonwhy/shared";
-import { requireApiKey } from "../../../common/auth/require-api-key";
-import { MCP_PRINCIPAL_KEY, MCP_READ_SCOPE } from "./mcp.constants";
-import type { McpAuthedRequest } from "./mcp.types";
+import { requireApiKey } from "../../../../../common/auth/require-api-key";
+import { MCP_PRINCIPAL_KEY, MCP_READ_SCOPE } from "../domain/mcp.constants";
+import type { McpAuthedRequest } from "../domain/mcp.types";
 
 @Injectable()
 export class McpApiKeyGuard implements CanActivate {

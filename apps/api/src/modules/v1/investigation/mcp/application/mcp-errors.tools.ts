@@ -1,10 +1,10 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { Tool, type McpContext } from "@nestjs/mcp";
 import type { z } from "zod4";
-import { ErrorsInvestigation } from "../investigation-tools/errors-investigation.service";
-import { getErrorGroupSchema, listErrorGroupsSchema } from "../investigation-tools/investigation-tools.schemas";
-import { principalOf } from "./mcp-principal";
-import type { McpAuthedRequest } from "./mcp.types";
+import { ErrorsInvestigation } from "../../investigation-tools/application/errors-investigation.service";
+import { getErrorGroupSchema, listErrorGroupsSchema } from "../../investigation-tools/infrastructure/investigation-tools.schemas";
+import { principalOf } from "../domain/mcp-principal";
+import type { McpAuthedRequest } from "../domain/mcp.types";
 
 @Injectable()
 export class McpErrorsTools {
