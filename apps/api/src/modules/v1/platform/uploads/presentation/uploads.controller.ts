@@ -10,21 +10,19 @@ import {
 import {
   CurrentMember,
   type MemberContext,
-} from "../../../common/decorators/current-member.decorator";
-import {
-  CurrentUser,
-  type AuthUser,
-} from "../../../common/decorators/current-user.decorator";
+} from "../../../../../common/decorators/current-member.decorator";
+import { CurrentUser } from "../../../../../common/decorators/current-user.decorator";
+import { type AuthUser } from "../../../../../common/decorators/current-user.decorator.types";
 import {
   CurrentOrg,
   type OrgContext,
-} from "../../../common/decorators/current-org.decorator";
-import { TenantGuard } from "../../../common/middleware/tenant-context.guard";
+} from "../../../../../common/decorators/current-org.decorator";
+import { TenantGuard } from "../../../../../common/middleware/tenant-context.guard";
 import {
   CreateUploadDto,
   type CreateUploadInput,
-} from "./dto";
-import { UploadsService } from "./uploads.service";
+} from "../domain/dto";
+import { UploadsService } from "../application/uploads.service";
 
 @UseGuards(TenantGuard)
 @Controller("uploads")

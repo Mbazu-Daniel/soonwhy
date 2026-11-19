@@ -8,7 +8,7 @@ export const CreateUploadDto = z.object({
   targetId: z.string().trim().min(1).max(140).optional(),
   fileName: z.string().trim().min(1).max(255),
   mimeType: z.enum(MAX_IMAGE_MIME_TYPES),
-  sizeBytes: z.number().int().positive().max(MAX_UPLOAD_BYTES).optional(),
+  sizeBytes: z.number().int().positive().max(MAX_UPLOAD_BYTES),
 });
 
 export type CreateUploadInput = z.infer<typeof CreateUploadDto>;

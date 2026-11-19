@@ -6,18 +6,15 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { and, eq } from "drizzle-orm";
-import { db } from "../../../common/db";
-import { members, organizations, uploads, users } from "../../../common/db/schema";
+import { db } from "../../../../../common/db";
+import { members, organizations, uploads, users } from "../../../../../common/db/schema";
 import {
   buildKey,
   ObjectStorageService,
-} from "../../../common/storage/object-storage.service";
-import { MAX_IMAGE_MIME_TYPES, MAX_UPLOAD_BYTES, type CreateUploadInput } from "./dto";
-import {
-  assertSizeAndType,
-  resolveUploadTarget,
-  type UploadAccessActor,
-} from "./uploads.access";
+} from "../../../../../common/storage/object-storage.service";
+import { MAX_IMAGE_MIME_TYPES, MAX_UPLOAD_BYTES, type CreateUploadInput } from "../domain/dto";
+import { assertSizeAndType, resolveUploadTarget } from "./uploads.access";
+import { type UploadAccessActor } from "../domain/uploads.access.types";
 
 @Injectable()
 export class UploadsService {
