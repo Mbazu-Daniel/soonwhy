@@ -1,21 +1,5 @@
-import type {
-  PerformanceBaseline,
-  PerformanceImpact,
-  PerformanceSignal,
-  PerformanceWindow,
-  PersistenceResult,
-} from "./performance.types";
-
-export interface PerformanceThresholds {
-  minimumBaselineSamples: number;
-  latencyWarningAbsoluteMs: number;
-  latencyWarningRelative: number;
-  latencyCriticalRelative: number;
-  throughputWarningDecrease: number;
-  throughputCriticalDecrease: number;
-  traceWarningContribution: number;
-  traceCriticalContribution: number;
-}
+import type { PerformanceBaseline, PerformanceImpact, PerformanceSignal, PerformanceWindow, PersistenceResult } from "./performance.types";
+import type { PerformanceThresholds } from "./performance.engine.types";
 
 const DEFAULT_PERFORMANCE_THRESHOLDS: PerformanceThresholds = {
   minimumBaselineSamples: 20,

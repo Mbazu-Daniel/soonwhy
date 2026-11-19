@@ -1,9 +1,9 @@
 import { Injectable, Optional } from "@nestjs/common";
 import { and, eq, lt } from "drizzle-orm";
-import type { AppDatabase } from "../../../../common/db/types";
+import type { AppDatabase } from "../../../../../common/db/types";
 import type { TelemetryIdentity } from "@soonwhy/shared";
-import { db } from "../../../../common/db";
-import { evidenceEdges, evidenceNodes } from "../../../../common/db/schema";
+import { db } from "../../../../../common/db";
+import { evidenceEdges, evidenceNodes } from "../../../../../common/db/schema";
 import type {
   EvidenceEdge,
   EvidenceEdgeType,

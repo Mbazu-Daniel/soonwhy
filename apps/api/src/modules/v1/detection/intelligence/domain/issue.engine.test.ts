@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildIssue } from "./issue.engine";
-import type { EvidenceConfidence } from "./evidence-confidence";
-import type { TelemetryIdentity } from "./telemetry-identity.types";
+import type { EvidenceConfidence } from "./evidence-confidence.types";
+import type { TelemetryIdentity } from "@soonwhy/shared";
 
 const identity: TelemetryIdentity = {
   domain: "database",

@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  detectQueueThroughput,
-  type QueueOperationTrace,
-} from "./queue-throughput.detector";
+import { detectQueueThroughput } from "./queue-throughput.detector";
+import { type QueueOperationTrace } from "./queue-throughput.detector.types";
 
 let sampleId = 0;
 const sample = (

@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  detectQueueDegradation,
-  type QueueTrace,
-} from "./queue-degradation.detector";
+import { detectQueueDegradation } from "./queue-degradation.detector";
+import { type QueueTrace } from "./queue-degradation.detector.types";
 
 let sampleId = 0;
 const sample = (overrides: Partial<QueueTrace> = {}): QueueTrace => ({

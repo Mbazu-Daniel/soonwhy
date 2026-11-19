@@ -1,4 +1,4 @@
-import type { TelemetryIdentity } from "./telemetry-identity.types";
+import type { TelemetryIdentity } from "@soonwhy/shared";
 
 export type IssueLifecycleStatus = "active" | "resolved";
 

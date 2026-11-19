@@ -7,7 +7,7 @@ import {
   updateIssueLifecycle,
 } from "./issue-lifecycle.engine";
 import type { Issue } from "./issue.types";
-import type { TelemetryIdentity } from "./telemetry-identity.types";
+import type { TelemetryIdentity } from "@soonwhy/shared";
 
 const identity: TelemetryIdentity = {
   domain: "database",

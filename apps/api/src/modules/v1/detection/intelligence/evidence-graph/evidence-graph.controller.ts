@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Post, Param, Query, UseGuards } from "@nestjs/common";
-import { TenantGuard } from "../../../../common/middleware/tenant-context.guard";
-import { CurrentOrg, OrgContext } from "../../../../common/decorators/current-org.decorator";
+import { TenantGuard } from "../../../../../common/middleware/tenant-context.guard";
+import { CurrentOrg, OrgContext } from "../../../../../common/decorators/current-org.decorator";
 import { EvidenceGraphService } from "./evidence-graph.service";
 import type {
   EvidenceEdge,

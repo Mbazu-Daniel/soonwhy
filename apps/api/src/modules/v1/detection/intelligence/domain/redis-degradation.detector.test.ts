@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  detectCacheDegradation,
-  detectRedisDegradation,
-  type CacheTrace,
-  type RedisTrace,
-} from "./redis-degradation.detector";
+import { detectCacheDegradation, detectRedisDegradation } from "./redis-degradation.detector";
+import { type CacheTrace, type RedisTrace } from "./redis-degradation.detector.types";
 
 let sampleId = 0;
 const sample = (overrides: Partial<RedisTrace> = {}): RedisTrace => ({

@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  evaluateServicePerformance,
-  type PerformanceWindow,
-} from "./service-performance.engine";
+import { evaluateServicePerformance } from "./service-performance.engine";
+import { type PerformanceWindow } from "./service-performance.engine.types";
 
 const sample: PerformanceWindow = {
   serviceName: "api",

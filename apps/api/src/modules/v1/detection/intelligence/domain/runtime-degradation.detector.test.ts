@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  detectRuntimeDegradation,
-  type RuntimeMetricSample,
-} from "./runtime-degradation.detector";
+import { detectRuntimeDegradation } from "./runtime-degradation.detector";
+import { type RuntimeMetricSample } from "./runtime-degradation.detector.types";
 
 function samples(
   name: string,

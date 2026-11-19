@@ -1,14 +1,7 @@
-import type { EvidenceConfidence } from "./evidence-confidence";
 import type { EvidenceObservation, EvidenceWindow } from "./evidence.types";
 import type { Issue } from "./issue.types";
-import type { TelemetryIdentity } from "./telemetry-identity.types";
-
-export interface BuildIssueInput {
-  identity: TelemetryIdentity;
-  confidence: EvidenceConfidence;
-  observations: EvidenceObservation[];
-  windows: EvidenceWindow[];
-}
+import type { TelemetryIdentity } from "@soonwhy/shared";
+import type { BuildIssueInput } from "./issue.engine.types";
 
 export function buildIssue(input: BuildIssueInput): Issue | undefined {
   if (!sameIdentity(input.identity, input.confidence.identity)) {

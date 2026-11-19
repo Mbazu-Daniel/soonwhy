@@ -1,48 +1,11 @@
-import { createTelemetryIdentity } from "./telemetry-identity";
+import { createTelemetryIdentity } from "@soonwhy/shared";
 import { percentile } from './percentile';
+import type { CacheType, CacheTrace, CacheCandidate, RedisTrace, RedisCandidate } from "./redis-degradation.detector.types";
 
 const MIN_SAMPLES = 5;
 const LATENCY_THRESHOLD_MS = 50;
 const LATENCY_REGRESSION_PERCENT = 50;
 const ERROR_RATE_THRESHOLD = 0.1;
-
-export type CacheType = "redis" | "memcached";
-
-export interface CacheTrace {
-  timestamp: string;
-  service: string;
-  traceId: string;
-  spanId: string;
-  duration: number;
-  dependencyName: string;
-  operationName?: string;
-  cacheType: CacheType;
-  statusCode?: number;
-  errorType?: string;
-}
-
-export interface CacheCandidate {
-  serviceName: string;
-  dependencyName: string;
-  cacheType: CacheType;
-  operationName?: string;
-  signal: {
-    sampleCount: number;
-    p50Duration: number;
-    p95Duration: number;
-    p99Duration: number;
-    errorCount: number;
-    errorRate: number;
-    p95DurationChangePercent?: number;
-    degradationSignals: string[];
-  };
-  samples: CacheTrace[];
-  identity: ReturnType<typeof createTelemetryIdentity>;
-  recommendation: string;
-}
-
-export type RedisTrace = CacheTrace;
-export type RedisCandidate = CacheCandidate;
 
 export function detectRedisDegradation(
   current: RedisTrace[],
@@ -185,4 +148,3 @@ function cacheRecommendation(cacheType: CacheType): string {
   const backend = cacheType === "redis" ? "Redis" : "Memcached";
   return `Inspect ${backend} command latency and errors, connection reuse, hot keys, payload size, and command frequency. Check whether expensive or repeated operations can be reduced or combined.`;
 }
-

@@ -1,6 +1,6 @@
-import type { EvidenceConfidence } from "./evidence-confidence";
+import type { EvidenceConfidence } from "./evidence-confidence.types";
 import type { EvidenceObservation, EvidenceWindow } from "./evidence.types";
-import type { TelemetryIdentity } from "./telemetry-identity.types";
+import type { TelemetryIdentity } from "@soonwhy/shared";
 
 export type IssueStatus = "candidate" | "supported" | "confirmed";
 

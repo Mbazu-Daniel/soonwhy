@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { detectNPlusOne, type NPlusOneTrace } from "./n-plus-one.detector";
+import { detectNPlusOne } from "./n-plus-one.detector";
+import { type NPlusOneTrace } from "./n-plus-one.detector.types";
 
 function sample(overrides: Partial<NPlusOneTrace> = {}): NPlusOneTrace {
   return {

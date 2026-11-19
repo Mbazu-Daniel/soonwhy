@@ -1,97 +1,8 @@
-import { createTelemetryIdentity } from "./telemetry-identity";
+import { createTelemetryIdentity } from "@soonwhy/shared";
 import { percentile } from './percentile';
-
-const MIN_SAMPLES = 5;
-
-export type RuntimeFamily =
-  | "cpu"
-  | "memory"
-  | "event_loop"
-  | "event_loop_delay";
-
-interface RuntimeMetricSpec {
-  family: RuntimeFamily;
-  names: readonly string[];
-  warning: number;
-  critical: number;
-  unit: string;
-}
-
-const RUNTIME_METRIC_SPECS: readonly RuntimeMetricSpec[] = [
-  {
-    family: "cpu",
-    names: [
-      "process.cpu.utilization",
-      "system.cpu.utilization",
-      "container.cpu.utilization",
-    ],
-    warning: 0.85,
-    critical: 0.95,
-    unit: "ratio",
-  },
-  {
-    family: "memory",
-    names: [
-      "process.memory.utilization",
-      "container.memory.utilization",
-      "runtime.memory.utilization",
-    ],
-    warning: 0.9,
-    critical: 0.98,
-    unit: "ratio",
-  },
-  {
-    family: "event_loop",
-    names: ["nodejs.eventloop.utilization"],
-    warning: 0.8,
-    critical: 0.95,
-    unit: "ratio",
-  },
-  {
-    family: "event_loop_delay",
-    names: ["nodejs.eventloop.delay.p95", "nodejs.eventloop.delay.p99"],
-    warning: 0.1,
-    critical: 0.5,
-    unit: "s",
-  },
-];
-
-const SPEC_BY_METRIC_NAME = new Map(
-  RUNTIME_METRIC_SPECS.flatMap((spec) =>
-    spec.names.map((name) => [name, spec] as const),
-  ),
-);
-
-export const RUNTIME_METRIC_NAMES: readonly string[] = Array.from(
-  SPEC_BY_METRIC_NAME.keys(),
-);
-
-export interface RuntimeMetricSample {
-  timestamp: string;
-  service: string;
-  name: string;
-  value: number;
-}
-
-export interface RuntimeCandidate {
-  serviceName: string;
-  metricName: string;
-  family: RuntimeFamily;
-  unit: string;
-  signal: {
-    sampleCount: number;
-    p50: number;
-    p95: number;
-    p99: number;
-    threshold: number;
-    severity: "warning" | "critical";
-    baselineP95?: number;
-    p95ChangePercent?: number;
-  };
-  samples: RuntimeMetricSample[];
-  identity: ReturnType<typeof createTelemetryIdentity>;
-  recommendation: string;
-}
+import type { RuntimeFamily, RuntimeMetricSample, RuntimeCandidate } from "./runtime-degradation.detector.types";
+import type { RuntimeMetricSpec } from "./runtime-degradation.detector.types";
+import { MIN_SAMPLES, SPEC_BY_METRIC_NAME } from "./runtime-degradation.detector.constants";
 
 export function detectRuntimeDegradation(
   current: RuntimeMetricSample[],
@@ -213,4 +124,3 @@ function runtimeRecommendation(family: RuntimeFamily): string {
       return "Inspect event loop delay alongside CPU saturation and slow spans. Blocking synchronous work is the usual cause; confirm with trace evidence before changing the runtime.";
   }
 }
-

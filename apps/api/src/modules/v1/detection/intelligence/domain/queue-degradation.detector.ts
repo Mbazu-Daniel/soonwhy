@@ -1,45 +1,11 @@
-import { createTelemetryIdentity } from "./telemetry-identity";
+import { createTelemetryIdentity } from "@soonwhy/shared";
 import { percentile } from './percentile';
+import type { QueueType, QueueTrace, QueueCandidate } from "./queue-degradation.detector.types";
 
 const MIN_SAMPLES = 5;
 const LATENCY_THRESHOLD_MS = 100;
 const LATENCY_REGRESSION_PERCENT = 50;
 const ERROR_RATE_THRESHOLD = 0.1;
-
-export type QueueType = "kafka" | "nats" | "rabbitmq" | "other";
-
-export interface QueueTrace {
-  timestamp: string;
-  service: string;
-  traceId: string;
-  spanId: string;
-  duration: number;
-  queueName: string;
-  queueType: QueueType;
-  operationName?: string;
-  statusCode?: number;
-  errorType?: string;
-}
-
-export interface QueueCandidate {
-  serviceName: string;
-  queueName: string;
-  queueType: QueueType;
-  operationName?: string;
-  signal: {
-    sampleCount: number;
-    p50Duration: number;
-    p95Duration: number;
-    p99Duration: number;
-    errorCount: number;
-    errorRate: number;
-    p95DurationChangePercent?: number;
-    degradationSignals: string[];
-  };
-  samples: QueueTrace[];
-  identity: ReturnType<typeof createTelemetryIdentity>;
-  recommendation: string;
-}
 
 export function detectQueueDegradation(
   current: QueueTrace[],
@@ -170,4 +136,3 @@ function isError(sample: QueueTrace): boolean {
     (sample.statusCode !== undefined && sample.statusCode >= 500)
   );
 }
-

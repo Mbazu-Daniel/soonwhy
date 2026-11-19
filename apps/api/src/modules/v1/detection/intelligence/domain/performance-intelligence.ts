@@ -1,45 +1,5 @@
-import { createTelemetryIdentity } from "./telemetry-identity";
-
-export interface PerformanceObservation {
-  serviceName: string;
-  endpointName: string;
-  sampleCount: number;
-  baselineSampleCount?: number;
-  p95Duration?: number;
-  baselineP95Duration?: number;
-  throughputPerMinute?: number;
-  baselineThroughputPerMinute?: number;
-  errorRate?: number;
-  baselineErrorRate?: number;
-}
-
-export type PerformanceSignal =
-  | "latency"
-  | "latency_regression"
-  | "throughput_regression"
-  | "error_regression";
-
-export interface PerformanceFinding {
-  identity: ReturnType<typeof createTelemetryIdentity>;
-  serviceName: string;
-  endpointName: string;
-  signals: PerformanceSignal[];
-  confidence: "medium" | "high";
-  latencyRegressionPercent?: number;
-  throughputRegressionPercent?: number;
-  errorRegressionPercent?: number;
-  summary: string;
-}
-
-export type PerformanceThresholds = Partial<{
-  minSamples: number;
-  minBaselineSamples: number;
-  latencySignalMs: number;
-  latencyRegressionPercent: number;
-  throughputRegressionPercent: number;
-  errorRegressionPercent: number;
-  errorRegressionDelta: number;
-}>;
+import { createTelemetryIdentity } from "@soonwhy/shared";
+import type { PerformanceObservation, PerformanceSignal, PerformanceFinding, PerformanceThresholds } from "./performance-intelligence.types";
 
 const DEFAULT_MIN_SAMPLES = 10;
 const DEFAULT_MIN_BASELINE_SAMPLES = 10;
