@@ -1,11 +1,4 @@
-export interface OidcSettings {
-  providerId: string;
-  name: string;
-  discoveryUrl: string;
-  clientId: string;
-  clientSecret: string;
-  scopes: string[];
-}
+import type { OidcSettings } from "./oidc.config.types";
 
 const DISCOVERY_PATH = "/.well-known/openid-configuration";
 const PROVIDER_ID = /^[a-z0-9][a-z0-9-]{0,31}$/;

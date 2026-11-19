@@ -1,13 +1,6 @@
 import { createParamDecorator, ExecutionContext } from "@nestjs/common";
-import { TenantRequest } from "../middleware/tenant-context.middleware";
-
-export interface AuthUser {
-  id: string;
-  email: string;
-  name: string | null;
-  image: string | null;
-  emailVerified: boolean;
-}
+import { TenantRequest } from "../middleware/tenant-context.middleware.types";
+import type { AuthUser } from "./current-user.decorator.types";
 
 export const CurrentUser = createParamDecorator(
   (data: keyof AuthUser | undefined, ctx: ExecutionContext) => {

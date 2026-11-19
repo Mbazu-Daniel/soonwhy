@@ -1,17 +1,12 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { Redis } from "ioredis";
 import { CACHE_KEY_PREFIX } from "./cache.constants";
+import type { CacheHealth } from "./cache.service.types";
 
 export function jitteredTtl(ttlSeconds: number, random: () => number = Math.random): number {
   if (ttlSeconds <= 1) return ttlSeconds;
   const spread = Math.max(1, Math.round(ttlSeconds * 0.1));
   return Math.max(1, ttlSeconds - spread + Math.floor(random() * (2 * spread + 1)));
-}
-
-export interface CacheHealth {
-  status: "ok" | "unavailable";
-  latencyMs: number;
-  error?: string;
 }
 
 @Injectable()

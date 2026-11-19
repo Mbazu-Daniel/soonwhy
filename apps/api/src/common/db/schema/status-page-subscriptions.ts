@@ -25,10 +25,8 @@ export const statusPageAnalytics = pgTable('status_page_analytics', {
   visitorHash: text('visitor_hash').notNull(), // HMAC-SHA256 of visitor data
   visitDate: text('visit_date').notNull(), // UTC date for rotation
   visitedAt: timestamp('visited_at').defaultNow().notNull(),
-  // NOTE: Never store raw IP, UA, or referrer - only the hash
 }, (table) => [
   index('status_page_analytics_page_date_idx').on(table.pageId, table.visitDate),
   index('status_page_analytics_visitor_hash_idx').on(table.visitorHash),
 ]);
 
-// NOTE: Database migration required for status_page_analytics table

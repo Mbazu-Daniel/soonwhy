@@ -1,5 +1,5 @@
 import { createParamDecorator, ExecutionContext } from "@nestjs/common";
-import { TenantRequest } from "../middleware/tenant-context.middleware";
+import { TenantRequest } from "../middleware/tenant-context.middleware.types";
 
 export interface OrgContext {
   orgId: string;

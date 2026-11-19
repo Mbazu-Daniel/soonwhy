@@ -1,21 +1,10 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-  Injectable,
-  UnauthorizedException,
-} from "@nestjs/common";
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable, UnauthorizedException } from "@nestjs/common";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { users } from "../db/schema/auth";
-import type { TenantRequest } from "../middleware/tenant-context.middleware";
-
-export const PLATFORM_ROLE = {
-  NONE: "none",
-  ADMIN: "admin",
-  SUPER_ADMIN: "super_admin",
-} as const;
-export type PlatformRole = (typeof PLATFORM_ROLE)[keyof typeof PLATFORM_ROLE];
+import type { TenantRequest } from "../middleware/tenant-context.middleware.types";
+import type { PlatformRole } from "./platform-admin.guard.types";
+import { PLATFORM_ROLE } from "./platform-admin.guard.constants";
 
 export async function platformRoleFor(userId: string | undefined): Promise<PlatformRole> {
   if (!userId) return PLATFORM_ROLE.NONE;

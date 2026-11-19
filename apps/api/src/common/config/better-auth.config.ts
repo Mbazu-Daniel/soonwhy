@@ -15,7 +15,7 @@ export const githubEnabled = Boolean(
   process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET,
 );
 
-export const oidcEnabled = oidc !== null;
+const oidcEnabled = oidc !== null;
 export const oidcProvider = oidc ? { id: oidc.providerId, name: oidc.name } : null;
 
 export const googleEnabled = Boolean(
