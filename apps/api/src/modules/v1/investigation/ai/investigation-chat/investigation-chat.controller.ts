@@ -1,10 +1,12 @@
 import { Body, Controller, Delete, Get, HttpCode, NotFoundException, Param, Post, Res, UnauthorizedException, UseGuards } from "@nestjs/common";
 import type { Response } from "express";
 import type { z } from "zod";
-import { CurrentOrg, type OrgContext } from "../../../../common/decorators/current-org.decorator";
-import { CurrentUser, type AuthUser } from "../../../../common/decorators/current-user.decorator";
-import { TenantGuard } from "../../../../common/middleware/tenant-context.guard";
-import { ChatThreadsRepository, type ThreadScope } from "./chat-threads.repository";
+import { CurrentOrg, type OrgContext } from "../../../../../common/decorators/current-org.decorator";
+import { CurrentUser } from "../../../../../common/decorators/current-user.decorator";
+import { type AuthUser } from "../../../../../common/decorators/current-user.decorator.types";
+import { TenantGuard } from "../../../../../common/middleware/tenant-context.guard";
+import { ChatThreadsRepository } from "./chat-threads.repository";
+import { type ThreadScope } from "./chat-threads.repository.types";
 import { CHAT_THREAD_LIST_LIMIT, CHAT_THREAD_MESSAGES_LIMIT } from "./investigation-chat.constants";
 import { InvestigationChatSchema } from "./investigation-chat.schema";
 import { InvestigationChatService } from "./investigation-chat.service";

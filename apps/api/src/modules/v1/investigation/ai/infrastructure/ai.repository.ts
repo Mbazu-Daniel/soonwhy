@@ -1,44 +1,11 @@
 import { Injectable } from "@nestjs/common";
 import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
-import { db } from "../../../common/db";
-import {
-  aiProviderCredentials,
-  projects,
-  rcaInvocations,
-  usageEvents,
-} from "../../../common/db/schema";
-import { CHAT_USAGE_SOURCE } from "./investigation-chat/investigation-chat.constants";
-
-export interface ProjectAiSpend {
-  projectId: string;
-  name: string;
-  slug: string;
-  runs: number;
-  rcaTokens: number;
-  chatTokens: number;
-  chatCostUsd: number;
-  costUsd: number;
-}
+import { db } from "../../../../../common/db";
+import { aiProviderCredentials, projects, rcaInvocations, usageEvents } from "../../../../../common/db/schema";
+import { CHAT_USAGE_SOURCE } from "../investigation-chat/investigation-chat.constants";
+import type { ProjectAiSpend, NewCredential, CredentialPatch } from "../domain/ai.repository.types";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-export interface NewCredential {
-  orgId: string;
-  name: string;
-  provider: string;
-  model: string;
-  baseUrl: string | null;
-  encryptedApiKey: string;
-  keyHint: string;
-}
-
-export interface CredentialPatch {
-  name?: string;
-  model?: string;
-  baseUrl?: string | null;
-  encryptedApiKey?: string;
-  keyHint?: string;
-}
 
 function live(orgId: string) {
   return and(eq(aiProviderCredentials.orgId, orgId), isNull(aiProviderCredentials.deletedAt));

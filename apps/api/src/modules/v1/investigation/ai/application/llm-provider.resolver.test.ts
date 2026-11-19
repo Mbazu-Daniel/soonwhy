@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { aiProviderCredentials } from "../../../common/db/schema";
-import { CredentialCipher } from "./credential-cipher";
+import { aiProviderCredentials } from "../../../../../common/db/schema";
+import { CredentialCipher } from "../domain/credential-cipher";
 import { LlmCatalog } from "./llm-catalog.service";
 import { LlmProviderResolver } from "./llm-provider.resolver";
-import { MastraRcaProvider } from "../detections/rca.provider";
-import type { AiRepository } from "./ai.repository";
+import { MastraRcaProvider } from "../../../detection/detections/infrastructure/rca.provider";
+import type { AiRepository } from "../infrastructure/ai.repository";
 
 type CredentialRow = typeof aiProviderCredentials.$inferSelect;
 

@@ -1,23 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { and, asc, desc, eq } from "drizzle-orm";
-import { db } from "../../../../common/db";
-import { chatMessages, chatThreads } from "../../../../common/db/schema";
-import type { ChatMessageRole, ChatMessageStatus, ChatMessageStep } from "../../../../common/db/schema";
-
-export interface ThreadScope {
-  orgId: string;
-  projectId: string;
-  userId: string;
-}
-
-export interface NewChatMessage {
-  threadId: string;
-  role: ChatMessageRole;
-  content: string;
-  steps?: ChatMessageStep[];
-  status?: ChatMessageStatus;
-  totalTokens?: number;
-}
+import { db } from "../../../../../common/db";
+import { chatMessages, chatThreads } from "../../../../../common/db/schema";
+import type { ThreadScope, NewChatMessage } from "./chat-threads.repository.types";
 
 function owned(scope: ThreadScope, threadId: string) {
   return and(

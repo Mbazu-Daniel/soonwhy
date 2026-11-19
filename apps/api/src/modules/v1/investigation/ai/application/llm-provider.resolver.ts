@@ -1,46 +1,17 @@
 import { Inject, Injectable, Logger, Optional, OnModuleInit, OnApplicationShutdown } from "@nestjs/common";
 import { Redis } from "ioredis";
-import { AiRepository } from "./ai.repository";
-import { CredentialCipher } from "./credential-cipher";
-import { LlmCatalog, type ModelPricing } from "./llm-catalog.service";
-import {
-  buildProviderConfig,
-  readLlmTuning,
-  type LlmTuning,
-} from "./llm-provider.config";
-import {
-  aiCredentialNotFound,
-  aiCredentialUnreadable,
-  aiNotConfigured,
-  CredentialDecryptError,
-} from "./ai.errors";
-import { MastraRcaProvider } from "../detections/rca.provider";
-import type { RcaCredentialInfo } from "../detections/rca.types";
-import type { LlmCredentialSource } from "../../../common/db/schema";
+import { AiRepository } from "../infrastructure/ai.repository";
+import { CredentialCipher } from "../domain/credential-cipher";
+import { LlmCatalog } from "./llm-catalog.service";
+import { type ModelPricing } from "../domain/llm-catalog.service.types";
+import { buildProviderConfig, readLlmTuning } from "./llm-provider.config";
+import { type LlmTuning } from "../domain/llm-provider.config.types";
+import { aiCredentialNotFound, aiCredentialUnreadable, aiNotConfigured, CredentialDecryptError } from "../domain/ai.errors";
+import { MastraRcaProvider } from "../../../detection/detections/infrastructure/rca.provider";
+import type { ResolvedLlmModel, ResolvedLlmHandle, LlmCredentialSummary } from "./llm-provider.resolver.types";
 
 type CredentialRow = Awaited<ReturnType<AiRepository["find"]>>;
 type ByokCredential = NonNullable<CredentialRow>;
-
-export interface ResolvedLlmModel {
-  readonly source: LlmCredentialSource;
-  readonly providerId: string;
-  readonly model: string;
-  readonly baseUrl: string | null;
-  readonly apiKey: string;
-  readonly credentialId: string | null;
-}
-
-export interface ResolvedLlmHandle {
-  readonly provider: MastraRcaProvider;
-  readonly credential: RcaCredentialInfo;
-  readonly promptVersion: string;
-}
-
-export interface LlmCredentialSummary {
-  readonly source: LlmCredentialSource | "none";
-  readonly provider: string | null;
-  readonly model: string | null;
-}
 
 interface CacheEntry {
   expiresAt: number;

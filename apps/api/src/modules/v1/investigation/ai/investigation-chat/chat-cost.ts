@@ -1,4 +1,4 @@
-import type { ModelPricing } from "../llm-catalog.service";
+import type { ModelPricing } from "../domain/llm-catalog.service.types";
 import type { ChatUsage } from "./investigation-chat.types";
 
 export function estimateChatCostUsd(usage: ChatUsage, pricing: ModelPricing | null): number | undefined {

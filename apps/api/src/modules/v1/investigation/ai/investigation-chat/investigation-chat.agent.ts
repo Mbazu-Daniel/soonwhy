@@ -1,6 +1,6 @@
 import { Agent } from "@mastra/core/agent";
 import { noopLogger } from "@mastra/core/logger";
-import type { ResolvedLlmModel } from "../llm-provider.resolver";
+import type { ResolvedLlmModel } from "../application/llm-provider.resolver.types";
 import { CHAT_AGENT_ID, CHAT_INSTRUCTIONS } from "./investigation-chat.constants";
 import type { buildInvestigationTools } from "./investigation-chat.tools";
 

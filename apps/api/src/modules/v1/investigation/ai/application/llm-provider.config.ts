@@ -1,24 +1,6 @@
-import type { MastraRcaProviderConfig } from "../detections/rca.provider";
-import { RCA_PROMPT_VERSION } from "../detections/rca.prompt";
-
-export interface LlmTuning {
-  readonly timeoutMs?: number;
-  readonly maxPromptCharacters?: number;
-  readonly maxRetries?: number;
-  readonly promptVersion: string;
-}
-
-export interface ModelCostRates {
-  inputUsdPerMillion: number;
-  outputUsdPerMillion: number;
-}
-
-export interface LlmEndpoint {
-  readonly providerId: string;
-  readonly model: string;
-  readonly baseUrl: string | null;
-  readonly apiKey: string;
-}
+import type { MastraRcaProviderConfig } from "../../../detection/detections/domain/rca.provider.types";
+import { RCA_PROMPT_VERSION } from "../../../detection/detections/domain/rca.prompt.constants";
+import type { LlmTuning, ModelCostRates, LlmEndpoint, AiQuotaConfig, AiSettingsConfig } from "../domain/llm-provider.config.types";
 
 function positiveNumber(raw: string | undefined): number | undefined {
   const value = Number(raw);
@@ -40,11 +22,6 @@ export function readLlmTuning(env: NodeJS.ProcessEnv = process.env): LlmTuning {
   };
 }
 
-export interface AiQuotaConfig {
-  readonly enforced: boolean;
-  readonly tokenReserve: number;
-}
-
 const DEFAULT_TOKEN_RESERVE = 8_000;
 
 export function readAiQuotaConfig(
@@ -55,12 +32,6 @@ export function readAiQuotaConfig(
     tokenReserve:
       positiveNumber(env.SOONWHY_AI_TOKEN_RESERVE) ?? DEFAULT_TOKEN_RESERVE,
   };
-}
-
-export interface AiSettingsConfig {
-  readonly verificationTimeoutMs: number;
-  readonly allowedBaseHosts: string[];
-  readonly allowInsecureBaseUrls: boolean;
 }
 
 const DEFAULT_VERIFICATION_TIMEOUT_MS = 8_000;

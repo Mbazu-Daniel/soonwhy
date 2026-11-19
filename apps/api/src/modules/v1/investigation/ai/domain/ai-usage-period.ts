@@ -1,8 +1,6 @@
 import { BadRequestException } from "@nestjs/common";
-
-export const USAGE_PERIODS = ["month", "last_month", "last_30_days"] as const;
-
-export type UsagePeriod = (typeof USAGE_PERIODS)[number];
+import type { UsagePeriod } from "./ai-usage-period.types";
+import { USAGE_PERIODS } from "./ai-usage-period.constants";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

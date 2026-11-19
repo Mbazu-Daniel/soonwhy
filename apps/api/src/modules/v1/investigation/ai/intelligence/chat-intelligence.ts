@@ -1,24 +1,5 @@
 import type { ChangePointSummary, DetectionSummary, SloSummary } from "./chat-intelligence.types";
-
-export interface ChatResponse {
-  id: string;
-  role: "assistant";
-  content: string;
-  timestamp: Date;
-  suggestions?: string[];
-  relatedEntities?: {
-    detections?: Array<{ id: string; type: string; severity: string }>;
-    slos?: Array<{ id: string; target: number; status: string }>;
-  };
-}
-
-type UserIntent =
-  | "detect_anomaly_details"
-  | "slo_burn_rate_status"
-  | "change_point_analysis"
-  | "detection_recommendations"
-  | "general_health"
-  | "unknown";
+import type { ChatResponse, UserIntent } from "./chat-intelligence.types";
 
 const CHAT_RESPONSES = {
   greeting:

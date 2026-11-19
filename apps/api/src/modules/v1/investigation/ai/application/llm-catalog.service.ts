@@ -1,13 +1,10 @@
 import { Injectable, Logger } from "@nestjs/common";
-import {
-  getProviderConfig,
-  modelSupportsStructuredOutput,
-  PROVIDER_REGISTRY,
-} from "@mastra/core/llm";
+import { getProviderConfig, modelSupportsStructuredOutput, PROVIDER_REGISTRY } from "@mastra/core/llm";
 import { z } from "zod";
-import { aiEndpointUnknown } from "./ai.errors";
-import { CUSTOM_PROVIDER_ID, CUSTOM_PROVIDER_LABEL } from "./custom-provider.constants";
-import modelsSnapshot from "./models-snapshot.json";
+import { aiEndpointUnknown } from "../domain/ai.errors";
+import { CUSTOM_PROVIDER_ID, CUSTOM_PROVIDER_LABEL } from "../domain/custom-provider.constants";
+import modelsSnapshot from "../models-snapshot.json";
+import type { CatalogProvider, CatalogModel, ModelPricing } from "../domain/llm-catalog.service.types";
 
 const MODELS_DEV_URL = "https://models.dev/api.json";
 const DEFAULT_TTL_MS = 12 * 60 * 60 * 1000;
@@ -59,32 +56,6 @@ interface ModelMetadata {
 interface ProviderMetadata {
   apiUrl: string | null;
   models: Map<string, ModelMetadata>;
-}
-
-export interface CatalogProvider {
-  id: string;
-  label: string;
-  baseUrl: string | null;
-  docUrl: string | null;
-  modelCount: number;
-  rcaSafeModelCount: number | null;
-}
-
-export interface CatalogModel {
-  id: string;
-  label: string;
-  description: string | null;
-  contextTokens: number | null;
-  outputTokens: number | null;
-  inputCostUsdPerMillion: number | null;
-  outputCostUsdPerMillion: number | null;
-  supportsStructuredOutput: boolean;
-  deprecated: boolean;
-}
-
-export interface ModelPricing {
-  inputUsdPerMillion: number;
-  outputUsdPerMillion: number;
 }
 
 type MetadataIndex = Map<string, ProviderMetadata>;

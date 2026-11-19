@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
-import { BillingModule } from "../../billing/billing.module";
+import { BillingModule } from "../../../platform/billing/billing.module";
 import { InvestigationToolsModule } from "../../investigation-tools";
-import { ProjectsModule } from "../../projects";
+import { ProjectsModule } from "../../../identity/projects";
 import { AiModule } from "../ai.module";
 import { ChatThreadsRepository } from "./chat-threads.repository";
 import { InvestigationChatController } from "./investigation-chat.controller";

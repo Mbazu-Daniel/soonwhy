@@ -1,36 +1,24 @@
-import { usagePeriodRange, type UsagePeriod } from "./ai-usage-period";
+import { usagePeriodRange } from "../domain/ai-usage-period";
+import { type UsagePeriod } from "../domain/ai-usage-period.types";
 import { Inject, Injectable, Logger } from "@nestjs/common";
-import { maskPii } from "../../../common/privacy/pii-masker";
-import { AiRepository } from "./ai.repository";
-import { CredentialCipher } from "./credential-cipher";
+import { maskPii } from "../../../../../common/privacy/pii-masker";
+import { AiRepository } from "../infrastructure/ai.repository";
+import { CredentialCipher } from "../domain/credential-cipher";
 import { LlmCatalog } from "./llm-catalog.service";
-import {
-  LlmProviderResolver,
-  type ResolvedLlmModel,
-} from "./llm-provider.resolver";
-import { BillingService } from "../billing/billing.service";
-import {
-  readAiQuotaConfig,
-  readAiSettingsConfig,
-  type AiQuotaConfig,
-  type AiSettingsConfig,
-} from "./llm-provider.config";
-import {
-  aiBaseUrlInvalid,
-  aiCredentialInvalid,
-  aiCredentialNameTaken,
-  aiCredentialNotFound,
-  aiModelsUnavailable,
-  aiProviderUnsupported,
-} from "./ai.errors";
-import { CUSTOM_PROVIDER_ID } from "./custom-provider.constants";
-import { listLiveModels } from "./live-models";
-import { LiveModelsError } from "./live-models.types";
-import type { CredentialPatch } from "./ai.repository";
-import {
-  handleChatMessage,
-  ChatResponse,
-} from "./intelligence/chat-intelligence";
+import { LlmProviderResolver } from "./llm-provider.resolver";
+import { type ResolvedLlmModel } from "./llm-provider.resolver.types";
+import { BillingService } from "../../../platform/billing/application/billing.service";
+import { readAiQuotaConfig, readAiSettingsConfig } from "./llm-provider.config";
+import { type AiQuotaConfig, type AiSettingsConfig } from "../domain/llm-provider.config.types";
+import { aiBaseUrlInvalid, aiCredentialInvalid, aiCredentialNameTaken, aiCredentialNotFound, aiModelsUnavailable, aiProviderUnsupported } from "../domain/ai.errors";
+import { CUSTOM_PROVIDER_ID } from "../domain/custom-provider.constants";
+import { listLiveModels } from "../domain/live-models";
+import { assertPublicHttpUrl } from "../../../../../common/net/public-address";
+import { LiveModelsError } from "../domain/live-models.types";
+import type { CredentialPatch } from "../domain/ai.repository.types";
+import { handleChatMessage } from "../intelligence/chat-intelligence";
+import { ChatResponse } from "../intelligence/chat-intelligence.types";
+import type { AiCredentialDraft, AiCredentialInput, AiCredentialPatchInput, LiveModelsInput, AiConnectionCode, AiConnectionResult } from "../domain/ai.service.types";
 
 export function canManageAi(userRole: string): boolean {
   return ["owner", "admin"].includes(userRole);
@@ -43,54 +31,12 @@ function maskKey(apiKey: string): string {
 const LOOPBACK_HOST = /^(127\.\d{1,3}\.\d{1,3}\.\d{1,3}|::1|localhost)$/;
 const LINK_LOCAL_HOST = /^(169\.254\.\d{1,3}\.\d{1,3}|fe80:)/;
 
-export interface AiCredentialDraft {
-  provider: string;
-  model: string;
-  apiKey?: string;
-  baseUrl?: string | null;
-}
-
-export interface AiCredentialInput extends AiCredentialDraft {
-  name?: string;
-  isDefault?: boolean;
-}
-
-export interface AiCredentialPatchInput {
-  name?: string;
-  model?: string;
-  apiKey?: string;
-  baseUrl?: string | null;
-  isDefault?: boolean;
-}
-
-export interface LiveModelsInput {
-  credentialId?: string;
-  provider?: string;
-  apiKey?: string;
-  baseUrl?: string | null;
-}
-
 type CredentialRow = NonNullable<Awaited<ReturnType<AiRepository["find"]>>>;
 
 function isUniqueViolation(error: unknown): boolean {
   if (typeof error !== "object" || error === null) return false;
   const { code, cause } = error as { code?: unknown; cause?: unknown };
   return code === "23505" || isUniqueViolation(cause);
-}
-
-export type AiConnectionCode =
-  | "verified"
-  | "invalid_key"
-  | "rate_limited"
-  | "unreachable"
-  | "no_http_endpoint";
-
-export interface AiConnectionResult {
-  readonly ok: boolean;
-  readonly checkable: boolean;
-  readonly code: AiConnectionCode;
-  readonly detail: string;
-  readonly checkedAt: Date;
 }
 
 @Injectable()
@@ -271,6 +217,7 @@ export class AiService {
       const known = await this.catalog.models(target.providerId);
       return { source: "catalog" as const, models: known.map((item) => item.id) };
     }
+    await this.assertEndpointPublic(endpoint);
     try {
       const models = await listLiveModels({
         endpoint,
@@ -302,9 +249,11 @@ export class AiService {
       );
     }
 
+    await this.assertEndpointPublic(endpoint);
     let code: AiConnectionCode;
     try {
       const response = await fetch(`${endpoint.replace(/\/$/, "")}/models`, {
+        redirect: "manual",
         headers: { authorization: `Bearer ${target.apiKey}` },
         signal: AbortSignal.timeout(this.settings.verificationTimeoutMs),
       });
@@ -417,6 +366,15 @@ export class AiService {
     };
   }
 
+  private async assertEndpointPublic(endpoint: string): Promise<void> {
+    if (this.settings.allowInsecureBaseUrls) return;
+    try {
+      await assertPublicHttpUrl(endpoint);
+    } catch {
+      throw aiBaseUrlInvalid("The base URL must resolve to a public provider host.");
+    }
+  }
+
   private assertBaseUrlAllowed(providerId: string, rawUrl: string): void {
     let url: URL;
     try {
@@ -424,7 +382,7 @@ export class AiService {
     } catch {
       throw aiBaseUrlInvalid(`"${rawUrl}" is not a valid URL.`);
     }
-    const host = url.hostname.toLowerCase();
+    const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
 
     if (LOOPBACK_HOST.test(host)) {
       if (!this.settings.allowInsecureBaseUrls) {

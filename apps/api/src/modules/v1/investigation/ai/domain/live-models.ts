@@ -20,6 +20,7 @@ export async function listLiveModels(request: LiveModelsRequest): Promise<string
   let response: Response;
   try {
     response = await fetchImpl(`${request.endpoint.replace(/\/+$/, "")}/models`, {
+      redirect: "manual",
       headers: request.apiKey ? { authorization: `Bearer ${request.apiKey}` } : {},
       signal: AbortSignal.timeout(request.timeoutMs),
     });

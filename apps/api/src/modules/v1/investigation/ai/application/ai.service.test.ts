@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BadRequestException } from "@nestjs/common";
 import { AiService } from "./ai.service";
-import { CredentialCipher } from "./credential-cipher";
-import type { CatalogModel } from "./llm-catalog.service";
-import type { AiRepository } from "./ai.repository";
+import { CredentialCipher } from "../domain/credential-cipher";
+import type { CatalogModel } from "../domain/llm-catalog.service.types";
+import type { AiRepository } from "../infrastructure/ai.repository";
 import type { LlmCatalog } from "./llm-catalog.service";
 import type { LlmProviderResolver } from "./llm-provider.resolver";
-import type { BillingService } from "../billing/billing.service";
+import type { BillingService } from "../../../platform/billing/application/billing.service";
 
 const HEX_KEY = "a".repeat(64);
 const SECRET = "gsk_supersecretproviderkey";
