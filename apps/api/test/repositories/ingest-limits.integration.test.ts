@@ -1,5 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import { IngestLimitsRepository } from "../../src/modules/v1/ingest-limits/ingest-limits.repository";
+import { IngestLimitsRepository } from "../../src/modules/v1/telemetry/ingest-limits/infrastructure/ingest-limits.repository";
 import { closeDatabase, databaseTestsEnabled, resetDatabase } from "../support/test-database";
 
 describe.skipIf(!databaseTestsEnabled)("IngestLimitsRepository", () => {

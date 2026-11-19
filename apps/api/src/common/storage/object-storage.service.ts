@@ -1,31 +1,8 @@
-import {
-  DeleteObjectCommand,
-  GetObjectCommand,
-  HeadObjectCommand,
-  PutBucketCorsCommand,
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutBucketCorsCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  type OnModuleInit,
-} from "@nestjs/common";
+import { BadRequestException, Injectable, Logger, type OnModuleInit } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
-
-export interface ObjectStorageConfig {
-  region: string;
-  endpoint: string;
-  forcePathStyle: boolean;
-  bucket: string;
-  accessKeyId: string;
-  secretAccessKey: string;
-  publicBaseUrl?: string;
-  uploadUrlTtlSeconds: number;
-  downloadUrlTtlSeconds: number;
-}
+import type { ObjectStorageConfig, StoredObjectMeta } from "./object-storage.service.types";
 
 const DEFAULT_UPLOAD_URL_TTL_SECONDS = 900;
 const DEFAULT_DOWNLOAD_URL_TTL_SECONDS = 3600;
@@ -78,12 +55,6 @@ export class ObjectStorageNotConfigured extends BadRequestException {
   constructor() {
     super("object storage is not configured");
   }
-}
-
-export interface StoredObjectMeta {
-  sizeBytes: number;
-  contentType: string;
-  etag: string | null;
 }
 
 export function buildKey(kind: string, targetId: string, fileName: string): string {

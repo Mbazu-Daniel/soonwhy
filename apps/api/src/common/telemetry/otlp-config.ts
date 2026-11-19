@@ -1,4 +1,4 @@
-export type OtlpSignal = "traces" | "metrics";
+import type { OtlpSignal } from "./otlp-config.types";
 
 export function resolveOtlpEndpoint(signal: OtlpSignal): string | null {
   const specific = process.env[

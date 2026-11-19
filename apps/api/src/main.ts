@@ -22,6 +22,8 @@ import { ensureQuickwitIndexes } from "./common/quickwit/ensure-indexes";
 import { PiiMaskingLogger } from "./common/privacy/pii-masking.logger";
 import { maskPii } from "./common/privacy/pii-masker";
 import { apiDocument } from "./common/openapi/document";
+import { beginDrain } from "./common/shutdown/shutdown-state";
+import { DEFAULT_DRAIN_MS, SHUTDOWN_TIMEOUT_MS } from "./common/shutdown/shutdown.constants";
 import { authCallbackHandler } from "./common/config/auth-callback";
 
 function assertRateLimitNotDisabledInProduction() {
@@ -44,7 +46,6 @@ async function bootstrap() {
   );
 
   app.useLogger(new PiiMaskingLogger());
-  app.enableShutdownHooks();
 
   app.use(helmet());
   app.use(compression());
@@ -85,5 +86,28 @@ async function bootstrap() {
   const port = process.env.PORT || 8080;
   await app.listen(port);
   Logger.log(`Backend running on http://localhost:${port}`, "Bootstrap");
+
+  let closing = false;
+  const shutdown = async (signal: string) => {
+    if (closing) return;
+    closing = true;
+    Logger.log(`${signal} received: draining before shutdown`, "Bootstrap");
+    beginDrain();
+    const forced = setTimeout(() => process.exit(1), SHUTDOWN_TIMEOUT_MS);
+    forced.unref();
+    await new Promise((resolve) => setTimeout(resolve, Number(process.env.SHUTDOWN_DRAIN_MS ?? DEFAULT_DRAIN_MS)));
+    await app.close();
+    process.exit(0);
+  };
+  process.once("SIGTERM", () => void shutdown("SIGTERM"));
+  process.once("SIGINT", () => void shutdown("SIGINT"));
 }
+
+process.on("unhandledRejection", (reason) => {
+  Logger.error(`Unhandled rejection: ${reason instanceof Error ? reason.stack ?? reason.message : String(reason)}`, "Process");
+});
+process.on("uncaughtException", (error) => {
+  Logger.error(`Uncaught exception: ${error.stack ?? error.message}`, "Process");
+  process.exit(1);
+});
 bootstrap();

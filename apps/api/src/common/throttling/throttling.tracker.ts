@@ -1,4 +1,5 @@
 import { createHash } from "crypto";
+import { ANONYMOUS_PATH } from "./throttling.constants";
 import type { ThrottleRequest } from "./throttling.types";
 
 const BEARER_PREFIX = "Bearer ";
@@ -27,8 +28,12 @@ function fingerprint(credential: string): string {
   return createHash("sha256").update(credential).digest("hex");
 }
 
+function isAnonymousRoute(request: ThrottleRequest): boolean {
+  return ANONYMOUS_PATH.test(request.originalUrl ?? request.url ?? "");
+}
+
 export function resolveThrottleTracker(request: ThrottleRequest): string {
-  const credential = credentialOf(request);
+  const credential = isAnonymousRoute(request) ? undefined : credentialOf(request);
   if (credential) return `credential:${fingerprint(credential)}`;
 
   const address = request.ip ?? request.socket?.remoteAddress ?? "unknown";

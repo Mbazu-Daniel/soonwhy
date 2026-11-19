@@ -1,9 +1,9 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "../../src/common/db";
 import { findings, rcaInvocations, usageEvents } from "../../src/common/db/schema";
-import { AiRepository } from "../../src/modules/v1/ai/ai.repository";
-import { AiService } from "../../src/modules/v1/ai/ai.service";
-import { CHAT_USAGE_SOURCE } from "../../src/modules/v1/ai/investigation-chat/investigation-chat.constants";
+import { AiRepository } from "../../src/modules/v1/investigation/ai/infrastructure/ai.repository";
+import { AiService } from "../../src/modules/v1/investigation/ai/application/ai.service";
+import { CHAT_USAGE_SOURCE } from "../../src/modules/v1/investigation/ai/investigation-chat/investigation-chat.constants";
 import { closeDatabase, databaseTestsEnabled, resetDatabase } from "../support/test-database";
 import { createOrganization, createProject } from "../support/fixtures";
 
