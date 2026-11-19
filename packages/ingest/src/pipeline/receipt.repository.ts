@@ -2,8 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { DB, ingestEventReceipts, type Db } from "@soonwhy/shared";
 import { and, eq, lt, sql, inArray } from "drizzle-orm";
 import { CLAIM_LEASE_MS } from "./constants";
-
-export type ReceiptClaim = "claimed" | "committed" | "busy";
+import type { ReceiptClaim } from "./receipt.repository.types";
 
 export class ReceiptBusyError extends Error {
   constructor(eventId: string) {

@@ -54,7 +54,7 @@ export class IngestConsumer implements OnModuleInit {
         (msg) => this.handleMessage(signal, msg),
         {
           durable: `ingest-${signal}`,
-          maxDeliver: MAX_DELIVERY_ATTEMPTS + 1,
+          maxDeliver: MAX_DELIVERY_ATTEMPTS + 10,
         },
       );
     }
@@ -78,12 +78,10 @@ export class IngestConsumer implements OnModuleInit {
     const deliveryCount = msg.info.deliveryCount || 1;
 
     if (deliveryCount > MAX_DELIVERY_ATTEMPTS) {
-      await this.sendToDlq(
-        signal,
-        msg.data,
-        deliveryCount,
-        "max delivery attempts",
-      );
+      if (!(await this.sendToDlq(signal, msg.data, deliveryCount, "max delivery attempts"))) {
+        msg.nak(CLAIM_LEASE_MS);
+        return;
+      }
       msg.ack();
       this.metrics.recordDlq(1);
       return;
@@ -112,12 +110,10 @@ export class IngestConsumer implements OnModuleInit {
         failure.stack,
       );
       if (deliveryCount >= MAX_DELIVERY_ATTEMPTS) {
-        await this.sendToDlq(
-          signal,
-          msg.data,
-          deliveryCount,
-          failure.message,
-        );
+        if (!(await this.sendToDlq(signal, msg.data, deliveryCount, failure.message))) {
+          msg.nak(CLAIM_LEASE_MS);
+          return;
+        }
         msg.ack();
         this.metrics.recordDlq(1);
       } else {
@@ -145,7 +141,7 @@ export class IngestConsumer implements OnModuleInit {
     data: Uint8Array,
     deliveryCount: number,
     reason: string,
-  ) {
+  ): Promise<boolean> {
     const rawData = new TextDecoder().decode(data);
     let payload: unknown;
     let orgId: string | undefined;
@@ -168,7 +164,17 @@ export class IngestConsumer implements OnModuleInit {
         organizationId: orgId,
         projectId: projectId,
       });
+    } catch (error) {
+      this.logger.error(
+        `Failed to dead-letter ${signal} message (delivery ${deliveryCount}, reason "${reason}"): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      return false;
+    }
 
+    try {
       const envelope = {
         signal,
         deliveryCount,
@@ -184,13 +190,11 @@ export class IngestConsumer implements OnModuleInit {
         `DLQ ${signal} after ${deliveryCount} deliveries: ${reason}`,
       );
     } catch (error) {
-      this.logger.error(
-        `Failed to dead-letter ${signal} message (delivery ${deliveryCount}, reason "${reason}"): ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-        error instanceof Error ? error.stack : undefined,
+      this.logger.warn(
+        `Dead-letter ${signal} row saved but the NATS copy failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
+    return true;
   }
 
   private organizationFrom(payload: IngestPayload): OrganizationContext {

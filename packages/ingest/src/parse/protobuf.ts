@@ -1,6 +1,5 @@
 import { parse, type Type } from "protobufjs";
-
-export type OtlpSignal = "trace" | "log" | "metric";
+import type { OtlpSignal } from "./protobuf.types";
 
 const TO_OBJECT = {
   arrays: true,

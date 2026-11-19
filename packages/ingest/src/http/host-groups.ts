@@ -1,6 +1,5 @@
 import type { IngestItem } from "../pipeline/types";
-
-export const HOST_NAME_ATTRIBUTE = "host.name";
+import { HOST_NAME_ATTRIBUTE } from "./host-groups.constants";
 
 export function hostNameOf(item: IngestItem): string {
   const resource = item.resource as { attributes?: Record<string, unknown> } | undefined;

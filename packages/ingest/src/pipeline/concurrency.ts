@@ -1,13 +1,5 @@
 import { Injectable } from "@nestjs/common";
-
-export type ConcurrencySnapshot = {
-  limit: number;
-  perOrganizationLimit: number;
-  inFlight: number;
-  available: number;
-  isSaturated: boolean;
-  organizations: number;
-};
+import type { ConcurrencySnapshot } from "./concurrency.types";
 
 @Injectable()
 export class IngestConcurrency {
