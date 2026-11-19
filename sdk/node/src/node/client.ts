@@ -1,4 +1,5 @@
-import { resolveNodeOptions, type ResolvedNodeSdkOptions } from "./config.js";
+import { resolveNodeOptions } from "./config.js";
+import { type ResolvedNodeSdkOptions } from "./config.types.js";
 import { createOpenTelemetryRuntime } from "./instrumentation.js";
 import { TelemetryBatcher } from "../batcher.js";
 import { HttpTelemetryTransport } from "../transport.js";
@@ -6,7 +7,7 @@ import { ShutdownHandlers } from "../shutdown.js";
 import { UncaughtErrorHandlers } from "./uncaught.js";
 import { withActiveTrace } from "./trace-context.js";
 import { enableSourceMaps } from "./source-maps.js";
-import type { ResolvedOptions } from "../config.js";
+import type { ResolvedOptions } from "../config.types.js";
 import type { NodeSdk, NodeSdkOptions } from "./types.js";
 import type { FlushResult, SdkStats } from "../types.js";
 
