@@ -18,6 +18,16 @@ import { TenantGuard } from "../../../../../common/middleware/tenant-context.gua
 export class RequestsController {
   constructor(private readonly requestsService: RequestsService) {}
 
+  @Get("endpoints")
+  async getEndpointHealth(
+    @CurrentOrg() org: OrgContext,
+    @Query() query: Record<string, unknown>,
+  ) {
+    const parsed = getRequestsStatsSchema.safeParse(query);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.requestsService.getEndpointHealth(org.orgId, parsed.data);
+  }
+
   @Get("stats")
   async getStats(
     @CurrentOrg() org: OrgContext,
