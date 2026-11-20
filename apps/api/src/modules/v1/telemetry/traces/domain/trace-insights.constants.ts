@@ -1,0 +1,12 @@
+export const DOMINANT_SELF_SHARE = 0.5;
+export const DOMINANT_CRITICAL_SHARE = 0.7;
+export const DOMINANT_MIN_MS = 50;
+export const SLOW_DEPENDENCY_SHARE = 0.4;
+export const SLOW_DEPENDENCY_MIN_MS = 100;
+export const SEQUENTIAL_MIN_CALLS = 3;
+export const SEQUENTIAL_MIN_TOTAL_MS = 100;
+export const SEQUENTIAL_GAP_MS = 5;
+export const REPEATED_MIN_CALLS = 5;
+export const REPEATED_MIN_TOTAL_MS = 50;
+export const SPAN_ERROR_STATUS = 2;
+export const SERVER_ERROR_STATUS = 500;
