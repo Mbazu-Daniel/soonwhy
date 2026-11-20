@@ -10,6 +10,7 @@ import { QueryErrorState } from '~/components/query-error-state';
 import { useProject } from '~/lib/project-context';
 import { TraceWaterfall } from '~/components/trace/trace-waterfall';
 import { TracePayloads } from '~/components/trace/trace-payloads';
+import { TraceInsights } from '~/components/trace/trace-insights';
 import { TraceQueries } from '~/components/trace/trace-queries';
 import { TraceServiceGraph } from '~/components/trace/trace-service-graph';
 import { buildTraceLayout } from '~/components/trace/trace.layout';
@@ -17,12 +18,12 @@ import { formatMs } from '~/lib/format-ms';
 import type { TraceSpan } from '~/components/trace/trace.types';
 import { SpanEvents, SpanException, SpanLinks } from '~/components/trace/span-extras';
 import type { PayloadReport } from '@soonwhy/shared/contracts';
-import type { TraceQuerySummary } from '@soonwhy/shared/contracts';
+import type { TraceQuerySummary, TraceInsights as TraceInsightsData } from '@soonwhy/shared/contracts';
 import { useSpanLogCounts } from '~/lib/use-trace-search';
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/trace/$traceId')({ component: TraceDetail });
 
-interface TraceResponse { traceId: string; spans: TraceSpan[]; queries?: TraceQuerySummary; payloads?: PayloadReport[]; }
+interface TraceResponse { traceId: string; spans: TraceSpan[]; queries?: TraceQuerySummary; payloads?: PayloadReport[]; insights?: TraceInsightsData; }
 interface LogEntry { id: string; timestamp: string; level: string; message: string; traceId?: string; spanId?: string; }
 
 function TraceDetail() {
@@ -85,6 +86,7 @@ function TraceDetail() {
                 <CardHeader className="border-b"><CardTitle className="text-base">Waterfall</CardTitle><p className="text-xs text-muted-foreground">Select a span to inspect its context.</p></CardHeader>
                 <CardContent className="p-0"><TraceWaterfall layout={layout} selectedSpanId={selected?.spanId} onSelect={(spanId) => setSelection({ traceId, spanId })} logCounts={logCounts.data?.counts} /></CardContent>
               </Card>
+              <TraceInsights insights={data.insights} onSelectSpan={(spanId) => setSelection({ traceId, spanId })} />
               <TraceQueries summary={data.queries} onSelectSpan={(spanId) => setSelection({ traceId, spanId })} />
               <TracePayloads reports={data.payloads} onSelectSpan={(spanId) => setSelection({ traceId, spanId })} />
             </div>
