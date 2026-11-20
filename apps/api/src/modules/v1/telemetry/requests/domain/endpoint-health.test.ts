@@ -16,6 +16,13 @@ describe("scoreEndpoint", () => {
     expect(scoreEndpoint(stat({ p95: 5000, errorRate: 50, p50: 10, p99: 1000 }))).toBe(0);
   });
 
+  it("never lets a mostly failing endpoint look healthy because it fails fast", () => {
+    expect(scoreEndpoint(stat({ errorRate: 100, p95: 50 }))).toBe(30);
+    expect(scoreEndpoint(stat({ errorRate: 25, p95: 50 }))).toBe(50);
+    expect(scoreEndpoint(stat({ errorRate: 12, p95: 50 }))).toBe(60);
+    expect(gradeOf(scoreEndpoint(stat({ errorRate: 100, p95: 50 })))).toBe("F");
+  });
+
   it("does not punish an endpoint with no median", () => {
     expect(scoreEndpoint(stat({ p50: 0, p99: 0 }))).toBe(100);
   });

@@ -6,6 +6,11 @@ export const ERROR_RATE_ZERO_POINTS = 10;
 export const TAIL_POINTS = 10;
 export const TAIL_OK_RATIO = 5;
 export const TAIL_BAD_RATIO = 30;
+export const ERROR_SCORE_CAPS = [
+  { atLeast: 50, cap: 30 },
+  { atLeast: 20, cap: 50 },
+  { atLeast: 10, cap: 65 },
+] as const;
 export const GRADES = [
   { min: 90, grade: "A" },
   { min: 75, grade: "B" },

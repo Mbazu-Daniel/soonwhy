@@ -1,5 +1,5 @@
 import {
-  ERROR_FREE_POINTS, ERROR_RATE_ZERO_POINTS, FAST_P95_MS, GRADES, LATENCY_POINTS, SLOW_P95_MS, TAIL_BAD_RATIO, TAIL_OK_RATIO,
+  ERROR_FREE_POINTS, ERROR_RATE_ZERO_POINTS, ERROR_SCORE_CAPS, FAST_P95_MS, GRADES, LATENCY_POINTS, SLOW_P95_MS, TAIL_BAD_RATIO, TAIL_OK_RATIO,
   TAIL_POINTS, TREND_ERROR_POINTS, TREND_LATENCY_CHANGE, TREND_LATENCY_MIN_MS, TREND_MIN_REQUESTS,
 } from "./endpoint-health.constants";
 import type { EndpointHealth, EndpointTrend, Grade, ProjectHealth } from "./endpoint-health.types";
@@ -17,7 +17,8 @@ export function scoreEndpoint(stat: RequestStat): number {
   const errors = ERROR_FREE_POINTS * (1 - clamp(stat.errorRate / ERROR_RATE_ZERO_POINTS));
   const ratio = stat.p50 > 0 ? stat.p99 / stat.p50 : 1;
   const tail = TAIL_POINTS * (1 - clamp((ratio - TAIL_OK_RATIO) / (TAIL_BAD_RATIO - TAIL_OK_RATIO)));
-  return Math.round(latency + errors + tail);
+  const cap = ERROR_SCORE_CAPS.find((entry) => stat.errorRate >= entry.atLeast)?.cap ?? 100;
+  return Math.min(cap, Math.round(latency + errors + tail));
 }
 
 export function mergeStats(stats: RequestStat[]): RequestStat[] {
