@@ -1,5 +1,4 @@
 import { Module } from "@nestjs/common";
-import { ScheduleModule } from "@nestjs/schedule";
 import { EvidenceGraphService } from "./evidence-graph.service";
 import { EvidenceGraphController } from "./evidence-graph.controller";
 import { EvidenceGraphRepository } from "./evidence-graph.repository";
@@ -11,7 +10,6 @@ import { DetectorConfigService } from "../application/detector-config.service";
 import { DetectorConfigController } from "../presentation/detector-config.controller";
 
 @Module({
-  imports: [ScheduleModule.forRoot()],
   controllers: [EvidenceGraphController, DetectorConfigController],
   providers: [
     EvidenceGraphService,
