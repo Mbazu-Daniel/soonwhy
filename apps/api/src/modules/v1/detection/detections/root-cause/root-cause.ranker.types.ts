@@ -18,6 +18,7 @@ export interface ErrorData {
 }
 
 export interface RankingInput {
+  errorsObserved?: boolean;
   findings: Array<{
     id: string;
     type: string;
