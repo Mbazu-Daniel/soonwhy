@@ -10,5 +10,6 @@ import { DependenciesController } from "./presentation/dependencies.controller";
   imports: [CronLeaseModule],
   controllers: [DependenciesController],
   providers: [VulnerabilityScanService, VulnerabilityScanCron, DependencySnapshotRepository, OsvClient],
+  exports: [VulnerabilityScanService],
 })
 export class VulnerabilitiesModule {}

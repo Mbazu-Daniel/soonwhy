@@ -70,6 +70,7 @@ import { QueryCatalogModule } from "./modules/v1/platform/query-catalog/query-ca
 import { AiSummaryModule } from "./modules/v1/detection/intelligence/ai-summary/ai-summary.module";
 import { EvidenceGraphModule } from "./modules/v1/detection/intelligence/evidence-graph/evidence-graph.module";
 import { AIInvestigationModule } from "./modules/v1/detection/intelligence/ai-investigation/ai-investigation.module";
+import { SdkDependenciesModule } from "./modules/v1/detection/vulnerabilities/sdk-dependencies.module";
 import { SoonwhyMcpModule } from "./modules/v1/investigation/mcp";
 import { RcaModule } from "./modules/v1/detection/detections/rca.module";
 import { InvestigationChatModule } from "./modules/v1/investigation/ai/investigation-chat";
@@ -159,6 +160,7 @@ const organizationScopedModules = [
       ? [IngestHealthModule, PipelineLagModule]
       : []),
     PlatformAdminModule,
+    SdkDependenciesModule,
     SoonwhyMcpModule,
     IncidentsModule,
     ...organizationScopedModules,

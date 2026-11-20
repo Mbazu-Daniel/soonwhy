@@ -1,6 +1,6 @@
-import { and, desc, eq, gte, inArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
 import { db } from "../../../../../common/db";
-import { findings } from "../../../../../common/db/schema";
+import { deployments, findings, services } from "../../../../../common/db/schema";
 import type { FindingStatus } from "../../../../../common/db/schema/finding-lifecycle";
 import { REPORT_ROW_LIMIT } from "../domain/finding-report.constants";
 import type { ReportRow } from "../domain/finding-report.types";
@@ -30,6 +30,24 @@ export class FindingRepository {
       .select()
       .from(findings)
       .where(and(eq(findings.id, id), eq(findings.orgId, orgId), eq(findings.projectId, projectId)))
+      .limit(1);
+    return row;
+  }
+
+  async latestDeployBefore(projectId: string, serviceName: string, at: Date, windowMs: number) {
+    const [row] = await db
+      .select({ version: deployments.version, commitSha: deployments.commitSha, deployedAt: deployments.deployedAt })
+      .from(deployments)
+      .innerJoin(services, eq(services.id, deployments.serviceId))
+      .where(
+        and(
+          eq(services.projectId, projectId),
+          eq(services.name, serviceName),
+          lte(deployments.deployedAt, at),
+          gte(deployments.deployedAt, new Date(at.getTime() - windowMs)),
+        ),
+      )
+      .orderBy(desc(deployments.deployedAt))
       .limit(1);
     return row;
   }

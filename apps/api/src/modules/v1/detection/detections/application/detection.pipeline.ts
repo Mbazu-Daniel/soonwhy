@@ -1,8 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { categoryOf } from '../../findings/domain/finding-category';
-import { findingFingerprint } from '../../findings/domain/finding-fingerprint';
-import { recommendationFor } from '../../findings/domain/finding-recommendation';
-import { upsertFinding } from '../../findings/infrastructure/finding-upsert';
+import { raiseFinding } from '../../findings/infrastructure/raise-finding';
 import { QuickwitService } from '@soonwhy/shared';
 import { CacheService } from '../../../../../common/cache/cache.service';
 import { CACHE_TTL_SECONDS } from '../../../../../common/cache/cache.constants';
@@ -20,6 +17,7 @@ import { detectDependencySignals } from './detection.dependency-signals';
 import { detectDatabaseSignals } from './detection.database-signals';
 import { detectTraceSignals } from './detection.trace-signals';
 import { detectLockContentionSignals } from './detection.lock-contention-signals';
+import { detectSecuritySignals } from "./detection.security-signals";
 import { detectRuntimeSignals } from './detection.runtime-signals';
 
 @Injectable()
@@ -58,6 +56,7 @@ export class DetectionPipeline {
     detected.push(...await detectTraceSignals(deps, context, detected));
     detected.push(...await detectLockContentionSignals(deps, context, database.spans));
     detected.push(...await detectRuntimeSignals(deps, context));
+    detected.push(...await detectSecuritySignals(deps, context));
 
     if (this.detectorSettings.featureEnabled(settings, 'detections.issue_lifecycles')) {
       await this.persistIssueLifecycles(orgId, projectId, detected);
@@ -161,13 +160,12 @@ export class DetectionPipeline {
     evidence: DetectionEvidence[];
     fingerprint?: string;
   }): Promise<DetectionFinding & { projectOrgId: string }> {
-    const row = await upsertFinding({
+    const row = await raiseFinding({
       orgId: input.orgId,
       projectId: input.projectId,
       serviceName: input.serviceName,
       type: input.type,
-      category: categoryOf(input.type),
-      fingerprint: findingFingerprint(input.type, input.serviceName, input.fingerprint),
+      key: input.fingerprint,
       severity: input.severity,
       title: input.title,
       description: input.description,
@@ -177,7 +175,6 @@ export class DetectionPipeline {
       windowStart: input.start,
       windowEnd: input.end,
       evidence: input.evidence,
-      recommendation: recommendationFor(input.type),
     });
 
     if (!row) throw new Error('Failed to persist detection finding');

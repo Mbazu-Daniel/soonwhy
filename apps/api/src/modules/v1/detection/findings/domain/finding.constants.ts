@@ -1,2 +1,4 @@
 export const DEFAULT_FINDINGS_LIMIT = 50;
 export const MAX_FINDINGS_LIMIT = 200;
+export const RECURRENCE_GAP_SECONDS = 60;
+export const DEPLOY_SUSPECT_WINDOW_MS = 2 * 60 * 60 * 1000;

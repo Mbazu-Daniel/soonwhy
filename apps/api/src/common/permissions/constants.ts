@@ -8,6 +8,7 @@ export const CONTROLLER_POLICY: Record<string, RoutePolicy> = {
   AuthController: "public",
   AutoAnalysisController: "admin",
   ClientEventsController: "public",
+  SdkDependenciesController: "public",
   DetectorConfigController: "admin",
   DetectorSettingsController: "admin",
   DlqController: "platform",

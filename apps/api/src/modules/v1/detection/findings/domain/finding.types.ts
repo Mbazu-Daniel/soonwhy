@@ -10,3 +10,10 @@ export interface FindingSummaryRow {
   severity: string;
   count: number;
 }
+
+export interface SuspectDeployment {
+  version: string | null;
+  commitSha: string | null;
+  deployedAt: Date;
+  minutesBeforeFinding: number;
+}

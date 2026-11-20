@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import type { FindingStatus } from "../../../../../common/db/schema/finding-lifecycle";
 import { buildFindingReport } from "../domain/finding-report";
-import type { FindingListQuery } from "../domain/finding.types";
+import { DEPLOY_SUSPECT_WINDOW_MS } from "../domain/finding.constants";
+import type { FindingListQuery, SuspectDeployment } from "../domain/finding.types";
 import { FindingRepository } from "../infrastructure/finding.repository";
 
 @Injectable()
@@ -25,7 +26,21 @@ export class FindingsService {
   async get(orgId: string, projectId: string, id: string) {
     const row = await this.repository.find(orgId, projectId, id);
     if (!row) throw new NotFoundException("Finding not found");
-    return row;
+    return { ...row, suspectDeployment: await this.suspectDeployment(projectId, row) };
+  }
+
+  private async suspectDeployment(
+    projectId: string,
+    row: { serviceName: string; detectedAt: Date },
+  ): Promise<SuspectDeployment | null> {
+    const deploy = await this.repository.latestDeployBefore(projectId, row.serviceName, row.detectedAt, DEPLOY_SUSPECT_WINDOW_MS);
+    if (!deploy?.deployedAt) return null;
+    return {
+      version: deploy.version,
+      commitSha: deploy.commitSha,
+      deployedAt: deploy.deployedAt,
+      minutesBeforeFinding: Math.round((row.detectedAt.getTime() - deploy.deployedAt.getTime()) / 60_000),
+    };
   }
 
   async setStatus(orgId: string, projectId: string, id: string, status: FindingStatus, userId: string | null) {

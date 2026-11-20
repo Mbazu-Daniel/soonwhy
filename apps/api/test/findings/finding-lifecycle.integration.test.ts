@@ -47,6 +47,15 @@ describe.skipIf(!databaseTestsEnabled)("finding lifecycle", () => {
     expect(await db.select().from(findings)).toHaveLength(1);
   });
 
+  it("counts one occurrence per detection run, not one per emitted finding", async () => {
+    await upsertFinding(base, at);
+    for (let index = 1; index <= 5; index += 1) await upsertFinding(base, new Date(at.getTime() + index * 1000));
+    expect((await db.select().from(findings))[0]!.occurrences).toBe(1);
+
+    await upsertFinding(base, new Date(at.getTime() + hour));
+    expect((await db.select().from(findings))[0]!.occurrences).toBe(2);
+  });
+
   it("keeps a resolved finding resolved until the problem is seen after it was resolved", async () => {
     const first = await upsertFinding(base, at);
     await repository.setStatus(base.orgId, base.projectId, first!.id, "resolved", null);
