@@ -11,6 +11,9 @@ import { eq, and, or, isNull } from "drizzle-orm";
 import { AlertRuleEngineService } from "../alert-engine/alert-rule-engine.service";
 import { alertFinding, raiseFinding, resolveAlertFinding } from "../../detection/findings";
 import { DedupService } from "../dedup/dedup.service";
+import { loadAlertContext } from "./alert-context";
+import { buildAlertMessage } from "../domain/alert-message";
+import { MAX_FAILING_ROUTES } from "../domain/alert-message.constants";
 import type { AlertRuleSeverity } from "../../../../common/db/schema";
 
 interface AlertRuleRow {
@@ -236,8 +239,8 @@ export class AlertEvaluationService {
     await this.flagFinding(ctx);
 
     const incidentId = `alert-${ctx.rule.id}-${ctx.condition.metric}`;
-    const title = `Alert: ${ctx.rule.name}`;
-    const body = `Condition "${ctx.condition.description ?? ctx.condition.metric}" violated: ${ctx.condition.metric} is ${ctx.metricValue} (threshold: ${ctx.threshold})`;
+    const message = await this.messageFor(ctx);
+    const { title, body, htmlBody } = message;
     const metadata = {
       alertRuleId: ctx.rule.id,
       metric: ctx.condition.metric,
@@ -264,8 +267,32 @@ export class AlertEvaluationService {
       severity: ctx.rule.minSeverity as AlertRuleSeverity,
       title,
       body,
-      htmlBody: undefined,
+      htmlBody,
       metadata,
+    });
+  }
+
+  private async messageFor(ctx: AlertEvaluationRouteContext) {
+    const context = await loadAlertContext(ctx.projectId).catch(() => ({}) as Awaited<ReturnType<typeof loadAlertContext>>);
+    const failingRoutes = await this.metricsRepository
+      .queryTopFailingRoutes(
+        { orgId: ctx.orgId, projectId: ctx.projectId, from: new Date(ctx.now.getTime() - 5 * 60 * 1000).toISOString(), to: ctx.now.toISOString() },
+        MAX_FAILING_ROUTES,
+      )
+      .catch(() => []);
+    return buildAlertMessage({
+      ruleName: ctx.rule.name,
+      severity: ctx.rule.minSeverity,
+      metric: ctx.condition.metric,
+      operator: ctx.condition.operator,
+      description: ctx.condition.description,
+      value: ctx.metricValue,
+      threshold: ctx.threshold,
+      window: ctx.condition.window,
+      firedAt: ctx.now,
+      projectName: context.projectName,
+      findingUrl: context.findingUrl,
+      failingRoutes,
     });
   }
 
