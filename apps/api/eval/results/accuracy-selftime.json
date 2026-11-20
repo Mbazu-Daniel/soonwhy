@@ -1,0 +1,2241 @@
+{
+  "config": {
+    "traceMode": "full",
+    "REPS": 5,
+    "NORMAL_RUNS": 20,
+    "WARMUP_REQUESTS": 100,
+    "FAULT_REQUESTS": 120
+  },
+  "rows": [
+    {
+      "scenario": "serial_delay",
+      "target": "db",
+      "seed": 1001,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1446,
+      "requestsToDetect": 3,
+      "findingServices": [
+        "db",
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 1,
+      "anomalyOnly_finalRank": 4,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 1,
+      "firstError_finalRank": 4,
+      "finalRanking": [
+        {
+          "service": "db",
+          "score": 0.84375
+        },
+        {
+          "service": "inventory",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "orders",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "serial_delay",
+      "target": "db",
+      "seed": 1002,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1543,
+      "requestsToDetect": 3,
+      "findingServices": [
+        "db",
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 1,
+      "anomalyOnly_finalRank": 4,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 1,
+      "firstError_finalRank": 4,
+      "finalRanking": [
+        {
+          "service": "db",
+          "score": 0.84375
+        },
+        {
+          "service": "inventory",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "orders",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "serial_delay",
+      "target": "db",
+      "seed": 1003,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1351,
+      "requestsToDetect": 3,
+      "findingServices": [
+        "db",
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 1,
+      "anomalyOnly_finalRank": 4,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 1,
+      "firstError_finalRank": 4,
+      "finalRanking": [
+        {
+          "service": "db",
+          "score": 0.84375
+        },
+        {
+          "service": "inventory",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "orders",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "serial_delay",
+      "target": "db",
+      "seed": 1004,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1439,
+      "requestsToDetect": 3,
+      "findingServices": [
+        "db",
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 1,
+      "anomalyOnly_finalRank": 4,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 1,
+      "firstError_finalRank": 4,
+      "finalRanking": [
+        {
+          "service": "db",
+          "score": 0.84375
+        },
+        {
+          "service": "inventory",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "orders",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "serial_delay",
+      "target": "db",
+      "seed": 1005,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1604,
+      "requestsToDetect": 3,
+      "findingServices": [
+        "db",
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 1,
+      "anomalyOnly_finalRank": 4,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 1,
+      "firstError_finalRank": 4,
+      "finalRanking": [
+        {
+          "service": "db",
+          "score": 0.84375
+        },
+        {
+          "service": "inventory",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "orders",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "serial_delay",
+      "target": "fraud",
+      "seed": 1006,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1596,
+      "requestsToDetect": 9,
+      "findingServices": [
+        "fraud",
+        "payments",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 4,
+      "anomalyOnly_finalRank": 4,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 4,
+      "firstError_finalRank": 4,
+      "finalRanking": [
+        {
+          "service": "fraud",
+          "score": 0.8125
+        },
+        {
+          "service": "payments",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "orders",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "serial_delay",
+      "target": "fraud",
+      "seed": 1007,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1567,
+      "requestsToDetect": 9,
+      "findingServices": [
+        "fraud",
+        "payments",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 4,
+      "anomalyOnly_finalRank": 4,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 4,
+      "firstError_finalRank": 4,
+      "finalRanking": [
+        {
+          "service": "fraud",
+          "score": 0.8125
+        },
+        {
+          "service": "payments",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "orders",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "serial_delay",
+      "target": "fraud",
+      "seed": 1008,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1513,
+      "requestsToDetect": 9,
+      "findingServices": [
+        "fraud",
+        "payments",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 4,
+      "anomalyOnly_finalRank": 4,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 4,
+      "firstError_finalRank": 4,
+      "finalRanking": [
+        {
+          "service": "fraud",
+          "score": 0.8125
+        },
+        {
+          "service": "payments",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "orders",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "serial_delay",
+      "target": "fraud",
+      "seed": 1009,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1561,
+      "requestsToDetect": 9,
+      "findingServices": [
+        "fraud",
+        "payments",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 4,
+      "anomalyOnly_finalRank": 4,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 4,
+      "firstError_finalRank": 4,
+      "finalRanking": [
+        {
+          "service": "fraud",
+          "score": 0.8125
+        },
+        {
+          "service": "payments",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "orders",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "serial_delay",
+      "target": "fraud",
+      "seed": 1010,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1394,
+      "requestsToDetect": 7,
+      "findingServices": [
+        "fraud",
+        "payments",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": null,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": null,
+      "anomalyOnly_finalRank": 4,
+      "criticalPathOnly_initialRank": null,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": null,
+      "firstError_finalRank": 4,
+      "finalRanking": [
+        {
+          "service": "fraud",
+          "score": 0.8125
+        },
+        {
+          "service": "payments",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "orders",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "serial_delay",
+      "target": "orders",
+      "seed": 1011,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1634,
+      "requestsToDetect": 9,
+      "findingServices": [
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 2,
+      "anomalyOnly_finalRank": 2,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 2,
+      "firstError_finalRank": 2,
+      "finalRanking": [
+        {
+          "service": "orders",
+          "score": 0.71875
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "serial_delay",
+      "target": "orders",
+      "seed": 1012,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1544,
+      "requestsToDetect": 9,
+      "findingServices": [
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 2,
+      "anomalyOnly_finalRank": 2,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 2,
+      "firstError_finalRank": 2,
+      "finalRanking": [
+        {
+          "service": "orders",
+          "score": 0.71875
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "serial_delay",
+      "target": "orders",
+      "seed": 1013,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1538,
+      "requestsToDetect": 9,
+      "findingServices": [
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 2,
+      "anomalyOnly_finalRank": 2,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 2,
+      "firstError_finalRank": 2,
+      "finalRanking": [
+        {
+          "service": "orders",
+          "score": 0.71875
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "serial_delay",
+      "target": "orders",
+      "seed": 1014,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1568,
+      "requestsToDetect": 9,
+      "findingServices": [
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 2,
+      "anomalyOnly_finalRank": 2,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 2,
+      "firstError_finalRank": 2,
+      "finalRanking": [
+        {
+          "service": "orders",
+          "score": 0.71875
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "serial_delay",
+      "target": "orders",
+      "seed": 1015,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1589,
+      "requestsToDetect": 9,
+      "findingServices": [
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 2,
+      "anomalyOnly_finalRank": 2,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 2,
+      "firstError_finalRank": 2,
+      "finalRanking": [
+        {
+          "service": "orders",
+          "score": 0.71875
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "error_rate",
+      "target": "fraud",
+      "seed": 1016,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 581,
+      "requestsToDetect": 27,
+      "findingServices": [
+        "fraud",
+        "payments",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 4,
+      "anomalyOnly_finalRank": 4,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 1,
+      "firstError_finalRank": 1,
+      "finalRanking": [
+        {
+          "service": "fraud",
+          "score": 0.7360289526498058
+        },
+        {
+          "service": "payments",
+          "score": 0.625021919919795
+        },
+        {
+          "service": "orders",
+          "score": 0.6213626039340423
+        },
+        {
+          "service": "gateway",
+          "score": 0.55
+        }
+      ]
+    },
+    {
+      "scenario": "error_rate",
+      "target": "fraud",
+      "seed": 1017,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 67,
+      "requestsToDetect": 3,
+      "findingServices": [
+        "fraud",
+        "payments",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 4,
+      "anomalyOnly_finalRank": 4,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 1,
+      "firstError_finalRank": 1,
+      "finalRanking": [
+        {
+          "service": "fraud",
+          "score": 0.7292469542332654
+        },
+        {
+          "service": "payments",
+          "score": 0.6182132487150438
+        },
+        {
+          "service": "orders",
+          "score": 0.6147998328841451
+        },
+        {
+          "service": "gateway",
+          "score": 0.55
+        }
+      ]
+    },
+    {
+      "scenario": "error_rate",
+      "target": "fraud",
+      "seed": 1018,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 71,
+      "requestsToDetect": 2,
+      "findingServices": [
+        "fraud",
+        "payments",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 4,
+      "anomalyOnly_finalRank": 4,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 1,
+      "firstError_finalRank": 1,
+      "finalRanking": [
+        {
+          "service": "fraud",
+          "score": 0.7326632110325442
+        },
+        {
+          "service": "payments",
+          "score": 0.6256095260540994
+        },
+        {
+          "service": "orders",
+          "score": 0.6222569558286761
+        },
+        {
+          "service": "gateway",
+          "score": 0.55
+        }
+      ]
+    },
+    {
+      "scenario": "error_rate",
+      "target": "fraud",
+      "seed": 1019,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 68,
+      "requestsToDetect": 1,
+      "findingServices": [
+        "fraud",
+        "payments",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 4,
+      "anomalyOnly_finalRank": 4,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 1,
+      "firstError_finalRank": 1,
+      "finalRanking": [
+        {
+          "service": "fraud",
+          "score": 0.7352551256346767
+        },
+        {
+          "service": "payments",
+          "score": 0.6281675273461833
+        },
+        {
+          "service": "orders",
+          "score": 0.6158380255930491
+        },
+        {
+          "service": "gateway",
+          "score": 0.55
+        }
+      ]
+    },
+    {
+      "scenario": "error_rate",
+      "target": "fraud",
+      "seed": 1020,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 93,
+      "requestsToDetect": 3,
+      "findingServices": [
+        "fraud",
+        "payments",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 4,
+      "anomalyOnly_finalRank": 4,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 1,
+      "firstError_finalRank": 1,
+      "finalRanking": [
+        {
+          "service": "fraud",
+          "score": 0.7337172251924606
+        },
+        {
+          "service": "payments",
+          "score": 0.6149694181842491
+        },
+        {
+          "service": "orders",
+          "score": 0.6076712357373105
+        },
+        {
+          "service": "gateway",
+          "score": 0.55
+        }
+      ]
+    },
+    {
+      "scenario": "error_rate",
+      "target": "db",
+      "seed": 1021,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 79,
+      "requestsToDetect": 3,
+      "findingServices": [
+        "db",
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 4,
+      "anomalyOnly_finalRank": 4,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 1,
+      "firstError_finalRank": 1,
+      "finalRanking": [
+        {
+          "service": "db",
+          "score": 0.7720714094584251
+        },
+        {
+          "service": "orders",
+          "score": 0.6122183307979691
+        },
+        {
+          "service": "gateway",
+          "score": 0.55
+        },
+        {
+          "service": "inventory",
+          "score": 0.5461471748249036
+        }
+      ]
+    },
+    {
+      "scenario": "error_rate",
+      "target": "db",
+      "seed": 1022,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 87,
+      "requestsToDetect": 3,
+      "findingServices": [
+        "db",
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 4,
+      "anomalyOnly_finalRank": 4,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 1,
+      "firstError_finalRank": 1,
+      "finalRanking": [
+        {
+          "service": "db",
+          "score": 0.7767876545759491
+        },
+        {
+          "service": "orders",
+          "score": 0.6098966255383849
+        },
+        {
+          "service": "gateway",
+          "score": 0.55
+        },
+        {
+          "service": "inventory",
+          "score": 0.546041813155981
+        }
+      ]
+    },
+    {
+      "scenario": "error_rate",
+      "target": "db",
+      "seed": 1023,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 115,
+      "requestsToDetect": 3,
+      "findingServices": [
+        "db",
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 4,
+      "anomalyOnly_finalRank": 4,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 1,
+      "firstError_finalRank": 1,
+      "finalRanking": [
+        {
+          "service": "db",
+          "score": 0.7688050179877903
+        },
+        {
+          "service": "orders",
+          "score": 0.6133955044817587
+        },
+        {
+          "service": "inventory",
+          "score": 0.5555653845156534
+        },
+        {
+          "service": "gateway",
+          "score": 0.55
+        }
+      ]
+    },
+    {
+      "scenario": "error_rate",
+      "target": "db",
+      "seed": 1024,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 100,
+      "requestsToDetect": 3,
+      "findingServices": [
+        "db",
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 4,
+      "anomalyOnly_finalRank": 4,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 1,
+      "firstError_finalRank": 1,
+      "finalRanking": [
+        {
+          "service": "db",
+          "score": 0.7753692315182708
+        },
+        {
+          "service": "orders",
+          "score": 0.6047661427360085
+        },
+        {
+          "service": "gateway",
+          "score": 0.55
+        },
+        {
+          "service": "inventory",
+          "score": 0.5453106154819005
+        }
+      ]
+    },
+    {
+      "scenario": "error_rate",
+      "target": "db",
+      "seed": 1025,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 123,
+      "requestsToDetect": 4,
+      "findingServices": [
+        "db",
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 4,
+      "anomalyOnly_finalRank": 4,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 1,
+      "firstError_finalRank": 1,
+      "finalRanking": [
+        {
+          "service": "db",
+          "score": 0.7690947538141617
+        },
+        {
+          "service": "orders",
+          "score": 0.6118170979956551
+        },
+        {
+          "service": "inventory",
+          "score": 0.5541137582318765
+        },
+        {
+          "service": "gateway",
+          "score": 0.55
+        }
+      ]
+    },
+    {
+      "scenario": "error_rate",
+      "target": "inventory",
+      "seed": 1026,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 130,
+      "requestsToDetect": 6,
+      "findingServices": [
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 2,
+      "full_finalRank": 3,
+      "anomalyOnly_initialRank": 3,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 3,
+      "criticalPathOnly_finalRank": 3,
+      "firstError_initialRank": 1,
+      "firstError_finalRank": 1,
+      "finalRanking": [
+        {
+          "service": "orders",
+          "score": 0.6079001634017865
+        },
+        {
+          "service": "gateway",
+          "score": 0.55
+        },
+        {
+          "service": "inventory",
+          "score": 0.5383371071320117
+        }
+      ]
+    },
+    {
+      "scenario": "error_rate",
+      "target": "inventory",
+      "seed": 1027,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 114,
+      "requestsToDetect": 3,
+      "findingServices": [
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 3,
+      "anomalyOnly_initialRank": 1,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 3,
+      "firstError_initialRank": 1,
+      "firstError_finalRank": 1,
+      "finalRanking": [
+        {
+          "service": "orders",
+          "score": 0.6067888061269904
+        },
+        {
+          "service": "gateway",
+          "score": 0.55
+        },
+        {
+          "service": "inventory",
+          "score": 0.5387828194158479
+        }
+      ]
+    },
+    {
+      "scenario": "error_rate",
+      "target": "inventory",
+      "seed": 1028,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 119,
+      "requestsToDetect": 4,
+      "findingServices": [
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 3,
+      "anomalyOnly_initialRank": 3,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 3,
+      "criticalPathOnly_finalRank": 3,
+      "firstError_initialRank": 1,
+      "firstError_finalRank": 1,
+      "finalRanking": [
+        {
+          "service": "orders",
+          "score": 0.6110132914889619
+        },
+        {
+          "service": "gateway",
+          "score": 0.55
+        },
+        {
+          "service": "inventory",
+          "score": 0.5360652289699874
+        }
+      ]
+    },
+    {
+      "scenario": "error_rate",
+      "target": "inventory",
+      "seed": 1029,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 123,
+      "requestsToDetect": 5,
+      "findingServices": [
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 2,
+      "full_finalRank": 3,
+      "anomalyOnly_initialRank": 3,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 3,
+      "criticalPathOnly_finalRank": 3,
+      "firstError_initialRank": 1,
+      "firstError_finalRank": 1,
+      "finalRanking": [
+        {
+          "service": "orders",
+          "score": 0.6038163409997824
+        },
+        {
+          "service": "gateway",
+          "score": 0.55
+        },
+        {
+          "service": "inventory",
+          "score": 0.5412072644834538
+        }
+      ]
+    },
+    {
+      "scenario": "error_rate",
+      "target": "inventory",
+      "seed": 1030,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 148,
+      "requestsToDetect": 6,
+      "findingServices": [
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 3,
+      "anomalyOnly_initialRank": 3,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 3,
+      "criticalPathOnly_finalRank": 3,
+      "firstError_initialRank": 1,
+      "firstError_finalRank": 1,
+      "finalRanking": [
+        {
+          "service": "orders",
+          "score": 0.6031812249401015
+        },
+        {
+          "service": "gateway",
+          "score": 0.55
+        },
+        {
+          "service": "inventory",
+          "score": 0.5374263457844333
+        }
+      ]
+    },
+    {
+      "scenario": "contention",
+      "target": "inventory",
+      "seed": 1031,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1097,
+      "requestsToDetect": 3,
+      "findingServices": [
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 2,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 3,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 3,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 3,
+      "firstError_finalRank": 3,
+      "finalRanking": [
+        {
+          "service": "inventory",
+          "score": 0.6709286185338639
+        },
+        {
+          "service": "orders",
+          "score": 0.5675426312144094
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "contention",
+      "target": "inventory",
+      "seed": 1032,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1616,
+      "requestsToDetect": 4,
+      "findingServices": [
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 2,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 3,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 3,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 3,
+      "firstError_finalRank": 3,
+      "finalRanking": [
+        {
+          "service": "inventory",
+          "score": 0.6709364504601845
+        },
+        {
+          "service": "orders",
+          "score": 0.567445800563144
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "contention",
+      "target": "inventory",
+      "seed": 1033,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1429,
+      "requestsToDetect": 3,
+      "findingServices": [
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": null,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": null,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": null,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": null,
+      "firstError_finalRank": 3,
+      "finalRanking": [
+        {
+          "service": "inventory",
+          "score": 0.6709108339824446
+        },
+        {
+          "service": "orders",
+          "score": 0.567229174919959
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "contention",
+      "target": "inventory",
+      "seed": 1034,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1061,
+      "requestsToDetect": 3,
+      "findingServices": [
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 3,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 3,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 3,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 3,
+      "firstError_finalRank": 3,
+      "finalRanking": [
+        {
+          "service": "inventory",
+          "score": 0.6709630862679765
+        },
+        {
+          "service": "orders",
+          "score": 0.5674167118079065
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "contention",
+      "target": "inventory",
+      "seed": 1035,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1115,
+      "requestsToDetect": 3,
+      "findingServices": [
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 3,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 3,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 3,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 3,
+      "firstError_finalRank": 3,
+      "finalRanking": [
+        {
+          "service": "inventory",
+          "score": 0.6709057402164813
+        },
+        {
+          "service": "orders",
+          "score": 0.5671295580431325
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "contention",
+      "target": "payments",
+      "seed": 1036,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1071,
+      "requestsToDetect": 3,
+      "findingServices": [
+        "payments",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 3,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 3,
+      "firstError_finalRank": 3,
+      "finalRanking": [
+        {
+          "service": "payments",
+          "score": 0.6692210696825796
+        },
+        {
+          "service": "orders",
+          "score": 0.5673682250034129
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "contention",
+      "target": "payments",
+      "seed": 1037,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 965,
+      "requestsToDetect": 3,
+      "findingServices": [
+        "payments",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 3,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 3,
+      "firstError_finalRank": 3,
+      "finalRanking": [
+        {
+          "service": "payments",
+          "score": 0.6693779282833465
+        },
+        {
+          "service": "orders",
+          "score": 0.5673757917487728
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "contention",
+      "target": "payments",
+      "seed": 1038,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1068,
+      "requestsToDetect": 3,
+      "findingServices": [
+        "payments",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 3,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 3,
+      "firstError_finalRank": 3,
+      "finalRanking": [
+        {
+          "service": "payments",
+          "score": 0.6694319053476994
+        },
+        {
+          "service": "orders",
+          "score": 0.5671989529738752
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "contention",
+      "target": "payments",
+      "seed": 1039,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1594,
+      "requestsToDetect": 4,
+      "findingServices": [
+        "payments",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 3,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 3,
+      "firstError_finalRank": 3,
+      "finalRanking": [
+        {
+          "service": "payments",
+          "score": 0.6694244420915394
+        },
+        {
+          "service": "orders",
+          "score": 0.5672916478164591
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "contention",
+      "target": "payments",
+      "seed": 1040,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1059,
+      "requestsToDetect": 3,
+      "findingServices": [
+        "payments",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 3,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 3,
+      "firstError_finalRank": 3,
+      "finalRanking": [
+        {
+          "service": "payments",
+          "score": 0.6692439062630648
+        },
+        {
+          "service": "orders",
+          "score": 0.5673348911123562
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "contention",
+      "target": "orders",
+      "seed": 1041,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1553,
+      "requestsToDetect": 3,
+      "findingServices": [
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 2,
+      "anomalyOnly_finalRank": 2,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 2,
+      "firstError_finalRank": 2,
+      "finalRanking": [
+        {
+          "service": "orders",
+          "score": 0.71875
+        },
+        {
+          "service": "gateway",
+          "score": 0.45684170922388667
+        }
+      ]
+    },
+    {
+      "scenario": "contention",
+      "target": "orders",
+      "seed": 1042,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1641,
+      "requestsToDetect": 4,
+      "findingServices": [
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 2,
+      "anomalyOnly_finalRank": 2,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 2,
+      "firstError_finalRank": 2,
+      "finalRanking": [
+        {
+          "service": "orders",
+          "score": 0.71875
+        },
+        {
+          "service": "gateway",
+          "score": 0.4469224959099576
+        }
+      ]
+    },
+    {
+      "scenario": "contention",
+      "target": "orders",
+      "seed": 1043,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1621,
+      "requestsToDetect": 4,
+      "findingServices": [
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 2,
+      "anomalyOnly_finalRank": 2,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 2,
+      "firstError_finalRank": 2,
+      "finalRanking": [
+        {
+          "service": "orders",
+          "score": 0.71875
+        },
+        {
+          "service": "gateway",
+          "score": 0.4570192487755306
+        }
+      ]
+    },
+    {
+      "scenario": "contention",
+      "target": "orders",
+      "seed": 1044,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1829,
+      "requestsToDetect": 3,
+      "findingServices": [
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 2,
+      "anomalyOnly_finalRank": 2,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 2,
+      "firstError_finalRank": 2,
+      "finalRanking": [
+        {
+          "service": "orders",
+          "score": 0.71875
+        },
+        {
+          "service": "gateway",
+          "score": 0.45879729310514744
+        }
+      ]
+    },
+    {
+      "scenario": "contention",
+      "target": "orders",
+      "seed": 1045,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1537,
+      "requestsToDetect": 3,
+      "findingServices": [
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 2,
+      "anomalyOnly_finalRank": 2,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 2,
+      "firstError_finalRank": 2,
+      "finalRanking": [
+        {
+          "service": "orders",
+          "score": 0.71875
+        },
+        {
+          "service": "gateway",
+          "score": 0.4544478255401363
+        }
+      ]
+    },
+    {
+      "scenario": "fanout_delay",
+      "target": "inventory",
+      "seed": 1046,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1583,
+      "requestsToDetect": 7,
+      "findingServices": [
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 2,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 3,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 2,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 3,
+      "firstError_finalRank": 3,
+      "finalRanking": [
+        {
+          "service": "inventory",
+          "score": 0.71875
+        },
+        {
+          "service": "orders",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "fanout_delay",
+      "target": "inventory",
+      "seed": 1047,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1655,
+      "requestsToDetect": 8,
+      "findingServices": [
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 2,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 3,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 2,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 3,
+      "firstError_finalRank": 3,
+      "finalRanking": [
+        {
+          "service": "inventory",
+          "score": 0.71875
+        },
+        {
+          "service": "orders",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "fanout_delay",
+      "target": "inventory",
+      "seed": 1048,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1542,
+      "requestsToDetect": 7,
+      "findingServices": [
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 2,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 3,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 2,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 3,
+      "firstError_finalRank": 3,
+      "finalRanking": [
+        {
+          "service": "inventory",
+          "score": 0.71875
+        },
+        {
+          "service": "orders",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "fanout_delay",
+      "target": "inventory",
+      "seed": 1049,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1244,
+      "requestsToDetect": 6,
+      "findingServices": [
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 2,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 3,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 3,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 3,
+      "firstError_finalRank": 3,
+      "finalRanking": [
+        {
+          "service": "inventory",
+          "score": 0.71875
+        },
+        {
+          "service": "orders",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "fanout_delay",
+      "target": "inventory",
+      "seed": 1050,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1613,
+      "requestsToDetect": 6,
+      "findingServices": [
+        "inventory",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 2,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 3,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 3,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 3,
+      "firstError_finalRank": 3,
+      "finalRanking": [
+        {
+          "service": "inventory",
+          "score": 0.71875
+        },
+        {
+          "service": "orders",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "fanout_delay",
+      "target": "payments",
+      "seed": 1051,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1563,
+      "requestsToDetect": 6,
+      "findingServices": [
+        "payments",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 3,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 3,
+      "firstError_finalRank": 3,
+      "finalRanking": [
+        {
+          "service": "payments",
+          "score": 0.71875
+        },
+        {
+          "service": "orders",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "fanout_delay",
+      "target": "payments",
+      "seed": 1052,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1551,
+      "requestsToDetect": 6,
+      "findingServices": [
+        "payments",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 3,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 3,
+      "firstError_finalRank": 3,
+      "finalRanking": [
+        {
+          "service": "payments",
+          "score": 0.71875
+        },
+        {
+          "service": "orders",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "fanout_delay",
+      "target": "payments",
+      "seed": 1053,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1387,
+      "requestsToDetect": 6,
+      "findingServices": [
+        "payments",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 3,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 3,
+      "firstError_finalRank": 3,
+      "finalRanking": [
+        {
+          "service": "payments",
+          "score": 0.71875
+        },
+        {
+          "service": "orders",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "fanout_delay",
+      "target": "payments",
+      "seed": 1054,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1559,
+      "requestsToDetect": 6,
+      "findingServices": [
+        "payments",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 3,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 3,
+      "firstError_finalRank": 3,
+      "finalRanking": [
+        {
+          "service": "payments",
+          "score": 0.71875
+        },
+        {
+          "service": "orders",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "fanout_delay",
+      "target": "payments",
+      "seed": 1055,
+      "detected": true,
+      "preOnsetFinding": false,
+      "detectionMs": 1613,
+      "requestsToDetect": 7,
+      "findingServices": [
+        "payments",
+        "orders",
+        "gateway"
+      ],
+      "full_initialRank": 1,
+      "full_finalRank": 1,
+      "anomalyOnly_initialRank": 3,
+      "anomalyOnly_finalRank": 3,
+      "criticalPathOnly_initialRank": 1,
+      "criticalPathOnly_finalRank": 1,
+      "firstError_initialRank": 3,
+      "firstError_finalRank": 3,
+      "finalRanking": [
+        {
+          "service": "payments",
+          "score": 0.71875
+        },
+        {
+          "service": "orders",
+          "score": 0.46874999999999994
+        },
+        {
+          "service": "gateway",
+          "score": 0.43749999999999994
+        }
+      ]
+    },
+    {
+      "scenario": "no_fault",
+      "target": null,
+      "seed": 1056,
+      "detected": false,
+      "preOnsetFinding": false,
+      "detectionMs": null,
+      "requestsToDetect": null,
+      "findingServices": []
+    },
+    {
+      "scenario": "no_fault",
+      "target": null,
+      "seed": 1057,
+      "detected": false,
+      "preOnsetFinding": false,
+      "detectionMs": null,
+      "requestsToDetect": null,
+      "findingServices": []
+    },
+    {
+      "scenario": "no_fault",
+      "target": null,
+      "seed": 1058,
+      "detected": false,
+      "preOnsetFinding": false,
+      "detectionMs": null,
+      "requestsToDetect": null,
+      "findingServices": []
+    },
+    {
+      "scenario": "no_fault",
+      "target": null,
+      "seed": 1059,
+      "detected": false,
+      "preOnsetFinding": false,
+      "detectionMs": null,
+      "requestsToDetect": null,
+      "findingServices": []
+    },
+    {
+      "scenario": "no_fault",
+      "target": null,
+      "seed": 1060,
+      "detected": false,
+      "preOnsetFinding": false,
+      "detectionMs": null,
+      "requestsToDetect": null,
+      "findingServices": []
+    },
+    {
+      "scenario": "no_fault",
+      "target": null,
+      "seed": 1061,
+      "detected": false,
+      "preOnsetFinding": false,
+      "detectionMs": null,
+      "requestsToDetect": null,
+      "findingServices": []
+    },
+    {
+      "scenario": "no_fault",
+      "target": null,
+      "seed": 1062,
+      "detected": false,
+      "preOnsetFinding": false,
+      "detectionMs": null,
+      "requestsToDetect": null,
+      "findingServices": []
+    },
+    {
+      "scenario": "no_fault",
+      "target": null,
+      "seed": 1063,
+      "detected": false,
+      "preOnsetFinding": false,
+      "detectionMs": null,
+      "requestsToDetect": null,
+      "findingServices": []
+    },
+    {
+      "scenario": "no_fault",
+      "target": null,
+      "seed": 1064,
+      "detected": false,
+      "preOnsetFinding": false,
+      "detectionMs": null,
+      "requestsToDetect": null,
+      "findingServices": []
+    },
+    {
+      "scenario": "no_fault",
+      "target": null,
+      "seed": 1065,
+      "detected": false,
+      "preOnsetFinding": false,
+      "detectionMs": null,
+      "requestsToDetect": null,
+      "findingServices": []
+    },
+    {
+      "scenario": "no_fault",
+      "target": null,
+      "seed": 1066,
+      "detected": false,
+      "preOnsetFinding": false,
+      "detectionMs": null,
+      "requestsToDetect": null,
+      "findingServices": []
+    },
+    {
+      "scenario": "no_fault",
+      "target": null,
+      "seed": 1067,
+      "detected": false,
+      "preOnsetFinding": false,
+      "detectionMs": null,
+      "requestsToDetect": null,
+      "findingServices": []
+    },
+    {
+      "scenario": "no_fault",
+      "target": null,
+      "seed": 1068,
+      "detected": false,
+      "preOnsetFinding": false,
+      "detectionMs": null,
+      "requestsToDetect": null,
+      "findingServices": []
+    },
+    {
+      "scenario": "no_fault",
+      "target": null,
+      "seed": 1069,
+      "detected": false,
+      "preOnsetFinding": false,
+      "detectionMs": null,
+      "requestsToDetect": null,
+      "findingServices": []
+    },
+    {
+      "scenario": "no_fault",
+      "target": null,
+      "seed": 1070,
+      "detected": false,
+      "preOnsetFinding": false,
+      "detectionMs": null,
+      "requestsToDetect": null,
+      "findingServices": []
+    },
+    {
+      "scenario": "no_fault",
+      "target": null,
+      "seed": 1071,
+      "detected": false,
+      "preOnsetFinding": false,
+      "detectionMs": null,
+      "requestsToDetect": null,
+      "findingServices": []
+    },
+    {
+      "scenario": "no_fault",
+      "target": null,
+      "seed": 1072,
+      "detected": false,
+      "preOnsetFinding": false,
+      "detectionMs": null,
+      "requestsToDetect": null,
+      "findingServices": []
+    },
+    {
+      "scenario": "no_fault",
+      "target": null,
+      "seed": 1073,
+      "detected": false,
+      "preOnsetFinding": false,
+      "detectionMs": null,
+      "requestsToDetect": null,
+      "findingServices": []
+    },
+    {
+      "scenario": "no_fault",
+      "target": null,
+      "seed": 1074,
+      "detected": false,
+      "preOnsetFinding": false,
+      "detectionMs": null,
+      "requestsToDetect": null,
+      "findingServices": []
+    },
+    {
+      "scenario": "no_fault",
+      "target": null,
+      "seed": 1075,
+      "detected": false,
+      "preOnsetFinding": false,
+      "detectionMs": null,
+      "requestsToDetect": null,
+      "findingServices": []
+    }
+  ]
+}

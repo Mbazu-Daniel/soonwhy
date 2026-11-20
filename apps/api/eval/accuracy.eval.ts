@@ -23,7 +23,6 @@ const SCENARIOS: Scenario[] = [
 ];
 
 const METHODS = ["full", "anomalyOnly", "criticalPathOnly", "firstError"] as const;
-type Method = (typeof METHODS)[number];
 
 function pessimisticRank(list: RankedService[], truth: string): number | undefined {
   const hit = list.find((r) => r.service === truth);
@@ -105,6 +104,6 @@ describe("controlled fault-injection evaluation", () => {
       console.log(`[${rows.length}] no_fault #${i} falseAlarm=${row.detected || row.preOnsetFinding}`);
     }
     mkdirSync(new URL("./results", import.meta.url).pathname, { recursive: true });
-    writeFileSync(new URL("./results/accuracy.json", import.meta.url).pathname, JSON.stringify({ config: { REPS, NORMAL_RUNS, WARMUP_REQUESTS, FAULT_REQUESTS }, rows }, null, 2));
+    writeFileSync(new URL(process.env.EVAL_TRACE_MODE === "production" ? "./results/accuracy-production.json" : process.env.EVAL_TRACE_MODE === "full" ? "./results/accuracy-selftime.json" : "./results/accuracy.json", import.meta.url).pathname, JSON.stringify({ config: { traceMode: process.env.EVAL_TRACE_MODE ?? "servers", REPS, NORMAL_RUNS, WARMUP_REQUESTS, FAULT_REQUESTS }, rows }, null, 2));
   });
 });

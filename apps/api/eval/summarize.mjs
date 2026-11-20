@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-const { rows } = JSON.parse(readFileSync(new URL("./results/accuracy.json", import.meta.url)));
+const { rows } = JSON.parse(readFileSync(new URL(process.argv[2] ?? "./results/accuracy.json", import.meta.url)));
 const faults = rows.filter((r) => r.target);
 const normals = rows.filter((r) => !r.target);
 const M = ["full", "anomalyOnly", "criticalPathOnly", "firstError"];

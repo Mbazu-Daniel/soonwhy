@@ -7,6 +7,7 @@ import type {
 } from "../src/modules/v1/detection/detections/root-cause/root-cause.ranker.types";
 import type { ScoringWeights } from "../src/modules/v1/detection/detections/root-cause/root-cause.types";
 import { DEFAULT_WEIGHTS } from "../src/modules/v1/detection/detections/root-cause/root-cause.types";
+import { buildRankingInputs } from "../src/modules/v1/detection/detections/root-cause/root-cause.inputs";
 import type { AnalysisSnapshot, AnalyzerOptions, RankedService, SpanRecord } from "./types";
 
 export const DEFAULT_OPTIONS: AnalyzerOptions = {
@@ -14,6 +15,7 @@ export const DEFAULT_OPTIONS: AnalyzerOptions = {
   recentWindow: 10,
   errorWindow: 20,
   traceWindow: 40,
+  traceMode: process.env.EVAL_TRACE_MODE === "production" ? "production" : process.env.EVAL_TRACE_MODE === "full" ? "full" : "servers",
 };
 
 const ANOMALY_ONLY: ScoringWeights = { anomalySeverity: 1, graphPosition: 0, criticalPathContribution: 0, errorPropagation: 0 };
@@ -159,14 +161,31 @@ export class Analyzer {
       const servers = spans.filter((s) => s.kind === "server");
       if (servers.length === 0) continue;
       const critical = criticalPathSpanIds(spans);
-      out.push(servers.map((s) => ({ spanId: s.spanId, serviceName: s.service, duration: s.end - s.start, startTime: s.start, parentSpanId: s.parentSpanId, isCriticalPath: critical.has(s.spanId) })));
+      const included = this.options.traceMode === "full" ? spans : servers;
+      out.push(included.map((s) => ({ spanId: s.spanId, serviceName: s.service, operationName: s.name, duration: s.end - s.start, startTime: s.start, parentSpanId: s.parentSpanId, isCriticalPath: critical.has(s.spanId) })));
     }
     return out;
   }
 
+  private productionInputs() {
+    const recent = this.traceOrder.slice(-this.options.traceWindow).map((id) =>
+      (this.traces.get(id) ?? []).map((s) => ({
+        traceId: s.traceId,
+        spanId: s.spanId,
+        parentSpanId: s.parentSpanId,
+        name: s.name,
+        duration: s.end - s.start,
+        timestamp: new Date(s.start).toISOString(),
+        service: s.service,
+        statusCode: s.error ? 2 : 1,
+      })),
+    );
+    return buildRankingInputs(recent);
+  }
+
   private rank(findings: RankingInput["findings"], now: number): AnalysisSnapshot {
     const errors = this.errorLog.filter((e) => Date.parse(e.timestamp) >= (this.earliestAnomaly() ?? 0) - 2000);
-    const input: RankingInput = { findings, traces: this.recentTraces(), errors, dependencyMap: this.dependencyMap() };
+    const input: RankingInput = this.options.traceMode === "production" ? { findings, ...this.productionInputs() } : { findings, traces: this.recentTraces(), errors, dependencyMap: this.dependencyMap() };
     const toList = (weights: ScoringWeights): RankedService[] =>
       this.ranker.rank({ ...input, weights }).candidates.filter((c) => c.candidateType === "service").map((c) => ({ service: c.serviceName, score: c.score }));
 

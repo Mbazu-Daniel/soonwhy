@@ -2,7 +2,7 @@ import http from "node:http";
 import { createRequire } from "node:module";
 
 const require = createRequire(new URL("../../../sdk/node/package.json", import.meta.url));
-const { context, trace, SpanKind, SpanStatusCode, ROOT_CONTEXT } = require("@opentelemetry/api");
+const { trace, SpanKind, SpanStatusCode, ROOT_CONTEXT } = require("@opentelemetry/api");
 const { BasicTracerProvider, SimpleSpanProcessor } = require("@opentelemetry/sdk-trace-base");
 const { resourceFromAttributes } = require("@opentelemetry/resources");
 
@@ -67,7 +67,6 @@ function spin(ms) {
 
 function call(target, ctx) {
   const span = tracer.startSpan(`call ${target}`, { kind: SpanKind.CLIENT, attributes: { "peer.service": target } }, ctx);
-  const childCtx = trace.setSpan(ctx, span);
   const { traceId, spanId } = span.spanContext();
   return new Promise((resolve) => {
     const req = http.request(

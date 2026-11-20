@@ -30,4 +30,5 @@ export interface AnalyzerOptions {
   recentWindow: number;
   errorWindow: number;
   traceWindow: number;
+  traceMode: "servers" | "full" | "production";
 }
