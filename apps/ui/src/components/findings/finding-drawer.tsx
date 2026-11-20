@@ -2,6 +2,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { Badge } from '~/components/ui/badge';
 import { FindingStatusActions } from '~/components/findings/finding-status-actions';
+import { SuspectDeploymentRow } from '~/components/findings/suspect-deployment';
 import { RemediationPanel } from '~/components/findings/remediation-panel';
 import { FINDING_CATEGORY_LABELS } from '~/lib/findings.constants';
 import { evidenceObject, ruleLabel, statusLabel } from '~/lib/findings';
@@ -43,6 +44,7 @@ export function FindingDrawer({
                 </DialogPrimitive.Close>
               </div>
 
+              <SuspectDeploymentRow projectId={projectId} finding={finding} />
               <div>
                 <p className="font-mono text-[11px] tracking-wide text-muted-foreground">{ruleLabel(finding.type)}</p>
                 <DialogPrimitive.Title className="mt-1 text-xl font-semibold leading-snug">{finding.title}</DialogPrimitive.Title>

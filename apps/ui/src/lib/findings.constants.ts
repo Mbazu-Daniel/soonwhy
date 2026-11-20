@@ -13,5 +13,7 @@ export const FINDING_CATEGORY_LABELS: Record<FindingCategory, string> = {
   vulnerability: 'Vulnerabilities',
 };
 
+export const FINDING_CATEGORIES = Object.keys(FINDING_CATEGORY_LABELS) as FindingCategory[];
+
 export const FINDINGS_PAGE_SIZE = 200;
 export const REPORT_DAY_OPTIONS = [7, 30, 90];

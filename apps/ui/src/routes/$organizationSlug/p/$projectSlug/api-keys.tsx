@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import { QueryErrorState } from '~/components/query-error-state';
 import { api } from '~/lib/api';
 import { useProject } from '~/lib/project-context';
-import { MCP_READ_SCOPE } from '~/lib/api-key-scopes';
+import { MCP_READ_SCOPE, MCP_WRITE_SCOPE } from '~/lib/api-key-scopes';
 import { McpConnectGuide } from '~/components/mcp-connect-guide';
 import type { ApiKey } from '~/lib/types';
 
@@ -231,11 +231,12 @@ function CreateKeyDialog({
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [mcpAccess, setMcpAccess] = useState(false);
+  const [mcpWrite, setMcpWrite] = useState(false);
 
   const create = useMutation({
     mutationFn: () => api.post<ApiKey>(`/projects/${projectId}/api-keys`, {
       name: name.trim() || (mcpAccess ? 'MCP key' : 'Ingestion key'),
-      scopes: mcpAccess ? [MCP_READ_SCOPE] : [],
+      scopes: mcpAccess ? (mcpWrite ? [MCP_READ_SCOPE, MCP_WRITE_SCOPE] : [MCP_READ_SCOPE]) : [],
     }),
     onSuccess: (key) => {
       onCreated(key);
@@ -272,9 +273,18 @@ function CreateKeyDialog({
             <input type="checkbox" className="mt-1" checked={mcpAccess} onChange={(event) => setMcpAccess(event.target.checked)} />
             <span>
               Allow read access over MCP
-              <span className="block text-xs text-muted-foreground">Lets an AI assistant read this project's errors, logs, traces and findings. It cannot change anything. Leave off for ingestion keys.</span>
+              <span className="block text-xs text-muted-foreground">Lets an AI assistant read this project's errors, logs, traces and findings. It cannot change anything unless you also allow changes. Leave off for ingestion keys.</span>
             </span>
           </label>
+          {mcpAccess && (
+            <label className="flex items-start gap-2 text-sm">
+              <input type="checkbox" className="mt-1" checked={mcpWrite} onChange={(event) => setMcpWrite(event.target.checked)} />
+              <span>
+                Also allow changes over MCP
+                <span className="block text-xs text-muted-foreground">Lets the assistant set a finding's status and request a root cause analysis, which uses AI quota. Nothing else.</span>
+              </span>
+            </label>
+          )}
           {create.isError && <p role="alert" className="text-sm text-destructive">Could not create the key. Try again.</p>}
           <Button type="submit" className="w-full" disabled={create.isPending}>
             {create.isPending ? <Loader2 className="animate-spin" /> : <Plus />}
