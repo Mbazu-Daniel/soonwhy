@@ -1,14 +1,15 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { hostSampleValues, metricValues } from "./alert-metric-values";
+import { atMetricPath, hostSampleValues, metricValues } from "./alert-metric-values";
 import { HOST_SAMPLE_COUNT_METRIC } from "../domain/alert-metric-values.constants";
 import { MetricsRepository } from "../../telemetry/metrics/infrastructure/metrics.repository";
 import { NotificationService } from "./notification.service";
 import { IncidentsService } from "../../detection/incidents/application/incidents.service";
 import { MaintenanceWindowsService } from "../../detection/maintenance-windows/application/maintenance-windows.service";
 import { db } from "../../../../common/db";
-import { alertTriggers, alertRules } from "../../../../common/db/schema";
+import { alertRules } from "../../../../common/db/schema";
 import { eq, and, or, isNull } from "drizzle-orm";
 import { AlertRuleEngineService } from "../alert-engine/alert-rule-engine.service";
+import { alertFinding, raiseFinding, resolveAlertFinding } from "../../detection/findings";
 import { DedupService } from "../dedup/dedup.service";
 import type { AlertRuleSeverity } from "../../../../common/db/schema";
 
@@ -21,6 +22,7 @@ interface AlertRuleRow {
   minSeverity: string;
   channelIds: string[];
   dedupeWindowSeconds: number;
+  findingCategory?: "error" | "performance" | "security" | "vulnerability" | null;
 }
 
 import { decideAlertEvaluationRoute } from "../domain/alert-evaluation-fsm";
@@ -140,24 +142,8 @@ export class AlertEvaluationService {
     let hasIncidentProtection = false;
 
     if (!hasNoData && satisfied) {
-      const dedupResult = await this.dedupService.shouldDedupe(
-        orgId,
-        projectId,
-        rule.id,
-        now,
-        rule.name,
-      );
-      isDedupe = dedupResult.isDedupe;
-
-      isSuppressed = await this.maintenanceWindowsService.isAlertSuppressed(
-        orgId,
-        projectId,
-        rule.id,
-        undefined,
-      );
-
-      hasIncidentProtection =
-        await this.dedupService.hasActiveIncidentProtection(rule.id);
+      ({ isDedupe, hasIncidentProtection } = await this.dedupService.assess(orgId, projectId, rule, now));
+      isSuppressed = await this.maintenanceWindowsService.isAlertSuppressed(orgId, projectId, rule.id, undefined);
     }
 
     return decideAlertEvaluationRoute({
@@ -200,53 +186,54 @@ export class AlertEvaluationService {
   }
 
   private async handleNoDataRoute(ctx: AlertEvaluationRouteContext) {
-    const activeTrigger = await this.getActiveTriggerForRule(ctx.rule.id);
-    if (activeTrigger) {
-      await this.dedupService.transitionToNoData(activeTrigger.id, {
-        mode: "alerting",
-        thresholdMinutes: 5,
-      });
-    }
+    await this.dedupService.markNoData(ctx.rule.id, { mode: "alerting", thresholdMinutes: 5 });
   }
 
   private async handleDedupedRoute(ctx: AlertEvaluationRouteContext) {
-    const [existingTrigger] = await db
-      .select({
-        id: alertTriggers.id,
-        streakCount: alertTriggers.streakCount,
-      })
-      .from(alertTriggers)
-      .where(
-        and(
-          eq(alertTriggers.alertRuleId, ctx.rule.id),
-          eq(alertTriggers.status, "active"),
-        ),
-      )
-      .limit(1);
+    const streak = await this.dedupService.markFiring(ctx.rule.id);
+    await this.flagFinding(ctx);
+    this.logger.log(`Alert ${ctx.rule.id} deduped (streak: ${streak})`);
+  }
 
-    if (existingTrigger) {
-      await this.dedupService.updateStreak(existingTrigger.id, true);
-      await this.dedupService.updateAlertState(
-        existingTrigger.id,
-        "firing",
-        "Condition satisfied (deduped)",
+  private async flagFinding(ctx: AlertEvaluationRouteContext) {
+    try {
+      await raiseFinding(
+        alertFinding({
+          orgId: ctx.orgId,
+          projectId: ctx.projectId,
+          ruleId: ctx.rule.id,
+          ruleName: ctx.rule.name,
+          ruleSeverity: ctx.rule.minSeverity,
+          metric: ctx.condition.metric,
+          operator: ctx.condition.operator,
+          description: ctx.condition.description,
+          value: ctx.metricValue,
+          threshold: ctx.threshold,
+          at: ctx.now,
+          category: ctx.rule.findingCategory,
+        }),
+        ctx.now,
       );
+    } catch (error) {
+      this.logger.warn(`Could not flag alert ${ctx.rule.id} as a finding: ${error instanceof Error ? error.message : String(error)}`);
     }
-    this.logger.log(
-      `Alert ${ctx.rule.id} deduped (streak: ${existingTrigger?.streakCount ?? 0})`,
-    );
+  }
+
+  private async resolveFinding(ctx: AlertEvaluationRouteContext) {
+    try {
+      await resolveAlertFinding(ctx.projectId, ctx.rule.id, ctx.now);
+    } catch (error) {
+      this.logger.warn(`Could not resolve the finding for alert ${ctx.rule.id}: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   private async handleDispatchedRoute(ctx: AlertEvaluationRouteContext) {
-    await this.dedupService.recordTrigger(
-      ctx.orgId,
-      ctx.projectId,
-      ctx.rule.id,
-      ctx.rule.name,
-      ctx.now,
-      ctx.rule.minSeverity,
-      { metric: ctx.condition.metric, value: ctx.metricValue },
-    );
+    await this.dedupService.markDispatched(ctx.rule.id, ctx.now, ctx.rule.minSeverity, {
+      metric: ctx.condition.metric,
+      value: ctx.metricValue,
+    });
+
+    await this.flagFinding(ctx);
 
     const incidentId = `alert-${ctx.rule.id}-${ctx.condition.metric}`;
     const title = `Alert: ${ctx.rule.name}`;
@@ -283,31 +270,9 @@ export class AlertEvaluationService {
   }
 
   private async handleHealthyResetRoute(ctx: AlertEvaluationRouteContext) {
-    const activeTrigger = await this.getActiveTriggerForRule(ctx.rule.id);
-    if (activeTrigger) {
-      await this.dedupService.updateStreak(activeTrigger.id, false);
-      await this.dedupService.updateAlertState(
-        activeTrigger.id,
-        "healthy",
-        "Condition no longer satisfied",
-      );
-      await this.dedupService.resolveTrigger(activeTrigger.id);
-      await this.incidentsService.checkForRecovery(ctx.rule.id, ctx.metricData);
-    }
-  }
-
-  private async getActiveTriggerForRule(alertRuleId: string) {
-    const [activeTrigger] = await db
-      .select({ id: alertTriggers.id })
-      .from(alertTriggers)
-      .where(
-        and(
-          eq(alertTriggers.alertRuleId, alertRuleId),
-          eq(alertTriggers.status, "active"),
-        ),
-      )
-      .limit(1);
-    return activeTrigger;
+    if (!(await this.dedupService.recover(ctx.rule.id))) return;
+    await this.resolveFinding(ctx);
+    await this.incidentsService.checkForRecovery(ctx.rule.id, ctx.metricData);
   }
 
   private async fetchMetricData(
@@ -319,7 +284,7 @@ export class AlertEvaluationService {
   ): Promise<Record<string, unknown>> {
     try {
       if (metric === HOST_SAMPLE_COUNT_METRIC) {
-        return hostSampleValues(await this.metricsRepository.countHostSamples({ orgId, projectId, from, to }));
+        return atMetricPath(metric, hostSampleValues(await this.metricsRepository.countHostSamples({ orgId, projectId, from, to })));
       }
       const buckets = await this.metricsRepository.queryMetrics({
         orgId,
@@ -330,7 +295,7 @@ export class AlertEvaluationService {
         service: "",
       });
 
-      return metricValues(metric, buckets[buckets.length - 1]);
+      return atMetricPath(metric, metricValues(metric, buckets[buckets.length - 1]));
     } catch (error) {
       this.logger.error(
         `Failed to fetch metric data for ${metric}`,

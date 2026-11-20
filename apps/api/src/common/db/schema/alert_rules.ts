@@ -9,6 +9,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
 import { projects } from "./projects";
+import { FINDING_CATEGORIES } from "./finding-lifecycle";
 
 export type AlertRuleSeverity = "critical" | "high" | "medium" | "low";
 export type AlertRuleStatus = "active" | "disabled";
@@ -37,6 +38,7 @@ export const alertRules = pgTable(
       .default(300)
       .notNull(),
     conditions: jsonb("conditions").default([]).notNull(),
+    findingCategory: text("finding_category", { enum: FINDING_CATEGORIES }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

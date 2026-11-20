@@ -5,7 +5,8 @@ import {
   alertRules,
   type AlertState,
 } from "../../../../common/db/schema";
-import { and, eq, sql, gt } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
+import { dispatchedAtOf } from "../domain/alert-dispatch";
 import {
   canTransitionTriggerState,
   canResolveTrigger,
@@ -20,7 +21,47 @@ interface NoDataPolicy {
 export class DedupService {
   private readonly logger = new Logger(DedupService.name);
 
-  async shouldDedupe(
+  async assess(
+    orgId: string,
+    projectId: string,
+    rule: { id: string; name: string },
+    now: Date,
+  ): Promise<{ isDedupe: boolean; hasIncidentProtection: boolean }> {
+    const { isDedupe } = await this.shouldDedupe(orgId, projectId, rule.id, now, rule.name);
+    return { isDedupe, hasIncidentProtection: await this.hasActiveIncidentProtection(rule.id) };
+  }
+
+  async markFiring(alertRuleId: string): Promise<number> {
+    const trigger = await this.activeTrigger(alertRuleId);
+    if (!trigger) return 0;
+    await this.updateAlertState(trigger.id, "firing", "Condition satisfied (deduped)");
+    return trigger.streakCount;
+  }
+
+  async recover(alertRuleId: string): Promise<boolean> {
+    const trigger = await this.activeTrigger(alertRuleId);
+    if (!trigger) return false;
+    await this.updateStreak(trigger.id, false);
+    await this.updateAlertState(trigger.id, "healthy", "Condition no longer satisfied");
+    await this.resolveTrigger(trigger.id);
+    return true;
+  }
+
+  async markNoData(alertRuleId: string, policy: NoDataPolicy): Promise<void> {
+    const trigger = await this.activeTrigger(alertRuleId);
+    if (trigger) await this.transitionToNoData(trigger.id, policy);
+  }
+
+  private async activeTrigger(alertRuleId: string) {
+    const [trigger] = await db
+      .select({ id: alertTriggers.id, streakCount: alertTriggers.streakCount })
+      .from(alertTriggers)
+      .where(and(eq(alertTriggers.alertRuleId, alertRuleId), eq(alertTriggers.status, "active")))
+      .limit(1);
+    return trigger;
+  }
+
+  private async shouldDedupe(
     orgId: string,
     projectId: string,
     alertRuleId: string,
@@ -55,55 +96,43 @@ export class DedupService {
       .onConflictDoNothing()
       .returning({ id: alertTriggers.id });
 
-    if (claimed.length === 0) {
-      const [recent] = await db
-        .select({ triggeredAt: alertTriggers.triggeredAt })
-        .from(alertTriggers)
-        .where(
-          and(
-            eq(alertTriggers.alertRuleId, alertRuleId),
-            eq(alertTriggers.orgId, orgId),
-            eq(alertTriggers.projectId, projectId),
-            eq(alertTriggers.status, "active"),
-            gt(alertTriggers.triggeredAt, cutoff),
-          ),
-        )
-        .orderBy(sql`${alertTriggers.triggeredAt} DESC`)
-        .limit(1);
-      return { isDedupe: true, lastTriggered: recent?.triggeredAt };
-    }
+    if (claimed.length > 0) return { isDedupe: false };
 
+    const [active] = await db
+      .update(alertTriggers)
+      .set({ streakCount: sql`${alertTriggers.streakCount} + 1`, updatedAt: new Date() })
+      .where(
+        and(
+          eq(alertTriggers.alertRuleId, alertRuleId),
+          eq(alertTriggers.orgId, orgId),
+          eq(alertTriggers.projectId, projectId),
+          eq(alertTriggers.status, "active"),
+        ),
+      )
+      .returning({ metadata: alertTriggers.metadata });
+
+    const dispatchedAt = dispatchedAtOf(active?.metadata);
+    if (dispatchedAt && dispatchedAt > cutoff) return { isDedupe: true, lastTriggered: dispatchedAt };
     return { isDedupe: false };
   }
 
-  async recordTrigger(
-    orgId: string,
-    projectId: string,
+  async markDispatched(
     alertRuleId: string,
-    alertName: string,
-    triggeredAt: Date,
+    dispatchedAt: Date,
     severity: string,
     metadata: Record<string, unknown>,
   ): Promise<void> {
     await db
-      .insert(alertTriggers)
-      .values({
-        orgId,
-        projectId,
-        alertRuleId,
-        alertName,
-        triggeredAt,
-        status: "active",
-        state: "firing",
+      .update(alertTriggers)
+      .set({
         severity: severity as "critical" | "high" | "medium" | "low",
-        streakCount: 1,
-        lastStreakResetAt: triggeredAt,
-        metadata,
+        metadata: { ...metadata, dispatchedAt: dispatchedAt.toISOString() },
+        updatedAt: new Date(),
       })
-      .onConflictDoNothing();
+      .where(and(eq(alertTriggers.alertRuleId, alertRuleId), eq(alertTriggers.status, "active")));
   }
 
-  async updateStreak(
+  private async updateStreak(
     alertTriggerId: string,
     increment: boolean,
   ): Promise<void> {
@@ -127,7 +156,7 @@ export class DedupService {
     }
   }
 
-  async resolveTrigger(alertTriggerId: string): Promise<void> {
+  private async resolveTrigger(alertTriggerId: string): Promise<void> {
     const [current] = await db
       .select({ status: alertTriggers.status })
       .from(alertTriggers)
@@ -145,7 +174,7 @@ export class DedupService {
       .where(and(eq(alertTriggers.id, alertTriggerId), eq(alertTriggers.status, "active")));
   }
 
-  async updateAlertState(
+  private async updateAlertState(
     alertTriggerId: string,
     newState: AlertState,
     reason: string,
@@ -182,7 +211,7 @@ export class DedupService {
       .where(and(eq(alertTriggers.id, alertTriggerId), eq(alertTriggers.status, "active")));
   }
 
-  async transitionToNoData(
+  private async transitionToNoData(
     alertTriggerId: string,
     noDataPolicy: NoDataPolicy,
   ): Promise<void> {
@@ -207,7 +236,7 @@ export class DedupService {
     }
   }
 
-  async hasActiveIncidentProtection(alertRuleId: string): Promise<boolean> {
+  private async hasActiveIncidentProtection(alertRuleId: string): Promise<boolean> {
     const [trigger] = await db
       .select({ streakCount: alertTriggers.streakCount, status: alertTriggers.status })
       .from(alertTriggers)
@@ -220,17 +249,5 @@ export class DedupService {
       .limit(1);
 
     return trigger ? trigger.streakCount >= 2 : false;
-  }
-
-  async getAlertState(alertRuleId: string): Promise<AlertState> {
-    const [trigger] = await db
-      .select({ state: alertTriggers.state, status: alertTriggers.status })
-      .from(alertTriggers)
-      .where(eq(alertTriggers.alertRuleId, alertRuleId))
-      .orderBy(sql`${alertTriggers.triggeredAt} DESC`)
-      .limit(1);
-
-    if (!trigger || trigger.status === "resolved") return "healthy";
-    return (trigger.state as AlertState) ?? "healthy";
   }
 }

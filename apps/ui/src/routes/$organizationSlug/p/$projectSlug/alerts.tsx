@@ -45,6 +45,7 @@ function ProjectAlertsPage() {
         minSeverity: input.minSeverity,
         channelIds: input.channelIds,
         dedupeWindowSeconds: input.dedupeWindowSeconds,
+        findingCategory: input.findingCategory,
         ...(editing ? { status: input.status } : {}),
       };
       return editing

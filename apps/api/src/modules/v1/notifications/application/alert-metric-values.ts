@@ -33,3 +33,12 @@ export function metricValues(
 export function hostSampleValues(count: number): Record<string, unknown> {
   return { value: count, sampleCount: count };
 }
+
+export function atMetricPath(metric: string, values: Record<string, unknown>): Record<string, unknown> {
+  if (!("value" in values)) return values;
+  const nested = metric
+    .split(".")
+    .reverse()
+    .reduce<unknown>((inner, key) => ({ [key]: inner }), values.value) as Record<string, unknown>;
+  return { ...values, ...nested };
+}
