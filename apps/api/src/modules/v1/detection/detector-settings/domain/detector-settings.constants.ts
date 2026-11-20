@@ -181,6 +181,12 @@ export const DETECTOR_DEFINITIONS: readonly DetectorDefinition[] = [
     thresholdKeys: [],
   },
   {
+    key: "sensitive_data_exposure",
+    label: "Sensitive data in responses",
+    description: "Detects passwords, tokens and card data returned in API responses.",
+    thresholdKeys: [],
+  },
+  {
     key: "bottleneck",
     label: "Correlated bottleneck",
     description:

@@ -110,6 +110,10 @@ export const FINDING_KINDS: Record<FindingType, { category: FindingCategory; rec
     category: "security",
     recommendation: "Rotate the exposed credential now. Then stop logging it: redact secrets and authorization headers in the logger, and delete or restrict the log lines that already contain it.",
   },
+  sensitive_data_exposure: {
+    category: "security",
+    recommendation: "Stop returning this field. Remove it from the response model or the serializer, so it is never sent to the client. If it was already exposed, rotate any credential it carried and check who called this route.",
+  },
   alert_rule: {
     category: "performance",
     recommendation: "Your alert rule fired. Check the metric in the evidence against recent deploys and traffic, decide whether it is a real problem, then mark this finding resolved or ignore it.",
