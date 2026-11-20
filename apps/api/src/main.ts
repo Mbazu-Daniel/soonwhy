@@ -16,6 +16,7 @@ import compression from "compression";
 import helmet from "helmet";
 import morgan from "morgan";
 import { AppModule } from "./app.module";
+import { APP_CREATE_OPTIONS } from "./common/app-options";
 import { MetricsInterceptor } from "./common/telemetry/metrics.interceptor";
 import { GlobalExceptionFilter } from "./common";
 import { ensureQuickwitIndexes } from "./common/quickwit/ensure-indexes";
@@ -43,7 +44,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestNodeApplication>(
     AppModule,
     new NodeAdapter(),
-    { rawBody: true },
+    APP_CREATE_OPTIONS,
   );
 
   app.useLogger(new PiiMaskingLogger());
