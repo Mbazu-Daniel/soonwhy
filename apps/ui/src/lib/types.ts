@@ -1,3 +1,4 @@
+import type { FindingCategory } from './findings.types';
 export interface ApiKey {
   id: string;
   name: string;
@@ -31,6 +32,7 @@ export interface AlertRule {
   channelIds: string[];
   status: string;
   dedupeWindowSeconds: number;
+  findingCategory: FindingCategory | null;
   createdAt: string;
   updatedAt?: string;
 }
@@ -43,6 +45,7 @@ export interface AlertRuleInput {
   channelIds: string[];
   status?: string;
   dedupeWindowSeconds: number;
+  findingCategory: FindingCategory | null;
 }
 
 export interface NotificationChannel {

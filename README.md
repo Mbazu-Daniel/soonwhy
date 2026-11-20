@@ -116,7 +116,7 @@ Copy `.env.example` for local work or `.env.backend.example` for the production 
 | `EMAIL_PROVIDER`, `RESEND_API_KEY`, `RESEND_FROM`, `ZEPTOMAIL_API_KEY`, `DEFAULT_FROM_EMAIL` | Outgoing email |
 | `GITHUB_CLIENT_ID` + `GITHUB_CLIENT_SECRET`, `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | Social sign-in. Each pair turns its provider on |
 | `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` | Single sign-on. All three turn it on. `OIDC_PROVIDER_ID`, `OIDC_DISPLAY_NAME`, `OIDC_SCOPES` tune it |
-| `GITHUB_WEBHOOK_SECRET` | Verifies GitHub webhook deliveries |
+| `GITHUB_WEBHOOK_SECRET` | Master key for the per-project GitHub webhook secrets. Each project reads its url and secret from `GET /projects/:projectId/github/webhook` |
 | `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_REDIRECT_URI`, `SLACK_BOT_SCOPES` | Slack app connection |
 | `SOONWHY_STAFF_EMAILS`, `SOONWHY_SUPER_ADMIN_EMAILS` | Comma separated emails given platform admin roles at start. Only existing accounts are changed |
 | `OPENAPI_SERVER_URL` | Server URL shown in the API docs. Default `http://localhost:8080` |

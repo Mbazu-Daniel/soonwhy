@@ -50,6 +50,7 @@ export function toAlertRuleDto(row: {
     channelIds: (row.channelIds as string[]) ?? [],
     status: row.status as string,
     dedupeWindowSeconds: Number(row.dedupeWindowSeconds ?? 300),
+    findingCategory: (row.findingCategory as AlertRuleDto["findingCategory"]) ?? null,
     createdAt:
       row.createdAt instanceof Date
         ? row.createdAt.toISOString()

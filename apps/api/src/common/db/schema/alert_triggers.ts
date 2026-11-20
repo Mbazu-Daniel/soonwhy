@@ -1,4 +1,5 @@
 import { generateId } from "../generate-id";
+import { sql } from "drizzle-orm";
 import {
   pgTable,
   text,
@@ -6,6 +7,7 @@ import {
   jsonb,
   index,
   integer,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
 import { projects } from "./projects";
@@ -55,5 +57,6 @@ export const alertTriggers = pgTable(
     index("alert_triggers_status_idx").on(table.status),
     index("alert_triggers_state_idx").on(table.state),
     index("alert_triggers_dedupe_idx").on(table.alertRuleId, table.orgId, table.projectId, table.status),
+    uniqueIndex("alert_triggers_one_active_per_rule_uidx").on(table.alertRuleId).where(sql`${table.status} = 'active'`),
   ],
 );

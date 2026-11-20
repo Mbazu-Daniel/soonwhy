@@ -8,9 +8,12 @@ import { RcaAnalysisRepository } from "./infrastructure/rca.repository";
 import { RcaPersistenceService } from "./application/rca.persistence";
 import { RcaApiService } from "./application/rca.api";
 import { RcaController } from "./presentation/rca.controller";
+import { TracesModule } from "../../telemetry/traces/traces.module";
+import { TracesService } from "../../telemetry/traces/application/traces.service";
+import { TraceRankingTelemetry } from "./infrastructure/rca.telemetry";
 
 @Module({
-  imports: [AiModule, BillingModule],
+  imports: [AiModule, BillingModule, TracesModule],
   controllers: [RcaController],
   providers: [
     RcaAnalysisRepository,
@@ -19,8 +22,9 @@ import { RcaController } from "./presentation/rca.controller";
     DatabaseRcaGovernanceSink,
     {
       provide: RcaService,
-      useFactory: (resolver: LlmProviderResolver) => new RcaService(resolver),
-      inject: [LlmProviderResolver],
+      useFactory: (resolver: LlmProviderResolver, traces: TracesService) =>
+        new RcaService(resolver, new TraceRankingTelemetry(traces)),
+      inject: [LlmProviderResolver, TracesService],
     },
   ],
   exports: [RcaApiService, DatabaseRcaGovernanceSink],

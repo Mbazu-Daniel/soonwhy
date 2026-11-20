@@ -18,6 +18,8 @@ export class FindingsInvestigation {
         items: rows.map((row) => ({
           id: row.id,
           type: row.type,
+          category: row.category,
+          status: row.status,
           severity: row.severity,
           description: clip(row.description, 500),
           observedValue: row.observedValue,

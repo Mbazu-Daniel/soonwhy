@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, Clock, FileSearch, Search } from 'lucide-react';
 import { ConnectServiceButton } from '~/components/connect-service-button';
 import { EmptyProject } from '~/components/empty-state';
+import { DependencyScan } from '~/components/findings/dependency-scan';
 import { FindingDrawer } from '~/components/findings/finding-drawer';
 import { QueryErrorState } from '~/components/query-error-state';
 import { Badge } from '~/components/ui/badge';
@@ -12,7 +13,9 @@ import { Input } from '~/components/ui/input';
 import { Skeleton } from '~/components/ui/skeleton';
 import { api } from '~/lib/api';
 import { matchesFilters, ruleLabel } from '~/lib/findings';
-import type { DetectionFinding, FindingSeverity } from '~/lib/findings.types';
+import { FINDING_CATEGORY_LABELS, FINDING_STATUS_TABS, FINDINGS_PAGE_SIZE } from '~/lib/findings.constants';
+import { cn } from '~/lib/utils';
+import type { DetectionFinding, FindingSeverity, FindingStatus } from '~/lib/findings.types';
 import { useProject } from '~/lib/project-context';
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/intelligence/findings')({ component: DetectionOverview });
@@ -23,10 +26,11 @@ function DetectionOverview() {
   const { organizationSlug } = Route.useParams();
   const { projectId } = useProject();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [filters, setFilters] = useState({ query: '', severity: '', type: '' });
+  const [status, setStatus] = useState<FindingStatus>('open');
+  const [filters, setFilters] = useState({ query: '', severity: '', type: '', category: '' });
   const { data: findings, isLoading, isError, refetch } = useQuery({
-    queryKey: ['detections', projectId],
-    queryFn: () => api.get<DetectionFinding[]>(`/projects/${projectId}/detections`),
+    queryKey: ['detections', projectId, 'findings', status],
+    queryFn: () => api.get<DetectionFinding[]>(`/projects/${projectId}/findings?status=${status}&limit=${FINDINGS_PAGE_SIZE}`),
     enabled: !!projectId,
   });
 
@@ -42,6 +46,26 @@ function DetectionOverview() {
     <div className="space-y-5">
       <h1 className="text-xl font-semibold tracking-tight">Findings</h1>
 
+      <DependencyScan projectId={projectId} />
+
+      <div role="tablist" aria-label="Status" className="flex gap-1 border-b border-border">
+        {FINDING_STATUS_TABS.map((tab) => (
+          <button
+            key={tab.value}
+            type="button"
+            role="tab"
+            aria-selected={status === tab.value}
+            onClick={() => setStatus(tab.value)}
+            className={cn(
+              '-mb-px border-b-2 px-4 py-2 text-sm font-medium',
+              status === tab.value ? 'border-[#8BD125] text-[#16931F]' : 'border-transparent text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[14rem] flex-1">
           <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -51,6 +75,14 @@ function DetectionOverview() {
           <option value="">All severities</option>
           <option value="critical">Critical</option>
           <option value="warning">Warning</option>
+        </select>
+        <select aria-label="Category" value={filters.category} onChange={(event) => set('category', event.target.value)} className={FIELD}>
+          <option value="">All categories</option>
+          {Object.entries(FINDING_CATEGORY_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
         </select>
         <select aria-label="Rule" value={filters.type} onChange={(event) => set('type', event.target.value)} className={FIELD}>
           <option value="">All rules</option>
@@ -68,7 +100,7 @@ function DetectionOverview() {
         <Card>
           <CardContent className="p-12 text-center">
             <FileSearch className="mx-auto h-8 w-8 text-[#16931F]" />
-            <p className="mt-3 font-medium">No findings</p>
+            <p className="mt-3 font-medium">{status === 'open' ? 'No open findings' : `No ${status} findings`}</p>
             <ConnectServiceButton className="mt-4" />
           </CardContent>
         </Card>
@@ -95,7 +127,7 @@ function DetectionOverview() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{finding.title}</p>
                       <p className="mt-1 truncate text-xs text-muted-foreground">
-                        {finding.serviceName} · {ruleLabel(finding.type)} · {new Date(finding.windowEnd).toLocaleString()}
+                        {finding.serviceName} · {ruleLabel(finding.type)} · seen {finding.occurrences}x · {new Date(finding.lastSeenAt).toLocaleString()}
                       </p>
                     </div>
                     <Badge variant="outline" className={finding.severity === 'critical' ? 'border-[#F8C7C2] bg-[#FDE8E6] text-[#8A1C13]' : 'border-[#FDE68A] bg-[#FEF3C7] text-[#713F12]'}>

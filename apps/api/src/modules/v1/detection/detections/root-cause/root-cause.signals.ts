@@ -27,6 +27,7 @@ export class SignalExtractor {
     candidate: RootCauseCandidate,
     traces: TraceSpan[][],
     errors: ErrorData[],
+    errorsObserved = false,
   ): { scores: Partial<SignalScores>; evidence: Partial<SignalEvidence> } {
     const anomalySeverity = this.extractAnomalySeverity(candidate);
     const hasDeps = candidate.dependencies.upstream.length > 0 || candidate.dependencies.downstream.length > 0;
@@ -36,7 +37,7 @@ export class SignalExtractor {
     const criticalPathContribution = traces.length > 0
       ? this.extractCriticalPathContribution(candidate, traces)
       : { score: undefined, evidence: undefined };
-    const errorPropagation = errors.length > 0
+    const errorPropagation = errors.length > 0 || errorsObserved
       ? this.extractErrorPropagation(candidate, errors)
       : { score: undefined, evidence: undefined };
 
@@ -124,6 +125,26 @@ export class SignalExtractor {
     };
   }
 
+  private selfTime(span: TraceSpan, trace: TraceSpan[]): number {
+    const end = span.startTime + span.duration;
+    const intervals = trace
+      .filter((child) => child.parentSpanId === span.spanId)
+      .map((child) => [Math.max(span.startTime, child.startTime), Math.min(end, child.startTime + child.duration)] as const)
+      .filter(([from, to]) => to > from)
+      .sort((a, b) => a[0] - b[0]);
+
+    let covered = 0;
+    let cursor = Number.NEGATIVE_INFINITY;
+    for (const [from, to] of intervals) {
+      const start = Math.max(from, cursor);
+      if (to > start) {
+        covered += to - start;
+        cursor = to;
+      }
+    }
+    return Math.max(0, span.duration - covered);
+  }
+
   private extractCriticalPathContribution(
     candidate: RootCauseCandidate,
     allTraces: TraceSpan[][],
@@ -150,7 +171,7 @@ export class SignalExtractor {
       const traceDuration = Math.max(...trace.map((s) => s.duration));
       totalDuration += traceDuration;
 
-      const totalSpanDuration = matchingSpans.reduce((sum, span) => sum + span.duration, 0);
+      const totalSpanDuration = matchingSpans.reduce((sum, span) => sum + this.selfTime(span, trace), 0);
 
       const contributionPercent = totalSpanDuration / traceDuration;
 

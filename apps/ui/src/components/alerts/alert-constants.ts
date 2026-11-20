@@ -43,3 +43,5 @@ export function metricLabel(metric: string) {
 export function operatorLabel(operator: string) {
   return ALERT_OPERATORS.find((item) => item.value === operator)?.label ?? operator;
 }
+
+export const AUTO_CATEGORY = 'auto';

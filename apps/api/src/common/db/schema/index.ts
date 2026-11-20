@@ -11,6 +11,7 @@ export { businessOperations } from "./business-operations";
 export { apiKeys } from "./api-keys";
 export { serviceAccounts } from "./service-accounts";
 export { findings, type DetectionEvidence } from "./findings";
+export { dependencySnapshots, type DependencySnapshot } from "./dependency-snapshots";
 export { rcaAnalyses } from "./rca-analyses";
 export { rcaInvocations } from "./rca-invocations";
 export { detectionRuns } from "./detection-runs";

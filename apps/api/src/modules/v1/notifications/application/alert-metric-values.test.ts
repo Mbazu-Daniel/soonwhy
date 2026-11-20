@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { metricValues } from "./alert-metric-values";
+import { atMetricPath, metricValues } from "./alert-metric-values";
 
 const bucket = { bucket: "t", count: 12, p50: 10, p95: 40, p99: 90, _2xx: 8, _3xx: 0, _4xx: 2, _5xx: 2 };
 
@@ -26,5 +26,16 @@ describe("hostSampleValues", () => {
     const { hostSampleValues } = await import("./alert-metric-values");
     expect(hostSampleValues(0)).toEqual({ value: 0, sampleCount: 0 });
     expect(hostSampleValues(30)).toEqual({ value: 30, sampleCount: 30 });
+  });
+});
+
+describe("atMetricPath", () => {
+  it("makes the fetched value reachable at the rule's metric name", () => {
+    const shaped = atMetricPath("http.server.request.errors.rate", { value: 12, errorRate: 12 });
+    expect(shaped).toMatchObject({ value: 12, errorRate: 12, http: { server: { request: { errors: { rate: 12 } } } } });
+  });
+
+  it("leaves no-data results empty so they still count as no data", () => {
+    expect(atMetricPath("http.server.request.errors.rate", {})).toEqual({});
   });
 });

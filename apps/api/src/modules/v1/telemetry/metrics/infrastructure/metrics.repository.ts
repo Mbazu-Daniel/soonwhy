@@ -123,6 +123,19 @@ export class MetricsRepository {
     };
   }
 
+  async queryTopFailingRoutes(
+    params: { orgId: string; projectId: string; from: string; to: string },
+    limit: number,
+  ): Promise<{ route: string; failures: number }[]> {
+    const result = await this.requestSearch(
+      params,
+      { routes: { terms: { field: "name", size: limit } } },
+      [FAILED_REQUEST_FILTER],
+    );
+    const aggregation = result.aggregations?.routes as ServiceAggregation | undefined;
+    return (aggregation?.buckets ?? []).map((bucket) => ({ route: bucket.key, failures: bucket.doc_count }));
+  }
+
   async queryServiceSummaries(params: {
     orgId: string;
     projectId: string;

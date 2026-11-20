@@ -77,3 +77,7 @@ export const checkoutRegressionFixture = {
     },
   ],
 };
+
+export function upsertable<T>(returning: T) {
+  return { returning, onConflictDoUpdate: () => ({ returning }) };
+}

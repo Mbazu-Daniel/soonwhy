@@ -3,7 +3,11 @@ export type FindingType =
   | 'database_query' | 'database_n_plus_one' | 'database_query_volume' | 'database_error'
   | 'database_latency_contribution' | 'database_connection_pool' | 'database_timeout' | 'database_result_set'
   | 'database_connection_wait' | 'database_batch' | 'database_dependency_degradation'
-  | 'external_dependency_degradation' | 'redis_degradation' | 'queue_degradation' | 'performance';
+  | 'external_dependency_degradation' | 'redis_degradation' | 'queue_degradation' | 'runtime_degradation'
+  | 'database_lock_contention' | 'seasonal_anomaly' | 'change_point' | 'auth_failure_spike' | 'secret_in_logs' | 'alert_rule' | 'performance';
+
+export type FindingStatus = 'open' | 'resolved' | 'ignored';
+export type FindingCategory = 'error' | 'performance' | 'security' | 'vulnerability';
 
 export type FindingSeverity = 'warning' | 'critical';
 
@@ -28,4 +32,54 @@ export interface DetectionFinding {
   windowStart: string;
   windowEnd: string;
   evidence: FindingEvidence[];
+  category: FindingCategory;
+  status: FindingStatus;
+  occurrences: number;
+  lastSeenAt: string;
+  resolvedAt: string | null;
+  recommendation: string | null;
+}
+
+export interface ReportFinding {
+  id: string;
+  title: string;
+  serviceName: string;
+  category: FindingCategory;
+  severity: string;
+  occurrences: number;
+  lastSeenAt: string;
+  resolvedAt: string | null;
+  recommendation: string | null;
+}
+
+export interface FindingReport {
+  period: { from: string; to: string };
+  totals: { open: number; openCritical: number; ignored: number; newInPeriod: number; resolvedInPeriod: number };
+  byCategory: Array<{ category: FindingCategory; open: number; resolved: number; ignored: number }>;
+  topOpen: ReportFinding[];
+  resolved: ReportFinding[];
+  services: Array<{ serviceName: string; open: number }>;
+  markdown: string;
+}
+
+export interface DependencySnapshotRow {
+  id: string;
+  serviceName: string;
+  ecosystem: string;
+  updatedAt: string;
+  lastScannedAt: string | null;
+  lastScanError: string | null;
+}
+
+export interface DependencyScanSummary {
+  packages: number;
+  vulnerabilities: number;
+  resolved: number;
+}
+
+export interface SuspectDeployment {
+  version: string | null;
+  commitSha: string | null;
+  deployedAt: string;
+  minutesBeforeFinding: number;
 }

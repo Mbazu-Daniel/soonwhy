@@ -158,4 +158,55 @@ describe('Root Cause Ranker', () => {
     expect(result.overallEvidenceCoverage).toBeGreaterThanOrEqual(0);
     expect(result.overallEvidenceCoverage).toBeLessThanOrEqual(1);
   });
+
+  describe('critical-path contribution uses self time when child spans are present', () => {
+    const findings = ['caller', 'callee'].map((serviceName) => ({
+      id: `f-${serviceName}`,
+      type: 'latency',
+      serviceName,
+      timestamp: '2026-01-01T00:00:00Z',
+      severity: 'critical' as const,
+      observedValue: 1000,
+      baselineValue: 100,
+    }));
+
+    const criticalPathScore = (traces: NonNullable<RankingInput['traces']>, service: string) =>
+      ranker.rank({ findings, traces }).candidates.find((c) => c.serviceName === service)?.signalScores
+        .criticalPathContribution ?? 0;
+
+    it('does not credit a caller with time spent waiting on its callee', () => {
+      const trace = [
+        { spanId: 'a', serviceName: 'caller', duration: 1000, startTime: 0, isCriticalPath: true },
+        { spanId: 'b', serviceName: 'callee', duration: 900, startTime: 50, parentSpanId: 'a', isCriticalPath: true },
+      ];
+      expect(criticalPathScore([trace], 'callee')).toBeGreaterThan(criticalPathScore([trace], 'caller'));
+      expect(criticalPathScore([trace], 'caller')).toBeCloseTo(0.2, 5);
+    });
+
+    it('counts overlapping children once', () => {
+      const trace = [
+        { spanId: 'a', serviceName: 'caller', duration: 1000, startTime: 0 },
+        { spanId: 'b', serviceName: 'callee', duration: 600, startTime: 100, parentSpanId: 'a' },
+        { spanId: 'c', serviceName: 'callee', duration: 600, startTime: 200, parentSpanId: 'a' },
+      ];
+      expect(criticalPathScore([trace], 'caller')).toBeCloseTo(0.3, 5);
+    });
+
+    it('keeps inclusive duration when no child spans are in the trace', () => {
+      const trace = [{ spanId: 'a', serviceName: 'caller', duration: 1000, startTime: 0 }];
+      expect(criticalPathScore([trace], 'caller')).toBeCloseTo(1, 5);
+    });
+  });
+});
+
+describe('error propagation when traces were inspected', () => {
+  const finding = { id: 'f', type: 'latency', serviceName: 'db', timestamp: '2026-01-01T00:00:00Z', severity: 'critical' as const, observedValue: 900, baselineValue: 100 };
+
+  it('reports no errors as an observed zero instead of a missing signal', () => {
+    const ranker = new RootCauseRanker();
+    const missing = ranker.rank({ findings: [finding] });
+    const observed = ranker.rank({ findings: [finding], errorsObserved: true });
+    expect(missing.candidates[0]?.signalScores.errorPropagation).toBeUndefined();
+    expect(observed.candidates[0]?.signalScores.errorPropagation).toBe(0);
+  });
 });

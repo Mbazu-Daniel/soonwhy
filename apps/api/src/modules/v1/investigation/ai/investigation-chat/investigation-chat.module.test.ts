@@ -2,12 +2,12 @@ import "reflect-metadata";
 import { Module } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { SoonwhyMcpModule } from "../../mcp";
+import { McpServerModule } from "../../mcp";
 import { InvestigationChatController } from "./investigation-chat.controller";
 import { InvestigationChatModule } from "./investigation-chat.module";
 import { InvestigationChatService } from "./investigation-chat.service";
 
-@Module({ imports: [InvestigationChatModule, SoonwhyMcpModule] })
+@Module({ imports: [InvestigationChatModule, McpServerModule] })
 class AssembledModules {}
 
 describe("investigation modules", () => {

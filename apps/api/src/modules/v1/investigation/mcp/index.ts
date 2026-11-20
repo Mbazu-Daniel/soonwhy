@@ -1,1 +1,1 @@
-export { SoonwhyMcpModule } from "./mcp.module";
+export { McpServerModule } from "./mcp.module";

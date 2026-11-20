@@ -1,9 +1,9 @@
 import {
-  Body,
   Controller,
   Headers,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Req,
   UnauthorizedException,
@@ -15,16 +15,16 @@ import { GithubService } from "../application/github.service";
 export class GithubController {
   constructor(private readonly githubService: GithubService) {}
 
-  @Post("webhook")
+  @Post("webhook/:hookId")
   @HttpCode(HttpStatus.OK)
   async webhook(
     @Req() req: Request,
+    @Param("hookId") hookId: string,
     @Headers("x-github-event") event: string | undefined,
     @Headers("x-hub-signature-256") signature: string | undefined,
     @Headers("x-github-delivery") deliveryId: string | undefined,
-    @Body() _body: unknown,
   ) {
-    const secret = this.githubService.verifyWebhookSecret();
+    const secret = this.githubService.secretForProject(hookId);
     const rawBody = (req as Request & { rawBody?: Buffer }).rawBody;
     if (!rawBody) {
       throw new UnauthorizedException("Invalid GitHub webhook payload");
@@ -34,6 +34,6 @@ export class GithubController {
       throw new UnauthorizedException("Invalid GitHub webhook signature");
     }
 
-    return this.githubService.handlePushEvent(rawBody, event, deliveryId);
+    return this.githubService.handlePushEvent(hookId, rawBody, event, deliveryId);
   }
 }

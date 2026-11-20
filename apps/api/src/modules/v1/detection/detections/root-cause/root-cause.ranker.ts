@@ -19,6 +19,7 @@ export class RootCauseRanker {
       findings,
       traces = [],
       errors = [],
+      errorsObserved = false,
       dependencyMap = new Map(),
       weights = DEFAULT_WEIGHTS,
     } = input;
@@ -30,7 +31,7 @@ export class RootCauseRanker {
     const rankedCandidates: RankedCandidate[] = [];
 
     for (const candidate of candidates) {
-      const { scores, evidence } = this.signalExtractor.extractSignals(candidate, traces, errors);
+      const { scores, evidence } = this.signalExtractor.extractSignals(candidate, traces, errors, errorsObserved);
 
       const { score, availableSignals } = calculateScoreWithMissingSignals(scores, weights);
 

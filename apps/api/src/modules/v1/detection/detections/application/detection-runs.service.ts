@@ -1,7 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { DetectorSettingsService } from '../../detector-settings/application/detector-settings.service';
 import { ProjectsRepository } from '../../../identity/projects/infrastructure/projects.repository';
 import { recordDetectionRun } from '../../../../../common/telemetry/otel-metrics';
+import { ErrorsService } from '../../errors';
 import { DetectionPipeline } from './detection.pipeline';
 import { DetectionTelemetryService } from './detection-telemetry.service';
 import {
@@ -34,7 +35,10 @@ export class DetectionRuns {
     private readonly projects: ProjectsRepository,
     private readonly detectorSettings: DetectorSettingsService,
     private readonly detectionTelemetry: DetectionTelemetryService,
+    @Optional() private readonly errors?: ErrorsService,
   ) {}
+
+  private readonly logger = new Logger(DetectionRuns.name);
 
   async run(orgId: string, projectId: string): Promise<DetectionFinding[]> {
     const settings = await this.authorize(orgId, projectId, { async: false });
@@ -86,6 +90,14 @@ export class DetectionRuns {
     return settings;
   }
 
+  private async syncErrorFindings(orgId: string, projectId: string): Promise<void> {
+    try {
+      await this.errors?.syncFindings(orgId, projectId);
+    } catch (error) {
+      this.logger.warn(`Error findings sync failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
   private async process(run: RunWindow, settings: Settings): Promise<DetectionFinding[]> {
     const startedAt = Date.now();
     const context = {
@@ -99,6 +111,7 @@ export class DetectionRuns {
 
     try {
       const findings = await this.pipeline.execute(run.orgId, run.projectId, run.windowStart, run.windowEnd, settings);
+      await this.syncErrorFindings(run.orgId, run.projectId);
       await completeDetectionRun(run.id, findings.length);
       recordDetectionRun('success', Date.now() - startedAt);
       await this.detectionTelemetry.runCompleted({

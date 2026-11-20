@@ -7,6 +7,7 @@ import { ShutdownHandlers } from "../shutdown.js";
 import { UncaughtErrorHandlers } from "./uncaught.js";
 import { withActiveTrace } from "./trace-context.js";
 import { enableSourceMaps } from "./source-maps.js";
+import { reportDependencies } from "./dependencies.js";
 import type { ResolvedOptions } from "../config.types.js";
 import type { NodeSdk, NodeSdkOptions } from "./types.js";
 import type { FlushResult, SdkStats } from "../types.js";
@@ -62,6 +63,20 @@ export class Client implements NodeSdk {
     if (this.started) return;
     this.sdk.start();
     this.started = true;
+    this.reportDependencies();
+  }
+
+  private reportDependencies(): void {
+    const target = this.options.reportDependencies;
+    if (!target) return;
+    void reportDependencies({
+      apiEndpoint: target.apiEndpoint,
+      includeDev: target.includeDev,
+      apiKey: this.options.apiKey,
+      serviceName: this.options.serviceName,
+      fetch: this.options.fetch,
+      timeoutMs: this.options.timeoutMs,
+    }).catch(() => undefined);
   }
 
   captureLog(input: Parameters<NodeSdk["captureLog"]>[0]): void {
