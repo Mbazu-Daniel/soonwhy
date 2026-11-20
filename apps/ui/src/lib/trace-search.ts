@@ -53,7 +53,7 @@ export function hasTraceFilters(filters: TraceFilterState): boolean {
   return (Object.keys(EMPTY_TRACE_FILTERS) as Array<keyof TraceFilterState>).some((key) => filters[key] !== EMPTY_TRACE_FILTERS[key]);
 }
 
-export const RETENTION_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+const RETENTION_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
 export function retentionWindow(now = Date.now()): { from: string; to: string } {
   return { from: new Date(now - RETENTION_WINDOW_MS).toISOString(), to: new Date(now).toISOString() };

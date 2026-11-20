@@ -1,5 +1,4 @@
 import { Inject, Injectable, Logger, Optional } from "@nestjs/common";
-import { sql } from "drizzle-orm";
 import { Redis } from "ioredis";
 import { randomUUID } from "node:crypto";
 import { db } from "../db";
@@ -79,32 +78,37 @@ export class CronLeaseService {
   }
 
   private async runWithAdvisoryLock(name: string, fn: () => Promise<void>): Promise<boolean> {
-    let ran = false;
-    let failed = false;
-    let failure: unknown;
+    const key = LEASE_KEY_PREFIX + name;
+    let session: Awaited<ReturnType<typeof db.$client.reserve>>;
     try {
-      await db.transaction(async (tx) => {
-        const rows = (await tx.execute(
-          sql`select pg_try_advisory_xact_lock(hashtext(${LEASE_KEY_PREFIX + name})) as locked`,
-        )) as unknown as Array<{ locked: boolean }>;
-        if (!rows[0]?.locked) return;
-        ran = true;
-        try {
-          await fn();
-        } catch (error) {
-          failed = true;
-          failure = error;
-        }
-      });
+      session = await db.$client.reserve();
     } catch (error) {
-      if (!failed) {
+      this.logger.warn(`Cron "${name}" skipped: could not take the database lock (${errorMessage(error)})`);
+      return false;
+    }
+    try {
+      let locked: boolean | undefined;
+      try {
+        [{ locked }] = await session`select pg_try_advisory_lock(hashtext(${key})) as locked`;
+      } catch (error) {
         this.logger.warn(`Cron "${name}" skipped: could not take the database lock (${errorMessage(error)})`);
         return false;
       }
+      if (!locked) {
+        this.logger.log(`Cron "${name}" skipped: another instance holds the lock`);
+        return false;
+      }
+      try {
+        await fn();
+        return true;
+      } finally {
+        await session`select pg_advisory_unlock(hashtext(${key}))`.catch(() => {
+          this.logger.warn(`Cron lock "${name}" release failed; it ends when the connection closes`);
+        });
+      }
+    } finally {
+      session.release();
     }
-    if (failed) throw failure;
-    if (!ran) this.logger.log(`Cron "${name}" skipped: another instance holds the lock`);
-    return ran;
   }
 }
 

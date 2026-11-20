@@ -1,6 +1,5 @@
 import { encryptPii, encryptPiiInText } from "@soonwhy/shared";
-
-export const PII_UNAVAILABLE_PLACEHOLDER = "[REDACTED]";
+import { PII_UNAVAILABLE_PLACEHOLDER } from "./pii-safe.constants";
 
 export function encryptOrRedact(value: string): string {
   try {

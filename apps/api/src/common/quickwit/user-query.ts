@@ -1,6 +1,7 @@
 import { BadRequestException } from "@nestjs/common";
+import { MAX_USER_QUERY_LENGTH } from "./user-query.constants";
 
-export const MAX_USER_QUERY_LENGTH = 2000;
+const SINGLE_QUOTE = /'/;
 const TENANT_FIELD = /(^|[^\w.])(org_id|project_id)\s*:/i;
 const QUICKWIT_FAILURE = /Quickwit request failed \(400\): ([\s\S]*)$/;
 
@@ -39,6 +40,7 @@ export function assertSafeUserQuery(query: string): string {
     throw new BadRequestException(`Query is longer than ${MAX_USER_QUERY_LENGTH} characters`);
   }
   const { text, balanced } = outsideQuotes(trimmed);
+  if (SINGLE_QUOTE.test(trimmed)) throw new BadRequestException("Query cannot contain single quotes");
   if (!balanced) throw new BadRequestException("Query has an unclosed quote");
   if (!parenthesesBalanced(text)) throw new BadRequestException("Query has unbalanced parentheses");
   if (TENANT_FIELD.test(text)) {

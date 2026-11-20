@@ -8,7 +8,7 @@
     "typeCheck": true,
     "assets": [
       {
-        "include": "modules/v1/ai/models-snapshot.json",
+        "include": "modules/v1/investigation/ai/models-snapshot.json",
         "outDir": "dist"
       }
     ]

@@ -5,7 +5,7 @@ import { Button } from '~/components/ui/button';
 import { Skeleton } from '~/components/ui/skeleton';
 import { ProviderSwitch } from '~/components/ai/provider-switch';
 import { RcaGenerationError } from '~/components/ai/rca-generation-error';
-import type { RcaAnalysis } from '~/components/ai/rca-content';
+import type { RcaAnalysis } from '~/lib/rca.types';
 import { api } from '~/lib/api';
 import { isRcaSupported } from '~/lib/rca-support';
 import { splitEvidence } from '~/lib/findings';

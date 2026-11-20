@@ -1,7 +1,4 @@
-import {
-  MeterProvider,
-  PeriodicExportingMetricReader,
-} from "@opentelemetry/sdk-metrics";
+import { MeterProvider, PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
@@ -9,6 +6,7 @@ import { metrics, type Meter } from "@opentelemetry/api";
 import { resolveOtlpEndpoint, resolveOtlpHeaders } from "./otlp-config";
 import { selfObservabilityEnabled } from "./self-observability";
 import { Logger } from "@nestjs/common";
+import type { AiInvocationMetrics } from "./otel-metrics.types";
 
 const SERVICE_NAME = process.env.OTEL_SERVICE_NAME ?? "soonwhy-api";
 
@@ -116,16 +114,6 @@ export function recordDetectionFinding(severity: string) {
     detectionFindings!.add(1, { severity });
   } catch {
   }
-}
-
-export interface AiInvocationMetrics {
-  provider: string;
-  model: string;
-  status: "succeeded" | "failed";
-  durationMs?: number;
-  inputTokens?: number;
-  outputTokens?: number;
-  estimatedCostUsd?: number;
 }
 
 export function recordAiInvocationMetrics(input: AiInvocationMetrics) {

@@ -4,7 +4,9 @@
     "apps/*/src/index.ts",
     "apps/*/src/main.ts",
     "packages/*/src/index.ts",
-    "packages/*/src/main.ts"
+    "packages/*/src/main.ts",
+    "apps/api/test/support/test-env.ts",
+    "apps/api/scripts/update-model-catalog.mjs"
   ],
   "workspaces": {
     "patterns": [
@@ -13,19 +15,36 @@
     ]
   },
   "ignorePatterns": [
-    "examples/**"
+    "examples/**",
+    "packages/tsconfig"
   ],
   "ignoreDependencies": [
     "@nestjs/schematics"
   ],
   "ignoreExports": [
     {
-      "file": "apps/api/src/modules/v1/detections/detection.engine.ts",
-      "exports": ["evaluateThroughput"]
+      "file": "apps/api/src/modules/v1/detection/detections/domain/detection.engine.ts",
+      "exports": [
+        "evaluateThroughput"
+      ]
     },
     {
-      "file": "apps/api/src/modules/v1/intelligence/performance.engine.ts",
-      "exports": ["evaluateThroughput"]
+      "file": "apps/api/src/modules/v1/detection/intelligence/domain/performance.engine.ts",
+      "exports": [
+        "evaluateThroughput"
+      ]
+    },
+    {
+      "file": "sdk/node/src/config.constants.ts",
+      "exports": [
+        "*"
+      ]
+    },
+    {
+      "file": "sdk/node/src/node/config.constants.ts",
+      "exports": [
+        "*"
+      ]
     }
   ],
   "duplicates": {
@@ -33,5 +52,140 @@
   },
   "rules": {
     "unused-dependencies": "warn"
+  },
+  "usedClassMembers": [
+    "acquire",
+    "captureLog",
+    "captureMetric",
+    "catch",
+    "describe",
+    "checkRateLimit",
+    "complete",
+    "consumerSnapshot",
+    "create",
+    "createDlqEntry",
+    "debug",
+    "describeIndex",
+    "dispatchWeeklySummary",
+    "ensureIndex",
+    "error",
+    "extend",
+    "find",
+    "findFinding",
+    "findLatest",
+    "get",
+    "getInvitationById",
+    "getInvocationTotals",
+    "getStats",
+    "getSubscriptions",
+    "ingest",
+    "isReady",
+    "list",
+    "listSplits",
+    "log",
+    "publish",
+    "publishWithAck",
+    "purgeOlderThan",
+    "recordUsage",
+    "recordVerification",
+    "release",
+    "remove",
+    "search",
+    "subscribe",
+    "update",
+    "verbose",
+    "warn"
+  ],
+  "boundaries": {
+    "zones": [
+      {
+        "name": "presentation",
+        "patterns": [
+          "apps/api/src/modules/v1/**/presentation/**"
+        ]
+      },
+      {
+        "name": "application",
+        "patterns": [
+          "apps/api/src/modules/v1/**/application/**"
+        ]
+      },
+      {
+        "name": "infrastructure",
+        "patterns": [
+          "apps/api/src/modules/v1/**/infrastructure/**"
+        ]
+      },
+      {
+        "name": "domain",
+        "patterns": [
+          "apps/api/src/modules/v1/**/domain/**"
+        ]
+      },
+      {
+        "name": "common",
+        "patterns": [
+          "apps/api/src/common/**"
+        ]
+      },
+      {
+        "name": "module-wiring",
+        "patterns": [
+          "apps/api/src/modules/v1/**/*.module.ts",
+          "apps/api/src/modules/v1/**/index.ts",
+          "apps/api/src/app.module.ts",
+          "apps/api/src/main.ts"
+        ]
+      }
+    ],
+    "rules": [
+      {
+        "from": "presentation",
+        "allow": [
+          "application",
+          "domain",
+          "common",
+          "module-wiring"
+        ]
+      },
+      {
+        "from": "application",
+        "allow": [
+          "domain",
+          "infrastructure",
+          "common",
+          "module-wiring"
+        ]
+      },
+      {
+        "from": "infrastructure",
+        "allow": [
+          "domain",
+          "common",
+          "module-wiring"
+        ]
+      },
+      {
+        "from": "domain",
+        "allow": [
+          "common",
+          "module-wiring"
+        ]
+      },
+      {
+        "from": "common",
+        "allow": []
+      },
+      {
+        "from": "module-wiring",
+        "allow": [
+          "presentation",
+          "application",
+          "infrastructure",
+          "domain",
+          "common"
+        ]
+      }
+    ]
   }
 }

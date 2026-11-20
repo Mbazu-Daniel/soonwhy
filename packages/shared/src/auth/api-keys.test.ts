@@ -23,9 +23,11 @@ function stubDb(
     select: () => (selects(), {
       from: () => ({
         innerJoin: () => ({
-          leftJoin: () => ({
+          innerJoin: () => ({
             leftJoin: () => ({
-              where: async () => (row ? [row] : []),
+              leftJoin: () => ({
+                where: async () => (row ? [row] : []),
+              }),
             }),
           }),
         }),
@@ -50,6 +52,12 @@ describe("ApiKeyAuthenticator.authenticate", () => {
 
   it("refuses an unknown key and does not record usage", async () => {
     const { db, update } = stubDb(undefined);
+    expect(await new ApiKeyAuthenticator(db).authenticate(BEARER)).toMatchObject({ ok: false, reason: "invalid" });
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("refuses a key whose organization was deleted", async () => {
+    const { db, update } = stubDb({ ...validRow, organizationDeletedAt: new Date() });
     expect(await new ApiKeyAuthenticator(db).authenticate(BEARER)).toMatchObject({ ok: false, reason: "invalid" });
     expect(update).not.toHaveBeenCalled();
   });

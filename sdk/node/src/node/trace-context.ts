@@ -1,9 +1,5 @@
 import { isSpanContextValid, trace } from "@opentelemetry/api";
-
-export interface TraceCarrier {
-  traceId?: string;
-  spanId?: string;
-}
+import type { TraceCarrier } from "./trace-context.types.js";
 
 export function withActiveTrace<T extends TraceCarrier>(input: T): T {
   if (input.traceId) return input;

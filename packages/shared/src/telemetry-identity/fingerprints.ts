@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import type { CanonicalValue } from "./telemetry-identity.types";
-
-export const FINGERPRINT_VERSION = 1;
+import { FINGERPRINT_VERSION } from "./fingerprints.constants";
 
 export function fingerprintService(
   serviceName: string,

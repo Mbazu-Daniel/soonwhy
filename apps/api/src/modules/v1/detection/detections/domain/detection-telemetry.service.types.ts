@@ -1,0 +1,24 @@
+export type DetectionTelemetryEvent = {
+  eventId: string;
+  kind: "run_started" | "finding" | "run_completed" | "run_failed";
+  orgId: string;
+  projectId: string;
+  timestamp: string;
+  status?: string;
+  detector?: string;
+  findingId?: string;
+  runId?: string;
+  service?: string;
+  serviceName?: string;
+  type?: string;
+  severity?: string;
+  title?: string;
+  observedValue?: number;
+  threshold?: number;
+  unit?: string;
+  windowStart?: string;
+  windowEnd?: string;
+  durationMs?: number;
+  findingsCount?: number;
+  error?: string;
+};

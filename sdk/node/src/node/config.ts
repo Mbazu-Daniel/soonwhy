@@ -1,27 +1,9 @@
 import type { NodeSdkOptions, NodeSampling } from "./types.js";
-import { DEFAULT_ENDPOINT } from "../config.js";
+import { DEFAULT_ENDPOINT } from "../config.constants.js";
+import type { ResolvedNodeSdkOptions } from "./config.types.js";
+import { DEFAULT_TIMEOUT_MS } from "./config.constants.js";
 
 export { DEFAULT_ENDPOINT };
-export const DEFAULT_TIMEOUT_MS = 10_000;
-
-export interface ResolvedNodeSdkOptions
-  extends Omit<NodeSdkOptions, "sampling"> {
-  endpoint: string;
-  timeoutMs: number;
-  sampling: NodeSampling;
-  registerShutdownHandlers: boolean;
-  captureUncaughtErrors: boolean;
-  enableSourceMaps: boolean;
-  instrumentations: Required<NonNullable<NodeSdkOptions["instrumentations"]>>;
-  batchSize: number;
-  flushIntervalMs: number;
-  maxRetries: number;
-  fetch: typeof globalThis.fetch;
-  sleep: (delayMs: number) => Promise<void>;
-  redactSensitiveData: boolean;
-  maxAttributeCount: number;
-  maxAttributeValueLength: number;
-}
 
 export function resolveNodeOptions(
   options: NodeSdkOptions,

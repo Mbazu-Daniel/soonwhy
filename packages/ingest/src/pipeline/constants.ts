@@ -7,3 +7,5 @@ export function retryDelayMs(deliveryCount: number, random: () => number = Math.
   const cap = Math.min(30_000, 500 * 2 ** Math.max(0, Math.floor(deliveryCount) - 1));
   return Math.round(random() * cap);
 }
+export const MAX_INGEST_BODY_BYTES = 8 * 1024 * 1024;
+export const MAX_INGEST_DECODED_BYTES = 32 * 1024 * 1024;

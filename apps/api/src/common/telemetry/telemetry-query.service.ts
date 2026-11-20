@@ -1,22 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { type QuickwitSearchInput, QuickwitService } from "@soonwhy/shared";
 import { quickwitTenantQuery, quickwitTimestamp } from "../quickwit/query";
-import { searchTenant, type TelemetryIndex } from "./tenant-search";
-
-export interface TelemetryRange {
-  from: string;
-  to: string;
-  startTimestamp: number;
-  endTimestamp: number;
-}
-
-export interface TelemetryQuery {
-  orgId: string;
-  projectId: string;
-  from: string;
-  to: string;
-  filters?: string[];
-}
+import { searchTenant } from "./tenant-search";
+import { type TelemetryIndex } from "./tenant-search.types";
+import type { TelemetryRange, TelemetryQuery } from "./telemetry-query.service.types";
 
 @Injectable()
 export class TelemetryQueryService {

@@ -39,7 +39,7 @@ export const CONTROLLER_POLICY: Record<string, RoutePolicy> = {
   OrgNotificationsController: "member",
   QueryCatalogController: "member",
   RcaController: "member",
-  RetentionPoliciesController: "member",
+  RetentionPoliciesController: "admin",
   ServicesController: "member",
   SlosController: "member",
   SuppressionRulesController: "member",
@@ -47,18 +47,7 @@ export const CONTROLLER_POLICY: Record<string, RoutePolicy> = {
   TeamsController: "member",
   UploadsController: "member",
 
-  AIIntelligenceController: "member",
-  DependencyIntelligenceController: "member",
-  DeploymentIntelligenceController: "member",
-  ErrorIntelligenceController: "member",
   EvidenceGraphController: "member",
-  InfrastructureIntelligenceController: "member",
-  LogIntelligenceController: "member",
-  QueryIntelligenceController: "member",
-  RecommendationEngineController: "member",
-  RuntimeIntelligenceController: "member",
-  TraceIntelligenceController: "member",
-  VerificationEngineController: "member",
 };
 
 export const ROUTE_POLICY_OVERRIDES: Record<string, RoutePolicy> = {

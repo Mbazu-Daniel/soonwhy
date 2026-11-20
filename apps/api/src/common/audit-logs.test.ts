@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { recordAuditEvent, type AuditEventInput } from "./audit-logs";
+import { recordAuditEvent } from "./audit-logs";
+import { type AuditEventInput } from "./audit-logs.types";
 
 const returning = vi.fn();
 const values = vi.fn(() => ({ returning }));

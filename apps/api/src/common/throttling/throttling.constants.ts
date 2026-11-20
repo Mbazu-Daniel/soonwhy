@@ -22,6 +22,8 @@ export const THROTTLER_OPTIONS: ThrottlerModuleOptions = {
   errorMessage: "Too many requests",
 };
 
+export const ANONYMOUS_PATH = /\/(auth|public)(\/|\?|$)/;
+
 export const AUTH_THROTTLE = {
   burst: { limit: 3, ttl: 10_000 },
   sustained: { limit: 10, ttl: 60_000 },

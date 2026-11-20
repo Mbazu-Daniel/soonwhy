@@ -1,6 +1,9 @@
 import { createRequire } from "node:module";
-import type { ResolvedNodeSdkOptions } from "./config.js";
+import type { ResolvedNodeSdkOptions } from "./config.types.js";
 import { sanitizeRedisStatement } from "../security.js";
+import { sanitizeSpan } from "./span-sanitizer.js";
+import { type SpanLike } from "./span-sanitizer.types.js";
+import type { OTelRuntime } from "./instrumentation.types.js";
 
 const require = createRequire(import.meta.url);
 
@@ -17,6 +20,7 @@ interface TraceExporterModule {
     headers: Record<string, string>;
     timeoutMillis: number;
   }) => {
+    export(spans: SpanLike[], resultCallback: (result: unknown) => void): void;
     shutdown(): Promise<void>;
   };
 }
@@ -36,16 +40,6 @@ interface SamplerModule {
   AlwaysOffSampler: new () => unknown;
   AlwaysOnSampler: new () => unknown;
   TraceIdRatioBasedSampler: new (ratio: number) => unknown;
-}
-
-export interface OTelRuntime {
-  sdk: {
-    start(): void;
-    shutdown(): Promise<void>;
-  };
-  exporter: {
-    shutdown(): Promise<void>;
-  };
 }
 
 export function createOpenTelemetryRuntime(
@@ -81,6 +75,11 @@ export function createOpenTelemetryRuntime(
     },
     timeoutMillis: options.timeoutMs,
   });
+  const exportSpans = exporter.export.bind(exporter);
+  exporter.export = (spans, resultCallback) => {
+    for (const span of spans) sanitizeSpan(span, options);
+    exportSpans(spans, resultCallback);
+  };
 
   const instrumentations =
     autoInstrumentationModule.getNodeAutoInstrumentations(

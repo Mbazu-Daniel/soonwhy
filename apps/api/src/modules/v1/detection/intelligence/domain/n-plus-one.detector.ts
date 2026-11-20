@@ -1,0 +1,99 @@
+import { fingerprintQuery } from "./query-fingerprint";
+import { percentile } from './percentile';
+import type { NPlusOneTrace, NPlusOneCandidate, NPlusOneThresholds } from "./n-plus-one.detector.types";
+
+const DEFAULT_N_PLUS_ONE_THRESHOLDS: NPlusOneThresholds = {
+  minimumOccurrences: 3,
+  minimumTotalDurationMs: 50,
+};
+
+export function detectNPlusOne(
+  traces: NPlusOneTrace[],
+  thresholds: NPlusOneThresholds = DEFAULT_N_PLUS_ONE_THRESHOLDS,
+): NPlusOneCandidate[] {
+  const groups = new Map<string, NPlusOneTrace[]>();
+
+  for (const trace of traces) {
+    if (
+      trace.dependencyType !== "database" ||
+      !trace.parentSpanId ||
+      !trace.traceId ||
+      !Number.isFinite(trace.duration) ||
+      trace.duration <= 0 ||
+      (trace.dbBatchSize !== undefined && trace.dbBatchSize > 1)
+    )
+      continue;
+
+    const query =
+      trace.dbQueryText ?? trace.dbQuerySummary ?? trace.dbOperationName;
+    if (!query) continue;
+
+    const identity = fingerprintQuery(query, trace.dbSystemName).identity;
+    const key = [
+      trace.traceId,
+      trace.parentSpanId,
+      identity.fingerprintVersion,
+      identity.fingerprint,
+    ].join("\0");
+
+    const existing = groups.get(key) ?? [];
+    existing.push(trace);
+    groups.set(key, existing);
+  }
+
+  return Array.from(groups.entries())
+    .flatMap(([_key, samples]) => {
+      if (samples.length < thresholds.minimumOccurrences) return [];
+
+      const first = samples[0];
+      if (!first) return [];
+
+      const totalDurationMs = samples.reduce(
+        (total, sample) => total + sample.duration,
+        0,
+      );
+      if (totalDurationMs < thresholds.minimumTotalDurationMs) return [];
+
+      const query =
+        first.dbQueryText ?? first.dbQuerySummary ?? first.dbOperationName;
+      if (!query) return [];
+
+      const identity = fingerprintQuery(query, first.dbSystemName).identity;
+      const durations = samples.map((sample) => sample.duration);
+      const p50DurationMs = percentile(durations, 0.5);
+      const p95DurationMs = percentile(durations, 0.95);
+      if (p50DurationMs === undefined || p95DurationMs === undefined) return [];
+
+      return [
+        {
+          serviceName: first.service,
+          traceId: first.traceId,
+          parentSpanId: first.parentSpanId,
+          identity,
+          query,
+          ...(first.dbQuerySummary
+            ? { querySummary: first.dbQuerySummary }
+            : {}),
+          ...(first.dbOperationName
+            ? { queryOperation: first.dbOperationName }
+            : {}),
+          ...(first.dbSystemName ? { databaseSystem: first.dbSystemName } : {}),
+          ...(first.dbCollectionName
+            ? { collectionName: first.dbCollectionName }
+            : {}),
+          signal: {
+            occurrences: samples.length,
+            totalDurationMs,
+            p50DurationMs,
+            p95DurationMs,
+          },
+          samples: samples.slice(0, 10),
+        },
+      ];
+    })
+    .sort(
+      (left, right) =>
+        right.signal.totalDurationMs - left.signal.totalDurationMs,
+    )
+    .slice(0, 100);
+}

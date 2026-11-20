@@ -1,14 +1,6 @@
-import { QUICKWIT_INDEXES, type QuickwitSearchInput, type QuickwitService } from "@soonwhy/shared";
+import { QUICKWIT_INDEXES, type QuickwitService } from "@soonwhy/shared";
 import { quickwitOrgQuery, quickwitTenantQuery } from "../quickwit/query";
-
-export interface TenantScope {
-  orgId: string;
-  projectId: string;
-}
-
-export type TelemetryIndex = keyof typeof QUICKWIT_INDEXES;
-
-export type TenantSearchInput = Omit<QuickwitSearchInput, "query"> & { filter?: string };
+import type { TenantScope, TelemetryIndex, TenantSearchInput } from "./tenant-search.types";
 
 export function searchTenant<T>(
   quickwit: Pick<QuickwitService, "search">,

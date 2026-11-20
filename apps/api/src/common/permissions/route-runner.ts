@@ -4,7 +4,7 @@ import { ORGANIZATION_ID } from "./constants";
 import { guardsFor, handlerArguments } from "./route-inventory";
 import type { RouteCaller, RouteOutcome, WriteRoute } from "./types";
 
-export function stubService(): unknown {
+function stubService(): unknown {
   const stub: unknown = new Proxy(function stubTarget() {}, {
     get: (_target, property) => (property === "then" ? undefined : stub),
     apply: () => Promise.resolve(stub),

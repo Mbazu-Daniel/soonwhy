@@ -1,9 +1,6 @@
 import { formatErrorStack } from "./stack.js";
-import {
-  sanitizeAttributes,
-  sanitizeMessage,
-  type SecurityOptions,
-} from "./security.js";
+import { sanitizeAttributes, sanitizeMessage } from "./security.js";
+import { type SecurityOptions } from "./security.types.js";
 import type {
   Attributes,
   ErrorInput,

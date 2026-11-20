@@ -34,7 +34,6 @@ export const webhookEndpoints = pgTable(
     name: text("name").notNull(),
     url: text("url").notNull(),
     secret: text("secret"), // HMAC secret for signing payloads
-    // Event types this endpoint listens to. User selects which webhooks they want to listen to.
     types: text("types", {
       enum: [
         "incident.created",

@@ -1,8 +1,8 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { createHash } from "crypto";
 import { eq } from "drizzle-orm";
-import { apiKeys, projects, projectSettings, serviceAccounts } from "../db/schema";
-import type { CaptureSettings } from "../capture-settings";
+import { apiKeys, organizations, projects, projectSettings, serviceAccounts } from "../db/schema";
+import type { CaptureSettings } from "../capture-settings.types";
 import type { Db } from "../db";
 import { DB } from "../db";
 import type { ApiKeyAuthentication, ValidatedApiKey } from "./api-keys.types";
@@ -68,17 +68,20 @@ export class ApiKeyAuthenticator {
         serviceAccountId: apiKeys.serviceAccountId,
         serviceAccountDisabledAt: serviceAccounts.disabledAt,
         organizationId: projects.organizationId,
+        organizationDeletedAt: organizations.deletedAt,
         maxAttributeCount: projectSettings.maxAttributeCount,
         maxAttributeValueLength: projectSettings.maxAttributeValueLength,
       })
       .from(apiKeys)
       .innerJoin(projects, eq(apiKeys.projectId, projects.id))
+      .innerJoin(organizations, eq(organizations.id, projects.organizationId))
       .leftJoin(projectSettings, eq(projectSettings.projectId, projects.id))
       .leftJoin(serviceAccounts, eq(serviceAccounts.id, apiKeys.serviceAccountId))
       .where(eq(apiKeys.keyHash, keyHash));
 
     const row = rows[0];
-    const usable = row && !(row.serviceAccountId && row.serviceAccountDisabledAt);
+    const usable =
+      row && !row.organizationDeletedAt && !(row.serviceAccountId && row.serviceAccountDisabledAt);
     const entry: CachedKey = {
       key: usable
         ? {

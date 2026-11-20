@@ -1,5 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import { ProjectsRepository } from "../../src/modules/v1/projects/projects.repository";
+import { ProjectsRepository } from "../../src/modules/v1/identity/projects/infrastructure/projects.repository";
 import { closeDatabase, databaseTestsEnabled, resetDatabase } from "../support/test-database";
 import { createOrganization, createProject } from "../support/fixtures";
 

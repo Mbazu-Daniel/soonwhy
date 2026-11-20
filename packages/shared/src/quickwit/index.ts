@@ -1,8 +1,2 @@
-export {
-  QuickwitService,
-  type QuickwitHit,
-  type QuickwitSearchInput,
-  type QuickwitSearchResponse,
-  type QuickwitIndexDescription,
-  type QuickwitSplit,
-} from "./service";
+export { QuickwitService } from "./service";
+export { type QuickwitHit, type QuickwitSearchInput, type QuickwitSearchResponse, type QuickwitIndexDescription, type QuickwitSplit } from "./service.types";

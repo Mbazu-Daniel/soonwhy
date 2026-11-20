@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "../../src/common/db";
-import { EvidenceGraphRepository } from "../../src/modules/v1/intelligence/evidence-graph/evidence-graph.repository";
-import type { EvidenceEdge, EvidenceNode } from "../../src/modules/v1/intelligence/evidence-graph/evidence-graph.types";
+import { EvidenceGraphRepository } from "../../src/modules/v1/detection/intelligence/evidence-graph/evidence-graph.repository";
+import type { EvidenceEdge, EvidenceNode } from "../../src/modules/v1/detection/intelligence/evidence-graph/evidence-graph.types";
 import { closeDatabase, databaseTestsEnabled, resetDatabase } from "../support/test-database";
 import { createOrganization } from "../support/fixtures";
 

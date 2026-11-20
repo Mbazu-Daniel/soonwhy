@@ -2,7 +2,7 @@ import { writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 const SOURCE = "https://models.dev/api.json";
-const TARGET = fileURLToPath(new URL("../src/modules/v1/ai/models-snapshot.json", import.meta.url));
+const TARGET = fileURLToPath(new URL("../src/modules/v1/investigation/ai/models-snapshot.json", import.meta.url));
 
 const response = await fetch(SOURCE, { signal: AbortSignal.timeout(30_000) });
 if (!response.ok) throw new Error(`models.dev responded with ${response.status}`);

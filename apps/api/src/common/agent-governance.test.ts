@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { AgentGovernance, type AgentToolAuditEvent } from "./agent-governance";
+import { AgentGovernance } from "./agent-governance";
+import { type AgentToolAuditEvent } from "./agent-governance.types";
 import type { AgentAccessPolicy } from "./db/schema/agent-governance";
 
 const policy: AgentAccessPolicy = {

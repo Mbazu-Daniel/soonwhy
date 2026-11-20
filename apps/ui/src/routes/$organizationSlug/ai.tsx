@@ -1,39 +1,24 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bot, Coins, Loader2, Pencil, Plus, Star, Trash2, Wallet } from "lucide-react";
+import { Bot, Loader2, Pencil, Plus, Star, Trash2 } from "lucide-react";
 import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { AutoAnalysisCard } from "~/components/ai/auto-analysis-card";
-import { MetricCard } from "~/components/metric-cards";
 import { ProviderModal } from "~/components/ai/provider-modal";
 import { AI_CATALOG_KEY, AI_CREDENTIALS_KEY } from "~/lib/ai-providers.constants";
 import type { AiCredential, AiCredentialList, CatalogProvider } from "~/lib/ai-providers.types";
 import { QueryErrorState } from "~/components/query-error-state";
 import { api } from "~/lib/api";
+import { AI_USAGE_KEY } from "~/lib/ai-spend.constants";
+import { AiUsageSection } from "~/components/ai/ai-usage-section";
 
 export const Route = createFileRoute("/$organizationSlug/ai")({
   component: () => AIProvidersPage(),
 });
 
-interface Usage {
-  tokens: { platform: number; byok: number };
-  invocations: number;
-  costUsd: { platform: number; byok: number };
-}
-
-function formatTokens(value: number): string {
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 1_000) return `${Math.round(value / 1_000)}k`;
-  return String(value);
-}
-
-function formatUsd(value: number): string {
-  if (value >= 0.01) return `$${value.toFixed(2)}`;
-  return `$${value.toFixed(4)}`;
-}
-
 function AIProvidersPage() {
+  const { organizationSlug } = Route.useParams();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<AiCredential | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -47,14 +32,9 @@ function AIProvidersPage() {
     queryFn: () => api.get<{ providers: CatalogProvider[] }>("/ai/providers"),
     staleTime: 5 * 60_000,
   });
-  const usage = useQuery({
-    queryKey: ["ai-usage"],
-    queryFn: () => api.get<Usage>("/ai/usage"),
-  });
-
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: AI_CREDENTIALS_KEY });
-    void queryClient.invalidateQueries({ queryKey: ["ai-usage"] });
+    void queryClient.invalidateQueries({ queryKey: [AI_USAGE_KEY] });
   };
 
   const remove = useMutation({
@@ -79,8 +59,6 @@ function AIProvidersPage() {
   }
 
   const { credentials, canManage } = list.data;
-  const spent = (usage.data?.costUsd?.platform ?? 0) + (usage.data?.costUsd?.byok ?? 0);
-  const tokens = (usage.data?.tokens.platform ?? 0) + (usage.data?.tokens.byok ?? 0);
   const open = (credential: AiCredential | null) => {
     setEditing(credential);
     setDialogOpen(true);
@@ -103,11 +81,7 @@ function AIProvidersPage() {
         )}
       </div>
 
-      <section className="grid gap-4 sm:grid-cols-3">
-        <MetricCard label="Spent this month" value={formatUsd(spent)} icon={Wallet} />
-        <MetricCard label="Tokens this month" value={formatTokens(tokens)} icon={Coins} />
-        <MetricCard label="RCA runs" value={String(usage.data?.invocations ?? 0)} icon={Bot} />
-      </section>
+      {canManage && <AiUsageSection organizationSlug={organizationSlug} />}
 
       <AutoAnalysisCard canManage={canManage} />
 

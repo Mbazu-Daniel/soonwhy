@@ -26,16 +26,13 @@ export const notificationChannels = pgTable(
       .notNull(),
     name: text("name").notNull(),
     type: text("type", { enum: ["email", "slack", "webhook"] }).notNull(),
-    // Email channel config
     fromEmail: text("from_email"),
     fromName: text("from_name"),
     recipientEmails: text("recipient_emails").array().default([]),
-    // Slack channel config
     slackAccessToken: text("slack_access_token"), // encrypted at rest in production
     slackChannelId: text("slack_channel_id"), // e.g. C123 or DM user id
     slackUserId: text("slack_user_id"), // for DMs
     slackConnectedAt: timestamp("slack_connected_at"),
-    // Webhook channel config
     webhookUrl: text("webhook_url"),
     webhookSecret: text("webhook_secret"), // HMAC secret for signature verification
     webhookTypes: text("webhook_types").array().default([]), // event types this webhook listens to

@@ -120,7 +120,7 @@ export const usageEvents = pgTable(
       .references(() => organizations.id, { onDelete: "restrict" })
       .notNull(),
     projectId: text("project_id").references(() => projects.id, {
-      onDelete: "cascade",
+      onDelete: "set null",
     }),
     metric: text("metric").$type<UsageMetric>().notNull(),
     quantity: bigint("quantity", { mode: "number" }).notNull(),
@@ -141,6 +141,7 @@ export const usageEvents = pgTable(
       table.metric,
       table.occurredAt,
     ),
+    index("usage_events_project_idx").on(table.projectId),
     check("usage_events_quantity_positive", sql`${table.quantity} > 0`),
   ],
 );
@@ -155,7 +156,7 @@ export const usagePeriods = pgTable(
       .references(() => organizations.id, { onDelete: "restrict" })
       .notNull(),
     projectId: text("project_id").references(() => projects.id, {
-      onDelete: "cascade",
+      onDelete: "set null",
     }),
     metric: text("metric").$type<UsageMetric>().notNull(),
     periodStart: timestamp("period_start").notNull(),
@@ -171,6 +172,7 @@ export const usagePeriods = pgTable(
       table.periodStart,
       table.periodEnd,
     ),
+    index("usage_periods_project_idx").on(table.projectId),
     check("usage_periods_quantity_non_negative", sql`${table.quantity} >= 0`),
     check(
       "usage_periods_period_valid",

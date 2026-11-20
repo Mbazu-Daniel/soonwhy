@@ -1,27 +1,13 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NestMiddleware,
-} from "@nestjs/common";
-import { Request, Response, NextFunction } from "express";
+import { ForbiddenException, Injectable, NestMiddleware, NotFoundException } from "@nestjs/common";
+import { Response, NextFunction } from "express";
 import { and, eq, sql } from "drizzle-orm";
 import { auth } from "../config/better-auth.config";
 import { db } from "../db";
 import { members } from "../db/schema/auth";
 import { organizations } from "../db/schema/organizations";
-import { organizationIdFromUrl } from "./organization-path";
-
-export interface TenantRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    name: string | null;
-    image?: string | null;
-    emailVerified: boolean;
-  };
-  orgId?: string;
-  userRole?: string;
-}
+import { projects } from "../db/schema/projects";
+import { organizationIdFromUrl, projectIdFromUrl } from "./organization-path";
+import type { TenantRequest } from "./tenant-context.middleware.types";
 
 @Injectable()
 export class TenantContextMiddleware implements NestMiddleware {
@@ -76,6 +62,16 @@ export class TenantContextMiddleware implements NestMiddleware {
 
       if (member.deletedAt) {
         throw new ForbiddenException("Organization not found");
+      }
+
+      const projectId = projectIdFromUrl(req.originalUrl || req.url);
+      if (projectId) {
+        const [project] = await db
+          .select({ id: projects.id })
+          .from(projects)
+          .where(and(eq(projects.id, projectId), eq(projects.organizationId, orgId)))
+          .limit(1);
+        if (!project) throw new NotFoundException("Project not found");
       }
 
       await db.execute(sql`SELECT set_config('app.org_id', ${orgId}, true)`);

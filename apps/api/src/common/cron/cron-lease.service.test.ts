@@ -1,11 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const lockResult = { locked: true };
-const transaction = vi.fn(async (run: (tx: unknown) => Promise<void>) => {
-  await run({ execute: vi.fn().mockResolvedValue([lockResult]) });
-});
+const release = vi.fn();
+const session = Object.assign(
+  vi.fn((strings: TemplateStringsArray) =>
+    Promise.resolve(strings[0]?.includes("pg_try_advisory_lock") ? [lockResult] : []),
+  ),
+  { release },
+);
+const reserve = vi.fn(async () => session);
 
-vi.mock("../db", () => ({ db: { transaction: (run: (tx: unknown) => Promise<void>) => transaction(run) } }));
+vi.mock("../db", () => ({ db: { $client: { reserve: () => reserve() } } }));
 
 import { CronLeaseService } from "./cron-lease.service";
 
@@ -16,7 +21,8 @@ function fakeRedis(overrides: Record<string, unknown> = {}) {
 describe("CronLeaseService", () => {
   beforeEach(() => {
     lockResult.locked = true;
-    transaction.mockClear();
+    reserve.mockClear();
+    release.mockClear();
   });
   afterEach(() => vi.useRealTimers());
 
@@ -29,7 +35,7 @@ describe("CronLeaseService", () => {
     expect(ran).toBe(true);
     expect(fn).toHaveBeenCalledTimes(1);
     expect(redis.eval).toHaveBeenCalledTimes(1);
-    expect(transaction).not.toHaveBeenCalled();
+    expect(reserve).not.toHaveBeenCalled();
   });
 
   it("skips the job when another instance holds the lease", async () => {
@@ -57,7 +63,8 @@ describe("CronLeaseService", () => {
     const fn = vi.fn().mockResolvedValue(undefined);
 
     expect(await new CronLeaseService(redis as never).runExclusive("job", 60_000, fn)).toBe(true);
-    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(reserve).toHaveBeenCalledTimes(1);
+    expect(release).toHaveBeenCalledTimes(1);
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
@@ -70,7 +77,7 @@ describe("CronLeaseService", () => {
   });
 
   it("skips the job when the database lock cannot be taken", async () => {
-    transaction.mockRejectedValueOnce(new Error("db down"));
+    reserve.mockRejectedValueOnce(new Error("db down"));
     const fn = vi.fn();
 
     expect(await new CronLeaseService(undefined).runExclusive("job", 60_000, fn)).toBe(false);

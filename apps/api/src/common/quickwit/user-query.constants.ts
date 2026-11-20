@@ -1,0 +1,1 @@
+export const MAX_USER_QUERY_LENGTH = 2000;

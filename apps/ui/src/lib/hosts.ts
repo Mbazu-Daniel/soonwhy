@@ -8,7 +8,7 @@ export interface Host {
 
 export type HostStatus = 'reporting' | 'quiet';
 
-export const HOST_QUIET_AFTER_MS = 5 * 60 * 1000;
+const HOST_QUIET_AFTER_MS = 5 * 60 * 1000;
 
 export function hostStatus(host: Pick<Host, 'lastSeenAt'>, now: number = Date.now()): HostStatus {
   const seen = Date.parse(host.lastSeenAt);
