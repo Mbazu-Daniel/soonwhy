@@ -14,6 +14,7 @@ COPY packages ./packages
 COPY apps/api ./apps/api
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 RUN pnpm --filter @soonwhy/shared build \
+ && pnpm --filter @soonwhy/mcp build \
  && pnpm --filter @soonwhy/ingest build \
  && pnpm --filter @soonwhy/backend build
 RUN pnpm --filter @soonwhy/backend deploy --prod /out/api \

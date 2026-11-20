@@ -1,14 +1,14 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { Tool, type McpContext } from "@nestjs/mcp";
-import type { z } from "zod4";
-import { getTraceSchema, listLogsSchema, listTracesSchema } from "../../investigation-tools/infrastructure/investigation-tools.schemas";
-import { TelemetryInvestigation } from "../../investigation-tools/application/telemetry-investigation.service";
+import type { z } from "zod";
+import { MCP_TELEMETRY_PORT } from "../domain/mcp.tokens";
 import { principalOf } from "../domain/mcp-principal";
-import type { McpAuthedRequest } from "../domain/mcp.types";
+import type { McpAuthedRequest, McpTelemetryPort } from "../domain/mcp.types";
+import { getTraceSchema, listLogsSchema, listTracesSchema } from "../domain/mcp-tool.schemas";
 
 @Injectable()
 export class McpTelemetryTools {
-  constructor(@Inject(TelemetryInvestigation) private readonly telemetry: TelemetryInvestigation) {}
+  constructor(@Inject(MCP_TELEMETRY_PORT) private readonly telemetry: McpTelemetryPort) {}
 
   @Tool({
     name: "list_logs",

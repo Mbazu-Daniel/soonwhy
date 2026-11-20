@@ -7,7 +7,7 @@
     "dev": "turbo dev --filter=@soonwhy/backend --filter=@soonwhy/frontend --filter=@soonwhy/ingest",
     "dev:all": "turbo dev",
     "build": "turbo build",
-    "test": "pnpm --filter @soonwhy/shared build && pnpm --filter @soonwhy/node build && vitest",
+    "test": "pnpm --filter @soonwhy/shared build && pnpm --filter @soonwhy/mcp build && pnpm --filter @soonwhy/node build && vitest",
     "lint": "oxlint --deny-warnings",
     "format": "oxfmt",
     "verify:migrations": "node scripts/verify-migrations.mjs",

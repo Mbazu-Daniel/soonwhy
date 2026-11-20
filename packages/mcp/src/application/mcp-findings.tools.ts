@@ -1,17 +1,16 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { Tool, type McpContext } from "@nestjs/mcp";
-import type { z } from "zod4";
-import { FindingsInvestigation } from "../../investigation-tools/application/findings-investigation.service";
-import { getRcaSchema, listFindingsSchema } from "../../investigation-tools/infrastructure/investigation-tools.schemas";
-import { RcaInvestigation } from "../../investigation-tools/application/rca-investigation.service";
+import type { z } from "zod";
+import { MCP_FINDINGS_PORT, MCP_RCA_PORT } from "../domain/mcp.tokens";
 import { principalOf } from "../domain/mcp-principal";
-import type { McpAuthedRequest } from "../domain/mcp.types";
+import type { McpAuthedRequest, McpFindingsPort, McpRcaPort } from "../domain/mcp.types";
+import { getRcaSchema, listFindingsSchema } from "../domain/mcp-tool.schemas";
 
 @Injectable()
 export class McpFindingsTools {
   constructor(
-    @Inject(FindingsInvestigation) private readonly findings: FindingsInvestigation,
-    @Inject(RcaInvestigation) private readonly rca: RcaInvestigation,
+    @Inject(MCP_FINDINGS_PORT) private readonly findings: McpFindingsPort,
+    @Inject(MCP_RCA_PORT) private readonly rca: McpRcaPort,
   ) {}
 
   @Tool({

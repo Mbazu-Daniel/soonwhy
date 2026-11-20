@@ -32,6 +32,7 @@ import { AutoAnalysisModule } from "./modules/v1/investigation/auto-analysis";
 import { ErrorsModule } from "./modules/v1/detection/errors";
 import { FindingsModule } from "./modules/v1/detection/findings";
 import { VulnerabilitiesModule } from "./modules/v1/detection/vulnerabilities";
+import { SdkDependenciesModule } from "./modules/v1/detection/vulnerabilities/sdk-dependencies.module";
 import { MemberContextModule } from "./modules/v1/identity/member-context/member-context.module";
 import { PlatformAdminModule } from "./modules/v1/identity/platform-admin/platform-admin.module";
 import { DetectorSettingsModule } from "./modules/v1/detection/detector-settings";
@@ -70,8 +71,7 @@ import { QueryCatalogModule } from "./modules/v1/platform/query-catalog/query-ca
 import { AiSummaryModule } from "./modules/v1/detection/intelligence/ai-summary/ai-summary.module";
 import { EvidenceGraphModule } from "./modules/v1/detection/intelligence/evidence-graph/evidence-graph.module";
 import { AIInvestigationModule } from "./modules/v1/detection/intelligence/ai-investigation/ai-investigation.module";
-import { SdkDependenciesModule } from "./modules/v1/detection/vulnerabilities/sdk-dependencies.module";
-import { SoonwhyMcpModule } from "./modules/v1/investigation/mcp";
+import { McpServerModule } from "./modules/v1/investigation/mcp";
 import { RcaModule } from "./modules/v1/detection/detections/rca.module";
 import { InvestigationChatModule } from "./modules/v1/investigation/ai/investigation-chat";
 import { TelemetryModule } from "./common/telemetry";
@@ -150,6 +150,7 @@ const organizationScopedModules = [
     OrganizationsModule,
     HealthModule,
     GithubModule,
+    SdkDependenciesModule,
     ClientEventsModule,
     StatusPageModule,
     DlqModule,
@@ -160,8 +161,7 @@ const organizationScopedModules = [
       ? [IngestHealthModule, PipelineLagModule]
       : []),
     PlatformAdminModule,
-    SdkDependenciesModule,
-    SoonwhyMcpModule,
+    McpServerModule,
     IncidentsModule,
     ...organizationScopedModules,
   ],
