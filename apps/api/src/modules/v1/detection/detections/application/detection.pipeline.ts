@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
+import { raiseFinding } from '../../findings/infrastructure/raise-finding';
 import { QuickwitService } from '@soonwhy/shared';
 import { CacheService } from '../../../../../common/cache/cache.service';
 import { CACHE_TTL_SECONDS } from '../../../../../common/cache/cache.constants';
 import { DetectorSettingsService } from '../../detector-settings/application/detector-settings.service';
 import { DetectionTelemetryService } from './detection-telemetry.service';
-import { db } from '../../../../../common/db';
-import { findings, type DetectionEvidence } from '../../../../../common/db/schema/findings';
+import { type DetectionEvidence } from '../../../../../common/db/schema/findings';
 import { createIssueFromDetection } from '../../intelligence/infrastructure/detection-issue.adapter';
 import { IssueLifecycleService } from '../../intelligence/application/issue-lifecycle.service';
 import { recordDetectionFinding } from '../../../../../common/telemetry/otel-metrics';
@@ -17,6 +17,7 @@ import { detectDependencySignals } from './detection.dependency-signals';
 import { detectDatabaseSignals } from './detection.database-signals';
 import { detectTraceSignals } from './detection.trace-signals';
 import { detectLockContentionSignals } from './detection.lock-contention-signals';
+import { detectSecuritySignals } from "./detection.security-signals";
 import { detectRuntimeSignals } from './detection.runtime-signals';
 
 @Injectable()
@@ -55,6 +56,7 @@ export class DetectionPipeline {
     detected.push(...await detectTraceSignals(deps, context, detected));
     detected.push(...await detectLockContentionSignals(deps, context, database.spans));
     detected.push(...await detectRuntimeSignals(deps, context));
+    detected.push(...await detectSecuritySignals(deps, context));
 
     if (this.detectorSettings.featureEnabled(settings, 'detections.issue_lifecycles')) {
       await this.persistIssueLifecycles(orgId, projectId, detected);
@@ -156,25 +158,24 @@ export class DetectionPipeline {
     start: Date;
     end: Date;
     evidence: DetectionEvidence[];
+    fingerprint?: string;
   }): Promise<DetectionFinding & { projectOrgId: string }> {
-    const [row] = await db
-      .insert(findings)
-      .values({
-        orgId: input.orgId,
-        projectId: input.projectId,
-        serviceName: input.serviceName,
-        type: input.type,
-        severity: input.severity,
-        title: input.title,
-        description: input.description,
-        observedValue: input.observedValue,
-        threshold: input.threshold,
-        unit: input.unit,
-        windowStart: input.start,
-        windowEnd: input.end,
-        evidence: input.evidence,
-      })
-      .returning();
+    const row = await raiseFinding({
+      orgId: input.orgId,
+      projectId: input.projectId,
+      serviceName: input.serviceName,
+      type: input.type,
+      key: input.fingerprint,
+      severity: input.severity,
+      title: input.title,
+      description: input.description,
+      observedValue: input.observedValue,
+      threshold: input.threshold,
+      unit: input.unit,
+      windowStart: input.start,
+      windowEnd: input.end,
+      evidence: input.evidence,
+    });
 
     if (!row) throw new Error('Failed to persist detection finding');
     recordDetectionFinding(input.severity);

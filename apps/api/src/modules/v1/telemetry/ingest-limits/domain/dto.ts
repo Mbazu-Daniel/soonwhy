@@ -13,8 +13,6 @@ export const ingestLimitBodySchema = z.object({
   alertOnLimitExceeded: z.boolean().optional(),
 });
 
-type IngestLimitBody = z.infer<typeof ingestLimitBodySchema>;
-
 const signalTypeSchema = z.enum(["trace", "metric", "log"]);
 
 export const ingestLimitCheckQuerySchema = z.object({
@@ -24,5 +22,3 @@ export const ingestLimitCheckQuerySchema = z.object({
   signalType: signalTypeSchema.optional(),
   serviceName: z.string().optional(),
 });
-
-type IngestLimitCheckQuery = z.infer<typeof ingestLimitCheckQuerySchema>;

@@ -5,6 +5,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
+import { FINDING_CATEGORIES, FINDING_CATEGORY_LABELS } from '~/lib/findings.constants';
+import type { FindingCategory } from '~/lib/findings.types';
 import type { AlertRule, AlertRuleCondition, AlertRuleInput, NotificationChannel } from '~/lib/types';
 import {
   ALERT_AGGREGATIONS,
@@ -13,6 +15,7 @@ import {
   ALERT_SEVERITIES,
   ALERT_STATUSES,
   ALERT_WINDOWS,
+  AUTO_CATEGORY,
   emptyAlertCondition,
 } from './alert-constants';
 
@@ -40,6 +43,7 @@ export function AlertRuleDialog({
   const [minSeverity, setMinSeverity] = useState('medium');
   const [status, setStatus] = useState('active');
   const [dedupeWindowSeconds, setDedupeWindowSeconds] = useState('300');
+  const [findingCategory, setFindingCategory] = useState(AUTO_CATEGORY);
   const [channelIds, setChannelIds] = useState<string[]>([]);
   const [conditions, setConditions] = useState<AlertRuleCondition[]>([emptyAlertCondition()]);
 
@@ -50,6 +54,7 @@ export function AlertRuleDialog({
     setMinSeverity(rule?.minSeverity ?? 'medium');
     setStatus(rule?.status ?? 'active');
     setDedupeWindowSeconds(String(rule?.dedupeWindowSeconds ?? 300));
+    setFindingCategory(rule?.findingCategory ?? AUTO_CATEGORY);
     setChannelIds(rule?.channelIds ?? []);
     setConditions(rule?.conditions.length ? rule.conditions.map(cloneCondition) : [emptyAlertCondition()]);
   }, [open, rule]);
@@ -67,6 +72,7 @@ export function AlertRuleDialog({
       channelIds,
       status,
       dedupeWindowSeconds: Number.isFinite(parsedDedupe) && parsedDedupe > 0 ? parsedDedupe : 300,
+      findingCategory: findingCategory === AUTO_CATEGORY ? null : (findingCategory as FindingCategory),
       conditions: conditions.map((condition) => ({
         type: condition.type || 'threshold',
         metric: condition.metric,
@@ -235,6 +241,19 @@ export function AlertRuleDialog({
           ) : null}
 
           {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
+          <div className="space-y-2">
+            <Label>File findings under</Label>
+            <Select value={findingCategory} onValueChange={setFindingCategory}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={AUTO_CATEGORY}>Choose from the metric</SelectItem>
+                {FINDING_CATEGORIES.map((category) => (
+                  <SelectItem key={category} value={category}>{FINDING_CATEGORY_LABELS[category]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">When this alert fires it is added to Findings for review, and resolved when the alert recovers.</p>
+          </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="submit" disabled={pending || !name.trim()}>{pending ? 'Saving...' : rule ? 'Update rule' : 'Create rule'}</Button>

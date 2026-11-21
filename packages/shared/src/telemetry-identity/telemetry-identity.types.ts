@@ -1,6 +1,7 @@
 export type TelemetryDomain =
   | "performance"
   | "error"
+  | "security"
   | "database"
   | "dependency"
   | "runtime"

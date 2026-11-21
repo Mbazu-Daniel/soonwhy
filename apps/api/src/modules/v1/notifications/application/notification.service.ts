@@ -157,8 +157,8 @@ export class NotificationService {
     projectId: string,
     input: Omit<
       typeof alertRules.$inferSelect,
-      "id" | "orgId" | "projectId" | "createdAt" | "updatedAt"
-    >,
+      "id" | "orgId" | "projectId" | "createdAt" | "updatedAt" | "findingCategory"
+    > & { findingCategory?: typeof alertRules.$inferSelect["findingCategory"] },
   ): Promise<AlertRuleDto> {
     assertAlertRuleInput(input);
     const [row] = await db
@@ -173,6 +173,7 @@ export class NotificationService {
         channelIds: input.channelIds ?? [],
         status: input.status ?? "active",
         dedupeWindowSeconds: input.dedupeWindowSeconds ?? 300,
+        findingCategory: input.findingCategory ?? null,
       })
       .returning();
     return toAlertRuleDto(row!);
@@ -192,6 +193,7 @@ export class NotificationService {
         | "channelIds"
         | "status"
         | "dedupeWindowSeconds"
+        | "findingCategory"
       >
     >,
   ): Promise<AlertRuleDto> {
@@ -270,8 +272,8 @@ export class NotificationService {
     orgId: string,
     input: Omit<
       typeof alertRules.$inferSelect,
-      "id" | "orgId" | "projectId" | "createdAt" | "updatedAt"
-    >,
+      "id" | "orgId" | "projectId" | "createdAt" | "updatedAt" | "findingCategory"
+    > & { findingCategory?: typeof alertRules.$inferSelect["findingCategory"] },
   ): Promise<AlertRuleDto> {
     assertAlertRuleInput(input);
     const [row] = await db
@@ -286,6 +288,7 @@ export class NotificationService {
         channelIds: input.channelIds ?? [],
         status: input.status ?? "active",
         dedupeWindowSeconds: input.dedupeWindowSeconds ?? 300,
+        findingCategory: input.findingCategory ?? null,
       })
       .returning();
     return toAlertRuleDto(row!);
@@ -304,6 +307,7 @@ export class NotificationService {
         | "channelIds"
         | "status"
         | "dedupeWindowSeconds"
+        | "findingCategory"
       >
     >,
   ): Promise<AlertRuleDto> {

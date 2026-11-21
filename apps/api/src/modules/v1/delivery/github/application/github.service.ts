@@ -5,10 +5,10 @@ import {
   deployments,
   environments,
   services,
-  findings,
   webhookDeliveries,
 } from "../../../../../common/db/schema";
 import { eq } from "drizzle-orm";
+import { WEBHOOK_SECRET_CONTEXT } from "../domain/github.constants";
 
 function normalizeRepoUrl(url: string): string {
   return url
@@ -21,6 +21,12 @@ function normalizeRepoUrl(url: string): string {
 @Injectable()
 export class GithubService {
   private readonly logger = new Logger(GithubService.name);
+
+  secretForProject(projectId: string): string {
+    return createHmac("sha256", this.verifyWebhookSecret())
+      .update(`${WEBHOOK_SECRET_CONTEXT}:${projectId}`)
+      .digest("hex");
+  }
 
   verifyWebhookSecret(): string {
     const secret = process.env.GITHUB_WEBHOOK_SECRET;
@@ -49,6 +55,7 @@ export class GithubService {
   }
 
   async handlePushEvent(
+    projectId: string,
     rawBody: Buffer | string,
     eventName: string | undefined,
     deliveryId?: string,
@@ -70,8 +77,11 @@ export class GithubService {
     }
 
     const normalized = normalizeRepoUrl(repoUrl);
-    const allServices = await db.select().from(services);
-    const matched = allServices.filter(
+    const projectServices = await db
+      .select()
+      .from(services)
+      .where(eq(services.projectId, projectId));
+    const matched = projectServices.filter(
       (service) =>
         service.repositoryUrl &&
         normalizeRepoUrl(service.repositoryUrl) === normalized,
@@ -79,10 +89,6 @@ export class GithubService {
 
     if (matched.length === 0) {
       return { handled: false, reason: "no matching service" };
-    }
-
-    if (new Set(matched.map((service) => service.orgId)).size > 1) {
-      return { handled: false, reason: "repository is claimed by more than one organization" };
     }
 
     const created: Array<typeof deployments.$inferSelect> = [];
@@ -142,81 +148,6 @@ export class GithubService {
       return { handled: false, reason: "duplicate delivery" };
     }
 
-    for (const [index, service] of matched.entries()) {
-      const deployment = created[index];
-      if (!deployment) continue;
-      try {
-        await this.correlateDeploymentWithFindings(
-          service.id,
-          deployment.id,
-          deployment.deployedAt?.getTime() ?? Date.now(),
-        );
-      } catch (error) {
-        this.logger.warn(
-          `Finding correlation failed for deployment ${deployment.id}: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-    }
-
     return { handled: true, deployments: created, commitMessage };
-  }
-
-  private async correlateDeploymentWithFindings(
-    serviceId: string,
-    deploymentId: string,
-    deployedAtTimestamp: number,
-  ) {
-    const [service] = await db
-      .select()
-      .from(services)
-      .where(eq(services.id, serviceId))
-      .limit(1);
-
-    if (!service) {
-      this.logger.log(
-        `Service ${serviceId} not found for deployment correlation`,
-      );
-      return;
-    }
-
-    const allProjectFindings = await db
-      .select()
-      .from(findings)
-      .where(eq(findings.projectId, service.projectId));
-
-    const windowMs = 2 * 60 * 60 * 1000;
-    const windowStart = deployedAtTimestamp - windowMs;
-    const windowEnd = deployedAtTimestamp + windowMs;
-
-    for (const finding of allProjectFindings) {
-      const traceIdsFromFinding = finding.evidence.flatMap((evidence) => {
-        const traceId = evidence.context?.traceId;
-        return typeof traceId === "string" && traceId ? [traceId] : [];
-      });
-
-      const hasMatchingTrace = traceIdsFromFinding.some((traceId) => {
-        const findingTraces = finding.evidence.filter(
-          (evidence) => evidence.context?.traceId === traceId,
-        );
-        return findingTraces.some((trace) => {
-          const traceTimestamp = trace.context?.timestamp;
-          return (
-            typeof traceTimestamp === "number" &&
-            traceTimestamp >= windowStart &&
-            traceTimestamp <= windowEnd
-          );
-        });
-      });
-
-      if (hasMatchingTrace) {
-        this.logger.log(
-          `Finding ${finding.id} correlated with deployment ${deploymentId} (service: ${serviceId})`,
-        );
-      }
-    }
-
-    this.logger.log(
-      `Deployment ${deploymentId} correlation complete for service ${serviceId}`,
-    );
   }
 }

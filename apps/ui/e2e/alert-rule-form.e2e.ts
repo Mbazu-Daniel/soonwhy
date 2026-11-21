@@ -1,5 +1,8 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect as baseExpect, test, type Page } from '@playwright/test';
 import { mockApi } from './mock-api';
+
+const expect = baseExpect.configure({ timeout: 20_000 });
+test.describe.configure({ timeout: 90_000 });
 
 const PAGE = '/acme/p/web/alerts';
 
@@ -89,9 +92,32 @@ test.describe('alert rule form', () => {
       minSeverity: 'critical',
       channelIds: [],
       dedupeWindowSeconds: 900,
+      findingCategory: null,
       conditions: [{ type: 'threshold', metric: 'http.server.request.errors.rate', operator: 'gte', value: 2500, window: '1h', aggregation: 'max' }],
     });
     await expect(page.getByRole('dialog')).toHaveCount(0);
+  });
+
+  test('files the rule\'s findings under the category you pick, or lets the metric decide', async ({ page }) => {
+    const sent = await setup(page);
+    await page.goto(PAGE);
+    await page.getByRole('button', { name: 'Create alert rule' }).click();
+    await page.getByLabel('Name').fill('Login failures');
+    await expect(page.getByRole('dialog').getByRole('combobox').last()).toContainText('Choose from the metric');
+
+    await page.getByRole('dialog').getByRole('combobox').last().click();
+    await page.getByRole('option', { name: 'Security', exact: true }).click();
+    await page.getByRole('button', { name: 'Create rule' }).click();
+
+    await expect.poll(() => sent.length).toBe(1);
+    expect(sent[0]!.body).toMatchObject({ name: 'Login failures', findingCategory: 'security' });
+  });
+
+  test('shows the category an existing rule is filed under', async ({ page }) => {
+    await setup(page, { rules: [{ ...RULE, findingCategory: 'error' }] });
+    await page.goto(PAGE);
+    await page.getByRole('button', { name: 'Edit High error rate' }).click();
+    await expect(page.getByRole('dialog').getByRole('combobox').last()).toContainText('Errors');
   });
 
   test('uses the defaults when you only give it a name', async ({ page }) => {

@@ -18,3 +18,4 @@ export type {
   FastifyErrorHook,
 } from "./http-errors.types.js";
 export { enableSourceMaps } from "./source-maps.js";
+export { collectInstalledPackages, collectProductionPackages } from "./dependencies.js";

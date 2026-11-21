@@ -71,6 +71,34 @@
       "when": 1795276128969,
       "tag": "0009_usage_project_set_null",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795362528969,
+      "tag": "0010_finding_lifecycle",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795448928969,
+      "tag": "0011_dependency_snapshots",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1795535328969,
+      "tag": "0012_alert_rule_finding_category",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1795621728969,
+      "tag": "0013_alert_trigger_one_active",
+      "breakpoints": true
     }
   ]
 }

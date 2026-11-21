@@ -39,6 +39,10 @@ const DOMAIN_MAP: Record<DetectionFinding["type"], TelemetryDomain> = {
   runtime_degradation: "runtime",
   seasonal_anomaly: "performance",
   change_point: "performance",
+  auth_failure_spike: "security",
+  secret_in_logs: "security",
+  sensitive_data_exposure: "security",
+  alert_rule: "performance",
 };
 
 export function createIssueFromDetection(finding: DetectionFinding): Issue {

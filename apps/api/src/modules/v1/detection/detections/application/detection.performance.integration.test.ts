@@ -1,3 +1,4 @@
+import { upsertable } from "../domain/detection.fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "../../../../../common/db";
 import type { QuickwitService } from "@soonwhy/shared";
@@ -30,8 +31,7 @@ describe("DetectionService performance integration", () => {
           values: vi
             .fn()
             .mockImplementation(
-              (input: { type: string; evidence?: unknown[] }) => ({
-                returning: vi.fn().mockResolvedValue([
+              (input: { type: string; evidence?: unknown[] }) => upsertable(vi.fn().mockResolvedValue([
                   {
                     id: "finding-" + ++sequence,
                     projectId: "project-1",
@@ -47,8 +47,7 @@ describe("DetectionService performance integration", () => {
                     windowEnd: new Date(),
                     evidence: input.evidence ?? [],
                   },
-                ]),
-              }),
+                ])),
             ),
         }) as never,
     );

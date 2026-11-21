@@ -54,6 +54,7 @@ export interface AlertRuleDto {
   channelIds: string[];
   status: string;
   dedupeWindowSeconds: number;
+  findingCategory: "error" | "performance" | "security" | "vulnerability" | null;
   createdAt: string;
   updatedAt: string;
 }

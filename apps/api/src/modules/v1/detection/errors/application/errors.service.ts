@@ -19,8 +19,11 @@ import { isIgnoredByRules, rulesFingerprint } from "../domain/ignore-rules";
 import { listIgnoreRules } from "../infrastructure/ignore-rules.store";
 import { mergeErrorSources } from "../domain/error-sources";
 import { buildTimeline, groupErrorLogs, occurrencesOf, traceIdsOf } from "../domain/error-groups";
-import { DEFAULT_RANGE_MS, ERROR_FINDING_TYPE, ERROR_LOG_LEVELS, HTTP_ERROR_FLOOR, MAX_ERROR_HITS } from "../domain/error.constants";
+import { DEFAULT_RANGE_MS, ERROR_FINDING_MIN_OCCURRENCES, ERROR_FINDING_SYNC_LIMIT, ERROR_FINDING_TYPE, ERROR_LOG_LEVELS, HTTP_ERROR_FLOOR, MAX_ERROR_HITS } from "../domain/error.constants";
 import type { ErrorGroup, ErrorGroupDetail, ErrorGroupSummary, ErrorIssueState, ErrorIssueStatusInput, ErrorLogSource, ErrorRange, RequestErrorSource, SpanErrorSource } from "../domain/error.types";
+import { categoryOf, recommendationFor } from "../../findings/domain/finding-kind";
+import { findingFingerprint } from "../../findings/domain/finding-fingerprint";
+import { recurrenceUpdate } from "../../findings/infrastructure/finding-recurrence";
 import { searchTenant } from "../../../../../common/telemetry/tenant-search";
 import type { ErrorQuery } from "../domain/errors.service.types";
 
@@ -125,6 +128,23 @@ export class ErrorsService {
     return existing?.id ?? null;
   }
 
+  async syncFindings(orgId: string, projectId: string): Promise<number> {
+    const groups = await this.listGroups(orgId, projectId, { limit: ERROR_FINDING_SYNC_LIMIT });
+    const eligible = groups.filter(
+      (group) =>
+        !group.scannerProbe &&
+        group.issue.status !== "resolved" &&
+        group.issue.status !== "ignored" &&
+        group.count >= ERROR_FINDING_MIN_OCCURRENCES,
+    );
+    let created = 0;
+    for (const group of eligible) {
+      const { finding } = await this.createFinding(orgId, projectId, group.fingerprint);
+      if (finding) created += 1;
+    }
+    return created;
+  }
+
   async createFinding(
     orgId: string,
     projectId: string,
@@ -143,6 +163,9 @@ export class ErrorsService {
       windowEnd: new Date(group.lastSeen),
       detectedAt: new Date(),
       evidence: this.evidenceOf(group),
+      category: categoryOf(ERROR_FINDING_TYPE),
+      fingerprint: findingFingerprint(ERROR_FINDING_TYPE, group.service, fingerprint),
+      recommendation: recommendationFor(ERROR_FINDING_TYPE),
     };
     const [existing] = await db
       .select({ id: findings.id })
@@ -160,7 +183,7 @@ export class ErrorsService {
     if (existing) {
       const [finding] = await db
         .update(findings)
-        .set(values)
+        .set({ ...values, ...recurrenceUpdate(new Date(group.lastSeen)) })
         .where(eq(findings.id, existing.id))
         .returning();
       return { status: "updated" as const, finding };
@@ -179,6 +202,7 @@ export class ErrorsService {
         serviceName: group.service,
         type: ERROR_FINDING_TYPE,
         title,
+        lastSeenAt: new Date(group.lastSeen),
         ...values,
       })
       .returning();

@@ -1,12 +1,4 @@
-import type { RcaConfidence } from '~/lib/rca.types';
-
 export const NOT_ESTABLISHED = /^\s*not established/i;
-
-const CONFIDENCE_STYLES: Record<RcaConfidence, string> = {
-  low: 'bg-[#FEF3C7] text-[#713F12]',
-  medium: 'bg-[#DBEAFE] text-[#1E3A8A]',
-  high: 'bg-[#DCFCE7] text-[#14532D]',
-};
 
 export function firstSentence(text: string): string {
   const match = text.match(/^.*?[.!?](\s|$)/);

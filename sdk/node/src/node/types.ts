@@ -18,6 +18,8 @@ export interface NodeSdkOptions {
   registerShutdownHandlers?: boolean;
   captureUncaughtErrors?: boolean;
   enableSourceMaps?: boolean;
+  captureBodies?: boolean | { maxBytes?: number };
+  reportDependencies?: { apiEndpoint: string; includeDev?: boolean };
   instrumentations?: {
     http?: boolean;
     express?: boolean;

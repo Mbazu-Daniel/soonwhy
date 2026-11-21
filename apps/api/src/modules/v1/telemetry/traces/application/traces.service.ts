@@ -1,8 +1,14 @@
+import { analyzeTraceInsights } from "../domain/trace-insights";
+import type { InsightSpan } from "../domain/trace-insights.types";
 import { Injectable } from "@nestjs/common";
 import { TracesRepository } from "../infrastructure/traces.repository";
 import { TraceRow, type TraceScope } from "../domain/traces.repository.types";
 import { GetTraceStatsInput, GetTracesInput } from "../domain/dto";
 import { decodeOffset, nextOffsetCursor } from "../domain/trace-cursor";
+import { analyzeTracePayloads } from "../domain/trace-payloads";
+import { analyzeTraceQueries } from "../domain/trace-queries";
+import { traceExtents } from "../domain/trace-extent";
+import type { QuerySpan } from "../domain/trace-queries.types";
 import type { TraceSpan } from "../domain/traces.service.types";
 
 @Injectable()
@@ -49,7 +55,14 @@ export class TracesService {
       projectId,
       traceId,
     });
-    return { traceId, spans, tree: this.buildTree(spans) };
+    return {
+      traceId,
+      spans,
+      tree: this.buildTree(spans),
+      queries: analyzeTraceQueries(spans as QuerySpan[], traceExtents(spans).get(traceId) ?? 0),
+      payloads: analyzeTracePayloads(spans),
+      insights: analyzeTraceInsights(spans as InsightSpan[]),
+    };
   }
 
   private buildTree(spans: TraceRow[]): TraceSpan[] {

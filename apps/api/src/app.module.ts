@@ -30,6 +30,9 @@ import { TracesModule } from "./modules/v1/telemetry/traces";
 import { DetectionModule } from "./modules/v1/detection/detections";
 import { AutoAnalysisModule } from "./modules/v1/investigation/auto-analysis";
 import { ErrorsModule } from "./modules/v1/detection/errors";
+import { FindingsModule } from "./modules/v1/detection/findings";
+import { VulnerabilitiesModule } from "./modules/v1/detection/vulnerabilities";
+import { SdkDependenciesModule } from "./modules/v1/detection/vulnerabilities/sdk-dependencies.module";
 import { MemberContextModule } from "./modules/v1/identity/member-context/member-context.module";
 import { PlatformAdminModule } from "./modules/v1/identity/platform-admin/platform-admin.module";
 import { DetectorSettingsModule } from "./modules/v1/detection/detector-settings";
@@ -44,6 +47,7 @@ import { ClientEventsModule } from "./modules/v1/telemetry/client-events";
 import { IssueLifecycleModule } from "./modules/v1/detection/intelligence/issue-lifecycle.module";
 import { NotificationsModule } from "./modules/v1/notifications";
 import { GithubModule } from "./modules/v1/delivery/github/github.module";
+import { GithubSetupModule } from "./modules/v1/delivery/github/github-setup.module";
 import { SyntheticProbesModule } from "./modules/v1/detection/synthetic-probes";
 import { StatusPageModule } from "./modules/v1/delivery/status-page/status-page.module";
 import { CanaryModule } from "./modules/v1/detection/canary/canary.module";
@@ -67,7 +71,7 @@ import { QueryCatalogModule } from "./modules/v1/platform/query-catalog/query-ca
 import { AiSummaryModule } from "./modules/v1/detection/intelligence/ai-summary/ai-summary.module";
 import { EvidenceGraphModule } from "./modules/v1/detection/intelligence/evidence-graph/evidence-graph.module";
 import { AIInvestigationModule } from "./modules/v1/detection/intelligence/ai-investigation/ai-investigation.module";
-import { SoonwhyMcpModule } from "./modules/v1/investigation/mcp";
+import { McpServerModule } from "./modules/v1/investigation/mcp";
 import { RcaModule } from "./modules/v1/detection/detections/rca.module";
 import { InvestigationChatModule } from "./modules/v1/investigation/ai/investigation-chat";
 import { TelemetryModule } from "./common/telemetry";
@@ -78,6 +82,7 @@ const organizationScopedModules = [
   ApiKeysModule,
   HostsModule,
   ServicesModule,
+  GithubSetupModule,
   ProjectsModule,
   UploadsModule,
   DashboardModule,
@@ -88,6 +93,8 @@ const organizationScopedModules = [
   DetectionModule,
   AutoAnalysisModule,
   ErrorsModule,
+  FindingsModule,
+  VulnerabilitiesModule,
   RcaModule,
   DetectorSettingsModule,
   EnvironmentsModule,
@@ -143,6 +150,7 @@ const organizationScopedModules = [
     OrganizationsModule,
     HealthModule,
     GithubModule,
+    SdkDependenciesModule,
     ClientEventsModule,
     StatusPageModule,
     DlqModule,
@@ -153,7 +161,7 @@ const organizationScopedModules = [
       ? [IngestHealthModule, PipelineLagModule]
       : []),
     PlatformAdminModule,
-    SoonwhyMcpModule,
+    McpServerModule,
     IncidentsModule,
     ...organizationScopedModules,
   ],

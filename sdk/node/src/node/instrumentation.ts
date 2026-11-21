@@ -5,6 +5,15 @@ import { sanitizeSpan } from "./span-sanitizer.js";
 import { type SpanLike } from "./span-sanitizer.types.js";
 import type { OTelRuntime } from "./instrumentation.types.js";
 
+import type { ServerResponse } from "node:http";
+import { captureBodies } from "./body-capture.js";
+import { DEFAULT_MAX_BODY_BYTES } from "./body-capture.constants.js";
+import type { BodyCaptureOptions, BodySpan } from "./body-capture.types.js";
+
+function isServerResponse(value: unknown): value is ServerResponse {
+  return typeof value === "object" && value !== null && "req" in value && typeof (value as ServerResponse).end === "function";
+}
+
 const require = createRequire(import.meta.url);
 
 interface NodeSdkModule {
@@ -83,7 +92,7 @@ export function createOpenTelemetryRuntime(
 
   const instrumentations =
     autoInstrumentationModule.getNodeAutoInstrumentations(
-      buildInstrumentationConfig(options.instrumentations),
+      buildInstrumentationConfig(options.instrumentations, bodyCaptureFor(options)),
     );
 
   const sdk = new sdkModule.NodeSDK({
@@ -96,11 +105,26 @@ export function createOpenTelemetryRuntime(
   return { sdk, exporter };
 }
 
+function bodyCaptureFor(options: ResolvedNodeSdkOptions): BodyCaptureOptions | undefined {
+  const requested = options.captureBodies;
+  if (!requested) return undefined;
+  const maxBytes = typeof requested === "object" && requested.maxBytes ? requested.maxBytes : DEFAULT_MAX_BODY_BYTES;
+  return { maxBytes, maxAttributeValueLength: options.maxAttributeValueLength };
+}
+
 export function buildInstrumentationConfig(
   requested: ResolvedNodeSdkOptions["instrumentations"],
+  bodies?: BodyCaptureOptions,
 ): Record<string, Record<string, unknown>> {
   const config: Record<string, Record<string, unknown>> = {
-    "@opentelemetry/instrumentation-http": { enabled: requested.http },
+    "@opentelemetry/instrumentation-http": {
+      enabled: requested.http,
+      ...(bodies
+        ? { responseHook: (span: BodySpan, response: unknown) => {
+            if (isServerResponse(response)) captureBodies(span, response, bodies);
+          } }
+        : {}),
+    },
     "@opentelemetry/instrumentation-express": { enabled: requested.express },
     "@opentelemetry/instrumentation-nestjs-core": { enabled: requested.nestjs },
     "@opentelemetry/instrumentation-pg": {

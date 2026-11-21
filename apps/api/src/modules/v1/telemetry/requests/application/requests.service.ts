@@ -1,6 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { RequestsRepository } from "../infrastructure/requests.repository";
 import { GetRequestsStatsInput } from "../domain/dto";
+import { DEFAULT_WINDOW_MS } from "../domain/endpoint-health.constants";
+import { assessEndpoints } from "../domain/endpoint-health";
 
 @Injectable()
 export class RequestsService {
@@ -13,6 +15,19 @@ export class RequestsService {
         /\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
         "/:id",
       );
+  }
+
+  async getEndpointHealth(orgId: string, input: GetRequestsStatsInput) {
+    const to = input.to ? new Date(input.to) : new Date();
+    const from = input.from ? new Date(input.from) : new Date(to.getTime() - DEFAULT_WINDOW_MS);
+    const span = to.getTime() - from.getTime();
+    const previousFrom = new Date(from.getTime() - span);
+    const query = (start: Date, end: Date) =>
+      this.requestsRepository
+        .queryStats({ orgId, projectId: input.projectId, from: start.toISOString(), to: end.toISOString() })
+        .then((rows) => rows.map((row) => ({ ...row, url: this.normalizeUrl(row.url) })));
+    const [current, previous] = await Promise.all([query(from, to), query(previousFrom, from)]);
+    return { from: from.toISOString(), to: to.toISOString(), ...assessEndpoints(current, previous) };
   }
 
   async getStats(orgId: string, input: GetRequestsStatsInput) {

@@ -25,9 +25,9 @@ function json(body: unknown, status = 200) {
   return { status, contentType: 'application/json', body: JSON.stringify(body) };
 }
 
-async function mockTrace(page: Page, spans: unknown[] = SPANS) {
+async function mockTrace(page: Page, spans: unknown[] = SPANS, analysis: Record<string, unknown> = {}) {
   await mockApi(page);
-  await page.route((url) => url.pathname.endsWith('/traces/abc123'), (route) => route.fulfill(json({ traceId: 'abc123', spans })));
+  await page.route((url) => url.pathname.endsWith('/traces/abc123'), (route) => route.fulfill(json({ traceId: 'abc123', spans, ...analysis })));
 }
 
 test.describe('traces list', () => {
@@ -90,6 +90,40 @@ test.describe('trace detail', () => {
     await page.goto(`${PROJECT_PATH}/trace/abc123`);
     await page.getByRole('button', { name: /POST \/payments/ }).click();
     await expect(page.getByText('payment gateway slow')).toBeVisible();
+  });
+
+  test('lists the request\'s database queries with index hints', async ({ page }) => {
+    await mockTrace(page, SPANS, {
+      queries: {
+      queryCount: 9, totalQueryMs: 80, traceMs: 300,
+      queries: [{
+        query: 'SELECT * FROM order_items WHERE order_id = ?', operation: 'SELECT', table: 'order_items', filterColumns: ['order_id'],
+        count: 8, totalMs: 60, maxMs: 9, avgMs: 7.5, shareOfTrace: 0.2, spanId: 'db',
+        hints: [{ kind: 'repeated', message: 'Runs 8 times in this request. Load the rows in one query with a join or an IN list.' }, { kind: 'index', message: 'Filters order_items by order_id. Check that an index covers this column, and run EXPLAIN on it.' }],
+      }],
+      },
+    });
+    await page.goto(`${PROJECT_PATH}/trace/abc123`);
+    await expect(page.getByText('Database queries')).toBeVisible();
+    await expect(page.getByText('SELECT * FROM order_items WHERE order_id = ?')).toBeVisible();
+    await expect(page.getByText('Runs 8 times in this request')).toBeVisible();
+    await expect(page.getByText('Check that an index covers this column')).toBeVisible();
+  });
+
+  test('shows what is wrong with a request and response body', async ({ page }) => {
+    await mockTrace(page, SPANS, {
+      payloads: [
+      { spanId: 'root', operation: 'GET /orders', side: 'response', bytes: 250000, format: 'json', fieldCount: 12, issues: [
+        { kind: 'large', side: 'response', message: 'The response body is 250 KB. Send less data or compress it.' },
+        { kind: 'sensitive_field', side: 'response', path: 'user.token', message: 'The response carries "user.token", which looks sensitive. Do not return it to the client.' },
+      ] },
+      ],
+    });
+    await page.goto(`${PROJECT_PATH}/trace/abc123`);
+    await expect(page.getByText('Request and response bodies')).toBeVisible();
+    await expect(page.getByText('250.0 KB · 12 fields')).toBeVisible();
+    await expect(page.getByText('Send less data or compress it')).toBeVisible();
+    await expect(page.getByText('Do not return it to the client')).toBeVisible();
   });
 
   test('says so when the trace does not exist', async ({ page }) => {

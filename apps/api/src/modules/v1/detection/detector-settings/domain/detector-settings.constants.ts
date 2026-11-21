@@ -169,6 +169,24 @@ export const DETECTOR_DEFINITIONS: readonly DetectorDefinition[] = [
     thresholdKeys: [],
   },
   {
+    key: "auth_failure_spike",
+    label: "Authentication failure spike",
+    description: "Detects sudden growth in 401 and 403 responses.",
+    thresholdKeys: [],
+  },
+  {
+    key: "secret_in_logs",
+    label: "Secret in logs",
+    description: "Detects credentials and keys written to logs.",
+    thresholdKeys: [],
+  },
+  {
+    key: "sensitive_data_exposure",
+    label: "Sensitive data in responses",
+    description: "Detects passwords, tokens and card data returned in API responses.",
+    thresholdKeys: [],
+  },
+  {
     key: "bottleneck",
     label: "Correlated bottleneck",
     description:

@@ -16,6 +16,7 @@ COPY apps ./apps
 COPY packages ./packages
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @soonwhy/shared build \
+ && pnpm --filter @soonwhy/mcp build \
  && pnpm --filter @soonwhy/ingest build \
  && pnpm --filter @soonwhy/backend build \
  && pnpm --filter @soonwhy/frontend build

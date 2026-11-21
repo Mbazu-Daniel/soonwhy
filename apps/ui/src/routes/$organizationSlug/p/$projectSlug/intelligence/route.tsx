@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useMatchRoute } from '@tanstack/react-router';
-import { ShieldCheck, FileSearch } from 'lucide-react';
+import { ShieldCheck, FileSearch, FileText, Gauge } from 'lucide-react';
 import { cn } from '~/lib/utils';
 
 export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/intelligence')({ component: IntelligenceLayout });
@@ -7,6 +7,8 @@ export const Route = createFileRoute('/$organizationSlug/p/$projectSlug/intellig
 const tabs = [
   { to: '/$organizationSlug/p/$projectSlug/intelligence/findings', label: 'Findings', icon: FileSearch },
   { to: '/$organizationSlug/p/$projectSlug/intelligence/investigations', label: 'Investigations', icon: ShieldCheck },
+  { to: '/$organizationSlug/p/$projectSlug/intelligence/api', label: 'API health', icon: Gauge },
+  { to: '/$organizationSlug/p/$projectSlug/intelligence/report', label: 'Report', icon: FileText },
 ] as const;
 
 function IntelligenceLayout() {

@@ -12,10 +12,6 @@ export const createRetentionPolicyBodySchema = z.object({
   cleanupSchedule: z.string().optional(),
 });
 
-type CreateRetentionPolicyBody = z.infer<
-  typeof createRetentionPolicyBodySchema
->;
-
 export const updateRetentionPolicyBodySchema = z.object({
   retentionDays: retentionDays.optional(),
   maxStorageGb: z.number().optional(),
@@ -24,13 +20,7 @@ export const updateRetentionPolicyBodySchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-type UpdateRetentionPolicyBody = z.infer<
-  typeof updateRetentionPolicyBodySchema
->;
-
 export const exportRetentionDataBodySchema = z.object({
   dataType,
   beforeDate: z.string().datetime(),
 });
-
-type ExportRetentionDataBody = z.infer<typeof exportRetentionDataBodySchema>;

@@ -1,13 +1,12 @@
 import { randomUUID } from "crypto";
-import { isPiiKey, isPiiValue } from "@soonwhy/shared";
 import { stableEventId } from "./event-id";
 import { nanoToMs } from "./time";
 import { spanDetailFields } from "./span-details";
-import { encryptOrRedact, encryptTextOrRedact } from "./pii-safe";
 import { httpStatusCodeOf } from "./http-fields";
-import { EXCEPTION_STACKTRACE_KEY, FREE_TEXT_ATTRIBUTE_KEYS, MAX_STORED_STACK_LENGTH } from "./exception-attributes";
-import type { CaptureSettings, ParsedLogRecord, ParsedMetricPoint, ParsedSpan, OrganizationContext } from "../interfaces";
-import { SENSITIVE_ATTRIBUTE_PATTERN, SENSITIVE_TEXT_PATTERNS } from "./mappers.constants";
+import { applyLogAttributePolicy, applySpanAttributePolicy, sanitizeSensitiveText } from "./attribute-policy";
+import { sanitizeDatabaseQuery } from "./sanitize-sql";
+import { EXCEPTION_STACKTRACE_KEY, MAX_STORED_STACK_LENGTH } from "./exception-attributes";
+import type { ParsedLogRecord, ParsedMetricPoint, ParsedSpan, OrganizationContext } from "../interfaces";
 function telemetryTimestamp(isoOrMs: string | number): string {
   const date =
     typeof isoOrMs === "number"
@@ -34,75 +33,6 @@ function metricValue(point: ParsedMetricPoint): number {
     if (Number.isFinite(n)) return n;
   }
   return 0;
-}
-function safeLogAttributes(
-  attributes: Record<string, unknown>,
-  settings: CaptureSettings,
-): Record<string, string> {
-  return Object.fromEntries(
-    Object.entries(attributes)
-      .filter(([key]) => {
-        if (SENSITIVE_ATTRIBUTE_PATTERN.test(key)) return false;
-        return true;
-      })
-      .slice(0, Math.max(1, settings.maxAttributeCount))
-      .map(([key, value]) => [key, sanitizePiiValue(key, value, settings, 0)]),
-  ) as Record<string, string>;
-}
-
-function sanitizePiiValue(
-  key: string,
-  value: unknown,
-  settings: CaptureSettings,
-  depth: number,
-): string {
-  const maxLength = settings.maxAttributeValueLength;
-  if (typeof value === "string") {
-    if (FREE_TEXT_ATTRIBUTE_KEYS.has(key)) {
-      return sanitizeSensitiveText(limitAttributeValue(value, maxLength, depth));
-    }
-    if (isPiiKey(key) || isPiiValue(value)) return encryptOrRedact(value);
-    return sanitizeSensitiveText(limitAttributeValue(value, maxLength, depth));
-  }
-  if (value === null || typeof value !== "object") return String(value);
-  if (depth >= 6) return "[TRUNCATED]";
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => sanitizePiiValue(key, item, settings, depth + 1))
-      .join(", ");
-  }
-  return limitAttributeValue(
-    JSON.stringify(value, (childKey, childValue) => {
-      if (typeof childValue !== "string") return childValue;
-      if (isPiiKey(childKey) || isPiiValue(childValue))
-        return encryptOrRedact(childValue);
-      return sanitizeSensitiveText(childValue);
-    }),
-    maxLength,
-  );
-}
-function limitAttributeValue(
-  value: unknown,
-  maxLength: number,
-  depth = 0,
-): string {
-  if (typeof value === "string") return value.slice(0, maxLength);
-  if (value === null || typeof value !== "object") return String(value);
-  if (depth >= 6) return String(value);
-  if (Array.isArray(value))
-    return value
-      .map((item) => limitAttributeValue(item, maxLength, depth + 1))
-      .join(", ");
-  return JSON.stringify(value);
-}
-function sanitizeSensitiveText(value: string, enabled = true): string {
-  const secretsRedacted = enabled
-    ? SENSITIVE_TEXT_PATTERNS.reduce(
-        (text, pattern) => text.replace(pattern, "$1[REDACTED]"),
-        value,
-      )
-    : value;
-  return encryptTextOrRedact(secretsRedacted);
 }
 function sanitizeRequestUrl(value: string): string {
   const trimmed = value.trim();
@@ -154,12 +84,7 @@ export function mapSpanToTraceRow(span: ParsedSpan, organization: OrganizationCo
     ...httpFields(span),
     ...spanDetailFields(span, {
       attributes: (attributes) =>
-        safeLogAttributes(
-          Object.fromEntries(
-            Object.entries(attributes).filter(([, value]) => value !== undefined),
-          ),
-          organization.captureSettings,
-        ),
+        applySpanAttributePolicy(attributes, organization.captureSettings),
       text: (value) => sanitizeSensitiveText(value),
     }),
   };
@@ -197,7 +122,7 @@ function getDatabaseAttributes(
     "db.response.body.size",
   ]);
   return {
-    ...(queryText ? { dbQueryText: sanitizeDatabaseQuery(queryText) } : {}),
+    ...(queryText ? { dbQueryText: sanitizeDatabaseQuery(queryText, systemName) } : {}),
     ...(querySummary ? { dbQuerySummary: querySummary.slice(0, 500) } : {}),
     ...(operationName ? { dbOperationName: operationName.slice(0, 200) } : {}),
     ...(systemName ? { dbSystemName: systemName.slice(0, 100) } : {}),
@@ -241,16 +166,6 @@ function firstFiniteNumberAttribute(
     if (Number.isFinite(number)) return number;
   }
   return undefined;
-}
-function sanitizeDatabaseQuery(query: string): string {
-  return query
-    .replace(/'(?:''|[^'])*'/g, "?")
-    .replace(/"(?:""|[^"])*"/g, "?")
-    .replace(/\b\d+(?:\.\d+)?\b/g, "?")
-    .replace(/\b(?:true|false|null)\b/gi, "?")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 16_384);
 }
 function getDependencyType(span: ParsedSpan): string {
   if (span.kind !== 3) return "";
@@ -377,7 +292,7 @@ export function mapSpanToRequestRow(span: ParsedSpan, organization: Organization
 }
 export function mapLogToRow(record: ParsedLogRecord, organization: OrganizationContext) {
   const settings = organization.captureSettings;
-  const safeAttributes = safeLogAttributes(record.attributes, settings);
+  const safeAttributes = applyLogAttributePolicy(record.attributes, settings);
   const attrs: Record<string, string> = {
     ...safeAttributes,
     ...(record.traceId ? { traceId: record.traceId } : {}),
