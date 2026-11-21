@@ -7,6 +7,9 @@ import {
   AUTH_FAILURE_QUERY,
   SECRET_SCAN_MAX_LOGS,
 } from "../domain/security-signals.constants";
+import { findSensitiveExposures } from "../domain/sensitive-exposure";
+import { EXPOSURE_MAX_SPANS, EXPOSURE_QUERY } from "../domain/sensitive-exposure.constants";
+import type { ExposureSpan } from "../domain/sensitive-exposure.types";
 import type { AuthFailureCount, LogLine } from "../domain/security-signals.types";
 import { WINDOW_MS } from "../domain/detection.stage.constants";
 import type { DetectionFinding } from "../domain/detection.types";
@@ -70,7 +73,54 @@ export async function detectSecuritySignals(
       }));
     }
   }
+
+  if (detectorEnabled("sensitive_data_exposure")) {
+    for (const exposure of findSensitiveExposures(await responseSpans(deps, orgId, projectId, startTimestamp, endTimestamp))) {
+      detected.push(await deps.persist({
+        orgId, projectId, start, end,
+        serviceName: exposure.service,
+        detector: "sensitive_data_exposure",
+        type: "sensitive_data_exposure",
+        severity: exposure.severity,
+        title: `${exposure.route} returns "${exposure.path}" in ${exposure.service}`,
+        description: `${exposure.count} responses from ${exposure.route} carry a field named "${exposure.path}", which looks sensitive.`,
+        observedValue: exposure.count,
+        threshold: 0,
+        unit: "responses",
+        fingerprint: `${exposure.route}:${exposure.path}`,
+        evidence: [{
+          kind: "trace",
+          label: "response-field",
+          value: exposure.path,
+          context: { service: exposure.service, route: exposure.route, spanId: exposure.spanIds[0] ?? "", responses: exposure.count },
+        }],
+      }));
+    }
+  }
   return detected;
+}
+
+async function responseSpans(
+  deps: DetectionStageDeps,
+  orgId: string,
+  projectId: string,
+  from: number,
+  to: number,
+): Promise<ExposureSpan[]> {
+  return deps.cachedQuery("response-bodies", orgId, projectId, from, to, async () => {
+    const result = await searchTenant<never>(deps.quickwit, "traces", { orgId, projectId }, {
+      filter: EXPOSURE_QUERY,
+      startTimestamp: from,
+      endTimestamp: to,
+      maxHits: EXPOSURE_MAX_SPANS,
+    });
+    return (result.hits ?? []).flatMap((hit) => {
+      const source = quickwitSource<{ spanId?: string; service?: string; name?: string; httpRoute?: string; attributes?: Record<string, unknown> }>(hit);
+      if (!source?.spanId || !source.service || !source.attributes) return [];
+      const route = source.httpRoute ?? String(source.attributes["http.route"] ?? source.name ?? "");
+      return route ? [{ spanId: source.spanId, service: source.service, route, attributes: source.attributes }] : [];
+    });
+  });
 }
 
 async function authFailures(

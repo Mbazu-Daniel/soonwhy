@@ -28,6 +28,7 @@ export type FindingType =
   | "change_point"
   | "auth_failure_spike"
   | "secret_in_logs"
+  | "sensitive_data_exposure"
   | "alert_rule";
 
 export type FindingSeverity = "warning" | "critical";

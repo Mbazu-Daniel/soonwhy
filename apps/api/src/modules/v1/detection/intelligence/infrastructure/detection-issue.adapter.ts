@@ -41,6 +41,7 @@ const DOMAIN_MAP: Record<DetectionFinding["type"], TelemetryDomain> = {
   change_point: "performance",
   auth_failure_spike: "security",
   secret_in_logs: "security",
+  sensitive_data_exposure: "security",
   alert_rule: "performance",
 };
 

@@ -4,7 +4,7 @@ export type FindingType =
   | 'database_latency_contribution' | 'database_connection_pool' | 'database_timeout' | 'database_result_set'
   | 'database_connection_wait' | 'database_batch' | 'database_dependency_degradation'
   | 'external_dependency_degradation' | 'redis_degradation' | 'queue_degradation' | 'runtime_degradation'
-  | 'database_lock_contention' | 'seasonal_anomaly' | 'change_point' | 'auth_failure_spike' | 'secret_in_logs' | 'alert_rule' | 'performance';
+  | 'database_lock_contention' | 'seasonal_anomaly' | 'change_point' | 'auth_failure_spike' | 'secret_in_logs' | 'sensitive_data_exposure' | 'alert_rule' | 'performance';
 
 export type FindingStatus = 'open' | 'resolved' | 'ignored';
 export type FindingCategory = 'error' | 'performance' | 'security' | 'vulnerability';
