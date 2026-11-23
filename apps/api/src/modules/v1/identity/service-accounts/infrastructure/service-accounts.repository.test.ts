@@ -58,7 +58,7 @@ describe("ServiceAccountsRepository", () => {
 
   it("lists keys without their hash", async () => {
     useFakeDb({ select: [[{ id: "k1", prefix: "soonwhy_abc" }]] });
-    await repository.keys("sa1");
+    await repository.keys("o1", "sa1");
     const projection = stepArgs(dbCalls("select")[0]!, "select")![0] as Record<string, unknown>;
     expect(Object.keys(projection)).toEqual(["id", "projectId", "name", "prefix", "scopes", "expiresAt", "lastUsedAt", "createdAt"]);
   });

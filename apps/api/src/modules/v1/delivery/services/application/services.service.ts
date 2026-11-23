@@ -147,7 +147,7 @@ export class ServicesService {
         try {
           const language = await detectServiceLanguage(this.quickwit, orgId, projectId, svc.name);
           if (!language) return;
-          await this.servicesRepository.updateService(svc.id, { language });
+          await this.servicesRepository.updateService(svc.id, orgId, { language });
           found.set(svc.id, language);
         } catch {
           return;
@@ -200,7 +200,7 @@ export class ServicesService {
       Object.entries(input).filter(([, value]) => value !== undefined),
     ) as Record<string, string | null>;
     if (!Object.keys(changes).length) return toPublicService(existing);
-    await this.servicesRepository.updateService(existing.id, changes);
+    await this.servicesRepository.updateService(existing.id, orgId, changes);
     const updated = await this.servicesRepository.getServiceById(
       publicId,
       projectId,
@@ -217,7 +217,7 @@ export class ServicesService {
       orgId,
     );
     if (!existing) throw new NotFoundException("Service not found");
-    return this.servicesRepository.deleteService(existing.id);
+    return this.servicesRepository.deleteService(existing.id, orgId);
   }
 }
 

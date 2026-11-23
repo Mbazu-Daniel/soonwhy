@@ -39,11 +39,11 @@ export class DependencySnapshotRepository {
       .limit(limit);
   }
 
-  async markScanned(id: string, error: string | null, at: Date) {
+  async markScanned(orgId: string, id: string, error: string | null, at: Date) {
     await db
       .update(dependencySnapshots)
       .set({ lastScannedAt: at, lastScanError: error })
-      .where(eq(dependencySnapshots.id, id));
+      .where(and(eq(dependencySnapshots.id, id), eq(dependencySnapshots.orgId, orgId)));
   }
 
   openFingerprints(projectId: string, serviceName: string) {
@@ -60,7 +60,10 @@ export class DependencySnapshotRepository {
       );
   }
 
-  async resolve(id: string, at: Date) {
-    await db.update(findings).set({ status: "resolved", resolvedAt: at, resolvedBy: null }).where(eq(findings.id, id));
+  async resolve(orgId: string, id: string, at: Date) {
+    await db
+      .update(findings)
+      .set({ status: "resolved", resolvedAt: at, resolvedBy: null })
+      .where(and(eq(findings.id, id), eq(findings.orgId, orgId)));
   }
 }

@@ -126,13 +126,15 @@ export class SyntheticProbesRepository {
     return byProbe;
   }
 
-  async getProbeResults(probeId: number, limit: number = 100) {
-    return db
-      .select()
+  async getProbeResults(scope: ProbeScope, probeId: number, limit: number = 100) {
+    const rows = await db
+      .select({ result: syntheticProbeResults })
       .from(syntheticProbeResults)
-      .where(eq(syntheticProbeResults.probeId, probeId))
+      .innerJoin(syntheticProbes, eq(syntheticProbes.id, syntheticProbeResults.probeId))
+      .where(probeWhere(scope, probeId))
       .orderBy(desc(syntheticProbeResults.checkedAt))
       .limit(limit);
+    return rows.map((row) => row.result);
   }
 
   async cleanupOldResults(daysOld: number = 30): Promise<number> {
@@ -182,7 +184,7 @@ export class SyntheticProbesRepository {
       .orderBy(syntheticProbes.lastCheckAt);
   }
 
-  async updateProbeStats(id: number, stats: {
+  async updateProbeStats(scope: ProbeScope, id: number, stats: {
     lastStatus: string;
     uptimePercent: number;
     totalChecks: number;
@@ -199,6 +201,6 @@ export class SyntheticProbesRepository {
         lastCheckAt: stats.lastCheckAt,
         updatedAt: new Date(),
       })
-      .where(eq(syntheticProbes.id, id));
+      .where(probeWhere(scope, id));
   }
 }

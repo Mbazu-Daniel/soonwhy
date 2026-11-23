@@ -62,7 +62,7 @@ describe("ServiceAccountsService details", () => {
     await expect(service.list("o1")).resolves.toEqual([{ id: "sa1" }]);
     await service.listKeys("o1", "sa1");
     expect(accounts.find).toHaveBeenCalledWith("o1", "sa1");
-    expect(accounts.keys).toHaveBeenCalledWith("sa1");
+    expect(accounts.keys).toHaveBeenCalledWith("o1", "sa1");
   });
 
   it("converts the expiry of a key to a date", async () => {

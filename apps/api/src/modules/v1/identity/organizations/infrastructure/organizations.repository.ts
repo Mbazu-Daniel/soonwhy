@@ -63,12 +63,6 @@ export class OrganizationsRepository {
     return findInvitationByPublicId(publicId);
   }
 
-  async getInvitationById(invitationId: string) {
-    return db.query.invitations.findFirst({
-      where: eq(invitations.id, invitationId),
-    });
-  }
-
   async getInvitationPublicIdsByIds(ids: string[]) {
     if (ids.length === 0) return new Map<string, string>();
     const rows = await db

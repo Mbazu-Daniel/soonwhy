@@ -66,9 +66,10 @@ export class InvestigationChatController {
     @Param("projectId") projectId: string,
     @Param("threadId") threadId: string,
   ) {
-    const thread = await this.threads.getThread(scopeOf(org, projectId, user), threadId);
+    const scope = scopeOf(org, projectId, user);
+    const thread = await this.threads.getThread(scope, threadId);
     if (!thread) throw new NotFoundException("Conversation not found");
-    const messages = await this.threads.listMessages(thread.id, CHAT_THREAD_MESSAGES_LIMIT);
+    const messages = await this.threads.listMessages(scope, thread.id, CHAT_THREAD_MESSAGES_LIMIT);
     return {
       id: thread.id,
       title: thread.title,

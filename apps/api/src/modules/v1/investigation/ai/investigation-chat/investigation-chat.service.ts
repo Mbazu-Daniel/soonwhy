@@ -50,7 +50,7 @@ export class InvestigationChatService {
     if (!project) throw new NotFoundException("Project not found");
     const model = await this.resolver.resolve(scope.orgId, request.credentialId);
     const { threadId, history } = await this.openThread(scope, request);
-    await this.threads.addMessage({ threadId, role: "user", content: request.message });
+    await this.threads.addMessage(scope, { threadId, role: "user", content: request.message });
     const tools = buildInvestigationTools(
       { orgId: scope.orgId, projectId: scope.projectId },
       { errors: this.errors, telemetry: this.telemetry, findings: this.findings, rca: this.rca },
@@ -66,7 +66,7 @@ export class InvestigationChatService {
     }
     const thread = await this.threads.getThread(scope, request.threadId);
     if (!thread) throw new NotFoundException("Conversation not found");
-    const rows = await this.threads.recentMessages(thread.id, CHAT_MAX_HISTORY);
+    const rows = await this.threads.recentMessages(scope, thread.id, CHAT_MAX_HISTORY);
     return { threadId: thread.id, history: toModelHistory(rows) };
   }
 
@@ -107,7 +107,7 @@ export class InvestigationChatService {
       this.logger.warn(`Investigation chat ${record.status}: ${error instanceof Error ? maskPii(error.message) : "unknown"}`);
       yield { type: "error", message: signal.aborted ? "Investigation stopped." : "The model could not complete this investigation. Try a narrower question." };
     } finally {
-      await this.save(threadId, record);
+      await this.save(scope, threadId, record);
     }
   }
 
@@ -120,9 +120,9 @@ export class InvestigationChatService {
     else record.steps[index] = step;
   }
 
-  private async save(threadId: string, record: TurnRecord): Promise<void> {
+  private async save(scope: ThreadScope, threadId: string, record: TurnRecord): Promise<void> {
     try {
-      await this.threads.addMessage({
+      await this.threads.addMessage(scope, {
         threadId,
         role: "assistant",
         content: record.text,

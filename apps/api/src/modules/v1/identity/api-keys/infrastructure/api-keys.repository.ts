@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { createHash, randomBytes } from "crypto";
 import { db } from "../../../../../common/db";
 import { apiKeys, projects } from "../../../../../common/db/schema";
@@ -72,8 +72,9 @@ export class ApiKeysRepository {
     return { ...apiKey, key: rawKey };
   }
 
-  async deleteApiKey(id: string) {
-    await db.delete(apiKeys).where(eq(apiKeys.id, id));
+  async deleteApiKey(id: string, orgId: string) {
+    const ownedProjects = db.select({ id: projects.id }).from(projects).where(eq(projects.organizationId, orgId));
+    await db.delete(apiKeys).where(and(eq(apiKeys.id, id), inArray(apiKeys.projectId, ownedProjects)));
   }
 
 }

@@ -91,7 +91,7 @@ describe("ServicesService", () => {
       framework: null,
       teamId: undefined,
     });
-    expect(repository.updateService).toHaveBeenCalledWith("service-1", {
+    expect(repository.updateService).toHaveBeenCalledWith("service-1", "org-1", {
       language: "TypeScript",
       framework: null,
     });
@@ -204,7 +204,7 @@ describe("ServicesService telemetry state and runtime", () => {
     const [svc] = (await service.getServicesForProject("p1", "o1")) as any[];
     expect(svc.telemetry).toBe("active");
     expect(svc.language).toBe("Node.js");
-    expect(repository.updateService).toHaveBeenCalledWith("s1", { language: "Node.js" });
+    expect(repository.updateService).toHaveBeenCalledWith("s1", expect.any(String), { language: "Node.js" });
   });
 
   it("leaves an owner-set language alone and reports no data for a silent service", async () => {

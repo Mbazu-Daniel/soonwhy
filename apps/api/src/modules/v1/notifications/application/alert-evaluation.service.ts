@@ -102,7 +102,7 @@ export class AlertEvaluationService {
           now,
         );
 
-        await this.incidentsService.checkForRecovery(ruleRow.id, metricData);
+        await this.incidentsService.checkForRecovery({ orgId, projectId }, ruleRow.id, metricData);
 
         const route = await this.decideRoute(
           orgId,
@@ -299,7 +299,7 @@ export class AlertEvaluationService {
   private async handleHealthyResetRoute(ctx: AlertEvaluationRouteContext) {
     if (!(await this.dedupService.recover(ctx.rule.id))) return;
     await this.resolveFinding(ctx);
-    await this.incidentsService.checkForRecovery(ctx.rule.id, ctx.metricData);
+    await this.incidentsService.checkForRecovery({ orgId: ctx.orgId, projectId: ctx.projectId }, ctx.rule.id, ctx.metricData);
   }
 
   private async fetchMetricData(
