@@ -6,3 +6,7 @@ export { closeDatabase, resetDatabase } from "./reset-database";
 export { migrateUpTo } from "./migrate-up-to";
 export { createScratchDatabase } from "./scratch-database";
 export type { ScratchDatabase } from "./scratch-database.types";
+export { describeOrganizationIsolation } from "./organization-isolation";
+export { isDenial, isEmptyResult } from "./organization-isolation.denial";
+export { defineResource } from "./define-resource";
+export type { IsolationCase, IsolationResource, ErasedIsolationResource, OrganizationIsolationSuite } from "./organization-isolation.types";
