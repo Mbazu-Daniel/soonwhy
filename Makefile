@@ -93,8 +93,8 @@ EVAL_VITEST = npx vitest run --config eval/vitest.eval.config.ts
 
 eval-overhead:
 	@for rps in 20 40 80 160; do \
-	  cd apps/api && EVAL_RPS=$$rps EVAL_SECONDS=20 EVAL_ROUNDS=3 EVAL_OUT=A_overhead_rps$$rps \
-	  $(EVAL_VITEST) eval/overhead.eval.ts; cd ../..; \
+	  (cd apps/api && EVAL_RPS=$$rps EVAL_SECONDS=20 EVAL_ROUNDS=3 EVAL_OUT=A_overhead_rps$$rps \
+	  $(EVAL_VITEST) eval/overhead.eval.ts) || exit 1; \
 	done
 
 eval-replication:
@@ -109,14 +109,20 @@ eval-sweep:
 eval-windows:
 	@for cfg in "100 10" "50 10" "200 10" "100 5" "100 20"; do \
 	  set -- $$cfg; \
-	  cd apps/api && EVAL_TRACE_MODE=production EVAL_BASELINE_WINDOW=$$1 EVAL_RECENT_WINDOW=$$2 EVAL_SEED_BASE=1000 \
+	  (cd apps/api && EVAL_TRACE_MODE=production EVAL_BASELINE_WINDOW=$$1 EVAL_RECENT_WINDOW=$$2 EVAL_SEED_BASE=1000 \
 	  EVAL_REPS=3 EVAL_NORMAL_RUNS=12 EVAL_OUT=F_b$$1_r$$2 \
-	  $(EVAL_VITEST) eval/accuracy.eval.ts; cd ../..; \
+	  $(EVAL_VITEST) eval/accuracy.eval.ts) || exit 1; \
 	done
 
 eval-report:
 	cd apps/api/eval && python3 analyse.py C_reps10 D_heldout E_sweep F_b50_r10 F_b100_r10 F_b200_r10 F_b100_r5 F_b100_r20
 
-eval-all: eval-overhead eval-replication eval-heldout eval-sweep eval-windows eval-report
+eval-all:
+	@$(MAKE) --no-print-directory eval-overhead
+	@$(MAKE) --no-print-directory eval-replication
+	@$(MAKE) --no-print-directory eval-heldout
+	@$(MAKE) --no-print-directory eval-sweep
+	@$(MAKE) --no-print-directory eval-windows
+	@$(MAKE) --no-print-directory eval-report
 
 eval: eval-all

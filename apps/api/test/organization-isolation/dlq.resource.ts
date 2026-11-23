@@ -21,9 +21,9 @@ async function staffMayUse<Result extends unknown[]>(guard: Guard, role: string,
   return allowed ? rows : ([] as unknown as Result);
 }
 
-const entriesOf = async (organizationId: string, id: number) => (await repository.getDlqEntries(100, 0, organizationId)).filter((entry) => entry.id === id);
-const entryOf = async (organizationId: string, id: number) => repository.getDlqEntryById(id, organizationId);
-const deletedBy = async (organizationId: string, id: number) => (await repository.deleteUnlessReplaying([id], organizationId)).deleted;
+const entriesOf = async (organizationId: string, id: number) => (await repository.getDlqEntries(100, 0, { organizationId })).filter((entry) => entry.id === id);
+const entryOf = async (organizationId: string, id: number) => repository.getDlqEntryById(id, { organizationId });
+const deletedBy = async (organizationId: string, id: number) => (await repository.deleteUnlessReplaying([id], { organizationId })).deleted;
 
 const resource: IsolationResource<TestOrganization, Ref> = {
   name: "dead-letter entries (platform staff; repository also scopes by organization)",
@@ -54,9 +54,9 @@ const resource: IsolationResource<TestOrganization, Ref> = {
     update: {
       attempts: ({ actor, ref }) => ({
         "an organization member replays an entry": () => memberMayUse(new SuperAdminGuard(), actor),
-        "the repository replay claim scoped to the actor's organization": () => repository.claimReplay(ref.id, ACTOR, false, actor.organization.id),
+        "the repository replay claim scoped to the actor's organization": () => repository.claimReplay(ref.id, ACTOR, false, { organizationId: actor.organization.id }),
       }),
-      owner: ({ owner, ref }) => staffMayUse(new SuperAdminGuard(), PLATFORM_ROLE.SUPER_ADMIN, async () => [await repository.claimReplay(ref.id, ACTOR, false, owner.organization.id)].filter(Boolean)),
+      owner: ({ owner, ref }) => staffMayUse(new SuperAdminGuard(), PLATFORM_ROLE.SUPER_ADMIN, async () => [await repository.claimReplay(ref.id, ACTOR, false, { organizationId: owner.organization.id })].filter(Boolean)),
     },
     delete: {
       attempts: ({ actor, ref }) => ({

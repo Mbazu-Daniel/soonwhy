@@ -2,10 +2,11 @@ import { Injectable } from "@nestjs/common";
 import { db } from "../../../../../common/db";
 import { deadLetterQueue, deadLetterQueueAttempts } from "../../../../../common/db/schema";
 import { eq, desc, and, or, lt, ne, inArray, sql } from "drizzle-orm";
+import { ALL_ORGANIZATIONS, type DlqScope } from "../domain/dlq.scope";
 import { DLQ_ATTEMPT_OUTCOME, DLQ_REPLAY_STATUS, MAX_REPLAY_ATTEMPTS, REPLAY_LEASE_SECONDS } from "../domain/dlq.constants";
 
-const inOrganization = (organizationId?: string) =>
-  organizationId ? eq(deadLetterQueue.organizationId, organizationId) : undefined;
+const inScope = (scope: DlqScope) =>
+  scope === ALL_ORGANIZATIONS ? undefined : eq(deadLetterQueue.organizationId, scope.organizationId);
 
 @Injectable()
 export class DlqRepository {
@@ -31,26 +32,26 @@ export class DlqRepository {
     return entry;
   }
 
-  async getDlqEntries(limit: number = 100, offset: number = 0, organizationId?: string) {
+  async getDlqEntries(limit: number, offset: number, scope: DlqScope) {
     return db
       .select()
       .from(deadLetterQueue)
-      .where(inOrganization(organizationId))
+      .where(inScope(scope))
       .orderBy(desc(deadLetterQueue.failedAt))
       .limit(limit)
       .offset(offset);
   }
 
-  async getDlqEntryById(id: number, organizationId?: string) {
+  async getDlqEntryById(id: number, scope: DlqScope) {
     const [entry] = await db
       .select()
       .from(deadLetterQueue)
-      .where(and(eq(deadLetterQueue.id, id), inOrganization(organizationId)))
+      .where(and(eq(deadLetterQueue.id, id), inScope(scope)))
       .limit(1);
     return entry;
   }
 
-  async getDlqStats() {
+  async getDlqStats(scope: DlqScope) {
     const status = deadLetterQueue.replayStatus;
     const [stats] = await db
       .select({
@@ -60,11 +61,12 @@ export class DlqRepository {
         successful: sql<number>`count(*) filter (where ${status} = ${DLQ_REPLAY_STATUS.succeeded})`,
         failed: sql<number>`count(*) filter (where ${status} = ${DLQ_REPLAY_STATUS.failed})`,
       })
-      .from(deadLetterQueue);
+      .from(deadLetterQueue)
+      .where(inScope(scope));
     return stats;
   }
 
-  async claimReplay(id: number, actor: string, force = false, organizationId?: string) {
+  async claimReplay(id: number, actor: string, force: boolean, scope: DlqScope) {
     return db.transaction(async (tx) => {
       const [entry] = await tx
         .update(deadLetterQueue)
@@ -79,7 +81,7 @@ export class DlqRepository {
         .where(
           and(
             eq(deadLetterQueue.id, id),
-            inOrganization(organizationId),
+            inScope(scope),
             force ? undefined : sql`coalesce(${deadLetterQueue.replayAttempts}, 0) < ${MAX_REPLAY_ATTEMPTS}`,
             or(
               inArray(deadLetterQueue.replayStatus, [DLQ_REPLAY_STATUS.pending, DLQ_REPLAY_STATUS.failed]),
@@ -150,21 +152,30 @@ export class DlqRepository {
     });
   }
 
-  async getAttempts(entryId: number) {
-    return db
-      .select()
+  async getAttempts(entryId: number, scope: DlqScope) {
+    if (scope === ALL_ORGANIZATIONS) {
+      return db
+        .select()
+        .from(deadLetterQueueAttempts)
+        .where(eq(deadLetterQueueAttempts.entryId, entryId))
+        .orderBy(desc(deadLetterQueueAttempts.attemptNumber));
+    }
+    const rows = await db
+      .select({ attempt: deadLetterQueueAttempts })
       .from(deadLetterQueueAttempts)
-      .where(eq(deadLetterQueueAttempts.entryId, entryId))
+      .innerJoin(deadLetterQueue, eq(deadLetterQueue.id, deadLetterQueueAttempts.entryId))
+      .where(and(eq(deadLetterQueueAttempts.entryId, entryId), inScope(scope)))
       .orderBy(desc(deadLetterQueueAttempts.attemptNumber));
+    return rows.map((row) => row.attempt);
   }
 
-  async deleteUnlessReplaying(ids: number[], organizationId?: string) {
+  async deleteUnlessReplaying(ids: number[], scope: DlqScope) {
     const deleted = await db
       .delete(deadLetterQueue)
       .where(
         and(
           inArray(deadLetterQueue.id, ids),
-          inOrganization(organizationId),
+          inScope(scope),
           ne(deadLetterQueue.replayStatus, DLQ_REPLAY_STATUS.replaying),
         ),
       )
@@ -173,7 +184,7 @@ export class DlqRepository {
     const remaining = await db
       .select({ id: deadLetterQueue.id })
       .from(deadLetterQueue)
-      .where(and(inArray(deadLetterQueue.id, ids), inOrganization(organizationId)));
+      .where(and(inArray(deadLetterQueue.id, ids), inScope(scope)));
     return { deleted: deletedIds, refused: remaining.map((row) => row.id) };
   }
 

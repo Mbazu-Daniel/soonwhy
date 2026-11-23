@@ -1,6 +1,7 @@
 import { ConflictException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { DlqRepository } from "../infrastructure/dlq.repository";
 import { NatsService } from "@soonwhy/shared";
+import { ALL_ORGANIZATIONS } from "../domain/dlq.scope";
 import { mapWithConcurrency } from "../domain/dlq.concurrency";
 import { BULK_REPLAY_CONCURRENCY, DLQ_REPLAY_STATUS, MAX_REPLAY_ATTEMPTS, REPLAY_MESSAGE_ID_PREFIX } from "../domain/dlq.constants";
 import { parseEntryIds, parseRetentionDays } from "../domain/dlq.validation";
@@ -15,23 +16,23 @@ export class DlqService {
   ) {}
 
   async getDlqEntries(limit: number = 100, offset: number = 0) {
-    return this.repository.getDlqEntries(limit, offset);
+    return this.repository.getDlqEntries(limit, offset, ALL_ORGANIZATIONS);
   }
 
   async getDlqStats() {
-    return this.repository.getDlqStats();
+    return this.repository.getDlqStats(ALL_ORGANIZATIONS);
   }
 
   async getReplayAttempts(id: number) {
-    return this.repository.getAttempts(id);
+    return this.repository.getAttempts(id, ALL_ORGANIZATIONS);
   }
 
   async getDlqEntryById(id: number) {
-    return this.repository.getDlqEntryById(id);
+    return this.repository.getDlqEntryById(id, ALL_ORGANIZATIONS);
   }
 
   async replayDlqEntry(id: number, actor: string, force = false) {
-    const entry = await this.repository.getDlqEntryById(id);
+    const entry = await this.repository.getDlqEntryById(id, ALL_ORGANIZATIONS);
     if (!entry) {
       throw new Error("DLQ entry not found");
     }
@@ -48,7 +49,7 @@ export class DlqService {
       throw new Error("Missing organization or project ID for replay");
     }
 
-    const claimed = await this.repository.claimReplay(id, actor, force);
+    const claimed = await this.repository.claimReplay(id, actor, force, ALL_ORGANIZATIONS);
     if (!claimed) {
       if ((entry.replayAttempts ?? 0) >= MAX_REPLAY_ATTEMPTS && entry.replayStatus === DLQ_REPLAY_STATUS.failed) {
         throw new ConflictException(
@@ -103,21 +104,21 @@ export class DlqService {
   }
 
   async deleteDlqEntry(id: number) {
-    const { deleted } = await this.repository.deleteUnlessReplaying([id]);
+    const { deleted } = await this.repository.deleteUnlessReplaying([id], ALL_ORGANIZATIONS);
     if (deleted.length > 0) return;
-    const entry = await this.repository.getDlqEntryById(id);
+    const entry = await this.repository.getDlqEntryById(id, ALL_ORGANIZATIONS);
     if (!entry) throw new NotFoundException("DLQ entry not found");
     throw new ConflictException("Entry is being replayed and cannot be deleted");
   }
 
   async bulkDelete(rawIds: unknown) {
     const ids = parseEntryIds(rawIds);
-    const { deleted, refused } = await this.repository.deleteUnlessReplaying(ids);
+    const { deleted, refused } = await this.repository.deleteUnlessReplaying(ids, ALL_ORGANIZATIONS);
     return { deleted: deleted.length, refused };
   }
 
   async exportDlqEntry(id: number) {
-    const entry = await this.repository.getDlqEntryById(id);
+    const entry = await this.repository.getDlqEntryById(id, ALL_ORGANIZATIONS);
     if (!entry) {
       throw new Error("DLQ entry not found");
     }

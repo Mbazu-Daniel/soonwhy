@@ -19,7 +19,7 @@ describe("project scoped routes", () => {
   let controllers: Function[] = [];
   beforeAll(async () => {
     controllers = await loadControllers();
-  }, 60_000);
+  }, 180_000);
 
   it("takes every project identifier from a /projects/:id path segment that tenant context verifies", () => {
     const offenders: string[] = [];

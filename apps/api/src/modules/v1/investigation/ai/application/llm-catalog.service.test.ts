@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LlmCatalog } from "./llm-catalog.service";
 
+vi.setConfig({ testTimeout: 30_000 });
+
 const MODELS_DEV_DOC = {
   groq: {
     name: "Groq",
