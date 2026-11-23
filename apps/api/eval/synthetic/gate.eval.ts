@@ -63,4 +63,21 @@ describe("eval gate", () => {
     expect(text).toContain("scenario serial_delay");
     expect(text).toContain("Gate passed.");
   });
+
+  it("fails when a higher confidence tier is less accurate than a lower one", () => {
+    const withTier = (tier: "high" | "medium" | "low", correct: number, wrong: number): RunRow[] => [
+      ...Array.from({ length: correct }, (_, index) => ({ ...fault("serial_delay", index), confidence: tier })),
+      ...Array.from({ length: wrong }, (_, index) => ({ ...fault("serial_delay", index + 100, 2), confidence: tier })),
+    ];
+    const calibrated = [...good, ...withTier("high", 30, 0), ...withTier("medium", 28, 2), ...withTier("low", 20, 10)];
+    const inverted = [...good, ...withTier("high", 20, 10), ...withTier("medium", 30, 0), ...withTier("low", 30, 0)];
+
+    expect(evaluateGate(calibrated, makeBaseline(calibrated, "tuning", "t")).checks.find((c) => c.name === "confidence calibration")?.passed).toBe(true);
+    expect(evaluateGate(inverted, makeBaseline(inverted, "tuning", "t")).checks.find((c) => c.name === "confidence calibration")?.passed).toBe(false);
+  });
+
+  it("does not judge a tier it has too few runs to measure", () => {
+    const rows = [...good, ...Array.from({ length: 3 }, (_, index) => ({ ...fault("serial_delay", index + 200, 2), confidence: "low" as const }))];
+    expect(evaluateGate(rows, makeBaseline(rows, "tuning", "t")).checks.find((c) => c.name === "confidence calibration")?.passed).toBe(true);
+  });
 });

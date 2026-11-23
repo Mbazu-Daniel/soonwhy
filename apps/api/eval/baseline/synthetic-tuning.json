@@ -1,7 +1,7 @@
 {
   "description": "Per-scenario results of the synthetic suite. Change only by a deliberate commit.",
   "split": "tuning",
-  "overallTop1": 0.9325396825396826,
+  "overallTop1": 0.9814814814814815,
   "scenarios": {
     "serial_delay": {
       "score": 1,
@@ -44,11 +44,11 @@
       "runs": 63
     },
     "clock_skew_500ms": {
-      "score": 0.7301587301587301,
+      "score": 1,
       "runs": 63
     },
     "missing_parents": {
-      "score": 0.6666666666666666,
+      "score": 0.9841269841269841,
       "runs": 63
     },
     "baseline_shift": {
