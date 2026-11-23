@@ -22,6 +22,10 @@ export interface AnalysisSnapshot {
   anomalyOnly: RankedService[];
   criticalPathOnly: RankedService[];
   firstError: RankedService[];
+  errorPropagationOnly: RankedService[];
+  mostErrors: RankedService[];
+  fullConfidence: "high" | "medium" | "low";
+  fullCoverage: number;
   findingServices: string[];
 }
 
