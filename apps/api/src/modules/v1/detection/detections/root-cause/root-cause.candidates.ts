@@ -1,4 +1,5 @@
 
+import { aggregateAnomalyData } from './root-cause.anomaly';
 import type {
   RootCauseCandidate,
 } from './root-cause.types';
@@ -23,7 +24,8 @@ interface DependencyInfo {
 }
 
 export class CandidateGenerator {
-  generateFromFindings(findings: Finding[]): RootCauseCandidate[] {
+  generateFromFindings(unordered: Finding[]): RootCauseCandidate[] {
+    const findings = [...unordered].sort((a, b) => a.id.localeCompare(b.id));
     const serviceFindings = this.groupByService(findings);
 
     const serviceCandidates = Object.entries(serviceFindings).map(([serviceName, findings]) =>
@@ -47,10 +49,10 @@ export class CandidateGenerator {
   }
 
   private generateServiceCandidate(serviceName: string, findings: Finding[]): RootCauseCandidate {
-    const traceIds = [...new Set(findings.map((f) => f.traceId).filter(Boolean))];
+    const traceIds = [...new Set(findings.map((f) => f.traceId).filter(Boolean))].sort();
     const timeWindow = this.calculateTimeWindow(findings);
 
-    const anomalyData = this.extractAnomalyData(findings);
+    const anomalyData = aggregateAnomalyData(findings);
 
     return {
       id: `candidate-${serviceName}-${Date.now()}`,
@@ -87,14 +89,7 @@ export class CandidateGenerator {
             start: finding.timestamp,
             end: finding.timestamp,
           },
-          anomalyData: {
-            observedValue: finding.observedValue,
-            baselineValue: finding.baselineValue,
-            percentageDeviation: finding.observedValue && finding.baselineValue
-              ? ((finding.observedValue - finding.baselineValue) / finding.baselineValue) * 100
-              : undefined,
-            severity: finding.severity,
-          },
+          anomalyData: aggregateAnomalyData([finding]),
         });
       }
     }
@@ -107,31 +102,6 @@ export class CandidateGenerator {
     const start = new Date(Math.min(...timestamps)).toISOString();
     const end = new Date(Math.max(...timestamps)).toISOString();
     return { start, end };
-  }
-
-  private extractAnomalyData(findings: Finding[]): RootCauseCandidate['anomalyData'] {
-    const anomalyData: RootCauseCandidate['anomalyData'] = {};
-
-    for (const finding of findings) {
-      if (finding.observedValue !== undefined) {
-        anomalyData.observedValue = finding.observedValue;
-      }
-      if (finding.baselineValue !== undefined) {
-        anomalyData.baselineValue = finding.baselineValue;
-      }
-      if (finding.observedValue && finding.baselineValue) {
-        anomalyData.percentageDeviation =
-          ((finding.observedValue - finding.baselineValue) / finding.baselineValue) * 100;
-      }
-      if (finding.severity) {
-        anomalyData.severity = finding.severity;
-      }
-      if (finding.severity === 'critical') {
-        anomalyData.severity = 'critical';
-      }
-    }
-
-    return anomalyData;
   }
 
   enrichWithDependencies(

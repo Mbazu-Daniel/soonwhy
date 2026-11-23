@@ -1,53 +1,38 @@
 
+import { FULL_PERCENT, MAX_PER_TRACE_EVIDENCE } from './root-cause.constants';
+import { analyzeErrorPropagation } from './root-cause.propagation';
+import type { TraceSpan } from './root-cause.ranker.types';
 import type {
+  CriticalPathTraceEvidence,
   RootCauseCandidate,
   SignalScores,
   SignalEvidence,
 } from './root-cause.types';
 
-interface TraceSpan {
-  spanId: string;
-  serviceName: string;
-  operationName?: string;
-  duration: number;
-  startTime: number;
-  parentSpanId?: string;
-  isCriticalPath?: boolean;
-}
-
-interface ErrorData {
-  timestamp: string;
-  serviceName: string;
-  traceId: string;
-  errorMessage: string;
-}
-
 export class SignalExtractor {
   extractSignals(
     candidate: RootCauseCandidate,
     traces: TraceSpan[][],
-    errors: ErrorData[],
-    errorsObserved = false,
   ): { scores: Partial<SignalScores>; evidence: Partial<SignalEvidence> } {
     const anomalySeverity = this.extractAnomalySeverity(candidate);
     const hasDeps = candidate.dependencies.upstream.length > 0 || candidate.dependencies.downstream.length > 0;
     const graphPosition = hasDeps
       ? this.extractGraphPosition(candidate)
       : { score: undefined, evidence: undefined };
-    const criticalPathContribution = traces.length > 0
+    const inLoadedTrace = traces.some((trace) => trace.some((span) => span.serviceName === candidate.serviceName));
+    const criticalPathContribution = inLoadedTrace
       ? this.extractCriticalPathContribution(candidate, traces)
       : { score: undefined, evidence: undefined };
-    const errorPropagation = errors.length > 0 || errorsObserved
-      ? this.extractErrorPropagation(candidate, errors)
-      : { score: undefined, evidence: undefined };
+    const propagation = inLoadedTrace ? analyzeErrorPropagation(candidate.serviceName, traces) : undefined;
+    const errorPropagation = propagation ?? { score: undefined, evidence: undefined };
 
-    const scores: Partial<SignalScores> = {
-      anomalySeverity: anomalySeverity.score,
-    };
-    const evidence: Partial<SignalEvidence> = {
-      anomalySeverity: anomalySeverity.evidence,
-    };
+    const scores: Partial<SignalScores> = {};
+    const evidence: Partial<SignalEvidence> = {};
 
+    if (anomalySeverity.score !== undefined) {
+      scores.anomalySeverity = anomalySeverity.score;
+      evidence.anomalySeverity = anomalySeverity.evidence;
+    }
     if (graphPosition.score !== undefined) {
       scores.graphPosition = graphPosition.score;
       evidence.graphPosition = graphPosition.evidence;
@@ -65,10 +50,18 @@ export class SignalExtractor {
   }
 
   private extractAnomalySeverity(candidate: RootCauseCandidate): {
-    score: number;
-    evidence: SignalEvidence['anomalySeverity'];
+    score: number | undefined;
+    evidence: SignalEvidence['anomalySeverity'] | undefined;
   } {
     const { anomalyData } = candidate;
+
+    if (
+      anomalyData.percentageDeviation === undefined &&
+      anomalyData.severity === undefined &&
+      anomalyData.anomalyScore === undefined
+    ) {
+      return { score: undefined, evidence: undefined };
+    }
 
     let score = 0;
 
@@ -149,13 +142,14 @@ export class SignalExtractor {
     candidate: RootCauseCandidate,
     allTraces: TraceSpan[][],
   ): {
-    score: number;
-    evidence: SignalEvidence['criticalPathContribution'];
+    score: number | undefined;
+    evidence: SignalEvidence['criticalPathContribution'] | undefined;
   } {
     let score = 0;
     let totalDuration = 0;
+    let totalSelfTime = 0;
     let criticalPathCount = 0;
-    let traceCount = 0;
+    const perTrace: CriticalPathTraceEvidence[] = [];
 
     for (const trace of allTraces) {
       const matchingSpans = trace.filter(
@@ -166,14 +160,13 @@ export class SignalExtractor {
 
       if (matchingSpans.length === 0) continue;
 
-      traceCount++;
-
       const traceDuration = Math.max(...trace.map((s) => s.duration));
       totalDuration += traceDuration;
 
-      const totalSpanDuration = matchingSpans.reduce((sum, span) => sum + this.selfTime(span, trace), 0);
+      const selfTimeMs = matchingSpans.reduce((sum, span) => sum + this.selfTime(span, trace), 0);
+      totalSelfTime += selfTimeMs;
 
-      const contributionPercent = totalSpanDuration / traceDuration;
+      const contributionPercent = selfTimeMs / traceDuration;
 
       const isOnCriticalPath = matchingSpans.some((span) => span.isCriticalPath);
       if (isOnCriticalPath) criticalPathCount++;
@@ -181,78 +174,39 @@ export class SignalExtractor {
       if (contributionPercent > 0.2) {
         score += contributionPercent;
       }
+
+      perTrace.push({
+        traceId: matchingSpans[0]?.traceId,
+        spanIds: matchingSpans.map((span) => span.spanId),
+        selfTimeMs,
+        traceDurationMs: traceDuration,
+        percent: (selfTimeMs * FULL_PERCENT) / traceDuration,
+        onCriticalPath: isOnCriticalPath,
+      });
     }
 
-    if (traceCount > 0) {
-      score = score / traceCount;
-    }
+    const traceCount = perTrace.length;
+    if (traceCount === 0) return { score: undefined, evidence: undefined };
 
-    if (traceCount > 0 && criticalPathCount / traceCount > 0.5) {
+    score = score / traceCount;
+
+    if (criticalPathCount / traceCount > 0.5) {
       score += 0.2;
     }
 
-    return {
-      score: Math.min(1, Math.max(0, score)),
-      evidence: {
-        spanDuration: undefined,
-        traceDuration: traceCount > 0 ? totalDuration / traceCount : undefined,
-        contributionPercent: undefined,
-        isOnCriticalPath: criticalPathCount > 0,
-        frequencyInSlowTraces: traceCount,
-      },
-    };
-  }
-
-  private extractErrorPropagation(
-    candidate: RootCauseCandidate,
-    errors: ErrorData[],
-  ): {
-    score: number;
-    evidence: SignalEvidence['errorPropagation'];
-  } {
-    const candidateErrors = errors.filter(
-      (error) => error.serviceName === candidate.serviceName,
+    const largestFirst = [...perTrace].sort(
+      (a, b) => b.percent - a.percent || (a.traceId ?? '').localeCompare(b.traceId ?? ''),
     );
 
-    if (candidateErrors.length === 0) {
-      return {
-        score: 0,
-        evidence: {
-          errorFrequency: 0,
-          affectedTraces: 0,
-          downstreamErrorsFollow: false,
-          consistentPattern: false,
-        },
-      };
-    }
-
-    let score = 0;
-
-    const errorFrequency = candidateErrors.length;
-    score = Math.min(1, errorFrequency * 0.1);
-
-    const allTimestamps = errors.map((e) => new Date(e.timestamp).getTime());
-    const candidateTimestamps = candidateErrors.map((e) => new Date(e.timestamp).getTime());
-    const earliestTimestamp = Math.min(...allTimestamps);
-    const candidateEarliest = Math.min(...candidateTimestamps);
-
-    if (candidateEarliest === earliestTimestamp) {
-      score += 0.3;
-    }
-
-    const affectedTraces = new Set(candidateErrors.map((e) => e.traceId)).size;
-    if (affectedTraces > 1) {
-      score += 0.2;
-    }
-
     return {
       score: Math.min(1, Math.max(0, score)),
       evidence: {
-        firstErrorTimestamp: candidateErrors[0]?.timestamp,
-        errorFrequency,
-        affectedTraces,
-        downstreamErrorsFollow: false,
-        consistentPattern: affectedTraces > 1,
+        spanDuration: totalSelfTime / traceCount,
+        traceDuration: totalDuration / traceCount,
+        contributionPercent: perTrace.reduce((sum, entry) => sum + entry.percent, 0) / traceCount,
+        isOnCriticalPath: criticalPathCount > 0,
+        frequencyInSlowTraces: traceCount,
+        perTrace: largestFirst.slice(0, MAX_PER_TRACE_EVIDENCE),
       },
     };
   }

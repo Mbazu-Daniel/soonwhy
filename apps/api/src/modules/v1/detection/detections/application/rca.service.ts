@@ -75,11 +75,15 @@ export class RcaService {
     orgId: string,
     projectId: string,
     traceIds: string[],
-  ): Promise<Pick<RankingInput, "traces" | "errors" | "errorsObserved" | "dependencyMap">> {
+  ): Promise<Pick<RankingInput, "traces" | "errors" | "errorsTotal" | "dependencyMap" | "traceLoad">> {
     const ids = [...new Set(traceIds)].slice(0, MAX_RANKING_TRACES);
     if (!this.telemetry || ids.length === 0) return {};
     try {
-      return buildRankingInputs(await this.telemetry.loadTraces(orgId, projectId, ids));
+      const load = await this.telemetry.loadTraces(orgId, projectId, ids);
+      return {
+        ...buildRankingInputs(load.traces),
+        traceLoad: { requested: load.requested, loaded: load.traces.length, failed: load.failed.length, notFound: load.notFound.length },
+      };
     } catch (error) {
       RcaService.logger.warn(`Ranking without trace evidence: ${error instanceof Error ? error.message : String(error)}`);
       return {};

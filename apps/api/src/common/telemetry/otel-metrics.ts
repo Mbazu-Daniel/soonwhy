@@ -19,6 +19,7 @@ let dbQueryCount: ReturnType<Meter["createCounter"]> | null = null;
 let detectionRunDuration: ReturnType<Meter["createHistogram"]> | null = null;
 let detectionRuns: ReturnType<Meter["createCounter"]> | null = null;
 let detectionFindings: ReturnType<Meter["createCounter"]> | null = null;
+let rcaTraceLoads: ReturnType<Meter["createCounter"]> | null = null;
 let aiInvocations: ReturnType<Meter["createCounter"]> | null = null;
 let aiTokens: ReturnType<Meter["createCounter"]> | null = null;
 let aiEstimatedCostUsd: ReturnType<Meter["createCounter"]> | null = null;
@@ -49,6 +50,10 @@ function ensureInstruments() {
   detectionFindings = meter.createCounter("soonwhy.detection.findings", {
     unit: "1",
     description: "Findings persisted, by severity",
+  });
+  rcaTraceLoads = meter.createCounter("soonwhy.rca.trace.loads", {
+    unit: "1",
+    description: "Traces requested for root-cause ranking, by outcome (loaded, failed, not_found)",
   });
   aiInvocations = meter.createCounter("soonwhy.ai.rca.invocations", {
     unit: "1",
@@ -91,6 +96,16 @@ export function getDbQueryDuration() {
 export function getDbQueryCount() {
   ensureInstruments();
   return dbQueryCount!;
+}
+
+export function recordRcaTraceLoad(counts: { loaded: number; failed: number; notFound: number }) {
+  try {
+    ensureInstruments();
+    if (counts.loaded > 0) rcaTraceLoads!.add(counts.loaded, { outcome: "loaded" });
+    if (counts.failed > 0) rcaTraceLoads!.add(counts.failed, { outcome: "failed" });
+    if (counts.notFound > 0) rcaTraceLoads!.add(counts.notFound, { outcome: "not_found" });
+  } catch {
+  }
 }
 
 export function recordDetectionRun(

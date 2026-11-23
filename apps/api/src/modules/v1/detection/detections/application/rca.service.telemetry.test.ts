@@ -43,6 +43,10 @@ const spans: SpanRecord[] = [
   { traceId: "t1", spanId: "d", parentSpanId: "a", name: "db", duration: 900, timestamp: "2026-09-22T00:05:00.050Z", service: "db", statusCode: 2 },
 ];
 
+const loaded = (traces: SpanRecord[][], over: Partial<{ failed: string[]; notFound: string[]; requested: number }> = {}) => ({
+  traces, failed: [], notFound: [], requested: traces.length, ...over,
+});
+
 const coverageOf = async (service: RcaService, traceIds: string[]) => {
   const result = await service.analyze("o", "p", bottleneck(traceIds));
   return result.evidence;
@@ -50,7 +54,7 @@ const coverageOf = async (service: RcaService, traceIds: string[]) => {
 
 describe("RcaService ranking inputs", () => {
   it("passes traces, errors and the dependency map to the ranker", async () => {
-    const telemetry = { loadTraces: vi.fn().mockResolvedValue([spans]) };
+    const telemetry = { loadTraces: vi.fn().mockResolvedValue(loaded([spans])) };
     const evidence = await coverageOf(new RcaService(resolver, telemetry), ["t1"]);
 
     expect(telemetry.loadTraces).toHaveBeenCalledWith("o", "p", ["t1"]);
@@ -72,5 +76,12 @@ describe("RcaService ranking inputs", () => {
     const telemetry = { loadTraces: vi.fn().mockRejectedValue(new Error("quickwit down")) };
     const evidence = await coverageOf(new RcaService(resolver, telemetry), ["t1"]);
     expect(evidence.evidenceCoverage).toBeLessThan(1);
+  });
+
+  it("reports a partial trace load as a limitation and lowers confidence below 70 percent", async () => {
+    const telemetry = { loadTraces: vi.fn().mockResolvedValue(loaded([spans], { failed: ["t2", "t3"], requested: 3 })) };
+    const evidence = await coverageOf(new RcaService(resolver, telemetry), ["t1", "t2", "t3"]);
+    expect(evidence.rankingLimitations).toContain("Loaded 1 of 3 traces (2 failed)");
+    expect(evidence.rankingConfidence).not.toBe("high");
   });
 });

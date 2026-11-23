@@ -11,7 +11,7 @@ type Dependencies = NonNullable<RankingInput["dependencyMap"]>;
 export interface RankingInputs {
   traces: TraceSpan[][];
   errors: ErrorData[];
-  errorsObserved: boolean;
+  errorsTotal: number;
   dependencyMap: Dependencies;
 }
 
@@ -85,8 +85,8 @@ export function buildDependencyMap(traces: SpanRecord[][]): Dependencies {
   return map;
 }
 
-function toErrors(traces: SpanRecord[][]): ErrorData[] {
-  return traces
+function toErrors(traces: SpanRecord[][]): { errors: ErrorData[]; total: number } {
+  const all = traces
     .flat()
     .filter(isErrorSpan)
     .map((span) => ({
@@ -94,14 +94,16 @@ function toErrors(traces: SpanRecord[][]): ErrorData[] {
       serviceName: span.service,
       traceId: span.traceId,
       errorMessage: span.exceptionMessage || span.statusMessage || "span status ERROR",
-    }))
-    .sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp))
-    .slice(0, MAX_RANKING_ERRORS);
+    }));
+  const newestFirst = all.sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
+  const kept = newestFirst.slice(0, MAX_RANKING_ERRORS).reverse();
+  return { errors: kept, total: all.length };
 }
 
 function toTraceSpans(spans: SpanRecord[]): TraceSpan[] {
   const critical = criticalPathSpanIds(spans);
   return spans.map((span) => ({
+    traceId: span.traceId,
     spanId: span.spanId,
     serviceName: span.service,
     operationName: span.name,
@@ -109,15 +111,17 @@ function toTraceSpans(spans: SpanRecord[]): TraceSpan[] {
     startTime: startOf(span),
     parentSpanId: span.parentSpanId || undefined,
     isCriticalPath: critical.has(span.spanId),
+    isError: isErrorSpan(span),
   }));
 }
 
 export function buildRankingInputs(traces: SpanRecord[][]): RankingInputs {
   const usable = traces.filter((spans) => spans.length > 0);
+  const { errors, total } = toErrors(usable);
   return {
     traces: usable.map(toTraceSpans),
-    errors: toErrors(usable),
-    errorsObserved: usable.length > 0,
+    errors,
+    errorsTotal: total,
     dependencyMap: buildDependencyMap(usable),
   };
 }

@@ -29,6 +29,7 @@ export interface RcaEvidence {
   rankedCandidates?: RankedCandidate[];
   rankingWeights?: ScoringWeights;
   evidenceCoverage?: number;
+  rankingConfidence?: RcaConfidence;
   rankingLimitations?: string[];
 }
 

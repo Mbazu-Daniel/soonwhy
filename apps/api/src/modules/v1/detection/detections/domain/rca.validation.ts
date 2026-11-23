@@ -38,11 +38,22 @@ export function validateRcaAnalysis(
           ],
         };
 
-  validateRcaQuality(result, evidence);
-  return result;
+  const capped = capByRankingConfidence(result, evidence);
+  validateRcaQuality(capped, evidence);
+  return capped;
 }
 
 const MAX_LIMITATIONS = 10;
+const LOW_RANKING_NOTE = "The ranked candidates have low confidence, so the suspect is not presented as established.";
+
+function capByRankingConfidence(analysis: RcaAnalysis, evidence: RcaEvidence): RcaAnalysis {
+  if (evidence.rankingConfidence !== "low" || analysis.confidence !== "high") return analysis;
+  return {
+    ...analysis,
+    confidence: "medium",
+    limitations: [...analysis.limitations.slice(0, MAX_LIMITATIONS - 1), LOW_RANKING_NOTE],
+  };
+}
 
 function unmatchedReferencesNote(count: number): string {
   return count === 1

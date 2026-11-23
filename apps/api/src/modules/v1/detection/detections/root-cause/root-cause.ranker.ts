@@ -1,9 +1,14 @@
 import { CandidateGenerator } from './root-cause.candidates';
 import { SignalExtractor } from './root-cause.signals';
-import { calculateScoreWithMissingSignals } from './root-cause.scorer';
+import { confidenceTier, lowerTier } from './root-cause.confidence';
+import { loadedTooFewTraces, traceLoadLimitation } from './root-cause.trace-load';
+import { calculateScoreWithMissingSignals, weightedCoverage } from './root-cause.scorer';
 import type { RankedCandidate, SignalScores, RankingResult } from './root-cause.types';
 import { DEFAULT_WEIGHTS } from './root-cause.types';
 import type { RankingInput } from "./root-cause.ranker.types";
+
+const PROPAGATION_SCOPE_LIMITATION =
+  'Error propagation follows parent spans within one trace; queue and async links between traces are not followed';
 
 export class RootCauseRanker {
   private candidateGenerator: CandidateGenerator;
@@ -19,7 +24,8 @@ export class RootCauseRanker {
       findings,
       traces = [],
       errors = [],
-      errorsObserved = false,
+      errorsTotal,
+      traceLoad,
       dependencyMap = new Map(),
       weights = DEFAULT_WEIGHTS,
     } = input;
@@ -31,7 +37,7 @@ export class RootCauseRanker {
     const rankedCandidates: RankedCandidate[] = [];
 
     for (const candidate of candidates) {
-      const { scores, evidence } = this.signalExtractor.extractSignals(candidate, traces, errors, errorsObserved);
+      const { scores, evidence } = this.signalExtractor.extractSignals(candidate, traces);
 
       const { score, availableSignals } = calculateScoreWithMissingSignals(scores, weights);
 
@@ -40,25 +46,39 @@ export class RootCauseRanker {
         score,
         signalScores: scores,
         signalEvidence: evidence,
-        evidenceCoverage: availableSignals.length,
+        evidenceCoverage: weightedCoverage(availableSignals, weights),
+        confidence: loadedTooFewTraces(traceLoad) ? lowerTier(confidenceTier(score)) : confidenceTier(score),
         limitations: this.calculateLimitations(scores, availableSignals),
       });
     }
 
-    rankedCandidates.sort((a, b) => b.score - a.score);
-
-    const totalSignals = rankedCandidates.reduce(
-      (sum, candidate) => sum + candidate.evidenceCoverage,
-      0,
+    rankedCandidates.sort(
+      (a, b) =>
+        b.score - a.score ||
+        a.serviceName.localeCompare(b.serviceName) ||
+        (a.operationName ?? '').localeCompare(b.operationName ?? ''),
     );
-    const overallEvidenceCoverage = totalSignals / (rankedCandidates.length * 4);
+
+    const overallEvidenceCoverage =
+      rankedCandidates.length === 0
+        ? 0
+        : rankedCandidates.reduce((sum, candidate) => sum + candidate.evidenceCoverage, 0) / rankedCandidates.length;
 
     const limitations = this.collectLimitations(rankedCandidates);
+    if (rankedCandidates.some((candidate) => candidate.signalEvidence.errorPropagation)) {
+      limitations.push(PROPAGATION_SCOPE_LIMITATION);
+    }
+    const loadLimitation = traceLoadLimitation(traceLoad);
+    if (loadLimitation) limitations.push(loadLimitation);
+    if (errorsTotal !== undefined && errorsTotal > errors.length) {
+      limitations.push(`Error list truncated: ${errors.length.toLocaleString('en-US')} of ${errorsTotal.toLocaleString('en-US')}`);
+    }
 
     return {
       candidates: rankedCandidates,
       weights,
       overallEvidenceCoverage,
+      confidence: rankedCandidates[0]?.confidence ?? 'low',
       limitations,
     };
   }

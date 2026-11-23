@@ -180,4 +180,34 @@ describe("validateRcaAnalysis", () => {
     expect(result.limitations).toHaveLength(10);
     expect(result.limitations[9]).toContain("2 evidence references");
   });
+
+  describe("when the ranker's top candidate has low confidence", () => {
+    const analysis = (confidence: "high" | "medium" | "low") => ({
+      summary: "Checkout latency increased.",
+      rootCause: "The available evidence points to the database dependency.",
+      contributingFactors: ["Database latency increased."],
+      investigationSteps: ["Inspect the database query plan."],
+      suggestedChanges: ["Candidate: review the query and indexes."],
+      evidenceRefs: ["finding_latency:0", "finding_dependency:0"],
+      confidence,
+      limitations: ["The evidence does not establish the exact query plan."],
+    });
+
+    it("does not let the analysis claim high confidence, and says why", () => {
+      const result = validateRcaAnalysis(analysis("high"), { ...evidence, rankingConfidence: "low" });
+      expect(result.confidence).toBe("medium");
+      expect(result.limitations).toContain("The ranked candidates have low confidence, so the suspect is not presented as established.");
+    });
+
+    it("leaves a medium or low analysis alone", () => {
+      expect(validateRcaAnalysis(analysis("medium"), { ...evidence, rankingConfidence: "low" }).limitations).toHaveLength(1);
+      expect(validateRcaAnalysis(analysis("low"), { ...evidence, rankingConfidence: "low" }).confidence).toBe("low");
+    });
+
+    it("leaves a high analysis alone when the ranking is medium or high or absent", () => {
+      expect(validateRcaAnalysis(analysis("high"), { ...evidence, rankingConfidence: "high" }).confidence).toBe("high");
+      expect(validateRcaAnalysis(analysis("high"), { ...evidence, rankingConfidence: "medium" }).confidence).toBe("high");
+      expect(validateRcaAnalysis(analysis("high"), evidence).confidence).toBe("high");
+    });
+  });
 });

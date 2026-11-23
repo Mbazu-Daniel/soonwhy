@@ -201,12 +201,19 @@ describe('Root Cause Ranker', () => {
 
 describe('error propagation when traces were inspected', () => {
   const finding = { id: 'f', type: 'latency', serviceName: 'db', timestamp: '2026-01-01T00:00:00Z', severity: 'critical' as const, observedValue: 900, baselineValue: 100 };
+  const traceWith = (service: string) => [[{ spanId: 's', serviceName: service, duration: 100, startTime: 0 }]];
 
-  it('reports no errors as an observed zero instead of a missing signal', () => {
+  it('reports no errors in a trace that contains the candidate as an observed zero, not a missing signal', () => {
     const ranker = new RootCauseRanker();
     const missing = ranker.rank({ findings: [finding] });
-    const observed = ranker.rank({ findings: [finding], errorsObserved: true });
+    const observed = ranker.rank({ findings: [finding], traces: traceWith('db') });
     expect(missing.candidates[0]?.signalScores.errorPropagation).toBeUndefined();
     expect(observed.candidates[0]?.signalScores.errorPropagation).toBe(0);
+  });
+
+  it('keeps the signal absent when no loaded trace contains the candidate', () => {
+    const ranker = new RootCauseRanker();
+    const result = ranker.rank({ findings: [finding], traces: traceWith('other') });
+    expect(result.candidates[0]?.signalScores.errorPropagation).toBeUndefined();
   });
 });

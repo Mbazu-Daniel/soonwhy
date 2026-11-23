@@ -1,6 +1,7 @@
 import type { ScoringWeights } from './root-cause.types';
 
 export interface TraceSpan {
+  traceId?: string;
   spanId: string;
   serviceName: string;
   operationName?: string;
@@ -8,6 +9,7 @@ export interface TraceSpan {
   startTime: number;
   parentSpanId?: string;
   isCriticalPath?: boolean;
+  isError?: boolean;
 }
 
 export interface ErrorData {
@@ -17,8 +19,16 @@ export interface ErrorData {
   errorMessage: string;
 }
 
+export interface TraceLoadSummary {
+  requested: number;
+  loaded: number;
+  failed: number;
+  notFound: number;
+}
+
 export interface RankingInput {
-  errorsObserved?: boolean;
+  traceLoad?: TraceLoadSummary;
+  errorsTotal?: number;
   findings: Array<{
     id: string;
     type: string;
