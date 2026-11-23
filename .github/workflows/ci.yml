@@ -83,6 +83,8 @@ jobs:
         run: pnpm build:deps
       - name: Database integration tests
         run: pnpm --filter @soonwhy/backend test:integration
+      - name: Ingest integration tests
+        run: pnpm --filter @soonwhy/ingest test:integration
 
   ui-smoke:
     runs-on: ubuntu-latest

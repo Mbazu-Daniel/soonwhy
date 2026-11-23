@@ -4,6 +4,8 @@ import {
   QUICKWIT_INDEX_CONFIG,
   QUICKWIT_INDEXES,
   NatsService,
+  QUICKWIT_WRITE_STATE,
+  QuickwitIngestError,
   type NatsMessageHandler,
   type CaptureSettings,
 } from "@soonwhy/shared";
@@ -21,8 +23,12 @@ import type {
   OrganizationContext,
 } from "../interfaces";
 import { DlqRepository } from "./dlq.repository";
-import { IngestReceiptRepository, ReceiptBusyError } from "./receipt.repository";
-import { CLAIM_LEASE_MS, DLQ_SUBJECT_PREFIX, MAX_DELIVERY_ATTEMPTS, retryDelayMs } from "./constants";
+import { ClaimLease } from "./claim-lease";
+import { IngestReceiptRepository, ReceiptBusyError, ReconcileUnavailableError } from "./receipt.repository";
+import { findExistingEventIds } from "./reconciler";
+import { VisibilityCanary } from "./visibility-canary";
+import { DLQ_SUBJECT_PREFIX, MAX_DELIVERY_ATTEMPTS, REJECTED_DOCS_DLQ_DELIVERY_COUNT, retryDelayMs } from "./constants";
+import { AmbiguousIngestResultError, splitIngestOutcome, type IngestOutcome } from "./ingest-outcome";
 import type { IngestPayload, IngestSignal } from "./types";
 
 type JsMsg = Parameters<NatsMessageHandler>[0];
@@ -37,6 +43,8 @@ export class IngestConsumer implements OnModuleInit {
     private readonly metrics: IngestStats,
     private readonly dlqRepository: DlqRepository,
     private readonly receipts: IngestReceiptRepository,
+    private readonly lease: ClaimLease = new ClaimLease(),
+    private readonly canary?: VisibilityCanary,
   ) {}
 
   private readonly logger = new Logger(IngestConsumer.name);
@@ -48,6 +56,7 @@ export class IngestConsumer implements OnModuleInit {
         this.quickwit.ensureIndex(indexId, QUICKWIT_INDEX_CONFIG),
       ),
     );
+    await this.configureLease();
     for (const signal of signals) {
       await this.nats.subscribe(
         `ingest.*.${signal}`,
@@ -70,6 +79,22 @@ export class IngestConsumer implements OnModuleInit {
     this.metrics.startPeriodicLogging();
   }
 
+  private async configureLease(): Promise<void> {
+    try {
+      const timeouts = await Promise.all(
+        Object.values(QUICKWIT_INDEXES).map((indexId) => this.quickwit.commitTimeoutSecs(indexId)),
+      );
+      const leaseMs = this.lease.configure(timeouts);
+      this.logger.log(`Receipt lease set to ${leaseMs / 1000}s from index commit timeouts of ${timeouts.join(", ")}s`);
+    } catch (error) {
+      this.logger.warn(
+        `Could not read the index commit timeouts; keeping the default receipt lease of ${this.lease.ms / 1000}s: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
   private async handleMessage(signal: IngestSignal, msg: JsMsg) {
     if (msg.subject?.startsWith(DLQ_SUBJECT_PREFIX)) {
       msg.ack();
@@ -79,7 +104,7 @@ export class IngestConsumer implements OnModuleInit {
 
     if (deliveryCount > MAX_DELIVERY_ATTEMPTS) {
       if (!(await this.sendToDlq(signal, msg.data, deliveryCount, "max delivery attempts"))) {
-        msg.nak(CLAIM_LEASE_MS);
+        msg.nak(this.lease.ms);
         return;
       }
       msg.ack();
@@ -102,7 +127,7 @@ export class IngestConsumer implements OnModuleInit {
         this.logger.debug(
           `Ingest ${signal} deferred (delivery ${deliveryCount}): ${failure.message}`,
         );
-        msg.nak(CLAIM_LEASE_MS);
+        msg.nak(this.lease.ms);
         return;
       }
       this.logger.error(
@@ -111,7 +136,7 @@ export class IngestConsumer implements OnModuleInit {
       );
       if (deliveryCount >= MAX_DELIVERY_ATTEMPTS) {
         if (!(await this.sendToDlq(signal, msg.data, deliveryCount, failure.message))) {
-          msg.nak(CLAIM_LEASE_MS);
+          msg.nak(this.lease.ms);
           return;
         }
         msg.ack();
@@ -217,6 +242,7 @@ export class IngestConsumer implements OnModuleInit {
     const requestRows: MappedRow[] = [];
     const logRows: MappedRow[] = [];
     const metricRows: MappedRow[] = [];
+    const sources = new Map<string, IngestPayload>();
     let organizationId: string | undefined;
     let projectId: string | undefined;
 
@@ -233,68 +259,39 @@ export class IngestConsumer implements OnModuleInit {
         const span = payload as unknown as ParsedSpan & OrganizationContext;
         const traceRow = mapSpanToTraceRow(span, organization) as MappedRow;
         traceRows.push(traceRow);
+        sources.set(traceRow.eventId, payload);
         const requestRow = mapSpanToRequestRow(span, organization) as
           | MappedRow
           | null;
-        if (requestRow) requestRows.push(requestRow);
+        if (requestRow) {
+          requestRows.push(requestRow);
+          sources.set(requestRow.eventId, payload);
+        }
       } else if (signal === "log") {
         const record = payload as unknown as ParsedLogRecord & OrganizationContext;
         const row = mapLogToRow(record, organization) as MappedRow;
         logRows.push(row);
+        sources.set(row.eventId, payload);
       } else {
         const point = payload as unknown as ParsedMetricPoint & OrganizationContext;
         const row = mapMetricToRow(point, organization) as MappedRow;
         metricRows.push(row);
+        sources.set(row.eventId, payload);
       }
     }
 
     if (traceRows.length > 0 && organizationId && projectId) {
-      await this.insertRows(signal, organizationId, projectId, QUICKWIT_INDEXES.traces, traceRows);
+      await this.insertRows(signal, organizationId, projectId, QUICKWIT_INDEXES.traces, traceRows, sources);
     }
     if (requestRows.length > 0 && organizationId && projectId) {
-      await this.insertRows(signal, organizationId, projectId, QUICKWIT_INDEXES.requests, requestRows);
+      await this.insertRows(signal, organizationId, projectId, QUICKWIT_INDEXES.requests, requestRows, sources);
     }
     if (logRows.length > 0 && organizationId && projectId) {
-      await this.insertRows(signal, organizationId, projectId, QUICKWIT_INDEXES.logs, logRows);
+      await this.insertRows(signal, organizationId, projectId, QUICKWIT_INDEXES.logs, logRows, sources);
     }
     if (metricRows.length > 0 && organizationId && projectId) {
-      await this.insertRows(signal, organizationId, projectId, QUICKWIT_INDEXES.metrics, metricRows);
+      await this.insertRows(signal, organizationId, projectId, QUICKWIT_INDEXES.metrics, metricRows, sources);
     }
-  }
-
-  private async insertItem(signal: IngestSignal, payload: IngestPayload) {
-    const organization = this.organizationFrom(payload);
-    if (!organization.projectId || !organization.organizationId) {
-      throw new BadRequestException("Missing organization on ingest payload");
-    }
-
-    if (signal === "trace") {
-      const span = payload as unknown as ParsedSpan & OrganizationContext;
-      const traceRow = mapSpanToTraceRow(span, organization) as MappedRow;
-      await this.insertRow(signal, organization, QUICKWIT_INDEXES.traces, traceRow);
-      const requestRow = mapSpanToRequestRow(span, organization) as
-        | MappedRow
-        | null;
-      if (requestRow)
-        await this.insertRow(
-          signal,
-          organization,
-          QUICKWIT_INDEXES.requests,
-          requestRow,
-        );
-      return;
-    }
-
-    if (signal === "log") {
-      const record = payload as unknown as ParsedLogRecord & OrganizationContext;
-      const row = mapLogToRow(record, organization) as MappedRow;
-      await this.insertRow(signal, organization, QUICKWIT_INDEXES.logs, row);
-      return;
-    }
-
-    const point = payload as unknown as ParsedMetricPoint & OrganizationContext;
-    const row = mapMetricToRow(point, organization) as MappedRow;
-    await this.insertRow(signal, organization, QUICKWIT_INDEXES.metrics, row);
   }
 
   private async insertRows(
@@ -303,6 +300,7 @@ export class IngestConsumer implements OnModuleInit {
     projectId: string,
     indexId: string,
     batchRows: MappedRow[],
+    sources: Map<string, IngestPayload>,
   ) {
     const rows = [...new Map(batchRows.map((row) => [row.eventId, row])).values()];
     const eventIds = rows.map((r) => r.eventId);
@@ -323,42 +321,119 @@ export class IngestConsumer implements OnModuleInit {
       throw new ReceiptBusyError([...claim.busy][0] ?? "batch busy");
     }
 
-    const toInsert = rows.filter((r) => claim.claimed.has(r.eventId));
     this.metrics.recordDuplicate(claim.committed.size);
+    const toInsert = await this.withoutAlreadyStored(
+      indexId,
+      organizationId,
+      rows.filter((r) => claim.claimed.has(r.eventId)),
+      claim.reclaimed,
+    );
 
     if (toInsert.length === 0) return;
 
-    let step: "quickwit" | "commit" = "quickwit";
+    let outcome: IngestOutcome<MappedRow>;
     try {
-      await this.quickwit.ingest(indexId, toInsert);
-      step = "commit";
-      await this.commitWithRetry(
-        () => this.receipts.commitBatch(toInsert.map((r) => r.eventId)),
-        indexId,
-        toInsert.length,
-      );
-      this.metrics.recordInserted(toInsert.length);
+      outcome = splitIngestOutcome(toInsert, await this.quickwit.ingest(indexId, toInsert));
     } catch (error) {
-      if (step === "quickwit") {
-        try {
-          await this.receipts.releaseBatch(toInsert.map((r) => r.eventId));
-        } catch (releaseError) {
-          this.logger.error(
-            `Failed to release ${toInsert.length} receipt claims for "${indexId}": ${
-              releaseError instanceof Error
-                ? releaseError.message
-                : String(releaseError)
-            }`,
-          );
-        }
-        const message = error instanceof Error ? error.message : String(error);
-        throw new Error(`Quickwit write to "${indexId}" failed: ${message}`);
+      await this.settleFailedWrite(indexId, organizationId, toInsert, error);
+      throw error;
+    }
+
+    await this.commitAccepted(indexId, organizationId, outcome.accepted);
+    const written = outcome.accepted.at(-1);
+    if (written) await this.canary?.record(indexId, written.eventId);
+    await this.deadLetterRejected(signal, indexId, organizationId, projectId, outcome, sources);
+    this.metrics.recordInserted(outcome.accepted.length);
+  }
+
+  private async withoutAlreadyStored(indexId: string, organizationId: string, claimed: MappedRow[], reclaimed: Set<string>): Promise<MappedRow[]> {
+    const retried = claimed.filter((row) => reclaimed.has(row.eventId));
+    if (retried.length === 0) return claimed;
+
+    let stored: Set<string>;
+    try {
+      stored = await findExistingEventIds(this.quickwit, indexId, retried);
+      if (stored.size < retried.length && (await this.canary?.indexerIsBehind(this.quickwit, indexId, this.lease.ms))) {
+        throw new Error("a document written more than one lease ago is still not searchable, so the indexer is behind");
       }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(
+        `Quickwit lookup for ${retried.length} retried rows in "${indexId}" failed; leaving their receipts pending and deferring the batch instead of writing blind: ${message}`,
+      );
+      throw new ReconcileUnavailableError(indexId, message);
+    }
+    if (stored.size === 0) return claimed;
+
+    await this.commitAccepted(indexId, organizationId, claimed.filter((row) => stored.has(row.eventId)));
+    this.metrics.recordReconciled(stored.size);
+    this.logger.log(`Reconciled ${stored.size} of ${retried.length} retried rows in "${indexId}" already stored in Quickwit; committed their receipts without rewriting`);
+    return claimed.filter((row) => !stored.has(row.eventId));
+  }
+
+  private async settleFailedWrite(indexId: string, organizationId: string, rows: MappedRow[], error: unknown): Promise<never> {
+    const message = error instanceof Error ? error.message : String(error);
+    const notWritten = error instanceof QuickwitIngestError && error.writeState === QUICKWIT_WRITE_STATE.notWritten;
+
+    if (notWritten) {
+      try {
+        await this.receipts.releaseBatch(rows.map((row) => row.eventId), organizationId);
+      } catch (releaseError) {
+        this.logger.error(
+          `Failed to release ${rows.length} receipt claims for "${indexId}": ${
+            releaseError instanceof Error ? releaseError.message : String(releaseError)
+          }`,
+        );
+      }
+      throw new Error(`Quickwit write to "${indexId}" failed (not written): ${message}`);
+    }
+
+    const ambiguous = error instanceof AmbiguousIngestResultError;
+    this.logger.warn(
+      `Quickwit write to "${indexId}" ${ambiguous ? "returned a response that cannot be matched to the batch" : "failed with an unknown outcome"}; leaving ${rows.length} receipts pending so the retry does not write blind: ${message}`,
+    );
+    throw new Error(`Quickwit write to "${indexId}" failed (outcome unknown): ${message}`);
+  }
+
+  private async commitAccepted(indexId: string, organizationId: string, accepted: MappedRow[]): Promise<void> {
+    if (accepted.length === 0) return;
+    try {
+      await this.commitWithRetry(
+        () => this.receipts.commitBatch(accepted.map((row) => row.eventId), organizationId),
+        indexId,
+        accepted.length,
+      );
+    } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(
-        `Receipt commit for "${indexId}" (${toInsert.length} rows) failed after retries; leaving receipts pending so redeliveries wait out the lease instead of duplicating the Quickwit batch: ${message}`,
+        `Receipt commit for "${indexId}" (${accepted.length} rows) failed after retries; leaving receipts pending so redeliveries wait out the lease instead of duplicating the Quickwit batch: ${message}`,
       );
       throw new Error(`Receipt commit for "${indexId}" failed: ${message}`);
+    }
+  }
+
+  private async deadLetterRejected(
+    signal: IngestSignal,
+    indexId: string,
+    organizationId: string,
+    projectId: string,
+    outcome: IngestOutcome<MappedRow>,
+    sources: Map<string, IngestPayload>,
+  ): Promise<void> {
+    for (const { row, reason, message } of outcome.rejected) {
+      const detail = `Quickwit rejected the document for "${indexId}" (${reason}): ${message}`;
+      await this.dlqRepository.createDlqEntry({
+        signal,
+        deliveryCount: REJECTED_DOCS_DLQ_DELIVERY_COUNT,
+        reason: detail,
+        payload: sources.get(row.eventId) ?? { rejectedDocument: row },
+        organizationId,
+        projectId,
+      });
+      await this.commitWithRetry(() => this.receipts.commitBatch([row.eventId], organizationId), indexId, 1);
+      this.metrics.recordRejectedDocs(1);
+      this.metrics.recordDlq(1);
+      this.logger.warn(`${detail} (event ${row.eventId}); saved to the dead-letter queue`);
     }
   }
 
@@ -384,63 +459,5 @@ export class IngestConsumer implements OnModuleInit {
       }
     }
     throw lastError instanceof Error ? lastError : new Error(String(lastError));
-  }
-
-  private async insertRow(
-    signal: IngestSignal,
-    organization: OrganizationContext,
-    indexId: string,
-    row: MappedRow,
-  ) {
-    let claimed: Awaited<ReturnType<typeof this.receipts.claim>>;
-    try {
-      claimed = await this.receipts.claim(
-        row.eventId,
-        organization.organizationId,
-        organization.projectId,
-        signal,
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`Receipt claim for "${indexId}" failed: ${message}`);
-    }
-    if (claimed === "committed") {
-      this.metrics.recordDuplicate(1);
-      return;
-    }
-    if (claimed === "busy") throw new ReceiptBusyError(row.eventId);
-
-    let step: "quickwit" | "commit" = "quickwit";
-    try {
-      await this.quickwit.ingest(indexId, [row]);
-      step = "commit";
-      await this.commitWithRetry(
-        () => this.receipts.commit(row.eventId),
-        indexId,
-        1,
-      );
-      this.metrics.recordInserted(1);
-    } catch (error) {
-      if (step === "quickwit") {
-        try {
-          await this.receipts.release(row.eventId);
-        } catch (releaseError) {
-          this.logger.error(
-            `Failed to release receipt claim for "${indexId}": ${
-              releaseError instanceof Error
-                ? releaseError.message
-                : String(releaseError)
-            }`,
-          );
-        }
-        const message = error instanceof Error ? error.message : String(error);
-        throw new Error(`Quickwit write to "${indexId}" failed: ${message}`);
-      }
-      const message = error instanceof Error ? error.message : String(error);
-      this.logger.error(
-        `Receipt commit for "${indexId}" (event ${row.eventId}) failed after retries; leaving receipt pending so redeliveries wait out the lease instead of duplicating the Quickwit write: ${message}`,
-      );
-      throw new Error(`Receipt commit for "${indexId}" failed: ${message}`);
-    }
   }
 }

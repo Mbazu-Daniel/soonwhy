@@ -18,3 +18,6 @@ rest:
 indexer:
   split_store_max_num_splits: 1000
   max_concurrent_split_uploads: 4
+
+ingest_api:
+  replication_factor: 1

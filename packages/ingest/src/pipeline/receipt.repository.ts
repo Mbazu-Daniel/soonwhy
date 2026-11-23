@@ -1,7 +1,7 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, Optional } from "@nestjs/common";
 import { DB, ingestEventReceipts, type Db } from "@soonwhy/shared";
 import { and, eq, lt, sql, inArray } from "drizzle-orm";
-import { CLAIM_LEASE_MS } from "./constants";
+import { ClaimLease } from "./claim-lease";
 import type { ReceiptClaim } from "./receipt.repository.types";
 
 export class ReceiptBusyError extends Error {
@@ -10,9 +10,22 @@ export class ReceiptBusyError extends Error {
   }
 }
 
+export class ReconcileUnavailableError extends ReceiptBusyError {
+  constructor(indexId: string, detail: string) {
+    super(indexId);
+    this.message = `Quickwit lookup for "${indexId}" failed, deferring the batch: ${detail}`;
+  }
+}
+
+const inOrganization = (organizationId: string) => eq(ingestEventReceipts.organizationId, organizationId);
+
 @Injectable()
 export class IngestReceiptRepository {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  private readonly lease: ClaimLease;
+
+  constructor(@Inject(DB) private readonly db: Db, @Optional() lease?: ClaimLease) {
+    this.lease = lease ?? new ClaimLease();
+  }
 
   async claim(
     eventId: string,
@@ -20,7 +33,7 @@ export class IngestReceiptRepository {
     projectId: string,
     signal: string,
   ): Promise<ReceiptClaim> {
-    const cutoff = new Date(Date.now() - CLAIM_LEASE_MS);
+    const cutoff = new Date(Date.now() - this.lease.ms);
     const [claimed] = await this.db
       .insert(ingestEventReceipts)
       .values({ eventId, organizationId, projectId, signal })
@@ -49,16 +62,18 @@ export class IngestReceiptRepository {
   }
 
   async claimBatch(
-    eventIds: string[],
+    requestedEventIds: string[],
     organizationId: string,
     projectId: string,
     signal: string,
-  ): Promise<{ claimed: Set<string>; committed: Set<string>; busy: Set<string> }> {
-    if (eventIds.length === 0) {
-      return { claimed: new Set(), committed: new Set(), busy: new Set() };
+  ): Promise<{ claimed: Set<string>; reclaimed: Set<string>; committed: Set<string>; busy: Set<string> }> {
+    if (requestedEventIds.length === 0) {
+      return { claimed: new Set(), reclaimed: new Set(), committed: new Set(), busy: new Set() };
     }
 
-    const cutoff = new Date(Date.now() - CLAIM_LEASE_MS);
+    const eventIds = [...new Set(requestedEventIds)].sort();
+
+    const cutoff = new Date(Date.now() - this.lease.ms);
     const values = eventIds.map((eventId) => ({
       eventId,
       organizationId,
@@ -81,15 +96,16 @@ export class IngestReceiptRepository {
           lt(ingestEventReceipts.updatedAt, cutoff),
         ),
       })
-      .returning({ eventId: ingestEventReceipts.eventId });
+      .returning({ eventId: ingestEventReceipts.eventId, attempts: ingestEventReceipts.attempts });
 
     const claimed = new Set(claimedRows.map((r) => r.eventId));
+    const reclaimed = new Set(claimedRows.filter((r) => r.attempts > 1).map((r) => r.eventId));
     const unresolved = eventIds.filter((id) => !claimed.has(id));
 
     const committed = new Set<string>();
     const busy = new Set<string>();
     if (unresolved.length === 0) {
-      return { claimed, committed, busy };
+      return { claimed, reclaimed, committed, busy };
     }
 
     const existing = await this.db
@@ -111,40 +127,42 @@ export class IngestReceiptRepository {
       }
     }
 
-    return { claimed, committed, busy };
+    return { claimed, reclaimed, committed, busy };
   }
 
-  async commit(eventId: string): Promise<void> {
+  async commit(eventId: string, organizationId: string): Promise<void> {
     await this.db
       .update(ingestEventReceipts)
       .set({ status: "committed", committedAt: new Date() })
-      .where(eq(ingestEventReceipts.eventId, eventId));
+      .where(and(eq(ingestEventReceipts.eventId, eventId), inOrganization(organizationId)));
   }
 
-  async commitBatch(eventIds: string[]): Promise<void> {
+  async commitBatch(eventIds: string[], organizationId: string): Promise<void> {
     await this.db
       .update(ingestEventReceipts)
       .set({ status: "committed", committedAt: new Date() })
-      .where(inArray(ingestEventReceipts.eventId, eventIds));
+      .where(and(inArray(ingestEventReceipts.eventId, eventIds), inOrganization(organizationId)));
   }
 
-  async release(eventId: string): Promise<void> {
+  async release(eventId: string, organizationId: string): Promise<void> {
     await this.db
       .delete(ingestEventReceipts)
       .where(
         and(
           eq(ingestEventReceipts.eventId, eventId),
+          inOrganization(organizationId),
           eq(ingestEventReceipts.status, "pending"),
         ),
       );
   }
 
-  async releaseBatch(eventIds: string[]): Promise<void> {
+  async releaseBatch(eventIds: string[], organizationId: string): Promise<void> {
     await this.db
       .delete(ingestEventReceipts)
       .where(
         and(
           inArray(ingestEventReceipts.eventId, eventIds),
+          inOrganization(organizationId),
           eq(ingestEventReceipts.status, "pending"),
         ),
       );

@@ -3,6 +3,7 @@ export { type NatsMessageHandler, type NatsServiceOptions } from "./nats/service
 export { generateEventId } from "./telemetry-identity/event-id";
 export { requiredEnvInProduction } from "./env";
 export { RateLimiter } from "./redis/rate-limit";
+export { createRedisClient, type RedisClient } from "./redis/client";
 export { resolveCaptureSettings } from "./capture-settings";
 export { type CaptureSettings } from "./capture-settings.types";
 export { DEFAULT_CAPTURE_SETTINGS } from "./capture-settings.constants";
@@ -40,6 +41,14 @@ export {
   type QuickwitSearchResponse,
   type QuickwitIndexDescription,
   type QuickwitSplit,
+  QUICKWIT_WRITE_STATE,
+  QuickwitIngestError,
+  type QuickwitIngestResult,
+  type QuickwitRejectedDocument,
+  type QuickwitWriteState,
+  QUICKWIT_DEFAULT_COMMIT_TIMEOUT_SECS,
+  type EventLookupRange,
+  type DuplicateReport,
 } from "./quickwit";
 export { QUICKWIT_INDEXES, QUICKWIT_INDEX_CONFIG } from "./quickwit/config";
 export {
