@@ -49,4 +49,24 @@ describe("clock skew correction", () => {
     const skewed = [...traces.map((t) => shifted({ orders: 450 }, t)), [span("x", "island", "missing", 5, 5)]];
     expect(correctClockSkew(skewed).offsets.has("island")).toBe(false);
   });
+
+  it("keeps every span nested when different traces bound the same offset differently", () => {
+    const t1 = [span("a1", "A", undefined, 0, 1000), span("c1", "C", "a1", 0, 10)];
+    const t2 = [span("a2", "A", undefined, 2000, 10), span("c2", "C", "a2", 2000, 10), span("b2", "B", "a2", 2500, 10)];
+    const { traces, offsets } = correctClockSkew([t1, t2]);
+
+    expect(offsets.get("C")).toBeCloseTo(0);
+    expect(offsets.get("B")).toBeCloseTo(500);
+    expect(measureTraceIntegrity(traces).escapedRatio).toBe(0);
+  });
+
+  it("corrects every separate group of services, not only the one holding the most common root", () => {
+    const lone = [1, 2, 3].map((n) => [span(`a${n}`, "A", undefined, n * 1000, 100)]);
+    const pair = [1, 2].map((n) => [span(`e${n}`, "E", undefined, n * 1000, 400), span(`f${n}`, "F", `e${n}`, n * 1000 + 20 + 500, 300)]);
+    const { offsets, traces } = correctClockSkew([...lone, ...pair]);
+
+    expect(offsets.get("E")).toBe(0);
+    expect(Math.abs(offsets.get("F")! - 500)).toBeLessThan(80);
+    expect(measureTraceIntegrity(traces).escapedRatio).toBeLessThan(0.1);
+  });
 });
