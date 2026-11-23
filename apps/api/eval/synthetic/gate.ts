@@ -6,6 +6,7 @@ export const DEFAULT_FLOORS: GateFloors = {
   minControlRuns: 20,
   maxControlFalseAlarms: 0,
   scenarioMarginPoints: 0.05,
+  minTierRuns: 20,
 };
 
 const CLEAN_CONTROL = "no_fault";
@@ -23,6 +24,19 @@ function scenarioScores(rows: RunRow[]): Record<string, { score: number; runs: n
         return [scenario, { score: good / group.length, runs: group.length }];
       }),
   );
+}
+
+const TIERS = ["high", "medium", "low"] as const;
+
+function calibrationCheck(faults: RunRow[], minTierRuns: number): GateCheck {
+  const measured = TIERS.flatMap((tier) => {
+    const group = faults.filter((row) => row.confidence === tier);
+    if (group.length < minTierRuns) return [];
+    return [{ tier, runs: group.length, accuracy: group.filter((row) => row.finalRank.full === 1).length / group.length }];
+  });
+  const ordered = measured.every((entry, index) => index === 0 || measured[index - 1]!.accuracy >= entry.accuracy);
+  const detail = measured.length === 0 ? "no tier has enough runs to measure" : measured.map((entry) => `${entry.tier} ${percent(entry.accuracy)} over ${entry.runs}`).join(", ");
+  return { name: "confidence calibration", passed: ordered, detail: `${detail} (a higher tier must not be less accurate than a lower one)` };
 }
 
 export function makeBaseline(rows: RunRow[], split: string, description: string): Baseline {
@@ -48,6 +62,8 @@ export function evaluateGate(rows: RunRow[], baseline: Baseline, floors: GateFlo
   const faults = rows.filter(isFault);
   const overall = faults.length === 0 ? 0 : faults.filter((row) => row.finalRank.full === 1).length / faults.length;
   checks.push({ name: "overall top-1", passed: overall >= floors.minOverallTop1, detail: `${percent(overall)} over ${faults.length} fault runs (floor ${percent(floors.minOverallTop1)})` });
+
+  checks.push(calibrationCheck(faults, floors.minTierRuns));
 
   const current = scenarioScores(rows);
   for (const [scenario, recorded] of Object.entries(baseline.scenarios)) {

@@ -5,3 +5,6 @@ export const MAX_PER_TRACE_EVIDENCE = 5;
 export const FULL_PERCENT = 100;
 export const MIN_TRACE_LOAD_RATIO = 0.7;
 export const MAX_PROPAGATION_EXAMPLES = 3;
+export const SKEW_TOLERANCE_MS = 100;
+export const MAX_ORPHAN_RATIO = 0.4;
+export const MAX_ESCAPED_RATIO = 0.25;

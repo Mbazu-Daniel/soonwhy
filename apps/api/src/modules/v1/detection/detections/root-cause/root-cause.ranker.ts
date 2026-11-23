@@ -1,6 +1,8 @@
 import { CandidateGenerator } from './root-cause.candidates';
 import { SignalExtractor } from './root-cause.signals';
 import { confidenceTier, lowerTier } from './root-cause.confidence';
+import { correctClockSkew } from './root-cause.clock-skew';
+import { traceIntegrityLimitation } from './root-cause.trace-integrity';
 import { loadedTooFewTraces, traceLoadLimitation } from './root-cause.trace-load';
 import { calculateScoreWithMissingSignals, weightedCoverage } from './root-cause.scorer';
 import type { RankedCandidate, SignalScores, RankingResult } from './root-cause.types';
@@ -22,7 +24,7 @@ export class RootCauseRanker {
   rank(input: RankingInput): RankingResult {
     const {
       findings,
-      traces = [],
+      traces: observedTraces = [],
       errors = [],
       errorsTotal,
       traceLoad,
@@ -30,11 +32,14 @@ export class RootCauseRanker {
       weights = DEFAULT_WEIGHTS,
     } = input;
 
+    const { traces, offsets } = correctClockSkew(observedTraces);
     let candidates = this.candidateGenerator.generateFromFindings(findings);
 
     candidates = this.candidateGenerator.enrichWithDependencies(candidates, dependencyMap);
 
     const rankedCandidates: RankedCandidate[] = [];
+    const integrityLimitation = traceIntegrityLimitation(traces);
+    const dropTier = loadedTooFewTraces(traceLoad) || integrityLimitation !== undefined;
 
     for (const candidate of candidates) {
       const { scores, evidence } = this.signalExtractor.extractSignals(candidate, traces);
@@ -47,7 +52,7 @@ export class RootCauseRanker {
         signalScores: scores,
         signalEvidence: evidence,
         evidenceCoverage: weightedCoverage(availableSignals, weights),
-        confidence: loadedTooFewTraces(traceLoad) ? lowerTier(confidenceTier(score)) : confidenceTier(score),
+        confidence: dropTier ? lowerTier(confidenceTier(score)) : confidenceTier(score),
         limitations: this.calculateLimitations(scores, availableSignals),
       });
     }
@@ -70,6 +75,8 @@ export class RootCauseRanker {
     }
     const loadLimitation = traceLoadLimitation(traceLoad);
     if (loadLimitation) limitations.push(loadLimitation);
+    if (integrityLimitation) limitations.push(integrityLimitation);
+    if (offsets.size > 0) limitations.push(`Service clocks disagreed; timestamps were adjusted by up to ${Math.round(Math.max(...[...offsets.values()].map(Math.abs)))} ms`);
     if (errorsTotal !== undefined && errorsTotal > errors.length) {
       limitations.push(`Error list truncated: ${errors.length.toLocaleString('en-US')} of ${errorsTotal.toLocaleString('en-US')}`);
     }

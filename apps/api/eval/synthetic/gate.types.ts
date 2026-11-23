@@ -3,6 +3,7 @@ export interface GateFloors {
   minControlRuns: number;
   maxControlFalseAlarms: number;
   scenarioMarginPoints: number;
+  minTierRuns: number;
 }
 
 export interface BaselineEntry {

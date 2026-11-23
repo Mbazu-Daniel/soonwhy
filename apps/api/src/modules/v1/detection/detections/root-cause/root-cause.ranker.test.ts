@@ -217,3 +217,34 @@ describe('error propagation when traces were inspected', () => {
     expect(result.candidates[0]?.signalScores.errorPropagation).toBeUndefined();
   });
 });
+
+describe('confidence when the trace data is unreliable', () => {
+  const ranker = new RootCauseRanker();
+  const findings: RankingInput['findings'] = [
+    { id: 'f1', type: 'latency', serviceName: 'db', timestamp: '2026-01-01T00:00:00Z', severity: 'critical', observedValue: 5000, baselineValue: 100 },
+  ];
+  const span = (spanId: string, parentSpanId: string | undefined, startTime: number, duration: number) => ({
+    traceId: 't', spanId, parentSpanId, serviceName: 'db', startTime, duration,
+  });
+
+  it('lowers the tier and says why when most parents are missing', () => {
+    const intact = ranker.rank({ findings, traces: [[span('a', undefined, 0, 100), span('b', 'a', 10, 50)]] });
+    const broken = ranker.rank({ findings, traces: [[span('a', undefined, 0, 100), span('b', 'x', 10, 50), span('c', 'y', 10, 5)]] });
+
+    expect(broken.candidates[0]!.score).toBeCloseTo(intact.candidates[0]!.score, 1);
+    expect(broken.confidence).not.toBe(intact.confidence);
+    expect(broken.limitations.join(' ')).toMatch(/unreliable/);
+    expect(intact.limitations.join(' ')).not.toMatch(/unreliable/);
+  });
+
+  it('adjusts for disagreeing service clocks instead of calling the data unreliable', () => {
+    const trace = (n: number, orders: number) => [
+      { traceId: `t${n}`, spanId: `g${n}`, serviceName: 'gateway', startTime: n * 1000, duration: 400 },
+      { traceId: `t${n}`, spanId: `o${n}`, parentSpanId: `g${n}`, serviceName: 'orders', startTime: n * 1000 + 20 + orders, duration: 300 },
+    ];
+    const result = ranker.rank({ findings: [{ ...findings[0]!, serviceName: 'orders' }], traces: [1, 2, 3, 4].map((n) => trace(n, 700)) });
+
+    expect(result.limitations.join(' ')).toMatch(/clocks disagreed/);
+    expect(result.limitations.join(' ')).not.toMatch(/unreliable/);
+  });
+});

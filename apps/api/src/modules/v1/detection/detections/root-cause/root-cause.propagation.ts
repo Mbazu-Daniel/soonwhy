@@ -23,8 +23,10 @@ function factsOf(trace: TraceSpan[]): TraceFacts {
   return { byId, childrenOf };
 }
 
-function hasDanglingParent(trace: TraceSpan[], facts: TraceFacts): boolean {
-  return trace.some((span) => span.isError && span.parentSpanId !== undefined && !facts.byId.has(span.parentSpanId));
+function hasDanglingParent(trace: TraceSpan[], facts: TraceFacts, service: string): boolean {
+  return trace.some(
+    (span) => span.serviceName === service && span.isError && span.parentSpanId !== undefined && !facts.byId.has(span.parentSpanId),
+  );
 }
 
 function isOrigin(span: TraceSpan, facts: TraceFacts): boolean {
@@ -67,7 +69,7 @@ export function analyzeErrorPropagation(
 
   for (const trace of errorTraces) {
     const facts = factsOf(trace);
-    if (hasDanglingParent(trace, facts)) {
+    if (hasDanglingParent(trace, facts, service)) {
       inconclusive++;
       continue;
     }
