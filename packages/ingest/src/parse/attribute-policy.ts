@@ -1,14 +1,16 @@
-import { isPiiKey, isPiiValue } from "@soonwhy/shared";
+import { isPiiKey, isPiiValue, PII_CIPHERTEXT_PREFIX } from "@soonwhy/shared";
 import { encryptOrRedact, encryptTextOrRedact } from "./pii-safe";
 import { shapePayloadAttributes } from "./payload-shape";
 import { sanitizeQueryAttributes } from "./sanitize-sql";
 import { FREE_TEXT_ATTRIBUTE_KEYS } from "./exception-attributes";
 import { SENSITIVE_ATTRIBUTE_PATTERN, SENSITIVE_TEXT_PATTERNS } from "./mappers.constants";
 import type { CaptureSettings } from "../interfaces";
+import { METRIC_ATTRIBUTE_LIMITS, METRIC_FILTER_LABEL_KEYS } from "./attribute-policy.constants";
+import type { AttributeLimits } from "./attribute-policy.types";
 
 function safeLogAttributes(
   attributes: Record<string, unknown>,
-  settings: CaptureSettings,
+  settings: AttributeLimits,
 ): Record<string, string> {
   return Object.fromEntries(
     Object.entries(attributes)
@@ -24,7 +26,7 @@ function safeLogAttributes(
 function sanitizePiiValue(
   key: string,
   value: unknown,
-  settings: CaptureSettings,
+  settings: AttributeLimits,
   depth: number,
 ): string {
   const maxLength = settings.maxAttributeValueLength;
@@ -89,4 +91,25 @@ export function applySpanAttributePolicy(
 ): Record<string, string> {
   const present = Object.fromEntries(Object.entries(attributes).filter(([, value]) => value !== undefined));
   return safeLogAttributes(sanitizeQueryAttributes(shapePayloadAttributes(present, settings)), settings);
+}
+
+export function applyMetricAttributePolicy(
+  attributes: Record<string, unknown>,
+): Record<string, string> {
+  const { maxAttributeValueLength } = METRIC_ATTRIBUTE_LIMITS;
+  const labels: Array<[string, unknown]> = [];
+  const others: Array<[string, unknown]> = [];
+  for (const [key, value] of Object.entries(attributes)) {
+    const bounded = typeof value === "string" && !isPiiKey(key) && !isPiiValue(value)
+      ? value.slice(0, maxAttributeValueLength)
+      : value;
+    (METRIC_FILTER_LABEL_KEYS.has(key) ? labels : others).push([key, bounded]);
+  }
+  const sanitized = safeLogAttributes(Object.fromEntries([...labels, ...others]), METRIC_ATTRIBUTE_LIMITS);
+  return Object.fromEntries(
+    Object.entries(sanitized).map(([key, value]) => [
+      key,
+      value.includes(PII_CIPHERTEXT_PREFIX) ? value : value.slice(0, maxAttributeValueLength),
+    ]),
+  );
 }

@@ -14,6 +14,7 @@ export {
   isPiiValue,
   isPiiAttribute,
   encryptPiiInText,
+  PII_CIPHERTEXT_PREFIX,
 } from "./privacy/pii";
 export {
   apiKeys,
