@@ -151,6 +151,27 @@ Copy `.env.example` for local work or `.env.backend.example` for the production 
 | `VITE_API_URL` | `http://localhost:3001` | API the dashboard calls |
 | `VITE_INGEST_URL` | `https://ingest-soonwhy.oktopals.com` | Ingest URL shown in setup snippets |
 
+## Reproduce the evaluation
+
+The fault-injection harness in `apps/api/eval` starts a six-service sample application, injects known faults, and scores the detector and root cause ranker against the true cause. Run it from the repository root. It needs only the installed dependencies (`pnpm install`), not the Docker stack.
+
+| Command | What it runs | Takes about |
+|---|---|---|
+| `make eval-report` | Prints the tables and 95% Wilson intervals from the stored results, without running anything | seconds |
+| `make eval-overhead` | Overhead of the analysis layer at 20, 40, 80 and 160 requests per second | 10 min |
+| `make eval-heldout` | Held-out scenarios (55 fault runs) | 25 min |
+| `make eval-sweep` | Fault-magnitude sweep (55 fault runs) | 15 min |
+| `make eval-windows` | Five baseline and recent window configurations | 80 min |
+| `make eval-replication` | Replication with 110 fault runs and 40 fault-free runs | 50 min |
+| `make eval` | All of the above in sequence, then the report | about 3 h |
+
+Notes:
+
+- Run one target at a time and keep the machine idle, because timing results depend on host load.
+- Results are written as JSON to `apps/api/eval/results/`. A new run overwrites the file of the same name, so copy the existing files first if you want to keep them.
+- Every run uses a fixed random seed. Accuracy figures should reproduce closely; detection times and overhead vary with the machine.
+- Settings are environment variables: `EVAL_REPS`, `EVAL_NORMAL_RUNS`, `EVAL_TRACE_MODE`, `EVAL_SCENARIO_SET` (`default`, `heldout`, `sweep`), `EVAL_SEED_BASE`, `EVAL_BASELINE_WINDOW`, `EVAL_RECENT_WINDOW`, `EVAL_OUT`, and for overhead `EVAL_RPS`, `EVAL_SECONDS`, `EVAL_ROUNDS`. The `Makefile` targets show the values used for the reported results.
+
 ## Docs (local only)
 
 Design notes, ADRs, and agent skills live on the filesystem only and are intentionally not published to GitHub. Only this `README.md` is tracked.

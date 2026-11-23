@@ -11,8 +11,8 @@ import { buildRankingInputs } from "../src/modules/v1/detection/detections/root-
 import type { AnalysisSnapshot, AnalyzerOptions, RankedService, SpanRecord } from "./types";
 
 export const DEFAULT_OPTIONS: AnalyzerOptions = {
-  baselineWindow: 100,
-  recentWindow: 10,
+  baselineWindow: Number(process.env.EVAL_BASELINE_WINDOW ?? 100),
+  recentWindow: Number(process.env.EVAL_RECENT_WINDOW ?? 10),
   errorWindow: 20,
   traceWindow: 40,
   traceMode: process.env.EVAL_TRACE_MODE === "production" ? "production" : process.env.EVAL_TRACE_MODE === "full" ? "full" : "servers",

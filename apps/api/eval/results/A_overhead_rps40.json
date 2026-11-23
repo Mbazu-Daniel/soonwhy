@@ -1,0 +1,110 @@
+{
+  "config": {
+    "RPS": 40,
+    "SECONDS": 20,
+    "ROUNDS": 3,
+    "loadAvg": [
+      4.12,
+      3.58,
+      2.79
+    ]
+  },
+  "rows": [
+    {
+      "analysis": false,
+      "requests": 800,
+      "spansReceived": 10400,
+      "failed": 0,
+      "appCpuPercent": 75.27578155427273,
+      "appRssMb": 538.26171875,
+      "harnessCpuPercent": 14.93903506214544,
+      "analyzerCpuPercent": 0,
+      "analyzerMicrosPerSpan": 0,
+      "heapDeltaMb": 4.60040283203125,
+      "rssMb": 91.609375,
+      "p50": 68.80085399999734,
+      "p95": 87.92844700000023,
+      "p99": 136.82391800000005
+    },
+    {
+      "analysis": true,
+      "requests": 800,
+      "spansReceived": 10400,
+      "failed": 0,
+      "appCpuPercent": 55.72477604391728,
+      "appRssMb": 550.72265625,
+      "harnessCpuPercent": 15.80425988291925,
+      "analyzerCpuPercent": 1.3755488853211482,
+      "analyzerMicrosPerSpan": 23.05418060200669,
+      "heapDeltaMb": -0.12921905517578125,
+      "rssMb": 87.203125,
+      "p50": 67.38283700000466,
+      "p95": 74.63270999999804,
+      "p99": 89.343793
+    },
+    {
+      "analysis": false,
+      "requests": 800,
+      "spansReceived": 10400,
+      "failed": 0,
+      "appCpuPercent": 53.12762681787437,
+      "appRssMb": 578.06640625,
+      "harnessCpuPercent": 12.09389814117751,
+      "analyzerCpuPercent": 0,
+      "analyzerMicrosPerSpan": 0,
+      "heapDeltaMb": -0.543792724609375,
+      "rssMb": 87.828125,
+      "p50": 67.10439599999518,
+      "p95": 72.14595800000097,
+      "p99": 78.3029469999965
+    },
+    {
+      "analysis": true,
+      "requests": 800,
+      "spansReceived": 10400,
+      "failed": 0,
+      "appCpuPercent": 52.134639800453066,
+      "appRssMb": 619.8359375,
+      "harnessCpuPercent": 14.41094737650481,
+      "analyzerCpuPercent": 1.278201677006208,
+      "analyzerMicrosPerSpan": 21.421906354515052,
+      "heapDeltaMb": 1.3609390258789062,
+      "rssMb": 95.453125,
+      "p50": 67.08131700000376,
+      "p95": 71.62101400000392,
+      "p99": 73.67661500000395
+    },
+    {
+      "analysis": false,
+      "requests": 800,
+      "spansReceived": 10400,
+      "failed": 0,
+      "appCpuPercent": 54.17981895678494,
+      "appRssMb": 625.4921875,
+      "harnessCpuPercent": 11.944624572927207,
+      "analyzerCpuPercent": 0,
+      "analyzerMicrosPerSpan": 0,
+      "heapDeltaMb": -0.4459991455078125,
+      "rssMb": 95.453125,
+      "p50": 66.73387099998945,
+      "p95": 73.1801839999971,
+      "p99": 105.41340900000068
+    },
+    {
+      "analysis": true,
+      "requests": 800,
+      "spansReceived": 10400,
+      "failed": 0,
+      "appCpuPercent": 51.390290022624974,
+      "appRssMb": 647.375,
+      "harnessCpuPercent": 14.167364961711082,
+      "analyzerCpuPercent": 1.2275643481841343,
+      "analyzerMicrosPerSpan": 20.57165551839465,
+      "heapDeltaMb": 3.1883773803710938,
+      "rssMb": 96.578125,
+      "p50": 66.75527399999555,
+      "p95": 74.72073200001614,
+      "p99": 95.76993100000254
+    }
+  ]
+}

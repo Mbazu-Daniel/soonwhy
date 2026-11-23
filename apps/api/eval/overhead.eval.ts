@@ -63,7 +63,7 @@ describe("analysis-layer overhead", () => {
       rows.push(await phase(true));
     }
     mkdirSync(new URL("./results", import.meta.url).pathname, { recursive: true });
-    writeFileSync(new URL("./results/overhead.json", import.meta.url).pathname, JSON.stringify({ config: { RPS, SECONDS, ROUNDS }, rows }, null, 2));
+    writeFileSync(new URL(process.env.EVAL_OUT ? `./results/${process.env.EVAL_OUT}.json` : "./results/overhead.json", import.meta.url).pathname, JSON.stringify({ config: { RPS, SECONDS, ROUNDS, loadAvg: (await import("node:os")).loadavg() }, rows }, null, 2));
     console.log(JSON.stringify(rows, null, 1));
   });
 });
