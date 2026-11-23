@@ -8,7 +8,7 @@
     "start:prod": "node dist/main",
     "test": "vitest",
     "test:e2e": "vitest --config vitest.e2e.config.ts",
-    "test:integration": "RUN_DB_TESTS=1 node test/setup-test-database.mjs && RUN_DB_TESTS=1 vitest run --config vitest.e2e.config.ts",
+    "test:integration": "RUN_DB_TESTS=1 vitest run --config vitest.e2e.config.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/common/db/migrate.ts",
     "db:studio": "drizzle-kit studio"
@@ -59,6 +59,7 @@
     "@modelcontextprotocol/client": "^2.4.0",
     "@nestjs/cli": "^12.0.0",
     "@nestjs/schematics": "^12.0.0",
+    "@soonwhy/test-support": "workspace:*",
     "@swc/cli": "^0.8.2",
     "@swc/core": "^1.16.22",
     "@types/compression": "^1.8.1",
