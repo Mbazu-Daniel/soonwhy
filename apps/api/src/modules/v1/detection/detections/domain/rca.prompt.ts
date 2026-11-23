@@ -11,6 +11,14 @@ const ERROR_GROUP_GUIDANCE = [
   "Suggested changes must be concrete fix candidates for the named code path, and each must say what to verify first.",
 ].join(" ");
 
+const CLIENT_ERROR_GUIDANCE = [
+  "If the HTTP status is 4xx (401, 403, 404, 422, 429), treat the group as an expected client outcome unless the occurrence count is high or rising.",
+  "Say so in the summary, give rootCause as the likely client-side reason labelled as a hypothesis, and give no suggestedChanges.",
+  "Give at most one investigationStep: what to read on the linked trace span to tell an expected rejection from a fault.",
+  "When application frames, cause items or a trace-exception are missing, state that once as a single limitation naming the one thing worth capturing; never list each missing input separately.",
+  "Never propose adding logging, instrumentation or error handling as the fix for an expected client outcome.",
+].join(" ");
+
 const BASE_SYSTEM_PROMPT = [
   "You are Soonwhy RCA, an observability root-cause analysis assistant.",
   "Analyze only the supplied structured telemetry evidence.",
@@ -27,6 +35,17 @@ const BASE_SYSTEM_PROMPT = [
   "Return valid JSON matching the requested schema and no markdown.",
 ].join(" ");
 
+const BREVITY_RULES = [
+  "Keep the answer short and decision-ready for an on-call engineer.",
+  "summary is at most two sentences: what is failing, where, and how bad.",
+  "rootCause is one sentence naming the specific service, operation or dependency and the evidence-backed reason.",
+  "contributingFactors, investigationSteps and suggestedChanges each have at most 3 items, one sentence each, most important first.",
+  "Every investigationStep and suggestedChange names the exact service, operation, query or setting it applies to and starts with an action verb.",
+  "Do not give generic advice such as adding monitoring, adding logs, reviewing code, or scaling up unless the evidence points to that exact thing.",
+  "Do not repeat the evidence back; cite it through evidenceRefs and state only what it means.",
+  "Put anything uncertain in limitations in one short line each, and leave a list empty rather than padding it.",
+].join(" ");
+
 const RCA_PROMPT_DEFINITIONS: Record<string, RcaPromptDefinition> = {
   v1: {
     version: "v1",
@@ -37,6 +56,20 @@ const RCA_PROMPT_DEFINITIONS: Record<string, RcaPromptDefinition> = {
       "Use evidenceRefs to reference only IDs present in the supplied evidence.",
       "Return valid JSON matching the requested schema and no markdown.",
     ].join(" "),
+    schema: {
+      summary: "string",
+      rootCause: "string",
+      contributingFactors: ["string"],
+      investigationSteps: ["string"],
+      suggestedChanges: ["string"],
+      evidenceRefs: ["string"],
+      confidence: "low | medium | high",
+      limitations: ["string"],
+    },
+  },
+  v3: {
+    version: "v3",
+    systemPrompt: `${BASE_SYSTEM_PROMPT} ${BREVITY_RULES}`,
     schema: {
       summary: "string",
       rootCause: "string",
@@ -79,8 +112,8 @@ export function buildRcaPrompt(
 ): string {
   const definition = getRcaPromptDefinition(version);
 
-  const guidance =
-    evidence.primaryFinding.type === "error_group" ? [ERROR_GROUP_GUIDANCE, ""] : [];
+  const isErrorGroup = evidence.primaryFinding.type === "error_group";
+  const guidance = !isErrorGroup ? [] : version === "v3" ? [ERROR_GROUP_GUIDANCE, CLIENT_ERROR_GUIDANCE, ""] : [ERROR_GROUP_GUIDANCE, ""];
 
   return [
     definition.systemPrompt,

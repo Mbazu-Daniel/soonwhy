@@ -177,8 +177,8 @@ describe("validateRcaAnalysis", () => {
       evidence,
     );
 
-    expect(result.limitations).toHaveLength(10);
-    expect(result.limitations[9]).toContain("2 evidence references");
+    expect(result.limitations).toHaveLength(3);
+    expect(result.limitations[2]).toContain("2 evidence references");
   });
 
   describe("when the ranker's top candidate has low confidence", () => {
@@ -209,5 +209,44 @@ describe("validateRcaAnalysis", () => {
       expect(validateRcaAnalysis(analysis("high"), { ...evidence, rankingConfidence: "medium" }).confidence).toBe("high");
       expect(validateRcaAnalysis(analysis("high"), evidence).confidence).toBe("high");
     });
+  });
+});
+
+describe("validateRcaAnalysis length limits", () => {
+  const base = {
+    summary: "Checkout latency rose because the payments call slowed.",
+    rootCause: "The payments dependency is slow.",
+    contributingFactors: [],
+    investigationSteps: [],
+    suggestedChanges: [],
+    evidenceRefs: ["finding_latency:0"],
+    confidence: "medium" as const,
+    limitations: [],
+  };
+
+  it("keeps only the first few items of each list, which are the most important", () => {
+    const items = ["one", "two", "three", "four", "five", "six"];
+    const result = validateRcaAnalysis({ ...base, contributingFactors: items, investigationSteps: items, suggestedChanges: items }, evidence);
+
+    expect(result.contributingFactors).toEqual(["one", "two", "three"]);
+    expect(result.investigationSteps).toEqual(["one", "two", "three"]);
+    expect(result.suggestedChanges).toEqual(["one", "two", "three"]);
+  });
+
+  it("keeps at most three limitations, so missing inputs are not listed one by one", () => {
+    const limitations = ["a", "b", "c", "d", "e", "f", "g", "h", "i"];
+    expect(validateRcaAnalysis({ ...base, limitations }, evidence).limitations).toEqual(["a", "b", "c"]);
+  });
+
+  it("shortens an over-long answer at a sentence end instead of rejecting it", () => {
+    const sentence = "The payments call is slow because of connection pool exhaustion. ";
+    const result = validateRcaAnalysis({ ...base, summary: sentence.repeat(20) }, evidence);
+
+    expect(result.summary.length).toBeLessThanOrEqual(400);
+    expect(result.summary.endsWith(".")).toBe(true);
+  });
+
+  it("leaves short answers unchanged", () => {
+    expect(validateRcaAnalysis(base, evidence).summary).toBe(base.summary);
   });
 });

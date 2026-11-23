@@ -1,3 +1,4 @@
+import { RCA_MAX_ITEM_CHARACTERS, RCA_MAX_LIST_ITEMS, RCA_MAX_SUMMARY_CHARACTERS } from "./rca.prompt.constants";
 import { z } from "zod";
 import type { RcaAnalysis, RcaEvidence, RcaEvidenceItem } from "./rca.types";
 import { validateRcaQuality } from "./rca.quality";
@@ -21,7 +22,7 @@ export function validateRcaAnalysis(
   analysis: unknown,
   evidence: RcaEvidence,
 ): RcaAnalysis {
-  const parsed = RcaAnalysisSchema.parse(analysis);
+  const parsed = shortened(RcaAnalysisSchema.parse(analysis));
   const allowedRefs = new Set(collectEvidenceIds(evidence));
 
   const matched = parsed.evidenceRefs.filter((reference) => allowedRefs.has(reference));
@@ -43,7 +44,30 @@ export function validateRcaAnalysis(
   return capped;
 }
 
-const MAX_LIMITATIONS = 10;
+const MAX_LIMITATIONS = RCA_MAX_LIST_ITEMS;
+
+function shorten(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const head = text.slice(0, max);
+  const sentenceEnd = Math.max(head.lastIndexOf(". "), head.lastIndexOf("! "), head.lastIndexOf("? "));
+  if (sentenceEnd >= max * 0.4) return head.slice(0, sentenceEnd + 1);
+  const wordEnd = head.lastIndexOf(" ");
+  return `${head.slice(0, wordEnd > 0 ? wordEnd : max - 1).trimEnd()}…`;
+}
+
+const shortList = (items: string[]) => items.slice(0, RCA_MAX_LIST_ITEMS).map((item) => shorten(item, RCA_MAX_ITEM_CHARACTERS));
+
+function shortened(analysis: RcaAnalysis): RcaAnalysis {
+  return {
+    ...analysis,
+    summary: shorten(analysis.summary, RCA_MAX_SUMMARY_CHARACTERS),
+    rootCause: shorten(analysis.rootCause, RCA_MAX_ITEM_CHARACTERS),
+    contributingFactors: shortList(analysis.contributingFactors),
+    investigationSteps: shortList(analysis.investigationSteps),
+    suggestedChanges: shortList(analysis.suggestedChanges),
+    limitations: shortList(analysis.limitations),
+  };
+}
 const LOW_RANKING_NOTE = "The ranked candidates have low confidence, so the suspect is not presented as established.";
 
 function capByRankingConfidence(analysis: RcaAnalysis, evidence: RcaEvidence): RcaAnalysis {

@@ -5,7 +5,8 @@ import { FindingStatusActions } from '~/components/findings/finding-status-actio
 import { SuspectDeploymentRow } from '~/components/findings/suspect-deployment';
 import { RemediationPanel } from '~/components/findings/remediation-panel';
 import { FINDING_CATEGORY_LABELS } from '~/lib/findings.constants';
-import { evidenceObject, ruleLabel, statusLabel } from '~/lib/findings';
+import { evidenceObject, formatValue, ruleLabel, statusLabel } from '~/lib/findings';
+import { FindingEvidence } from './finding-evidence';
 import type { DetectionFinding } from '~/lib/findings.types';
 
 const SEVERITY_STYLE = {
@@ -69,15 +70,13 @@ export function FindingDrawer({
                 <Row label="Times detected" value={String(finding.occurrences)} />
                 {finding.resolvedAt && <Row label="Resolved" value={new Date(finding.resolvedAt).toLocaleString()} />}
                 {finding.category !== 'vulnerability' && (
-                  <Row label="Observed" value={`${finding.observedValue}${finding.unit} (threshold ${finding.threshold}${finding.unit})`} />
+                  <Row label="Observed" value={`${formatValue(finding.observedValue, finding.unit)} (threshold ${formatValue(finding.threshold, finding.unit)})`} />
                 )}
               </dl>
 
               <div>
                 <h2 className="mb-2 text-sm font-semibold">Evidence</h2>
-                <pre className="max-h-64 overflow-auto rounded-xl bg-[#0F172A] p-4 font-mono text-xs leading-5 text-[#E2E8F0]">
-                  {JSON.stringify(evidenceObject(finding), null, 2)}
-                </pre>
+                <FindingEvidence evidence={evidenceObject(finding)} />
               </div>
 
               <RemediationPanel projectId={projectId} finding={finding} organizationSlug={organizationSlug} />

@@ -28,8 +28,8 @@ describe("RCA prompt registry", () => {
   it("uses the current prompt version by default", () => {
     const prompt = buildRcaPrompt(evidence);
 
-    expect(RCA_PROMPT_VERSION).toBe("v2");
-    expect(prompt).toContain("Prompt version: v2");
+    expect(RCA_PROMPT_VERSION).toBe("v3");
+    expect(prompt).toContain("Prompt version: v3");
     expect(prompt).toContain(
       "Analyze only the supplied structured telemetry evidence.",
     );
@@ -43,6 +43,33 @@ describe("RCA prompt registry", () => {
     expect(v1.version).toBe("v1");
     expect(v2.version).toBe("v2");
     expect(v1.systemPrompt).not.toBe(v2.systemPrompt);
+  });
+
+  it("asks for a short, prioritised answer with concrete next steps", () => {
+    const { systemPrompt } = getRcaPromptDefinition("v3");
+
+    expect(systemPrompt).toMatch(/summary.*at most two sentences/i);
+    expect(systemPrompt).toMatch(/at most 3/i);
+    expect(systemPrompt).toMatch(/most important first/i);
+    expect(systemPrompt).toMatch(/generic advice/i);
+    expect(systemPrompt).toMatch(/do not repeat the evidence/i);
+  });
+
+  it("tells the model a single 4xx error group is usually an expected client outcome", () => {
+    const group: RcaEvidence = { ...evidence, primaryFinding: { ...evidence.primaryFinding, type: "error_group" } };
+    const prompt = buildRcaPrompt(group);
+
+    expect(prompt).toMatch(/4xx.*expected client outcome/i);
+    expect(prompt).toMatch(/no suggestedChanges/i);
+    expect(prompt).toMatch(/never list each missing input separately/i);
+    expect(prompt).toMatch(/never propose adding logging/i);
+    expect(buildRcaPrompt(group, "v2")).not.toMatch(/never propose adding logging/i);
+    expect(buildRcaPrompt(evidence)).not.toMatch(/never propose adding logging/i);
+  });
+
+  it("keeps v2 resolvable so stored analyses can be reproduced", () => {
+    expect(getRcaPromptDefinition("v2").version).toBe("v2");
+    expect(buildRcaPrompt(evidence, "v2")).toContain("Prompt version: v2");
   });
 
   it("builds a prompt from an explicitly selected version", () => {
