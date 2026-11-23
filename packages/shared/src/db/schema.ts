@@ -6,4 +6,5 @@ export { projectSettings } from "./tables/project-settings";
 export { hosts } from "./tables/hosts";
 export { platformSettings } from "./tables/platform-settings";
 export { deadLetterQueue } from "./tables/dead-letter-queue";
+export { deadLetterQueueAttempts } from "./tables/dead-letter-queue-attempts";
 export { ingestEventReceipts } from "./tables/ingest-event-receipts";

@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { RefreshCw, Trash2, Download, Play, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { RefreshCw, Trash2, Download, Play, AlertTriangle, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '~/components/ui/card';
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
@@ -13,6 +13,10 @@ export const Route = createFileRoute('/admin/dlq')({
   component: DlqPage,
 });
 
+const MAX_REPLAY_ATTEMPTS = 5;
+
+type ReplayStatus = 'pending' | 'replaying' | 'succeeded' | 'failed';
+
 interface DlqEntry {
   id: number;
   signal: string;
@@ -20,9 +24,8 @@ interface DlqEntry {
   reason: string;
   failedAt: string;
   payload: unknown;
-  replayed: boolean;
+  replayStatus: ReplayStatus;
   replayedAt: string | null;
-  replaySuccess: boolean | null;
   replayAttempts: number;
   replayError: string | null;
   organizationId: string | null;
@@ -32,7 +35,7 @@ interface DlqEntry {
 interface DlqStats {
   total: number;
   unreplayed: number;
-  replayed: number;
+  replaying: number;
   successful: number;
   failed: number;
 }
@@ -57,7 +60,7 @@ function DlqPage() {
   });
 
   const replay = useMutation({
-    mutationFn: (id: number) => api.post(`/admin/dlq/${id}/replay`),
+    mutationFn: ({ id, force }: { id: number; force: boolean }) => api.post(`/admin/dlq/${id}/replay`, { force }),
     onSuccess: () => {
       toast.success('Entry replayed successfully');
       void queryClient.invalidateQueries({ queryKey: ['dlq-entries'] });
@@ -127,7 +130,7 @@ function DlqPage() {
   }
 
   const data = entries.data ?? [];
-  const statsData = stats.data ?? { total: 0, unreplayed: 0, replayed: 0, successful: 0, failed: 0 };
+  const statsData = stats.data ?? { total: 0, unreplayed: 0, replaying: 0, successful: 0, failed: 0 };
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 pb-10">
@@ -186,8 +189,8 @@ function DlqPage() {
         </Card>
         <Card className="border-border bg-card shadow-none">
           <CardContent className="p-5">
-            <p className="text-xs text-muted-foreground">Replayed</p>
-            <p className="mt-2 text-lg font-semibold">{statsData.replayed}</p>
+            <p className="text-xs text-muted-foreground">Replaying</p>
+            <p className="mt-2 text-lg font-semibold">{statsData.replaying}</p>
           </CardContent>
         </Card>
         <Card className="border-border bg-card shadow-none">
@@ -276,18 +279,21 @@ function DlqPage() {
                         {new Date(entry.failedAt).toLocaleString()}
                       </td>
                       <td className="p-4">
-                        {entry.replayed ? (
-                          entry.replaySuccess ? (
-                            <Badge className="bg-[#16931F]/10 text-[#16931F]">
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Success
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-[#F2555A]/10 text-[#F2555A]">
-                              <XCircle className="h-3 w-3 mr-1" />
-                              Failed
-                            </Badge>
-                          )
+                        {entry.replayStatus === 'succeeded' ? (
+                          <Badge className="bg-[#16931F]/10 text-[#16931F]">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Success
+                          </Badge>
+                        ) : entry.replayStatus === 'failed' ? (
+                          <Badge className="bg-[#F2555A]/10 text-[#F2555A]" title={entry.replayError ?? undefined}>
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Failed
+                          </Badge>
+                        ) : entry.replayStatus === 'replaying' ? (
+                          <Badge className="bg-[#E5A100]/10 text-[#E5A100]">
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            Replaying
+                          </Badge>
                         ) : (
                           <Badge variant="outline">Pending</Badge>
                         )}
@@ -303,13 +309,13 @@ function DlqPage() {
                           >
                             <Download className="h-4 w-4" />
                           </Button>
-                          {canMutate && (!entry.replayed || !entry.replaySuccess) ? (
+                          {canMutate && (entry.replayStatus === 'pending' || entry.replayStatus === 'failed') ? (
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => replay.mutate(entry.id)}
+                              onClick={() => replay.mutate({ id: entry.id, force: entry.replayAttempts >= MAX_REPLAY_ATTEMPTS })}
                               disabled={replay.isPending}
-                              title="Replay"
+                              title={entry.replayAttempts >= MAX_REPLAY_ATTEMPTS ? 'Force replay (attempt limit reached)' : 'Replay'}
                             >
                               <Play className="h-4 w-4" />
                             </Button>

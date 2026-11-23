@@ -99,6 +99,27 @@
       "when": 1795621728969,
       "tag": "0013_alert_trigger_one_active",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1795708128969,
+      "tag": "0014_dlq_replay_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1795794528969,
+      "tag": "0015_dlq_drop_legacy_replay_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1795880928969,
+      "tag": "0016_dlq_replay_attempts",
+      "breakpoints": true
     }
   ]
 }

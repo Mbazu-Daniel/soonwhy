@@ -17,6 +17,7 @@ export {
 export {
   apiKeys,
   deadLetterQueue,
+  deadLetterQueueAttempts,
   hosts,
   ingestEventReceipts,
   organizations,
@@ -46,3 +47,4 @@ export {
   type WeeklySummaryServiceDeps,
 } from "./weekly-summary";
 export * from "./telemetry-identity";
+export { NATS_DEFAULT_DUPLICATE_WINDOW_NS, resolveDuplicateWindowNs } from "./nats/stream-config";
