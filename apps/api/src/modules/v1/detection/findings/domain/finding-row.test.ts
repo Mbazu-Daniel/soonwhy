@@ -23,4 +23,26 @@ describe("findingRow", () => {
   it("falls back for a type with no registered kind", () => {
     expect(findingRow({ ...base, type: "dependency_vulnerability" })).toMatchObject({ category: "performance", recommendation: null });
   });
+
+  describe("error group recommendation", () => {
+    const group = (title: string) => findingRow({ ...base, type: "error_group", title }).recommendation!;
+
+    it("treats a client error as usually expected instead of asking for a code fix", () => {
+      const text = group("HTTP 401 in mivacampus-api: GET /api/v1/me 401");
+      expect(text).toMatch(/expired or missing session/i);
+      expect(text).toMatch(/ignore/i);
+      expect(text).not.toMatch(/stack frame/i);
+    });
+
+    it("names the likely meaning of other common client errors", () => {
+      expect(group("HTTP 404 in api: GET /x 404")).toMatch(/not found|missing route|stale link/i);
+      expect(group("HTTP 429 in api: POST /y 429")).toMatch(/rate limit/i);
+      expect(group("HTTP 418 in api: GET /z 418")).toMatch(/client/i);
+    });
+
+    it("keeps the fix-the-code advice for server errors and for groups with no status", () => {
+      expect(group("HTTP 500 in api: GET /x 500")).toMatch(/stack frame/i);
+      expect(group("TypeError in api: checkout")).toMatch(/stack frame/i);
+    });
+  });
 });

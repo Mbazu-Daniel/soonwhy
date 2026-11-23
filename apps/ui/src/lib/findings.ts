@@ -12,12 +12,20 @@ export function splitEvidence(finding: DetectionFinding): { facts: FindingEviden
   };
 }
 
+export function formatValue(value: number, unit: string): string {
+  const word = unit.trim();
+  if (word === '') return String(value);
+  if (!/^[a-z]{4,}$/i.test(word)) return `${value}${unit.trimStart() === unit ? unit : unit.trimStart()}`;
+  const label = value === 1 && word.endsWith('s') ? word.slice(0, -1) : word;
+  return `${value} ${label}`;
+}
+
 export function evidenceObject(finding: DetectionFinding): Record<string, unknown> {
   const { facts } = splitEvidence(finding);
   return {
     service: finding.serviceName,
-    observed: `${finding.observedValue}${finding.unit}`,
-    threshold: `${finding.threshold}${finding.unit}`,
+    observed: formatValue(finding.observedValue, finding.unit),
+    threshold: formatValue(finding.threshold, finding.unit),
     ...Object.fromEntries(facts.map((item) => [item.label, item.value])),
   };
 }

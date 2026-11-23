@@ -12,14 +12,7 @@ import { CircuitBreaker } from "../../../../../common/utils/circuit-breaker";
 import { DeadLetterInvestigationRepository } from "./dead-letter.repository";
 import { generateStructured } from "../../../investigation/ai/domain/structured-output";
 import { AIInvestigationRepository } from "./ai-investigation.repository";
-
-const INVESTIGATION_AGENT_INSTRUCTIONS = [
-  "You are Soonwhy Investigation, an AI-powered root cause analysis assistant.",
-  "Analyze the provided evidence bundle from the telemetry intelligence system.",
-  "Identify the primary root cause, contributing factors, and affected components.",
-  "Provide a clear, actionable explanation with evidence citations.",
-  "Return a structured analysis matching the requested schema.",
-].join(" ");
+import { INVESTIGATION_AGENT_INSTRUCTIONS, buildInvestigationPrompt, limitList, shortenInvestigationText } from "./ai-investigation.prompt";
 
 type InvestigationStatus = InvestigationProgress["status"];
 
@@ -229,7 +222,7 @@ export class AIInvestigationService {
     await this.persistAnalyzing(investigationId);
 
     const agent = this.createAgent(request.modelConfig);
-    const prompt = this.buildInvestigationPrompt(evidenceSummary, request.question);
+    const prompt = buildInvestigationPrompt(evidenceSummary, request.question);
 
     try {
       const result = await this.circuitBreaker.execute(() =>
@@ -366,30 +359,6 @@ export class AIInvestigationService {
     return lines.join("\n");
   }
 
-  private buildInvestigationPrompt(evidenceSummary: string, question?: string): string {
-    const basePrompt = [
-      "Analyze the following telemetry evidence and provide a root cause analysis.",
-      "",
-      "EVIDENCE:",
-      evidenceSummary,
-      "",
-      "TASK:",
-      "1. Identify the primary root cause of the issue",
-      "2. List contributing factors",
-      "3. Identify affected components",
-      "4. Assess the impact severity",
-      "5. Provide a clear explanation",
-      "6. Suggest actionable recommendations",
-      "7. Cite specific evidence for each claim",
-    ].join("\n");
-
-    if (question) {
-      return `${basePrompt}\n\nSPECIFIC QUESTION:\n${question}`;
-    }
-
-    return basePrompt;
-  }
-
   private createAgent(config?: InvestigationRequest["modelConfig"]): Agent {
     const provider = config?.provider || "openai";
     const model = config?.model || "gpt-4";
@@ -464,14 +433,19 @@ export class AIInvestigationService {
 
     return {
       investigationId,
-      summary: typeof result.summary === "string" ? result.summary : "No summary provided",
-      rootCause,
+      summary: typeof result.summary === "string" ? shortenInvestigationText(result.summary, 400) : "No summary provided",
+      rootCause: {
+        ...rootCause,
+        primaryCause: shortenInvestigationText(rootCause.primaryCause ?? "Unknown", 300),
+        contributingFactors: limitList(rootCause.contributingFactors ?? []),
+        affectedComponents: limitList(rootCause.affectedComponents ?? []),
+      },
       explanation:
         typeof result.explanation === "string"
-          ? result.explanation
+          ? shortenInvestigationText(result.explanation, 800)
           : "No explanation provided",
       recommendations: Array.isArray(result.recommendations)
-        ? (result.recommendations as string[])
+        ? limitList((result.recommendations as string[]).map((item) => shortenInvestigationText(String(item), 300)))
         : [],
       confidence:
         typeof result.confidence === "number" ? result.confidence : 0.5,
