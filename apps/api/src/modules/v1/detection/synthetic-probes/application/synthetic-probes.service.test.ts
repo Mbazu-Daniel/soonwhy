@@ -74,14 +74,14 @@ function memoryRepo() {
       resultId += 1;
       results.push({ id: resultId, probeId, ...result, checkedAt: new Date() });
     }),
-    getProbeResults: vi.fn(async (probeId: number, limit = 100) =>
+    getProbeResults: vi.fn(async (scope: { orgId: string; projectId: string }, probeId: number, limit = 100) =>
       results
-        .filter((r) => r.probeId === probeId)
+        .filter((r) => r.probeId === probeId && probes.some((p) => p.id === probeId && p.orgId === scope.orgId && p.projectId === scope.projectId))
         .slice()
         .sort((a, b) => b.checkedAt.getTime() - a.checkedAt.getTime())
         .slice(0, limit)),
-    updateProbeStats: vi.fn(async (probeId: number, stats: any) => {
-      const probe = probes.find((p) => p.id === probeId);
+    updateProbeStats: vi.fn(async (scope: { orgId: string; projectId: string }, probeId: number, stats: any) => {
+      const probe = probes.find((p) => p.id === probeId && p.orgId === scope.orgId && p.projectId === scope.projectId);
       Object.assign(probe, stats);
     }),
     getDueProbes: vi.fn(async () =>
@@ -167,7 +167,7 @@ describe("SyntheticProbesService", () => {
   it("flips up to down after two consecutive failed checks", async () => {
     mockedProbe.mockResolvedValue({ statusCode: 500, responseTimeMs: 30 });
     const probe = await seedProbe(repository, { intervalSeconds: 60 });
-    await repository.updateProbeStats(probe.id, {
+    await repository.updateProbeStats({ orgId: "org", projectId: "project" }, probe.id, {
       lastStatus: "up",
       uptimePercent: 100,
       totalChecks: 5,
@@ -186,7 +186,7 @@ describe("SyntheticProbesService", () => {
   it("marks a failing probe down when the worker errors", async () => {
     mockedProbe.mockRejectedValue(new Error("Request timeout after 5000ms"));
     const probe = await seedProbe(repository);
-    await repository.updateProbeStats(probe.id, {
+    await repository.updateProbeStats({ orgId: "org", projectId: "project" }, probe.id, {
       lastStatus: "up",
       uptimePercent: 100,
       totalChecks: 5,
@@ -203,7 +203,7 @@ describe("SyntheticProbesService", () => {
   it("degraded responses count as failures for the streak", async () => {
     mockedProbe.mockResolvedValue({ statusCode: 418, responseTimeMs: 10 });
     const probe = await seedProbe(repository);
-    await repository.updateProbeStats(probe.id, {
+    await repository.updateProbeStats({ orgId: "org", projectId: "project" }, probe.id, {
       lastStatus: "up",
       uptimePercent: 100,
       totalChecks: 5,
@@ -223,7 +223,7 @@ describe("SyntheticProbesService", () => {
       name: "x",
       url: "https://app.example.com/health",
     });
-    await repository.updateProbeStats(stored.id, {
+    await repository.updateProbeStats({ orgId: "org", projectId: "project" }, stored.id, {
       lastStatus: "up",
       uptimePercent: 99,
       totalChecks: 50,
@@ -245,7 +245,7 @@ describe("SyntheticProbesService", () => {
       name: "fresh",
       url: "https://fresh.example.com/health",
     });
-    await repository.updateProbeStats(fresh.id, {
+    await repository.updateProbeStats({ orgId: "org", projectId: "project" }, fresh.id, {
       lastStatus: "up",
       uptimePercent: 100,
       totalChecks: 10,

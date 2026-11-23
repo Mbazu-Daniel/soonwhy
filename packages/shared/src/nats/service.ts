@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from "@nestjs/common";
 import { connect, headers, NatsConnection, JetStreamClient, RetentionPolicy, AckPolicy, DeliverPolicy, StorageType } from "nats";
 import { requiredEnvInProduction } from "../env";
+import { NATS_DEFAULT_MAX_AGE_NS, resolveDuplicateWindowNs } from "./stream-config";
 import type { NatsMessageHandler, NatsSubscriptionSnapshot, NatsConsumerSnapshot } from "./service.types";
 
 @Injectable()
@@ -14,8 +15,10 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
     url: requiredEnvInProduction("NATS_URL", "nats://localhost:4222"),
     streamName: process.env.NATS_STREAM_NAME ?? "TELEMETRY",
     maxBytes: Number(process.env.NATS_MAX_BYTES ?? 1024 * 1024 * 1024),
-    maxAgeNs: Number(
-      process.env.NATS_MAX_AGE_NS ?? 24 * 60 * 60 * 1_000_000_000,
+    maxAgeNs: Number(process.env.NATS_MAX_AGE_NS ?? NATS_DEFAULT_MAX_AGE_NS),
+    duplicateWindowNs: resolveDuplicateWindowNs(
+      process.env.NATS_DUPLICATE_WINDOW_NS,
+      Number(process.env.NATS_MAX_AGE_NS ?? NATS_DEFAULT_MAX_AGE_NS),
     ),
     maxAckPending: Number(process.env.NATS_MAX_ACK_PENDING ?? 1000),
     ackWaitNs: Number(
@@ -77,13 +80,15 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
       if (
         !subjects.includes("ingest.>") ||
         info.config.max_bytes !== this.config.maxBytes ||
-        info.config.max_age !== this.config.maxAgeNs
+        info.config.max_age !== this.config.maxAgeNs ||
+        info.config.duplicate_window !== this.config.duplicateWindowNs
       ) {
         await jsm.streams.update(this.config.streamName, {
           ...info.config,
           subjects: [...new Set([...subjects, "ingest.>"])],
           max_bytes: this.config.maxBytes,
           max_age: this.config.maxAgeNs,
+          duplicate_window: this.config.duplicateWindowNs,
         });
       }
     } catch {
@@ -93,6 +98,7 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
         retention: RetentionPolicy.Limits,
         max_bytes: this.config.maxBytes,
         max_age: this.config.maxAgeNs,
+        duplicate_window: this.config.duplicateWindowNs,
         storage: StorageType.File,
       });
     }

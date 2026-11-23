@@ -4,11 +4,7 @@ import { incidents } from "../../../../../common/db/schema";
 import { eq, and, desc, inArray, sql } from "drizzle-orm";
 import type { IncidentScope } from "../domain/incidents.repository.types";
 
-function scopeFilters(scope?: IncidentScope) {
-  return scope
-    ? [eq(incidents.orgId, scope.orgId), eq(incidents.projectId, scope.projectId)]
-    : [];
-}
+const inScope = (scope: IncidentScope) => and(eq(incidents.orgId, scope.orgId), eq(incidents.projectId, scope.projectId));
 
 @Injectable()
 export class IncidentsRepository {
@@ -33,21 +29,22 @@ export class IncidentsRepository {
     return incident;
   }
 
-  async getIncidentByIncidentId(incidentId: string) {
+  async getIncidentByIncidentId(scope: IncidentScope, incidentId: string) {
     const [incident] = await db
       .select()
       .from(incidents)
-      .where(eq(incidents.incidentId, incidentId));
+      .where(and(eq(incidents.incidentId, incidentId), inScope(scope)));
     return incident;
   }
 
-  async getActiveIncidentsForRule(alertRuleId: string) {
+  async getActiveIncidentsForRule(scope: IncidentScope, alertRuleId: string) {
     return db
       .select()
       .from(incidents)
       .where(
         and(
           eq(incidents.alertRuleId, alertRuleId),
+          inScope(scope),
           inArray(incidents.status, ["firing", "acknowledged"]),
         ),
       )
@@ -55,10 +52,10 @@ export class IncidentsRepository {
   }
 
   async acknowledgeIncident(
+    scope: IncidentScope,
     id: number,
     acknowledgedBy: string,
     note?: string,
-    scope?: IncidentScope,
   ) {
     const [incident] = await db
       .update(incidents)
@@ -69,12 +66,12 @@ export class IncidentsRepository {
         acknowledgementNote: note ?? null,
         updatedAt: new Date(),
       })
-      .where(and(eq(incidents.id, id), eq(incidents.status, "firing"), ...scopeFilters(scope)))
+      .where(and(eq(incidents.id, id), eq(incidents.status, "firing"), inScope(scope)))
       .returning();
     return incident;
   }
 
-  async resolveIncident(id: number, resolvedBy?: string, note?: string, scope?: IncidentScope) {
+  async resolveIncident(scope: IncidentScope, id: number, resolvedBy?: string, note?: string) {
     const [incident] = await db
       .update(incidents)
       .set({
@@ -88,33 +85,33 @@ export class IncidentsRepository {
         and(
           eq(incidents.id, id),
           inArray(incidents.status, ["firing", "acknowledged"]),
-          ...scopeFilters(scope),
+          inScope(scope),
         ),
       )
       .returning();
     return incident;
   }
 
-  async markRecoveryNotified(id: number) {
+  async markRecoveryNotified(scope: IncidentScope, id: number) {
     const [incident] = await db
       .update(incidents)
       .set({
         recoveryNotified: true,
         updatedAt: new Date(),
       })
-      .where(and(eq(incidents.id, id), eq(incidents.recoveryNotified, false)))
+      .where(and(eq(incidents.id, id), eq(incidents.recoveryNotified, false), inScope(scope)))
       .returning();
     return incident;
   }
 
-  async updateIncidentLastEvaluated(id: number) {
+  async updateIncidentLastEvaluated(scope: IncidentScope, id: number) {
     await db
       .update(incidents)
       .set({
         lastEvaluatedAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(incidents.id, id));
+      .where(and(eq(incidents.id, id), inScope(scope)));
   }
 
   async getIncidents(

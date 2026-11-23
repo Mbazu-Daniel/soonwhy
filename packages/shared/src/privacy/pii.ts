@@ -11,7 +11,7 @@ type GcmSivCipher = Cipheriv & { getAuthTag(): Buffer };
 type GcmSivDecipher = Decipheriv & { setAuthTag(tag: Buffer): void };
 
 const PII_KEY_PATTERN =
-  /(?<![a-z0-9])(email|e_?mail|mailaddr|phone|mobile|e164|fax|address|addr|street|city|zip|postal|country|credit(?:card|cardnum)|card[-_]?number|cardnumber|card[-_]?holder|cardholder|ccn|cardnum|pan|ssn|social|national[-_ ]?id|tax[-_ ]?id|passport|dob|dateofbirth|birthdate|birth|gender|first[-_ ]?name|last[-_ ]?name|surname|middle[-_ ]?name|full[-_ ]?name|fname|lname)(?![a-z0-9])/i;
+  /(?<![a-z0-9])(email|e_?mail|mailaddr|phone|mobile|e164|fax|address|addr|street|city|zip|postal|country|credit(?:card|cardnum)|card[-_]?number|cardnumber|card[-_]?holder|cardholder|ccn|cardnum|pan|ssn|social|national[-_ ]?id|tax[-_ ]?id|passport|dob|dateofbirth|birthdate|birth|gender|account[-_. ]?(?:number|no|num)|bank[-_. ]?account|iban|routing[-_. ]?number|sort[-_. ]?code|first[-_ ]?name|last[-_ ]?name|surname|middle[-_ ]?name|full[-_ ]?name|fname|lname)(?![a-z0-9])/i;
 
 const PII_VALUE_PATTERNS = [
   /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,
@@ -23,6 +23,7 @@ const PII_VALUE_PATTERNS = [
 ];
 
 const PREFIX = "pii:v1:";
+export const PII_CIPHERTEXT_PREFIX = PREFIX;
 const TAG_BYTES = 16;
 
 let cachedKey: Buffer | undefined;

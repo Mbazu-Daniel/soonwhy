@@ -46,7 +46,7 @@ describe.skipIf(!databaseTestsEnabled)("alert rules and findings", () => {
     bucket = FAILING;
     dispatchAlert.mockClear();
     service = new AlertEvaluationService(
-      { queryMetrics: async () => [bucket], countHostSamples: async () => 0 } as never,
+      { queryMetrics: async () => [bucket], countHostSamples: async () => 0, queryTopFailingRoutes: async () => [] } as never,
       { dispatchAlert } as never,
       new AlertRuleEngineService(),
       { createOrUpdateIncident: vi.fn().mockResolvedValue(undefined), checkForRecovery: vi.fn().mockResolvedValue(undefined) } as never,

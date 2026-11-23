@@ -125,6 +125,7 @@ export function buildRcaEvidence(
     rankedCandidates: rankingResult?.candidates,
     rankingWeights: rankingResult?.weights,
     evidenceCoverage: rankingResult?.overallEvidenceCoverage,
+    rankingConfidence: rankingResult?.confidence,
     rankingLimitations: rankingResult?.limitations,
   };
 }

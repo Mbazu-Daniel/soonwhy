@@ -28,6 +28,8 @@ jobs:
         run: pnpm lint
       - name: Verify migrations
         run: pnpm verify:migrations
+      - name: Check architecture boundaries
+        run: npx --yes fallow@3.31.0 dead-code --boundary-violations --fail-on-issues --quiet
       - name: Test
         run: pnpm test -- --run
       - name: Build
@@ -38,6 +40,53 @@ jobs:
           docker compose -f docker-compose.local.yml config --quiet
           docker compose -f docker-compose.observability.yml config --quiet
           docker compose -f docker-compose.stack.yml config --quiet
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: soonwhy
+          POSTGRES_PASSWORD: soonwhy
+          POSTGRES_DB: postgres
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U soonwhy -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6380:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://soonwhy:soonwhy@localhost:5433/soonwhy_test
+      REDIS_TEST_URL: redis://localhost:6380
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build workspace dependencies
+        run: pnpm build:deps
+      - name: Database integration tests
+        run: pnpm --filter @soonwhy/backend test:integration
+      - name: Ingest integration tests
+        run: pnpm --filter @soonwhy/ingest test:integration
 
   ui-smoke:
     runs-on: ubuntu-latest

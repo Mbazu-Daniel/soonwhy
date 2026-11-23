@@ -23,10 +23,11 @@ export class IncidentsService {
     body: string;
     metadata?: Record<string, unknown>;
   }) {
-    const existing = await this.repository.getIncidentByIncidentId(data.incidentId);
+    const scope = { orgId: data.orgId, projectId: data.projectId };
+    const existing = await this.repository.getIncidentByIncidentId(scope, data.incidentId);
 
     if (existing) {
-      await this.repository.updateIncidentLastEvaluated(existing.id);
+      await this.repository.updateIncidentLastEvaluated(scope, existing.id);
       return existing;
     }
 
@@ -35,8 +36,8 @@ export class IncidentsService {
     return incident;
   }
 
-  async checkForRecovery(alertRuleId: string, metricData: Record<string, unknown>) {
-    const activeIncidents = await this.repository.getActiveIncidentsForRule(alertRuleId);
+  async checkForRecovery(scope: IncidentScope, alertRuleId: string, metricData: Record<string, unknown>) {
+    const activeIncidents = await this.repository.getActiveIncidentsForRule(scope, alertRuleId);
 
     for (const incident of activeIncidents) {
       const metadata = incident.metadata as Record<string, unknown> | undefined;
@@ -61,10 +62,10 @@ export class IncidentsService {
       }
 
       if (recovered && !incident.recoveryNotified) {
-        const claimed = await this.repository.markRecoveryNotified(incident.id);
+        const claimed = await this.repository.markRecoveryNotified(scope, incident.id);
         if (!claimed) continue;
         await this.sendRecoveryNotification(incident);
-        const resolved = await this.repository.resolveIncident(incident.id);
+        const resolved = await this.repository.resolveIncident(scope, incident.id);
         if (resolved) {
           this.logger.log(`Resolved incident ${incident.incidentId} - condition recovered`);
         }
@@ -96,13 +97,13 @@ export class IncidentsService {
   }
 
   async acknowledgeIncident(scope: IncidentScope, id: number, acknowledgedBy: string, note?: string) {
-    const incident = await this.repository.acknowledgeIncident(id, acknowledgedBy, note, scope);
+    const incident = await this.repository.acknowledgeIncident(scope, id, acknowledgedBy, note);
     if (!incident) throw new NotFoundException("Incident not found or not firing");
     return incident;
   }
 
   async resolveIncident(scope: IncidentScope, id: number, resolvedBy?: string, note?: string) {
-    const incident = await this.repository.resolveIncident(id, resolvedBy, note, scope);
+    const incident = await this.repository.resolveIncident(scope, id, resolvedBy, note);
     if (!incident) throw new NotFoundException("Incident not found or already resolved");
     return incident;
   }

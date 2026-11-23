@@ -8,10 +8,16 @@
     "start:prod": "node dist/main",
     "test": "vitest",
     "test:e2e": "vitest --config vitest.e2e.config.ts",
-    "test:integration": "RUN_DB_TESTS=1 node test/setup-test-database.mjs && RUN_DB_TESTS=1 vitest run --config vitest.e2e.config.ts",
+    "test:integration": "RUN_DB_TESTS=1 vitest run --config vitest.e2e.config.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/common/db/migrate.ts",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "eval:synthetic:unit": "vitest run --config eval/vitest.eval.config.ts eval/synthetic/stats.eval.ts eval/synthetic/simulator.eval.ts eval/synthetic/report.eval.ts eval/synthetic/gate.eval.ts eval/synthetic/soak.unit.eval.ts",
+    "eval:synthetic": "vitest run --config eval/vitest.eval.config.ts eval/synthetic/suite.eval.ts",
+    "eval:synthetic:soak": "vitest run --config eval/vitest.eval.config.ts eval/synthetic/soak.eval.ts",
+    "eval:synthetic:report": "tsx eval/synthetic/report-cli.ts",
+    "eval:synthetic:gate": "tsx eval/synthetic/gate-cli.ts check",
+    "eval:synthetic:baseline": "tsx eval/synthetic/gate-cli.ts baseline"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1167.0",
@@ -59,6 +65,7 @@
     "@modelcontextprotocol/client": "^2.4.0",
     "@nestjs/cli": "^12.0.0",
     "@nestjs/schematics": "^12.0.0",
+    "@soonwhy/test-support": "workspace:*",
     "@swc/cli": "^0.8.2",
     "@swc/core": "^1.16.22",
     "@types/compression": "^1.8.1",

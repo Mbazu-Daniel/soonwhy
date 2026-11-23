@@ -15,6 +15,7 @@
     "start": "node dist/main",
     "start:prod": "node dist/main",
     "test": "vitest run test",
+    "test:integration": "RUN_DB_TESTS=1 vitest run --config vitest.integration.config.ts",
     "smoke": "node scripts/smoke-logs.mjs",
     "load-test": "node ../../scripts/load-test-ingest.mjs"
   },
@@ -31,6 +32,7 @@
   },
   "devDependencies": {
     "@nestjs/cli": "^12.0.0",
+    "@soonwhy/test-support": "workspace:*",
     "@types/express": "^5.0.6",
     "@types/node": "^24.13.3",
     "typescript": "^5.8.0"

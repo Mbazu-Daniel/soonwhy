@@ -11,14 +11,15 @@ import { buildRankingInputs } from "../src/modules/v1/detection/detections/root-
 import type { AnalysisSnapshot, AnalyzerOptions, RankedService, SpanRecord } from "./types";
 
 export const DEFAULT_OPTIONS: AnalyzerOptions = {
-  baselineWindow: 100,
-  recentWindow: 10,
+  baselineWindow: Number(process.env.EVAL_BASELINE_WINDOW ?? 100),
+  recentWindow: Number(process.env.EVAL_RECENT_WINDOW ?? 10),
   errorWindow: 20,
   traceWindow: 40,
   traceMode: process.env.EVAL_TRACE_MODE === "production" ? "production" : process.env.EVAL_TRACE_MODE === "full" ? "full" : "servers",
 };
 
 const ANOMALY_ONLY: ScoringWeights = { anomalySeverity: 1, graphPosition: 0, criticalPathContribution: 0, errorPropagation: 0 };
+const ERROR_PROPAGATION_ONLY: ScoringWeights = { anomalySeverity: 0, graphPosition: 0, criticalPathContribution: 0, errorPropagation: 1 };
 const CRITICAL_PATH_ONLY: ScoringWeights = { anomalySeverity: 0, graphPosition: 0, criticalPathContribution: 1, errorPropagation: 0 };
 
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
@@ -188,6 +189,10 @@ export class Analyzer {
     const input: RankingInput = this.options.traceMode === "production" ? { findings, ...this.productionInputs() } : { findings, traces: this.recentTraces(), errors, dependencyMap: this.dependencyMap() };
     const toList = (weights: ScoringWeights): RankedService[] =>
       this.ranker.rank({ ...input, weights }).candidates.filter((c) => c.candidateType === "service").map((c) => ({ service: c.serviceName, score: c.score }));
+    const fullResult = this.ranker.rank({ ...input, weights: DEFAULT_WEIGHTS });
+    const full = fullResult.candidates.filter((c) => c.candidateType === "service").map((c) => ({ service: c.serviceName, score: c.score }));
+    const errorCounts = new Map<string, number>();
+    for (const e of errors) errorCounts.set(e.serviceName, (errorCounts.get(e.serviceName) ?? 0) + 1);
 
     const firstErrorByService = new Map<string, number>();
     for (const e of errors) {
@@ -199,7 +204,19 @@ export class Analyzer {
       .sort((a, b) => (firstErrorByService.get(a) ?? Infinity) - (firstErrorByService.get(b) ?? Infinity))
       .map((service, i, all) => ({ service, score: firstErrorByService.has(service) ? all.length - i : 0 }));
 
-    return { at: now, full: toList(DEFAULT_WEIGHTS), anomalyOnly: toList(ANOMALY_ONLY), criticalPathOnly: toList(CRITICAL_PATH_ONLY), firstError, findingServices: flaggedServices };
+    const mostErrors = flaggedServices.map((service) => ({ service, score: errorCounts.get(service) ?? 0 }));
+    return {
+      at: now,
+      full,
+      anomalyOnly: toList(ANOMALY_ONLY),
+      criticalPathOnly: toList(CRITICAL_PATH_ONLY),
+      firstError,
+      errorPropagationOnly: toList(ERROR_PROPAGATION_ONLY),
+      mostErrors,
+      fullConfidence: fullResult.confidence,
+      fullCoverage: fullResult.overallEvidenceCoverage,
+      findingServices: flaggedServices,
+    };
   }
 
   private earliestAnomaly(): number | undefined {

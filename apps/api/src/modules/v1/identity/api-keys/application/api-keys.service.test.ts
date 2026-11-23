@@ -55,7 +55,7 @@ describe("ApiKeysService", () => {
   it("deletes a key inside the organization", async () => {
     const { service, repository } = build();
     await service.deleteApiKey("k1", "o1", "p1", "member");
-    expect(repository.deleteApiKey).toHaveBeenCalledWith("k1");
+    expect(repository.deleteApiKey).toHaveBeenCalledWith("k1", "o1");
   });
 
   it("refuses to delete a key that belongs to another project of the organization", async () => {

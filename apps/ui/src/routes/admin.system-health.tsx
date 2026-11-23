@@ -33,7 +33,7 @@ interface PipelineLagMetrics {
 interface DlqStats {
   total: number;
   unreplayed: number;
-  replayed: number;
+  replaying: number;
   successful: number;
   failed: number;
 }

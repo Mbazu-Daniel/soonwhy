@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { and, asc, desc, eq } from "drizzle-orm";
 import { db } from "../../../../../common/db";
 import { chatMessages, chatThreads } from "../../../../../common/db/schema";
@@ -43,35 +43,45 @@ export class ChatThreadsRepository {
       .limit(limit);
   }
 
-  listMessages(threadId: string, limit: number) {
-    return db
-      .select()
+  async listMessages(scope: ThreadScope, threadId: string, limit: number) {
+    const rows = await db
+      .select({ message: chatMessages })
       .from(chatMessages)
-      .where(eq(chatMessages.threadId, threadId))
+      .innerJoin(chatThreads, eq(chatThreads.id, chatMessages.threadId))
+      .where(owned(scope, threadId))
       .orderBy(asc(chatMessages.createdAt))
       .limit(limit);
+    return rows.map((row) => row.message);
   }
 
-  async recentMessages(threadId: string, limit: number) {
+  async recentMessages(scope: ThreadScope, threadId: string, limit: number) {
     const rows = await db
-      .select()
+      .select({ message: chatMessages })
       .from(chatMessages)
-      .where(eq(chatMessages.threadId, threadId))
+      .innerJoin(chatThreads, eq(chatThreads.id, chatMessages.threadId))
+      .where(owned(scope, threadId))
       .orderBy(desc(chatMessages.createdAt))
       .limit(limit);
-    return rows.reverse();
+    return rows.map((row) => row.message).reverse();
   }
 
-  async addMessage(message: NewChatMessage): Promise<void> {
-    await db.insert(chatMessages).values({
-      threadId: message.threadId,
-      role: message.role,
-      content: message.content,
-      steps: message.steps ?? [],
-      status: message.status ?? "complete",
-      totalTokens: message.totalTokens ?? 0,
+  async addMessage(scope: ThreadScope, message: NewChatMessage): Promise<void> {
+    await db.transaction(async (tx) => {
+      const touched = await tx
+        .update(chatThreads)
+        .set({ updatedAt: new Date() })
+        .where(owned(scope, message.threadId))
+        .returning({ id: chatThreads.id });
+      if (touched.length === 0) throw new NotFoundException("Conversation not found");
+      await tx.insert(chatMessages).values({
+        threadId: message.threadId,
+        role: message.role,
+        content: message.content,
+        steps: message.steps ?? [],
+        status: message.status ?? "complete",
+        totalTokens: message.totalTokens ?? 0,
+      });
     });
-    await db.update(chatThreads).set({ updatedAt: new Date() }).where(eq(chatThreads.id, message.threadId));
   }
 
   async deleteThread(scope: ThreadScope, threadId: string): Promise<boolean> {

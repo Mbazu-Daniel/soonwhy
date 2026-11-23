@@ -33,7 +33,7 @@ export class ServiceAccountsService {
 
   async listKeys(orgId: string, id: string) {
     await this.requireAccount(orgId, id);
-    return this.accounts.keys(id);
+    return this.accounts.keys(orgId, id);
   }
 
   async createKey(orgId: string, id: string, input: CreateServiceAccountKeyInput) {

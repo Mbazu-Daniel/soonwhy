@@ -149,7 +149,7 @@ export class SyntheticProbesService {
 
   async getProbeResults(scope: ProbeScope, probeId: number, limit: number = 100) {
     await this.getProbeById(scope, probeId);
-    return this.repository.getProbeResults(probeId, limit);
+    return this.repository.getProbeResults(scope, probeId, limit);
   }
 
   async executeProbeById(scope: ProbeScope, id: number) {
@@ -208,7 +208,8 @@ export class SyntheticProbesService {
       errorMessage,
     });
 
-    const results = await this.repository.getProbeResults(probe.id, 100);
+    const scope = { orgId: probe.orgId, projectId: probe.projectId };
+    const results = await this.repository.getProbeResults(scope, probe.id, 100);
     const currentResult = results[0];
     const lastStatus = computeProbeStatus(
       results.slice(0, 3).map((result) => result.status),
@@ -221,7 +222,7 @@ export class SyntheticProbesService {
         ? Math.round(((totalChecks - failedChecks) / totalChecks) * 100)
         : 100;
 
-    await this.repository.updateProbeStats(probe.id, {
+    await this.repository.updateProbeStats(scope, probe.id, {
       lastStatus,
       uptimePercent,
       totalChecks,

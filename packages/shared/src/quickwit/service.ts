@@ -1,6 +1,19 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { requiredEnvInProduction } from "../env";
 import { desiredCommitTimeout, withCommitTimeout } from "./indexing-settings";
+import {
+  commitTimeoutOf,
+  DUPLICATE_REPORT_SIZE,
+  duplicateAggregation,
+  duplicateReport,
+  eventIdQuery,
+  eventLookupAggregation,
+  foundEventIds,
+  type DuplicateReport,
+  type EventLookupRange,
+} from "./event-lookup";
+import { classifyIngestFailure, classifyIngestStatus } from "./ingest-error";
+import { parseIngestResponse, type QuickwitIngestResult } from "./ingest-result";
 import type { QuickwitSearchResponse, QuickwitSearchInput, QuickwitIndexDescription, QuickwitSplit } from "./service.types";
 
 @Injectable()
@@ -147,19 +160,61 @@ export class QuickwitService {
     }
   }
 
-  async ingest(indexId: string, documents: Record<string, unknown>[]): Promise<void> {
-    if (documents.length === 0) return;
-    const ndjson = documents
-      .map((document) => JSON.stringify(document))
-      .join("\n");
-    await this.request(
-      `/api/v1/${encodeURIComponent(indexId)}/ingest?commit=auto`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/x-ndjson" },
-        body: ndjson,
-      },
+  async ingest(indexId: string, documents: Record<string, unknown>[]): Promise<QuickwitIngestResult> {
+    if (documents.length === 0) return { received: 0, ingested: 0, rejected: [] };
+    const ndjson = documents.map((document) => JSON.stringify(document)).join("\n");
+
+    let response: Response;
+    try {
+      response = await fetch(
+        `${this.baseUrl}/api/v1/${encodeURIComponent(indexId)}/ingest?commit=auto&detailed_response=true`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/x-ndjson" },
+          body: ndjson,
+          signal: AbortSignal.timeout(this.timeoutMs),
+        },
+      );
+    } catch (error) {
+      throw classifyIngestFailure(error);
+    }
+
+    if (!response.ok) throw classifyIngestStatus(response.status, await response.text().catch(() => ""));
+
+    try {
+      return parseIngestResponse(await response.json());
+    } catch (error) {
+      throw classifyIngestFailure(error);
+    }
+  }
+
+  async commitTimeoutSecs(indexId: string): Promise<number> {
+    const current = await this.request<{ index_config?: Record<string, unknown> }>(
+      `/api/v1/indexes/${encodeURIComponent(indexId)}`,
+      { method: "GET" },
     );
+    return commitTimeoutOf(current.index_config);
+  }
+
+  async findEventIds(indexId: string, eventIds: string[], range?: EventLookupRange): Promise<Set<string>> {
+    if (eventIds.length === 0) return new Set();
+    const response = await this.search<unknown>(indexId, {
+      query: eventIdQuery(eventIds),
+      maxHits: 0,
+      aggregations: eventLookupAggregation(eventIds.length),
+      ...range,
+    });
+    return foundEventIds(response);
+  }
+
+  async duplicateReport(indexId: string, range: EventLookupRange, size = DUPLICATE_REPORT_SIZE): Promise<DuplicateReport> {
+    const response = await this.search<unknown>(indexId, {
+      query: "*",
+      maxHits: 0,
+      aggregations: duplicateAggregation(size),
+      ...range,
+    });
+    return duplicateReport(response, size);
   }
 
   async search<T>(

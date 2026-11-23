@@ -3,7 +3,8 @@ import { stableEventId } from "./event-id";
 import { nanoToMs } from "./time";
 import { spanDetailFields } from "./span-details";
 import { httpStatusCodeOf } from "./http-fields";
-import { applyLogAttributePolicy, applySpanAttributePolicy, sanitizeSensitiveText } from "./attribute-policy";
+import { CONNECTION_POOL_NAME_KEY } from "./attribute-policy.constants";
+import { applyLogAttributePolicy, applyMetricAttributePolicy, applySpanAttributePolicy, sanitizeSensitiveText } from "./attribute-policy";
 import { sanitizeDatabaseQuery } from "./sanitize-sql";
 import { EXCEPTION_STACKTRACE_KEY, MAX_STORED_STACK_LENGTH } from "./exception-attributes";
 import type { ParsedLogRecord, ParsedMetricPoint, ParsedSpan, OrganizationContext } from "../interfaces";
@@ -346,21 +347,8 @@ export function mapMetricToRow(
   point: ParsedMetricPoint,
   organization: OrganizationContext,
 ) {
-  const connectionPoolName =
-    typeof point.attributes["db.client.connection.pool.name"] === "string"
-      ? point.attributes["db.client.connection.pool.name"]
-      : undefined;
-  const connectionPoolState =
-    typeof point.attributes["db.client.connection.state"] === "string"
-      ? point.attributes["db.client.connection.state"]
-      : undefined;
-  const attributes = Object.fromEntries(
-    Object.entries(point.attributes).slice(0, 50),
-  );
-  if (connectionPoolName)
-    attributes["db.client.connection.pool.name"] = connectionPoolName;
-  if (connectionPoolState)
-    attributes["db.client.connection.state"] = connectionPoolState;
+  const attributes = applyMetricAttributePolicy(point.attributes);
+  const connectionPoolName = attributes[CONNECTION_POOL_NAME_KEY];
   return {
     id: randomUUID(),
     eventId: stableEventId([

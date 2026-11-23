@@ -60,7 +60,7 @@ export class ServiceAccountsRepository {
     return rows.length > 0;
   }
 
-  async keys(serviceAccountId: string) {
+  async keys(orgId: string, serviceAccountId: string) {
     return db
       .select({
         id: apiKeys.id,
@@ -73,7 +73,8 @@ export class ServiceAccountsRepository {
         createdAt: apiKeys.createdAt,
       })
       .from(apiKeys)
-      .where(eq(apiKeys.serviceAccountId, serviceAccountId));
+      .innerJoin(serviceAccounts, eq(serviceAccounts.id, apiKeys.serviceAccountId))
+      .where(and(eq(apiKeys.serviceAccountId, serviceAccountId), eq(serviceAccounts.organizationId, orgId)));
   }
 
   async projectIds(orgId: string, ids: string[]) {

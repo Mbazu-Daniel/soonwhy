@@ -48,8 +48,8 @@ function fakeThreads() {
       const thread = threads.get(id);
       return thread && thread.userId === scope.userId ? thread : undefined;
     }),
-    recentMessages: vi.fn(async (id: string) => messages.filter((message) => message.threadId === id)),
-    addMessage: vi.fn(async (message: Partial<StoredMessage> & { threadId: string; role: "user" | "assistant"; content: string }) => {
+    recentMessages: vi.fn(async (_scope: unknown, id: string) => messages.filter((message) => message.threadId === id)),
+    addMessage: vi.fn(async (_scope: unknown, message: Partial<StoredMessage> & { threadId: string; role: "user" | "assistant"; content: string }) => {
       messages.push({ steps: [], status: "complete", totalTokens: 0, ...message });
     }),
   };

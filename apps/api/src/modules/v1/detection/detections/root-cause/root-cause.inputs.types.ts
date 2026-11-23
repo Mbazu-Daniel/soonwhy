@@ -11,6 +11,17 @@ export interface SpanRecord {
   exceptionMessage?: string;
 }
 
+export interface TraceLoad {
+  traces: SpanRecord[][];
+  failed: string[];
+  notFound: string[];
+  requested: number;
+}
+
+export interface TraceSource {
+  getTrace(orgId: string, projectId: string, traceId: string): Promise<{ spans: readonly unknown[] }>;
+}
+
 export interface RankingTelemetry {
-  loadTraces(orgId: string, projectId: string, traceIds: string[]): Promise<SpanRecord[][]>;
+  loadTraces(orgId: string, projectId: string, traceIds: string[]): Promise<TraceLoad>;
 }

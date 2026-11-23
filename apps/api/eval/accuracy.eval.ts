@@ -15,12 +15,27 @@ interface Scenario {
   targets: ServiceName[];
 }
 
-const SCENARIOS: Scenario[] = [
-  { name: "serial_delay", fault: { delayMs: 400 }, targets: ["db", "fraud", "orders"] },
-  { name: "error_rate", fault: { errorRate: 0.4 }, targets: ["fraud", "db", "inventory"] },
-  { name: "contention", fault: { spinMs: 300 }, targets: ["inventory", "payments", "orders"] },
-  { name: "fanout_delay", fault: { delayMs: 500 }, targets: ["inventory", "payments"] },
-];
+const SCENARIO_SETS: Record<string, Scenario[]> = {
+  default: [
+    { name: "serial_delay", fault: { delayMs: 400 }, targets: ["db", "fraud", "orders"] },
+    { name: "error_rate", fault: { errorRate: 0.4 }, targets: ["fraud", "db", "inventory"] },
+    { name: "contention", fault: { spinMs: 300 }, targets: ["inventory", "payments", "orders"] },
+    { name: "fanout_delay", fault: { delayMs: 500 }, targets: ["inventory", "payments"] },
+  ],
+  heldout: [
+    { name: "serial_delay", fault: { delayMs: 350 }, targets: ["payments", "inventory", "gateway"] },
+    { name: "error_rate", fault: { errorRate: 0.3 }, targets: ["orders", "payments", "gateway"] },
+    { name: "contention", fault: { spinMs: 350 }, targets: ["db", "fraud", "gateway"] },
+    { name: "fanout_delay", fault: { delayMs: 450 }, targets: ["inventory", "payments"] },
+  ],
+  sweep: [
+    ...[100, 150, 200, 250, 300, 400].map((ms) => ({ name: `sweep_delay_${ms}`, fault: { delayMs: ms }, targets: ["db"] as ServiceName[] })),
+    ...[0.02, 0.05, 0.1, 0.2, 0.4].map((rate) => ({ name: `sweep_error_${rate}`, fault: { errorRate: rate }, targets: ["fraud"] as ServiceName[] })),
+  ],
+};
+const SCENARIO_SET = process.env.EVAL_SCENARIO_SET ?? "default";
+const SCENARIOS: Scenario[] = SCENARIO_SETS[SCENARIO_SET];
+const SEED_BASE = Number(process.env.EVAL_SEED_BASE ?? 1000);
 
 const METHODS = ["full", "anomalyOnly", "criticalPathOnly", "firstError"] as const;
 
@@ -86,7 +101,7 @@ describe("controlled fault-injection evaluation", () => {
 
   it("runs every scenario and the no-fault control", async () => {
     const rows: Record<string, unknown>[] = [];
-    let seed = 1000;
+    let seed = SEED_BASE;
     for (const scenario of SCENARIOS) {
       for (const target of scenario.targets) {
         for (let rep = 0; rep < REPS; rep++) {
@@ -104,6 +119,7 @@ describe("controlled fault-injection evaluation", () => {
       console.log(`[${rows.length}] no_fault #${i} falseAlarm=${row.detected || row.preOnsetFinding}`);
     }
     mkdirSync(new URL("./results", import.meta.url).pathname, { recursive: true });
-    writeFileSync(new URL(process.env.EVAL_TRACE_MODE === "production" ? "./results/accuracy-production.json" : process.env.EVAL_TRACE_MODE === "full" ? "./results/accuracy-selftime.json" : "./results/accuracy.json", import.meta.url).pathname, JSON.stringify({ config: { traceMode: process.env.EVAL_TRACE_MODE ?? "servers", REPS, NORMAL_RUNS, WARMUP_REQUESTS, FAULT_REQUESTS }, rows }, null, 2));
+    const outFile = process.env.EVAL_OUT ? `./results/${process.env.EVAL_OUT}.json` : process.env.EVAL_TRACE_MODE === "production" ? "./results/accuracy-production.json" : process.env.EVAL_TRACE_MODE === "full" ? "./results/accuracy-selftime.json" : "./results/accuracy.json";
+    writeFileSync(new URL(outFile, import.meta.url).pathname, JSON.stringify({ config: { traceMode: process.env.EVAL_TRACE_MODE ?? "servers", scenarioSet: SCENARIO_SET, seedBase: SEED_BASE, baselineWindow: Number(process.env.EVAL_BASELINE_WINDOW ?? 100), recentWindow: Number(process.env.EVAL_RECENT_WINDOW ?? 10), REPS, NORMAL_RUNS, WARMUP_REQUESTS, FAULT_REQUESTS }, rows }, null, 2));
   });
 });

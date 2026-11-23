@@ -33,6 +33,6 @@ export class ApiKeysService {
     if (key.serviceAccountId && !KEY_ADMIN_ROLES.has(role)) {
       throw new ForbiddenException("Only owners and admins can delete service account keys");
     }
-    return this.apiKeysRepository.deleteApiKey(id);
+    return this.apiKeysRepository.deleteApiKey(id, orgId);
   }
 }

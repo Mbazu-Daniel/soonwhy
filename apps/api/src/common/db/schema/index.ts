@@ -77,6 +77,7 @@ export {
 export { statusPageSubscriptions, statusPageAnalytics } from "./status-page-subscriptions";
 export { canaryDeployments } from "./canary-deployments";
 export { deadLetterQueue } from "./dead-letter-queue";
+export { deadLetterQueueAttempts } from "./dead-letter-queue-attempts";
 export { searchAudit } from "./search-audit";
 export { ingestEventReceipts } from "./ingest-event-receipts";
 export { incidents } from "./incidents";

@@ -28,7 +28,20 @@ export interface RootCauseCandidate {
     percentageDeviation?: number;
     severity?: 'warning' | 'critical';
     anomalyScore?: number;
+    baselineZero?: boolean;
+    findingsAggregated?: number;
   };
+}
+
+export type ConfidenceTier = 'high' | 'medium' | 'low';
+
+export interface CriticalPathTraceEvidence {
+  traceId?: string;
+  spanIds: string[];
+  selfTimeMs: number;
+  traceDurationMs: number;
+  percent: number;
+  onCriticalPath: boolean;
 }
 
 export interface SignalScores {
@@ -62,14 +75,15 @@ export interface SignalEvidence {
     contributionPercent?: number;
     isOnCriticalPath: boolean;
     frequencyInSlowTraces?: number;
+    perTrace?: CriticalPathTraceEvidence[];
   };
 
   errorPropagation: {
-    firstErrorTimestamp?: string;
-    errorFrequency?: number;
-    affectedTraces?: number;
-    downstreamErrorsFollow?: boolean;
-    consistentPattern?: boolean;
+    originTraces: number;
+    inconclusiveTraces: number;
+    propagatedTo: string[];
+    absorbedCount: number;
+    examples?: Array<{ traceId?: string; spanId: string }>;
   };
 }
 
@@ -81,6 +95,8 @@ export interface RankedCandidate extends RootCauseCandidate {
   signalEvidence: Partial<SignalEvidence>;
 
   evidenceCoverage: number;
+
+  confidence: ConfidenceTier;
 
   limitations: string[];
 }
@@ -105,6 +121,8 @@ export interface RankingResult {
   weights: ScoringWeights;
 
   overallEvidenceCoverage: number;
+
+  confidence: ConfidenceTier;
 
   limitations: string[];
 }

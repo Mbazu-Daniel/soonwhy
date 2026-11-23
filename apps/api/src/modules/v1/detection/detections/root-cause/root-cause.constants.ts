@@ -1,0 +1,7 @@
+export const CONFIDENCE_HIGH_MIN_SCORE = 0.75;
+export const CONFIDENCE_MEDIUM_MIN_SCORE = 0.5;
+export const SATURATED_DEVIATION_PERCENT = 1000;
+export const MAX_PER_TRACE_EVIDENCE = 5;
+export const FULL_PERCENT = 100;
+export const MIN_TRACE_LOAD_RATIO = 0.7;
+export const MAX_PROPAGATION_EXAMPLES = 3;

@@ -1,0 +1,63 @@
+{
+  "description": "Per-scenario results of the synthetic suite. Change only by a deliberate commit.",
+  "split": "tuning-smoke",
+  "overallTop1": 0.9320987654320988,
+  "scenarios": {
+    "serial_delay": {
+      "score": 1,
+      "runs": 27
+    },
+    "error_rate": {
+      "score": 1,
+      "runs": 27
+    },
+    "contention": {
+      "score": 1,
+      "runs": 27
+    },
+    "fanout_delay": {
+      "score": 1,
+      "runs": 27
+    },
+    "cascading_retry": {
+      "score": 1,
+      "runs": 27
+    },
+    "two_faults": {
+      "score": 1,
+      "runs": 27
+    },
+    "absorbed_error": {
+      "score": 1,
+      "runs": 27
+    },
+    "sampling_gap_20": {
+      "score": 1,
+      "runs": 27
+    },
+    "sampling_gap_50": {
+      "score": 0.7777777777777778,
+      "runs": 27
+    },
+    "clock_skew_50ms": {
+      "score": 1,
+      "runs": 27
+    },
+    "clock_skew_500ms": {
+      "score": 0.7407407407407407,
+      "runs": 27
+    },
+    "missing_parents": {
+      "score": 0.6666666666666666,
+      "runs": 27
+    },
+    "baseline_shift": {
+      "score": 1,
+      "runs": 21
+    },
+    "latency_noise": {
+      "score": 1,
+      "runs": 21
+    }
+  }
+}

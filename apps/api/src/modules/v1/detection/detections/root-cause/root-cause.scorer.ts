@@ -61,3 +61,10 @@ export function calculateScoreWithMissingSignals(
 
   return { score, availableSignals };
 }
+
+export function weightedCoverage(availableSignals: string[], weights: ScoringWeights): number {
+  const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
+  if (total === 0) return 0;
+  const measured = availableSignals.reduce((sum, signal) => sum + (weights[signal as SignalKey] ?? 0), 0);
+  return measured / total;
+}
