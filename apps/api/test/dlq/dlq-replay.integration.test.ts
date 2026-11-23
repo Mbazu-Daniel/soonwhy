@@ -3,6 +3,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "../../src/common/db";
 import { deadLetterQueue } from "../../src/common/db/schema";
 import { DlqService } from "../../src/modules/v1/telemetry/dlq/application/dlq.service";
+import { ALL_ORGANIZATIONS } from "../../src/modules/v1/telemetry/dlq/domain/dlq.scope";
 import { DLQ_REPLAY_STATUS } from "../../src/modules/v1/telemetry/dlq/domain/dlq.constants";
 import { DlqRepository } from "../../src/modules/v1/telemetry/dlq/infrastructure/dlq.repository";
 import { closeDatabase, databaseTestsEnabled, resetDatabase } from "../support/test-database";
@@ -49,7 +50,7 @@ describe.skipIf(!databaseTestsEnabled)("DLQ replay state machine", () => {
       const entry = await insertEntry();
 
       const results = await Promise.all(
-        Array.from({ length: PARALLEL_CLAIMS }, () => repository.claimReplay(entry.id, ACTOR)),
+        Array.from({ length: PARALLEL_CLAIMS }, () => repository.claimReplay(entry.id, ACTOR, false, ALL_ORGANIZATIONS)),
       );
 
       expect(results.filter(Boolean)).toHaveLength(1);
@@ -61,46 +62,46 @@ describe.skipIf(!databaseTestsEnabled)("DLQ replay state machine", () => {
 
     it("refuses a second claim while the lease is still held", async () => {
       const entry = await insertEntry();
-      await repository.claimReplay(entry.id, ACTOR);
+      await repository.claimReplay(entry.id, ACTOR, false, ALL_ORGANIZATIONS);
 
-      expect(await repository.claimReplay(entry.id, ACTOR)).toBeUndefined();
+      expect(await repository.claimReplay(entry.id, ACTOR, false, ALL_ORGANIZATIONS)).toBeUndefined();
     });
 
     it("lets a crashed claim be taken over once its lease has expired", async () => {
       const entry = await insertEntry();
-      await repository.claimReplay(entry.id, ACTOR);
+      await repository.claimReplay(entry.id, ACTOR, false, ALL_ORGANIZATIONS);
       await expireLease(entry.id);
 
-      const reclaimed = await repository.claimReplay(entry.id, ACTOR);
+      const reclaimed = await repository.claimReplay(entry.id, ACTOR, false, ALL_ORGANIZATIONS);
 
       expect(reclaimed?.replayAttempts).toBe(2);
     });
 
     it("allows a failed entry to be claimed again", async () => {
       const entry = await insertEntry();
-      const first = await repository.claimReplay(entry.id, ACTOR);
+      const first = await repository.claimReplay(entry.id, ACTOR, false, ALL_ORGANIZATIONS);
       await repository.finalizeReplay(entry.id, first!.replayAttempts!, false, "boom");
 
-      const second = await repository.claimReplay(entry.id, ACTOR);
+      const second = await repository.claimReplay(entry.id, ACTOR, false, ALL_ORGANIZATIONS);
 
       expect(second?.replayAttempts).toBe(2);
     });
 
     it("never claims an entry that already succeeded", async () => {
       const entry = await insertEntry();
-      const claimed = await repository.claimReplay(entry.id, ACTOR);
+      const claimed = await repository.claimReplay(entry.id, ACTOR, false, ALL_ORGANIZATIONS);
       await repository.finalizeReplay(entry.id, claimed!.replayAttempts!, true);
 
-      expect(await repository.claimReplay(entry.id, ACTOR)).toBeUndefined();
+      expect(await repository.claimReplay(entry.id, ACTOR, false, ALL_ORGANIZATIONS)).toBeUndefined();
     });
   });
 
   describe("finalize", () => {
     it("rejects a stale worker whose claim was taken over", async () => {
       const entry = await insertEntry();
-      const stale = await repository.claimReplay(entry.id, ACTOR);
+      const stale = await repository.claimReplay(entry.id, ACTOR, false, ALL_ORGANIZATIONS);
       await expireLease(entry.id);
-      const current = await repository.claimReplay(entry.id, ACTOR);
+      const current = await repository.claimReplay(entry.id, ACTOR, false, ALL_ORGANIZATIONS);
 
       const staleResult = await repository.finalizeReplay(entry.id, stale!.replayAttempts!, true);
 
@@ -113,7 +114,7 @@ describe.skipIf(!databaseTestsEnabled)("DLQ replay state machine", () => {
 
     it("records the error of a failed replay and clears the lease", async () => {
       const entry = await insertEntry();
-      const claimed = await repository.claimReplay(entry.id, ACTOR);
+      const claimed = await repository.claimReplay(entry.id, ACTOR, false, ALL_ORGANIZATIONS);
 
       await repository.finalizeReplay(entry.id, claimed!.replayAttempts!, false, "publish timed out");
 
@@ -192,13 +193,13 @@ describe.skipIf(!databaseTestsEnabled)("DLQ replay state machine", () => {
       const replaying = await insertEntry();
       const failed = await insertEntry();
       const succeeded = await insertEntry();
-      await repository.claimReplay(replaying.id, ACTOR);
-      const failedClaim = await repository.claimReplay(failed.id, ACTOR);
+      await repository.claimReplay(replaying.id, ACTOR, false, ALL_ORGANIZATIONS);
+      const failedClaim = await repository.claimReplay(failed.id, ACTOR, false, ALL_ORGANIZATIONS);
       await repository.finalizeReplay(failed.id, failedClaim!.replayAttempts!, false, "boom");
-      const succeededClaim = await repository.claimReplay(succeeded.id, ACTOR);
+      const succeededClaim = await repository.claimReplay(succeeded.id, ACTOR, false, ALL_ORGANIZATIONS);
       await repository.finalizeReplay(succeeded.id, succeededClaim!.replayAttempts!, true);
 
-      const stats = await repository.getDlqStats();
+      const stats = await repository.getDlqStats(ALL_ORGANIZATIONS);
 
       expect(pending.id).toBeDefined();
       expect(Number(stats!.total)).toBe(4);
@@ -211,9 +212,9 @@ describe.skipIf(!databaseTestsEnabled)("DLQ replay state machine", () => {
     it("cleanup removes old succeeded entries but never failed ones", async () => {
       const succeeded = await insertEntry();
       const failed = await insertEntry();
-      const succeededClaim = await repository.claimReplay(succeeded.id, ACTOR);
+      const succeededClaim = await repository.claimReplay(succeeded.id, ACTOR, false, ALL_ORGANIZATIONS);
       await repository.finalizeReplay(succeeded.id, succeededClaim!.replayAttempts!, true);
-      const failedClaim = await repository.claimReplay(failed.id, ACTOR);
+      const failedClaim = await repository.claimReplay(failed.id, ACTOR, false, ALL_ORGANIZATIONS);
       await repository.finalizeReplay(failed.id, failedClaim!.replayAttempts!, false, "boom");
       await db.update(deadLetterQueue).set({ replayedAt: sql`now() - interval '30 days'` });
 
